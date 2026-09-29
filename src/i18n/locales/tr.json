@@ -125,6 +125,7 @@
       "too_short": "Biraz daha metin ekle — en az 30 kelime — Quelio'nun yeterli içeriği olsun.",
       "too_long": "Bu oldukça uzun bir metin. Lütfen 5.000 kelimenin altında tut.",
       "not_supported": "Bu ayarlarla ilgili bir şey şu anda desteklenmiyor. Lütfen ayarları düzenleyip tekrar dene.",
+      "model": "Quelio'nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen kısa süre sonra tekrar dene.",
       "upstream": "Quizini oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
       "parse": "Quelio bu sefer geçerli bir quiz okuyamadı. Lütfen tekrar dene.",
       "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",

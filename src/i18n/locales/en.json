@@ -125,6 +125,7 @@
       "too_short": "Add a bit more text — at least 30 words — so Quelio has enough to work with.",
       "too_long": "That's a lot of text. Please keep it under 5,000 words.",
       "not_supported": "Something about these settings isn't supported right now. Please adjust them and try again.",
+      "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
       "upstream": "Something went wrong generating your quiz. Please try again.",
       "parse": "Quelio couldn't read a valid quiz this time. Please try again.",
       "network": "Couldn't connect. Check your connection and try again.",

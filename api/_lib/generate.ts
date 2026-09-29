@@ -1,13 +1,16 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
-import { callAnthropicMessages, extractJson, isRecord, readRequestBody, resolveModel } from './anthropic.js'
+import { extractJson, isRecord, readRequestBody } from './anthropic.js'
+import { generateJson } from './llm.js'
+import type { LlmProvider } from './llm.js'
 import { sanitizeGeneratedQuiz, sanitizeQuizQuestion } from '../../src/lib/quiz.js'
 import type { GeneratedQuiz, QuizPair, QuizQuestion, QuizQuestionType } from '../../src/lib/quiz.js'
 import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../../src/lib/textStats.js'
 import { QUESTION_TYPES } from '../../src/lib/quizTypes.js'
 import type { QuestionType } from '../../src/lib/quizTypes.js'
 
-export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse'
+export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model'
+export type ResponseProvider = LlmProvider | 'demo'
 
 export interface GenerateApiErrorBody {
   error: GenerateErrorCode
@@ -15,11 +18,15 @@ export interface GenerateApiErrorBody {
 
 export interface GenerateQuizResponseBody extends GeneratedQuiz {
   demo: boolean
+  provider: ResponseProvider
+  fallbackUsed: boolean
 }
 
 export interface RegenerateOneResponseBody {
   question: QuizQuestion
   demo: boolean
+  provider: ResponseProvider
+  fallbackUsed: boolean
 }
 
 export type GenerateResponseBody = GenerateQuizResponseBody | RegenerateOneResponseBody | GenerateApiErrorBody
@@ -115,60 +122,54 @@ function maxTokensForGenerate(questionCount: number, questionType: QuestionType)
   return Math.min(4096, Math.max(500, 300 + questionCount * perQuestion))
 }
 
+type ProviderOutcome<T> = (T & { provider: LlmProvider; fallbackUsed: boolean }) | { error: GenerateErrorCode } | { demo: true }
+
 async function callGenerate(params: {
-  apiKey: string
-  model: string
   text: string
   questionType: QuestionType
   questionCount: number
   difficulty: string
   optionsCount?: string
   outputLanguage: string
-}): Promise<{ quiz: GeneratedQuiz } | { error: GenerateErrorCode }> {
+}): Promise<ProviderOutcome<{ quiz: GeneratedQuiz }>> {
   const system = buildGenerateSystemPrompt(params)
   const userMessage = `<source_text>\n${params.text}\n</source_text>\n\nWrite the quiz now.`
 
-  const text = await callAnthropicMessages({
-    apiKey: params.apiKey,
-    model: params.model,
-    maxTokens: maxTokensForGenerate(params.questionCount, params.questionType),
+  const result = await generateJson({
     system,
-    content: [{ type: 'text', text: userMessage }],
+    user: userMessage,
+    maxTokens: maxTokensForGenerate(params.questionCount, params.questionType),
   })
-  if (text === null) return { error: 'upstream' }
 
-  const parsedJson = extractJson(text)
+  if (result.status === 'demo') return { demo: true }
+  if (result.status === 'error') return { error: result.error }
+
+  const parsedJson = extractJson(result.text)
   if (parsedJson === null) return { error: 'parse' }
 
   const quiz = sanitizeGeneratedQuiz(parsedJson)
   if (quiz === null) return { error: 'parse' }
 
-  return { quiz }
+  return { quiz, provider: result.provider, fallbackUsed: result.fallbackUsed }
 }
 
 async function callRegenerateOne(params: {
-  apiKey: string
-  model: string
   text: string
   questionType: QuizQuestionType
   difficulty: string
   optionsCount?: string
   outputLanguage: string
   avoidQuestions: string[]
-}): Promise<{ question: QuizQuestion } | { error: GenerateErrorCode }> {
+}): Promise<ProviderOutcome<{ question: QuizQuestion }>> {
   const system = buildRegenerateSystemPrompt(params)
   const userMessage = `<source_text>\n${params.text}\n</source_text>\n\nWrite the question now.`
 
-  const text = await callAnthropicMessages({
-    apiKey: params.apiKey,
-    model: params.model,
-    maxTokens: 500,
-    system,
-    content: [{ type: 'text', text: userMessage }],
-  })
-  if (text === null) return { error: 'upstream' }
+  const result = await generateJson({ system, user: userMessage, maxTokens: 500 })
 
-  const parsedJson = extractJson(text)
+  if (result.status === 'demo') return { demo: true }
+  if (result.status === 'error') return { error: result.error }
+
+  const parsedJson = extractJson(result.text)
   if (parsedJson === null) return { error: 'parse' }
 
   const questionRaw = isRecord(parsedJson) && 'question' in parsedJson ? parsedJson.question : parsedJson
@@ -176,7 +177,7 @@ async function callRegenerateOne(params: {
   const question = sanitizeQuizQuestion(questionRaw, () => `q_${Date.now().toString(36)}_${counter++}`)
   if (question === null) return { error: 'parse' }
 
-  return { question }
+  return { question, provider: result.provider, fallbackUsed: result.fallbackUsed }
 }
 
 // ---- Demo content (no ANTHROPIC_API_KEY configured) ----
@@ -358,7 +359,122 @@ function errorStatus(code: GenerateErrorCode): number {
       return 400
     case 'upstream':
     case 'parse':
+    case 'model':
       return 502
+  }
+}
+
+/** Pure request-handling core, independent of the HTTP transport — shared by the Vercel entry point and the check:llm script. */
+export async function handleGenerateRequest(payload: unknown): Promise<{ status: number; body: GenerateResponseBody }> {
+  if (!isRecord(payload)) {
+    return { status: 400, body: { error: 'not_supported' } }
+  }
+
+  const mode: 'generate' | 'regenerate_one' | null =
+    payload.mode === 'regenerate_one' ? 'regenerate_one' : payload.mode === undefined || payload.mode === 'generate' ? 'generate' : null
+  if (mode === null) {
+    return { status: 400, body: { error: 'not_supported' } }
+  }
+
+  const text = typeof payload.text === 'string' ? payload.text : ''
+  const wordCount = countWords(text)
+  if (wordCount < MIN_QUIZ_WORDS) {
+    return { status: 400, body: { error: 'too_short' } }
+  }
+  if (wordCount > MAX_QUIZ_WORDS) {
+    return { status: 400, body: { error: 'too_long' } }
+  }
+
+  const difficulty = typeof payload.difficulty === 'string' && DIFFICULTIES.has(payload.difficulty) ? payload.difficulty : null
+  if (!difficulty) {
+    return { status: 400, body: { error: 'not_supported' } }
+  }
+
+  const questionTypeRaw = typeof payload.questionType === 'string' ? payload.questionType : ''
+  const allowedTypes = mode === 'generate' ? GENERATE_QUESTION_TYPES : CONCRETE_QUESTION_TYPES
+  if (!allowedTypes.has(questionTypeRaw)) {
+    return { status: 400, body: { error: 'not_supported' } }
+  }
+  const questionType = questionTypeRaw as QuestionType
+
+  const needsOptionsCount = questionType === 'mcq' || questionType === 'mixed'
+  const optionsCountRaw = typeof payload.optionsCount === 'string' ? payload.optionsCount : undefined
+  if (needsOptionsCount && (!optionsCountRaw || !OPTIONS_COUNTS.has(optionsCountRaw))) {
+    return { status: 400, body: { error: 'not_supported' } }
+  }
+  const optionsCount = needsOptionsCount ? optionsCountRaw : undefined
+
+  const outputLanguage =
+    typeof payload.outputLanguage === 'string' && OUTPUT_LANGUAGES.has(payload.outputLanguage) ? payload.outputLanguage : 'auto'
+  const uiLanguage = typeof payload.uiLanguage === 'string' && UI_LANGUAGES.has(payload.uiLanguage) ? payload.uiLanguage : 'en'
+
+  if (mode === 'regenerate_one') {
+    const avoidQuestions = Array.isArray(payload.avoidQuestions)
+      ? payload.avoidQuestions.filter((question): question is string => typeof question === 'string').slice(0, 50)
+      : []
+
+    let result: Awaited<ReturnType<typeof callRegenerateOne>>
+    try {
+      result = await callRegenerateOne({
+        text,
+        questionType: questionType as QuizQuestionType,
+        difficulty,
+        optionsCount,
+        outputLanguage,
+        avoidQuestions,
+      })
+    } catch (error) {
+      console.error('generate: regenerate_one failed', error instanceof Error ? error.message : 'unknown error')
+      result = { error: 'upstream' }
+    }
+
+    if ('demo' in result) {
+      return {
+        status: 200,
+        body: { question: buildDemoQuestion(questionType as QuizQuestionType, uiLanguage, Date.now()), demo: true, provider: 'demo', fallbackUsed: false },
+      }
+    }
+    if ('error' in result) {
+      return { status: errorStatus(result.error), body: { error: result.error } }
+    }
+    return {
+      status: 200,
+      body: { question: result.question, demo: false, provider: result.provider, fallbackUsed: result.fallbackUsed },
+    }
+  }
+
+  const questionCountParsed = typeof payload.questionCount === 'string' ? Number.parseInt(payload.questionCount, 10) : Number.NaN
+  if (!Number.isInteger(questionCountParsed) || questionCountParsed < 1 || questionCountParsed > 30) {
+    return { status: 400, body: { error: 'not_supported' } }
+  }
+
+  let result: Awaited<ReturnType<typeof callGenerate>>
+  try {
+    result = await callGenerate({
+      text,
+      questionType,
+      questionCount: questionCountParsed,
+      difficulty,
+      optionsCount,
+      outputLanguage,
+    })
+  } catch (error) {
+    console.error('generate: failed', error instanceof Error ? error.message : 'unknown error')
+    result = { error: 'upstream' }
+  }
+
+  if ('demo' in result) {
+    return {
+      status: 200,
+      body: { ...buildDemoQuiz(questionType, questionCountParsed, uiLanguage), demo: true, provider: 'demo', fallbackUsed: false },
+    }
+  }
+  if ('error' in result) {
+    return { status: errorStatus(result.error), body: { error: result.error } }
+  }
+  return {
+    status: 200,
+    body: { ...result.quiz, demo: false, provider: result.provider, fallbackUsed: result.fallbackUsed },
   }
 }
 
@@ -390,125 +506,6 @@ export async function generateRequestHandler(req: IncomingMessage, res: ServerRe
     return
   }
 
-  if (!isRecord(payload)) {
-    respond(400, { error: 'not_supported' })
-    return
-  }
-
-  const mode: 'generate' | 'regenerate_one' | null =
-    payload.mode === 'regenerate_one' ? 'regenerate_one' : payload.mode === undefined || payload.mode === 'generate' ? 'generate' : null
-  if (mode === null) {
-    respond(400, { error: 'not_supported' })
-    return
-  }
-
-  const text = typeof payload.text === 'string' ? payload.text : ''
-  const wordCount = countWords(text)
-  if (wordCount < MIN_QUIZ_WORDS) {
-    respond(400, { error: 'too_short' })
-    return
-  }
-  if (wordCount > MAX_QUIZ_WORDS) {
-    respond(400, { error: 'too_long' })
-    return
-  }
-
-  const difficulty = typeof payload.difficulty === 'string' && DIFFICULTIES.has(payload.difficulty) ? payload.difficulty : null
-  if (!difficulty) {
-    respond(400, { error: 'not_supported' })
-    return
-  }
-
-  const questionTypeRaw = typeof payload.questionType === 'string' ? payload.questionType : ''
-  const allowedTypes = mode === 'generate' ? GENERATE_QUESTION_TYPES : CONCRETE_QUESTION_TYPES
-  if (!allowedTypes.has(questionTypeRaw)) {
-    respond(400, { error: 'not_supported' })
-    return
-  }
-  const questionType = questionTypeRaw as QuestionType
-
-  const needsOptionsCount = questionType === 'mcq' || questionType === 'mixed'
-  const optionsCountRaw = typeof payload.optionsCount === 'string' ? payload.optionsCount : undefined
-  if (needsOptionsCount && (!optionsCountRaw || !OPTIONS_COUNTS.has(optionsCountRaw))) {
-    respond(400, { error: 'not_supported' })
-    return
-  }
-  const optionsCount = needsOptionsCount ? optionsCountRaw : undefined
-
-  const outputLanguage =
-    typeof payload.outputLanguage === 'string' && OUTPUT_LANGUAGES.has(payload.outputLanguage) ? payload.outputLanguage : 'auto'
-  const uiLanguage = typeof payload.uiLanguage === 'string' && UI_LANGUAGES.has(payload.uiLanguage) ? payload.uiLanguage : 'en'
-
-  const apiKey = process.env.ANTHROPIC_API_KEY
-
-  if (mode === 'regenerate_one') {
-    const avoidQuestions = Array.isArray(payload.avoidQuestions)
-      ? payload.avoidQuestions.filter((question): question is string => typeof question === 'string').slice(0, 50)
-      : []
-
-    if (!apiKey) {
-      respond(200, { question: buildDemoQuestion(questionType as QuizQuestionType, uiLanguage, Date.now()), demo: true })
-      return
-    }
-
-    const model = resolveModel()
-    let result: Awaited<ReturnType<typeof callRegenerateOne>>
-    try {
-      result = await callRegenerateOne({
-        apiKey,
-        model,
-        text,
-        questionType: questionType as QuizQuestionType,
-        difficulty,
-        optionsCount,
-        outputLanguage,
-        avoidQuestions,
-      })
-    } catch (error) {
-      console.error('generate: regenerate_one upstream call failed', error instanceof Error ? error.message : 'unknown error')
-      result = { error: 'upstream' }
-    }
-
-    if ('error' in result) {
-      respond(errorStatus(result.error), result)
-      return
-    }
-    respond(200, { question: result.question, demo: false })
-    return
-  }
-
-  const questionCountParsed = typeof payload.questionCount === 'string' ? Number.parseInt(payload.questionCount, 10) : Number.NaN
-  if (!Number.isInteger(questionCountParsed) || questionCountParsed < 1 || questionCountParsed > 30) {
-    respond(400, { error: 'not_supported' })
-    return
-  }
-
-  if (!apiKey) {
-    respond(200, { ...buildDemoQuiz(questionType, questionCountParsed, uiLanguage), demo: true })
-    return
-  }
-
-  const model = resolveModel()
-  let result: Awaited<ReturnType<typeof callGenerate>>
-  try {
-    result = await callGenerate({
-      apiKey,
-      model,
-      text,
-      questionType,
-      questionCount: questionCountParsed,
-      difficulty,
-      optionsCount,
-      outputLanguage,
-    })
-  } catch (error) {
-    console.error('generate: upstream call failed', error instanceof Error ? error.message : 'unknown error')
-    result = { error: 'upstream' }
-  }
-
-  if ('error' in result) {
-    respond(errorStatus(result.error), result)
-    return
-  }
-  respond(200, { ...result.quiz, demo: false })
+  const { status, body } = await handleGenerateRequest(payload)
+  respond(status, body)
 }

@@ -1,7 +1,7 @@
 import { isGeneratedQuiz, isQuizQuestion } from '../lib/quiz'
 import type { GeneratedQuiz, QuizQuestion, QuizQuestionType } from '../lib/quiz'
 
-export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'network'
+export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model' | 'network'
 
 export interface GenerateQuizPayload {
   text: string
@@ -15,6 +15,9 @@ export interface GenerateQuizPayload {
 
 export interface GenerateQuizResult extends GeneratedQuiz {
   demo: boolean
+  /** Informational only — the UI never shows this. */
+  provider?: 'anthropic' | 'openai' | 'demo'
+  fallbackUsed?: boolean
 }
 
 export interface RegenerateOnePayload {
@@ -30,6 +33,9 @@ export interface RegenerateOnePayload {
 export interface RegenerateOneResult {
   question: QuizQuestion
   demo: boolean
+  /** Informational only — the UI never shows this. */
+  provider?: 'anthropic' | 'openai' | 'demo'
+  fallbackUsed?: boolean
 }
 
 export class GenerateApiError extends Error {
@@ -41,7 +47,7 @@ export class GenerateApiError extends Error {
   }
 }
 
-const ERROR_CODES: ReadonlySet<string> = new Set(['too_short', 'too_long', 'not_supported', 'upstream', 'parse'])
+const ERROR_CODES: ReadonlySet<string> = new Set(['too_short', 'too_long', 'not_supported', 'upstream', 'parse', 'model'])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -80,12 +86,22 @@ async function postGenerate(body: unknown, signal?: AbortSignal): Promise<unknow
   return json
 }
 
+function isResponseProvider(value: unknown): value is 'anthropic' | 'openai' | 'demo' {
+  return value === 'anthropic' || value === 'openai' || value === 'demo'
+}
+
 export async function generateQuiz(payload: GenerateQuizPayload, signal?: AbortSignal): Promise<GenerateQuizResult> {
   const json = await postGenerate({ mode: 'generate', ...payload }, signal)
   if (!isRecord(json) || typeof json.demo !== 'boolean' || !isGeneratedQuiz(json)) {
     throw new GenerateApiError('parse')
   }
-  return { title: json.title, questions: json.questions, demo: json.demo }
+  return {
+    title: json.title,
+    questions: json.questions,
+    demo: json.demo,
+    provider: isResponseProvider(json.provider) ? json.provider : undefined,
+    fallbackUsed: typeof json.fallbackUsed === 'boolean' ? json.fallbackUsed : undefined,
+  }
 }
 
 export async function regenerateOneQuestion(payload: RegenerateOnePayload): Promise<RegenerateOneResult> {
@@ -93,5 +109,10 @@ export async function regenerateOneQuestion(payload: RegenerateOnePayload): Prom
   if (!isRecord(json) || typeof json.demo !== 'boolean' || !isQuizQuestion(json.question)) {
     throw new GenerateApiError('parse')
   }
-  return { question: json.question, demo: json.demo }
+  return {
+    question: json.question,
+    demo: json.demo,
+    provider: isResponseProvider(json.provider) ? json.provider : undefined,
+    fallbackUsed: typeof json.fallbackUsed === 'boolean' ? json.fallbackUsed : undefined,
+  }
 }

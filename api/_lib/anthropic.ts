@@ -3,8 +3,9 @@ import type { IncomingMessage } from 'node:http'
 export const DEFAULT_MODEL = 'claude-haiku-4-5'
 const UPSTREAM_TIMEOUT_MS = 25000
 
-export function resolveModel(): string {
-  return process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL
+/** Solve keeps calling this with no default override, so it keeps resolving to DEFAULT_MODEL exactly as before. */
+export function resolveModel(defaultModel: string = DEFAULT_MODEL): string {
+  return process.env.ANTHROPIC_MODEL ?? defaultModel
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -17,16 +18,30 @@ export interface AnthropicContentBlock {
   source?: { type: 'base64'; media_type: string; data: string }
 }
 
+export interface AnthropicUsage {
+  inputTokens: number
+  outputTokens: number
+}
+
 interface CallAnthropicMessagesParams {
   apiKey: string
   model: string
   maxTokens: number
   system: string
   content: AnthropicContentBlock[]
+  /** Omitted entirely from the request when not passed, so existing callers (Solve) send a byte-identical body. */
+  outputConfig?: { effort: string }
+  thinking?: { type: string }
 }
 
-/** POSTs a single-turn message to the Anthropic Messages API and returns the model's text reply, or null on any transport/shape failure. */
-export async function callAnthropicMessages(params: CallAnthropicMessagesParams): Promise<string | null> {
+export interface AnthropicCallResult {
+  ok: boolean
+  status: number | null
+  text: string | null
+  usage: AnthropicUsage | null
+}
+
+async function postAnthropicMessages(params: CallAnthropicMessagesParams): Promise<AnthropicCallResult> {
   const timeoutController = new AbortController()
   const timeout = setTimeout(() => timeoutController.abort(), UPSTREAM_TIMEOUT_MS)
 
@@ -44,25 +59,40 @@ export async function callAnthropicMessages(params: CallAnthropicMessagesParams)
         max_tokens: params.maxTokens,
         system: params.system,
         messages: [{ role: 'user', content: params.content }],
+        ...(params.outputConfig ? { output_config: params.outputConfig } : {}),
+        ...(params.thinking ? { thinking: params.thinking } : {}),
       }),
       signal: timeoutController.signal,
     })
   } catch {
-    return null
+    return { ok: false, status: null, text: null, usage: null }
   } finally {
     clearTimeout(timeout)
   }
 
-  if (!response.ok) return null
+  if (!response.ok) {
+    return { ok: false, status: response.status, text: null, usage: null }
+  }
 
   let payload: unknown
   try {
     payload = await response.json()
   } catch {
-    return null
+    return { ok: false, status: response.status, text: null, usage: null }
   }
 
-  return extractResponseText(payload)
+  return { ok: true, status: response.status, text: extractResponseText(payload), usage: extractUsage(payload) }
+}
+
+/** POSTs a single-turn message to the Anthropic Messages API and returns the model's text reply, or null on any transport/shape failure. */
+export async function callAnthropicMessages(params: CallAnthropicMessagesParams): Promise<string | null> {
+  const result = await postAnthropicMessages(params)
+  return result.text
+}
+
+/** Same call, with the HTTP status and token usage exposed for callers that need to distinguish auth failures from other errors (used by the multi-provider LLM layer). */
+export async function callAnthropicMessagesDetailed(params: CallAnthropicMessagesParams): Promise<AnthropicCallResult> {
+  return postAnthropicMessages(params)
 }
 
 function extractResponseText(payload: unknown): string | null {
@@ -73,6 +103,13 @@ function extractResponseText(payload: unknown): string | null {
     }
   }
   return null
+}
+
+function extractUsage(payload: unknown): AnthropicUsage | null {
+  if (!isRecord(payload) || !isRecord(payload.usage)) return null
+  const { input_tokens: inputTokens, output_tokens: outputTokens } = payload.usage
+  if (typeof inputTokens !== 'number' || typeof outputTokens !== 'number') return null
+  return { inputTokens, outputTokens }
 }
 
 /** Parses a JSON object out of a model reply, tolerating a wrapping ```json code fence. */
