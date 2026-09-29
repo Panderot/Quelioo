@@ -1,8 +1,7 @@
 export interface GenerateQuizPayload {
-  source: 'text' | 'file' | 'url' | 'youtube'
+  source: 'text' | 'file' | 'url'
   content: string
   outputLanguage: string
-  studyMode: boolean
   questionType: string
   questionCount: string
   difficulty: string

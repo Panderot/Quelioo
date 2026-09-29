@@ -8,10 +8,12 @@ Vite + React + TypeScript + Tailwind CSS (v4, `@tailwindcss/vite`) + react-i18ne
 
 ## Proje kuralları
 
-- Hedef pazar: Türkiye ve global. Arayüz EN ve TR desteklemeli; tüm metinler i18n dosyalarından gelmeli, etiketlere sabit genişlik verilmemeli (Türkçe metinler daha uzun).
+- Hedef pazar: Türkiye ve global. Arayüz EN, TR ve HYW (Batı Ermenicesi) desteklemeli; tüm metinler i18n dosyalarından gelmeli, etiketlere sabit genişlik verilmemeli (Türkçe ve Ermenice metinler daha uzun olabilir).
+- HYW (Batı Ermenicesi) metinleri geniş yayından önce anadili Batı Ermenicesi olan biri tarafından gözden geçirilmeli.
 - Tasarım kaynağı `design.md` dosyasıdır. Renk, tipografi, boşluk ve bileşen kararları orada tanımlıdır. Yeni bileşen gerekirse önce `design.md`'ye ekle, sonra kullan.
 - Ana ekranda üçüncü taraf reklam, kurucu iletişim satırı veya çapraz uygulama tanıtımı olmamalı.
-- Birincil gradient yalnızca ana CTA ("Generate Quiz") ve logoda kullanılır; ekran başına en fazla bir gradient buton.
+- Birincil CTA ("Generate Quiz") düz amber (turuncu-sarı) arka plan ve lacivert metinle gösterilir; ekran başına tek bir birincil CTA vardır. Arka planlarda ve butonlarda gradient kullanılmaz.
+- Archive (`/archive`), backend gelene kadar quiz kayıtlarını tarayıcının localStorage'ında `quelio.archive.v1` anahtarı altında saklar.
 
 ## Context ve token kullanımı
 

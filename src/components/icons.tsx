@@ -23,147 +23,11 @@ export function HomeIcon(props: IconProps) {
   )
 }
 
-export function BloomsQuizIcon(props: IconProps) {
+export function ArchiveIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
       <path
-        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function SimilarQuizIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function IllustrateStoryIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function ImageToQuizIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function MatchingQuizIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function VideoToQuizIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function NewsToQuizIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function PdfToQuizIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function YoutubeToQuizIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-      <path
-        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function AiSlidesIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function SavedIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+        d="M3 7a2 2 0 012-2h14a2 2 0 012 2v1a1 1 0 01-1 1H4a1 1 0 01-1-1V7zM4 9h16v10a2 2 0 01-2 2H6a2 2 0 01-2-2V9zM10 13h4"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
@@ -185,26 +49,14 @@ export function AccountIcon(props: IconProps) {
   )
 }
 
-export function SearchIcon(props: IconProps) {
+export function GlobeIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
       <path
-        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        d="M12 21a9 9 0 100-18 9 9 0 000 18zM3.6 9h16.8M3.6 15h16.8M12 3a13.5 13.5 0 010 18 13.5 13.5 0 010-18z"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function LightningIcon(props: IconProps) {
-  return (
-    <svg fill="currentColor" viewBox="0 0 20 20" aria-hidden {...props}>
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z"
       />
     </svg>
   )
@@ -283,14 +135,6 @@ export function UrlTabIcon(props: IconProps) {
   )
 }
 
-export function YoutubeTabIcon(props: IconProps) {
-  return (
-    <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden {...props}>
-      <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-    </svg>
-  )
-}
-
 export function TrashIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
@@ -304,13 +148,13 @@ export function TrashIcon(props: IconProps) {
   )
 }
 
-export function SparkleIcon(props: IconProps) {
+export function SunIcon(props: IconProps) {
   return (
-    <svg {...base(props)} strokeWidth="2.2">
+    <svg {...base(props)} strokeWidth="2" fill="none">
+      <circle cx="12" cy="12" r="4.5" />
       <path
-        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-4.57 1.116l-2.06 1.766a2 2 0 01-1.096.347l-1.92.054a2 2 0 01-1.99-1.99l.054-1.92a2 2 0 01.347-1.096l1.766-2.06a6 6 0 001.116-4.57l-.477-2.387a2 2 0 00-.547-1.022L6 2l1.628.728a2 2 0 001.022.547l2.387.477a6 6 0 004.57-1.116l2.06-1.766a2 2 0 011.096-.347l1.92-.054a2 2 0 011.99 1.99l-.054 1.92a2 2 0 01-.347 1.096l-1.766 2.06a6 6 0 00-1.116 4.57l.477 2.387a2 2 0 00.547 1.022L22 22l-2.572-6.572z"
+        d="M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.6 5.4l-1.7 1.7M7.1 16.9l-1.7 1.7M18.6 18.6l-1.7-1.7M7.1 7.1L5.4 5.4"
         strokeLinecap="round"
-        strokeLinejoin="round"
       />
     </svg>
   )
@@ -340,6 +184,14 @@ export function ChevronDownIcon(props: IconProps) {
   return (
     <svg {...base(props)}>
       <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
+export function CheckIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M5 12.5l4.5 4.5L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" />
     </svg>
   )
 }

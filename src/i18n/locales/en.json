@@ -4,35 +4,26 @@
     "tagline": "Questions that shine."
   },
   "nav": {
-    "home": "Home",
-    "bloomsQuiz": "Bloom's Quiz",
-    "similarQuiz": "Similar Quiz",
-    "illustrateStory": "Illustrate Story",
-    "imageToQuiz": "Image to Quiz",
-    "matchingQuiz": "Matching Quiz",
-    "videoToQuiz": "Video to Quiz",
-    "newsToQuiz": "News to Quiz",
-    "pdfToQuiz": "PDF to Quiz",
-    "youtubeToQuiz": "YouTube to Quiz",
-    "aiSlides": "AI Slides",
-    "pro": "PRO",
-    "saved": "Saved",
+    "create": "Create",
+    "archive": "Archive",
     "account": "Account",
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu"
   },
   "topbar": {
-    "searchLabel": "Search templates and history",
-    "searchPlaceholder": "Search templates & history...",
-    "freeRunsRemainingLabel": "Free Runs Remaining:",
+    "freeRunsLeft": "{{count}} free runs left",
     "upgrade": "Upgrade",
     "logout": "Logout",
     "avatarInitials": "JD",
-    "avatarLabel": "Account menu"
+    "avatarLabel": "Account menu",
+    "language": {
+      "buttonLabel": "Change language",
+      "menuLabel": "Choose a language"
+    }
   },
   "hero": {
-    "title": "Generate different quizzes like MCQs, True or False, Fill-in-the-blanks, FAQs, etc using AI",
-    "subtitle": "Turn any study material, documentation, or lecture notes into interactive quizzes in seconds."
+    "title": "Turn anything you read into a quiz.",
+    "subtitle": "Paste text, drop a PDF or share a link. Quelio writes the questions in seconds."
   },
   "inputCard": {
     "freePlan": "Free plan: Supports <bold>5,000 words</bold>! • <upgrade>Upgrade</upgrade> for 100,000 word support and high quiz count!",
@@ -45,18 +36,25 @@
       "es": "Spanish",
       "fr": "French",
       "de": "German",
-      "hi": "Hindi"
+      "hi": "Hindi",
+      "hyw": "Armenian (Western)"
     },
     "tabs": {
       "text": "Text",
       "file": "File",
-      "url": "URL",
-      "youtube": "YouTube"
+      "url": "URL"
     },
     "placeholder": {
-      "text": "Paste or type your content here...",
-      "url": "Paste a link to an article or webpage...",
-      "youtube": "Paste a YouTube video link..."
+      "text": "Paste a paragraph, lecture notes or an article...",
+      "url": "Paste a link to an article or webpage..."
+    },
+    "samples": {
+      "tryASample": "Try a sample",
+      "tryASampleText": "Photosynthesis is the process by which green plants use sunlight to turn water and carbon dioxide into glucose and oxygen. It takes place mainly in the leaves, inside structures called chloroplasts.",
+      "biologyNotes": "Biology notes",
+      "biologyNotesText": "Cells are the basic building blocks of all living things. Every cell contains a nucleus that holds genetic material, a cell membrane that controls what enters and leaves, and mitochondria that produce energy for the cell to function.",
+      "historyParagraph": "History paragraph",
+      "historyParagraphText": "The Silk Road was an ancient network of trade routes that connected the East and West, stretching from China to the Mediterranean Sea. For centuries, merchants carried silk, spices, and ideas along these paths, shaping cultures across Asia and Europe."
     },
     "dropzone": {
       "title": "Drag and drop a file here",
@@ -64,9 +62,6 @@
       "browse": "Browse files"
     },
     "clearInput": "Clear Input",
-    "studyMode": "Study Mode",
-    "studyModeOn": "On",
-    "studyModeOff": "Off",
     "errorEmpty": "Please add some content before generating a quiz."
   },
   "params": {
@@ -97,6 +92,19 @@
   "cta": {
     "generate": "Generate Quiz",
     "generating": "Generating your quiz...",
-    "disabledHint": "Add content to generate"
+    "disabledHint": "Add content to generate",
+    "success": "Quiz saved to your archive.",
+    "viewInArchive": "View in Archive"
+  },
+  "archive": {
+    "title": "Archive",
+    "subtitle": "Every quiz you create is saved here.",
+    "untitled": "Untitled quiz",
+    "studyMode": "Study Mode",
+    "empty": {
+      "title": "No quizzes yet",
+      "subtitle": "Generate your first quiz and it will show up here.",
+      "cta": "Create a quiz"
+    }
   }
 }

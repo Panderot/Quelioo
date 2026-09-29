@@ -3,15 +3,15 @@
 > **Product:** Quelio, an AI quiz generator (text, file, URL, YouTube, image, PDF, video to quiz)
 > **Tagline:** Questions that shine.
 > **Audience:** Teachers, students, HR/training teams. Turkey + global (EN/TR).
-> **Source of truth:** the approved "Generate Quiz" home screen. All values below were estimated visually from that screen; treat hex codes as the intended palette and fine-tune against the Stitch export if pixel accuracy is needed.
+> **Identity:** "Solar Paper" — a calm, warm, editorial look built around Quelio's meaning (question + Helio/sun): dark navy and amber sun on cream paper. No purple, no blue-violet gradients, no sparkle icon.
 
 ---
 
 ## 1. Design Principles
 
-1. **Calm and trustworthy.** Lots of white space, soft borders, no visual noise. Teachers should feel in control.
-2. **One primary action per screen.** The gradient "Generate Quiz" button is the hero. Everything else is quieter.
-3. **Friendly, not childish.** Rounded corners and a light indigo accent, but professional typography.
+1. **Calm and trustworthy.** Warm cream paper, soft warm borders, no visual noise. Teachers should feel in control.
+2. **One primary action per screen.** The solid amber "Generate Quiz" button is the hero. Everything else is quieter.
+3. **Editorial, not generic.** A serif display face (Fraunces) for headings gives Quelio a distinct, human voice instead of the default AI-tool look.
 4. **Consistent rhythm.** 4px spacing base, a small set of radii, one shadow language.
 5. **Bilingual-ready.** Layouts must survive longer Turkish labels (about 30% longer than English).
 
@@ -21,12 +21,10 @@
 
 | Element | Spec |
 |---|---|
-| Logo mark | Rounded square (about 32px, radius 8) with indigo-to-blue gradient, white bold "Q", small golden sparkle at top-right corner |
-| Wordmark | "Quelio", bold, about 24px, dark navy `#0F172A` |
-| Tagline | "Questions that shine.", about 12px, medium, indigo `#4F46E5`, sits under the wordmark |
-| Meaning | Question + Helio (sun): the sparkle/sun-ray is the brand motif |
-
-**Sparkle motif:** the golden sparkle (`#F59E0B`) appears in the logo and on the Generate button icon. Use it sparingly for "AI magic" moments only.
+| Logo mark | A bold "Q" ring; the tail is a golden ray ending in a small sun disc with short rays. Bowl color adapts to background: cream on the navy sidebar, navy on light/paper backgrounds (favicon). No container, no sparkle. |
+| Wordmark | "Quelio", Fraunces, weight 600, about 24px |
+| Tagline | "Questions that shine.", about 12px, semibold, amber `#F5A524`, sits under the wordmark on the navy sidebar (cream/amber tone) |
+| Meaning | Question + Helio (sun): the rising-sun ray is the brand motif, not a sparkle |
 
 ---
 
@@ -36,71 +34,54 @@
 
 | Token | Hex | Usage |
 |---|---|---|
-| `--color-primary-600` | `#4F46E5` | Active nav item, active tab, links, focus ring, primary gradient start |
-| `--color-primary-700` | `#4338CA` | Hover/pressed for primary elements |
-| `--color-primary-50` | `#EEF2FF` | Subtle primary tint (hover backgrounds, selected chips) |
-| `--color-blue-600` | `#2563EB` | Primary gradient end, page background top |
-| `--color-success-600` | `#059669` | Upgrade button, success states |
-| `--color-success-500` | `#10B981` | "Free runs" status dot |
-| `--color-accent-gold` | `#F59E0B` | Sparkle icon and logo accent only |
-| `--color-pro-bg` | `#FEF3C7` | PRO badge background |
-| `--color-pro-text` | `#92400E` | PRO badge text |
+| `--color-navy` | `#0E1330` | Sidebar background, avatar background, headline text on paper |
+| `--color-ink` | `#14172B` | Body text |
+| `--color-muted` | `#6B6F85` | Subtitles, helper text, placeholders |
+| `--color-amber` | `#F5A524` | Primary CTA, active nav marker, focus accents, progress bar |
+| `--color-amber-hover` | `#E0931A` | Hover/pressed state for amber elements, links |
+| `--color-ember` | `#FF7A2F` | Tiny highlights only — never large areas |
+| `--color-paper` | `#FBF7EF` | Page/main background, sidebar text |
+| `--color-card` | `#FFFEFB` | Cards, input surfaces |
+| `--color-warm-border` | `#ECE5D6` | Card, input and divider borders |
+| `--color-focus-neutral` | `#D8CDB4` | Mouse/touch focus border on form controls and dropdown triggers (never amber) |
+| `--color-success` | `#1F8A5B` | Success states |
+| `--color-error` | `#D64545` | Error borders and helper text |
 
-### 3.2 Neutrals
+### 3.2 Backgrounds and gradients
 
-| Token | Hex | Usage |
-|---|---|---|
-| `--color-ink-900` | `#0F172A` | Headings, wordmark |
-| `--color-ink-700` | `#334155` | Labels, body text |
-| `--color-ink-600` | `#475569` | Inactive nav text, secondary buttons |
-| `--color-ink-500` | `#64748B` | Subtitles, helper text, placeholders |
-| `--color-ink-400` | `#94A3B8` | Section eyebrow labels, inactive icons |
-| `--color-border` | `#E5E7EB` | Card, input and divider borders |
-| `--color-surface-alt` | `#F8FAFC` | Inputs, selects, search field, textarea |
-| `--color-surface` | `#FFFFFF` | Cards, sidebar, app container |
-| `--color-toggle-off` | `#E2E8F0` | Switch track (off) |
-
-### 3.3 Page background
-
-The outer page uses a diagonal gradient behind the white app container:
+- Page/main area background is flat `--color-paper`. No gradients on backgrounds or buttons.
+- Exactly one soft accent is allowed: a radial glow, amber at ~8% opacity, positioned in the top-right corner of the main content area:
 
 ```css
-background: linear-gradient(135deg, #2563EB 0%, #3B4FDB 50%, #3730A3 100%);
+background: radial-gradient(circle, rgba(245, 165, 36, 0.08) 0%, rgba(245, 165, 36, 0) 70%);
 ```
 
-### 3.4 Primary gradient (buttons, hero CTA)
+### 3.3 Contrast
 
-```css
-background: linear-gradient(90deg, #4F46E5 0%, #2563EB 100%);
-```
-
-### 3.5 Avatar gradient
-
-```css
-background: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
-```
+All text must keep WCAG AA contrast. Navy text on amber is required for the CTA and the Upgrade button (`text-navy` on `bg-amber` passes AA for bold UI text).
 
 ---
 
 ## 4. Typography
 
-**Font family:** `Plus Jakarta Sans`, fallback `system-ui, -apple-system, "Segoe UI", sans-serif`.
-Load weights 400, 500, 600, 700, 800.
+**Headings (H1, page-level titles):** `Fraunces Variable` (soft optical variant), weight 600, tight tracking. Installed via npm (`@fontsource-variable/fraunces`), no CDN — imported in `src/index.css`.
 
-| Role | Size / Line height | Weight | Color | Notes |
+**Body and UI:** `Plus Jakarta Sans`, loaded via Google Fonts, weights 400–800 (unchanged).
+
+Both faces must render Turkish glyphs correctly (İ ı ğ ş ç ö ü) — verified via the `latin` + `latin-ext` Fraunces subsets.
+
+**Armenian fallback (hyw locale):** Fraunces and Plus Jakarta Sans have no Armenian glyphs. `Noto Serif Armenian Variable` and `Noto Sans Armenian Variable` (installed via npm, `@fontsource-variable/noto-serif-armenian` / `@fontsource-variable/noto-sans-armenian`) are appended as fallbacks in the `--font-serif` / `--font-sans` stacks so Armenian text renders instead of showing missing-glyph boxes. Latin text is unaffected — these fonts only activate for Armenian-script characters.
+
+| Role | Size / Line height | Weight | Font | Color |
 |---|---|---|---|---|
-| Page title (H1) | 32px / 1.2 | 800 | ink-900 | Letter-spacing -0.02em, max width about 800px, wraps to 2 lines |
-| Subtitle | 15px / 1.5 | 400 | ink-500 | Directly under H1, 8px gap |
-| Card info line | 13px / 1.4 | 400 (bold for numbers) | ink-700 | "5,000 words" is bold |
-| Eyebrow / section label | 12px / 1 | 600 | ink-400 | UPPERCASE, letter-spacing 0.08em ("QUIZ PARAMETERS") |
-| Field label | 13px / 1.3 | 600 | ink-900 | Inside parameter cards |
-| Input / select value | 15px / 1.4 | 500 | ink-900 | |
-| Placeholder | 15px / 1.5 | 400 | ink-500 | |
-| Nav item | 15px / 1 | 500 (active 600) | ink-600 (active white) | |
-| Tab label | 14px / 1 | 500 (active 600) | ink-500 (active primary-600) | |
-| Button (small) | 13px / 1 | 500 | ink-700 | Clear Input, Logout |
-| Button (hero) | 17px / 1 | 600 | white | Generate Quiz |
-| Badge | 11px / 1 | 700 | pro-text | Uppercase |
+| Page title (H1) | 24–30px / 1.3 | 600 | Fraunces | navy |
+| Subtitle | 14px / 1.5 | 400 | Plus Jakarta Sans | muted |
+| Eyebrow / section label | 11–12px / 1 | 700 (bold) | Plus Jakarta Sans | muted, uppercase, letter-spacing 0.05–0.08em |
+| Field label (parameters) | 11px / 1 | 700 | Plus Jakarta Sans | muted, uppercase |
+| Input / select value | 14–15px / 1.4 | 500–600 | Plus Jakarta Sans | ink |
+| Nav item | 14px / 1 | 500 (active 600) | Plus Jakarta Sans | paper at 60% (active: full paper) |
+| Tab label | 14px / 1 | 500 (active bold) | Plus Jakarta Sans | muted (active: ink) |
+| Button (hero) | 16px / 1 | 700 | Plus Jakarta Sans | navy (on amber) |
 
 ---
 
@@ -108,34 +89,25 @@ Load weights 400, 500, 600, 700, 800.
 
 ### 5.1 Spacing scale (4px base)
 
-`4, 8, 12, 16, 20, 24, 32, 40, 48` px
-
-- Card padding: **24px** (large card), **16px** (parameter cards)
-- Gap between parameter cards: **16px**
-- Gap between major sections: **32px**
-- Main content horizontal padding: **40px**
-- Outer page padding around the app container: **32px**
+`4, 8, 12, 16, 20, 24, 32, 40, 48` px — unchanged from before.
 
 ### 5.2 Border radius
 
 | Token | Value | Usage |
 |---|---|---|
-| `--radius-sm` | 8px | Selects, small buttons, nav items, Clear Input |
-| `--radius-md` | 12px | Textarea, parameter cards, search field |
-| `--radius-lg` | 16px | Large cards, Generate button |
-| `--radius-xl` | 24px | App container |
-| `--radius-full` | 9999px | Chips, avatar, toggle, Free Runs pill |
+| Small | 10px | Parameter selects |
+| Medium | 14px | Input card, quiz-parameters panel, Generate button |
+| Large | 16–24px | Reserved for future large surfaces |
+| Full | 9999px | Chips, avatar, toggle, sample pills |
 
-### 5.3 Shadows
+### 5.3 Shadow
+
+Shadows stay very soft; borders (`--color-warm-border`) do most of the separation work.
 
 ```css
---shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
---shadow-active-nav: 0 4px 12px rgba(79, 70, 229, 0.25);
---shadow-cta: 0 8px 20px rgba(79, 70, 229, 0.30);
---shadow-app: 0 24px 60px rgba(15, 23, 42, 0.25);
+--shadow-card: 0 1px 2px rgba(14, 19, 48, 0.04);
+--shadow-cta-hover: 0 8px 20px rgba(245, 165, 36, 0.30);
 ```
-
-Borders do most of the separation work. Shadows stay subtle.
 
 ---
 
@@ -143,27 +115,28 @@ Borders do most of the separation work. Shadows stay subtle.
 
 ### 6.1 App shell
 
+Full-bleed, no floating window:
+
 ```
-Page (gradient background, 32px padding)
-└── App container (white, radius 24, shadow-app, overflow hidden, flex)
-    ├── Sidebar (fixed width 256px, border-right 1px)
-    └── Main column (flex 1)
-        ├── Top bar (height 80px, border-bottom 1px)
-        └── Content (padding 40px, max-width 880px content column)
+App root (flex, bg-paper)
+├── Sidebar (navy, fixed width 256px / icon rail 72px / drawer below 768px)
+└── Main column (flex 1, bg-paper, subtle top-right amber radial glow)
+    ├── Top bar (flat, height 80px, no heavy border)
+    └── Content (padding 24–40px, max-width 5xl content column, fade-in on mount)
 ```
 
 ### 6.2 Content column order (top to bottom)
 
-1. H1 + subtitle
-2. **Input card** (white, border, radius 16, padding 24)
+1. H1 (Fraunces) + subtitle
+2. **Input card** (card surface, 1px warm border, radius 14, padding 20–24)
    - Info row: plan info + word count (left), Output Language select (right)
    - Divider
-   - Input tabs (Text, File, URL, YouTube)
-   - Textarea (min-height 240px)
-   - Footer row: Clear Input (left), Study Mode toggle (right)
+   - Input tabs (Text, File, URL) — amber underline on active
+   - Textarea (dashed warm border → solid amber on focus) with sample chips underneath (text tab only)
+   - Footer row: Clear Input only
 3. Eyebrow: `QUIZ PARAMETERS`
-4. **2x2 parameter grid** (gap 16)
-5. **Generate Quiz** full-width button (height 56)
+4. **Single parameters panel** (2 columns, hairline dividers, not four separate cards)
+5. **Generate Quiz** full-width button (height 56, radius 14, solid amber)
 
 ### 6.3 Responsive behavior
 
@@ -171,8 +144,8 @@ Page (gradient background, 32px padding)
 |---|---|
 | >= 1280px | Full layout as above |
 | 1024 to 1279px | Sidebar stays; content padding 32px |
-| 768 to 1023px | Sidebar collapses to icon-only rail (72px), labels hidden, tooltips on hover |
-| < 768px | Sidebar becomes a slide-over drawer behind a hamburger; top bar search hidden; parameter grid becomes 1 column; outer page padding 0 and app container radius 0 |
+| 768 to 1023px | Sidebar collapses to icon-only rail (72px), labels hidden |
+| < 768px | Sidebar becomes a slide-over drawer behind a hamburger; parameter grid becomes 1 column |
 
 ---
 
@@ -180,123 +153,125 @@ Page (gradient background, 32px padding)
 
 ### 7.1 Sidebar
 
-- Width **256px**, white, right border `--color-border`.
-- **Header:** logo mark + wordmark, tagline below. Padding 20px 20px 16px.
-- **Nav list:** padding 12px, items stacked with 4px gap.
-- **Nav item:** height 40px, padding 0 12px, radius 8, icon 16px + 12px gap + label.
-  - Default: text ink-600, icon ink-400
-  - Hover: background `#F1F5F9`, text ink-900
-  - **Active:** background primary-600, text white (600), icon white, `--shadow-active-nav`
-- **PRO badge** (e.g. AI Slides): right-aligned, padding 2px 8px, radius full, bg `#FEF3C7`, text `#92400E`, 11px bold uppercase.
-- **Footer group** (Saved, Account): pinned to the bottom, top border 1px, same item style.
-
-**Nav order:** Home, Bloom's Quiz, Similar Quiz, Illustrate Story, Image to Quiz, Matching Quiz, Video to Quiz, News to Quiz, PDF to Quiz, YouTube to Quiz, AI Slides (PRO). Footer: Saved, Account.
+- Width **256px** (72px icon rail at md, drawer below 768px), background `--color-navy`, text in `--color-paper`.
+- **Header:** logo mark + Fraunces wordmark, tagline in amber below. Padding ~20px.
+- **Main nav:** a single item, Create.
+- **Nav item:** no filled active pill. Default text `paper/60`, hover `paper`. **Active** (matches current route): a 3px amber bar on the left edge + full-opacity paper text + amber icon.
+- **Footer group** (Archive, Account): pinned to the bottom, top border `paper/10`. Archive routes to `/archive`; Account is a placeholder link (no page yet).
 
 ### 7.2 Top bar
 
-Height 80px, padding 0 40px, flex, items centered, gap 16px, bottom border.
+Height 80px, flat (no heavy border), flex, items centered. All content sits right-aligned (mobile menu button is the only left-side element, and only appears below 768px).
 
-- **Search field** (flex 1, max 384px): height 40, bg surface-alt, border, radius 12, left search icon, placeholder "Search templates & history..."
-- **Free Runs chip:** radius full, bg `#F1F5F9`, padding 6px 12px, 12px semibold text, 8px green dot (`#10B981`) on the left. Text: "Free Runs Remaining: 20".
-- **Upgrade button:** bg success-600, white text 600, height 40, padding 0 16px, radius 10, lightning-bolt icon 16px on the left. Hover `#047857`.
-- **Logout:** plain text button, ink-600, 14px 500, no border. Hover ink-900.
-- **Divider:** 1px vertical line, 32px tall, before the avatar.
-- **Avatar:** 36px circle, avatar gradient, white bold initials (13px).
+- **Free runs:** "{{count}} free runs left" text plus a thin (4px) amber progress bar underneath — replaces the old pill + dot.
+- **Upgrade button:** solid amber, navy bold text, radius 12. No green, no icon.
+- **Language switcher:** ghost button — globe icon + current language's short code (EN / TR / ՀԱՅ) + chevron — opens a listbox menu (card surface, warm border, radius 12) with the three languages in their own native name. Fully keyboard operable: `Enter`/`Space`/`ArrowDown` opens it, arrow keys move between options, `Escape` closes and returns focus to the button.
+- **Logout:** plain text link, muted → ink on hover.
+- **Avatar:** 36px circle, solid navy background (no gradient), cream initials, thin amber ring.
 
 ### 7.3 Input card
 
-White, 1px border, radius 16, padding 24, `--shadow-card`.
+Card surface, 1px warm border, radius 14, padding 20–24.
 
-**Info row:** left column holds "Free plan: Supports **5,000 words**! • Upgrade for 100,000 word support and high quiz count!" (13px; "Upgrade" is a primary-600 link, medium weight) with "Word Count: 0" beneath in primary-600 semibold 13px. Right side: translate icon + "Output Language:" label (ink-500, 13px) + compact select.
+Info row unchanged in structure (plan blurb + word count left, output language right) but restyled to the warm palette; "Upgrade" link uses `amber-hover`.
 
 ### 7.4 Tabs
 
-- Row with icon (16px) + label, gap 8px, item padding 12px 16px, bottom border 1px on the whole row.
-- **Active:** text primary-600 (600), 2px primary-600 underline overlapping the row border.
-- **Inactive:** ink-500, hover ink-900.
-- Tabs: Text, File, URL, YouTube (each with its own icon).
+Row with icon (16px) + label, bottom border on the row. **Active:** ink text (bold), 2px **amber** underline. **Inactive:** muted, hover ink.
 
-### 7.5 Textarea
+### 7.5 Textarea / URL / YouTube inputs
 
-- bg surface-alt (`#F8FAFC`), 1px border, radius 12, padding 16, min-height 240px, resize vertical.
-- Placeholder: "Paste or type your content here..."
-- **Focus:** border primary-600 + `0 0 0 3px rgba(79,70,229,0.15)` ring.
-- **Error:** border `#EF4444` + red helper text below.
+- Background `--color-card` (no separate gray fill), **dashed** warm border by default, turns **solid amber** on focus with a soft amber ring.
+- **Error:** border/ring `--color-error`.
+- Sample chips row directly under the textarea (text tab only): pill buttons ("Try a sample", "Biology notes", "History paragraph") that fill the textarea with a short sample paragraph on click.
 
 ### 7.6 Ghost button (Clear Input)
 
-Height 36, padding 0 12px, radius 8, 1px border, white bg, 13px 500 ink-700, trash icon 14px + 8px gap. Hover: bg `#F8FAFC`.
+Card surface, 1px warm border, radius 12, muted text, hover border/text shift to error tone (signals a destructive-ish clear action) without being alarming by default.
 
 ### 7.7 Toggle (Study Mode)
 
-- Label: book/stack emoji or icon + "Study Mode" (13px 600 ink-900).
-- Switch: 40x22 track, radius full, **off** = `#E2E8F0` with white knob; **on** = primary-600 with knob moved right.
-- Status text ("Off" / "On") on the right, 13px ink-500.
+Used on each Archive row, not on the Create page. Track **off** = warm-border with card-colored knob; **on** = amber with knob moved right. `role="switch"`, `aria-checked`, `aria-label` includes the quiz title.
 
-### 7.8 Parameter card + select
+### 7.8 Parameters panel
 
-- **Card:** white, 1px border, radius 12, padding 16.
-- **Label:** 13px 600 ink-900, 8px below to the field.
-- **Select:** height 42, bg surface-alt, 1px border, radius 8, padding 0 12px, 15px 500 text, right chevron icon (ink-500). Hover border `#CBD5E1`. Focus ring like textarea.
-- **Default values:**
-  - Question Type: "MCQ (Multiple Choice Questions)"
-  - Question Count: "3 Questions"
-  - Difficulty Level: "Medium"
-  - MCQ Options Count: "4 Options (Standard A, B, C, D)"
+One panel (card surface, 1px warm border, radius 14) with a 2-column grid and hairline (`warm-border`) dividers between cells instead of four separate bordered cards. Field label: 11px bold uppercase muted, 4px above a borderless, transparent-background select (radius 10, ink text). This panel is visually quieter than the input card — no card padding/shadow doubling, just dividers.
 
 ### 7.9 Primary CTA (Generate Quiz)
 
-- Full width, height **56px**, radius 16, primary gradient, `--shadow-cta`.
-- Content: sparkle icon (20px, gold outline `#FBBF24`) + "Generate Quiz" (17px 600 white), centered, 10px gap.
-- **Hover:** slight brighten + translateY(-1px). **Pressed:** translateY(0), darker gradient.
-- **Disabled** (empty input): 50% opacity, no shadow, cursor not-allowed, label "Add content to generate".
-- **Loading:** replace sparkle with a spinner, label "Generating your quiz...", button non-interactive.
+- Full width, height **56px**, radius 14, solid **amber**, navy bold text. No gradient.
+- Icon: custom outline **sun** icon (circle + short rays), not a sparkle.
+- **Hover:** background steps to `amber-hover`, button rises 1px (`translateY(-1px)`) with a soft amber glow shadow.
+- **Active/pressed:** returns to `translateY(0)`.
+- **Loading:** spinner (navy) replaces the sun icon, label "Generating your quiz...".
+
+### 7.10 Select / dropdown
+
+Every choice field (the four quiz-parameter selects, Output Language, the top-bar language switcher) shares one custom listbox component — no native `<select>` anywhere in the app, since the browser/OS-drawn option list can't be restyled and clashes with the warm palette.
+
+- **Trigger:** two variants, both borderless/transparent by default so the closed look matches the surface it sits in — `param` (parameter grid: no border, transparent background, radius 10, ink text) and `boxed` (Output Language: 1px warm border, `paper` background, radius 8, ink text). Value on the left, a chevron on the right that rotates 180° when open.
+- **Menu:** `card` background, 1px warm border, radius 12, soft warm shadow, 6px inner padding, rendered in a portal so it always sits above surrounding content (never clipped or covered by the Generate button). Width matches the trigger exactly; long labels wrap instead of overflowing. Max-height ~280px with a thin warm scrollbar past that. Opens below the trigger, flips above it when there isn't room below (e.g. the last parameter row).
+- **Rows:** min 40px tall, 10px radius, 15px text, generous horizontal padding. Hover and keyboard-highlighted rows get a light amber tint (~12% opacity) — never a blue/native highlight. The selected row is semibold with an amber check icon on the right.
+- **Open state:** the trigger's border turns warm-neutral `#D8CDB4` (1px, same as the mouse-click focus state) and the chevron is rotated — the same look whether opened by mouse or keyboard, with no ring stacked on top of it.
+- **Motion:** 120ms fade + 4px slide on open/close; respects `prefers-reduced-motion`.
+- **Keyboard:** WAI-ARIA listbox pattern — trigger is a button with `aria-haspopup="listbox"`, `aria-expanded`, `aria-labelledby` (pointing at the visible field label) and `aria-activedescendant`; the menu is `role="listbox"` with `role="option"` rows. Arrow keys move the highlight, Home/End jump to the ends, Enter/Space selects, Escape closes and returns focus to the trigger, typing jumps to a matching label (type-ahead). Closes on outside click, Escape, Tab, and after a selection.
+
+### 7.11 Archive page
+
+Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title in Fraunces ("Archive") + one-line muted subtitle.
+
+- **List:** single column, newest first (not a card grid). Container is one card surface (warm border, radius 14) with hairline (`warm-border`) dividers between rows instead of separate bordered cards per item.
+- **Row:** title (ink, semibold, truncates), a meta line (question count • type • difficulty, muted, reuses `params.*` labels), the created date/time formatted for the active locale (muted), and a Study Mode toggle pinned right (see 7.7). Long Turkish/Armenian titles truncate with ellipsis rather than wrapping the row taller.
+- **Empty state:** centered card surface with the archive icon, a short title + subtitle, and one amber "Create a quiz" button linking to `/`.
 
 ---
 
 ## 8. Iconography
 
-- Style: **outline line icons**, stroke 1.5 to 1.75px, rounded caps and joins (Lucide / Feather family).
-- Sizes: 16px in nav, tabs, buttons; 20px for the CTA sparkle.
-- Color inherits text color, except the gold sparkle.
-- Suggested Lucide names: `home`, `layers`, `messages-square`, `image`, `image-plus`, `shuffle`, `video`, `newspaper`, `file-text`, `youtube`, `presentation`, `bookmark`, `user`, `search`, `languages`, `trash-2`, `zap`, `sparkles`, `chevron-down`.
+- Style: **outline line icons**, stroke ~1.75–2px, rounded caps and joins.
+- Sizes: 16px in nav/tabs/buttons; 20px for the CTA sun icon.
+- Color inherits text/context color (navy on amber, paper/amber on navy sidebar).
+- The sun icon (circle + 8 short rays) is the only "AI moment" motif — used on the CTA only.
 
 ---
 
 ## 9. Interaction & Motion
 
-- Transitions: `150ms ease-out` for color, background, border and shadow changes.
-- Hover lift on CTA only (1px). No bouncing or large motion.
-- Focus-visible ring on every interactive element: `0 0 0 3px rgba(79,70,229,0.35)`.
-- Skeleton or spinner for anything over 300ms; never a blank state.
+- Transitions: `150–200ms ease-out` for color, background, border, shadow and transform changes.
+- One subtle entrance fade (opacity + 4px translateY) on the main content on mount.
+- Hover lift on the CTA only (1px + glow). No bouncing or large motion.
+- Focus states never stack: mouse/touch focus (`:focus` without `:focus-visible`) shows only a slightly darker warm-neutral 1px border (`#D8CDB4`, no ring, no glow, no amber); keyboard focus (`:focus-visible`) shows a single clean 2px amber ring with a 2px offset instead, and never both at once.
+- Respect `prefers-reduced-motion` (all animations/transitions collapse to ~0).
 
 ---
 
 ## 10. Content & Voice
 
-- Tone: clear, encouraging, concise. Avoid jargon.
+- Tone: clear, warm, human. No hype words.
 - Button labels start with a verb: "Generate Quiz", "Upgrade", "Clear Input".
 - Numbers use thousands separators (5,000).
-- Every string must come from an i18n file (`en`, `tr`); leave room for longer Turkish text and never hard-code widths on labels.
+- Every string comes from an i18n file (`en`, `tr`); never hard-code widths on labels.
 
 **Key strings**
 
-| Key | EN | TR (suggested) |
+| Key | EN | TR |
 |---|---|---|
-| `hero.title` | Generate different quizzes like MCQs, True or False, Fill-in-the-blanks, FAQs, etc using AI | MCQ, Doğru/Yanlış, Boşluk Doldurma, SSS ve daha fazlasını yapay zekâ ile oluşturun |
-| `hero.subtitle` | Turn any study material, documentation, or lecture notes into interactive quizzes in seconds. | Her türlü ders materyalini, dokümanı veya ders notunu saniyeler içinde interaktif quizlere dönüştürün. |
+| `hero.title` | Turn anything you read into a quiz. | Okuduğun her şeyi bir quize dönüştür. |
+| `hero.subtitle` | Paste text, drop a PDF or share a link. Quelio writes the questions in seconds. | Metni yapıştır, PDF bırak ya da bir bağlantı paylaş. Quelio soruları saniyeler içinde yazsın. |
 | `cta.generate` | Generate Quiz | Quiz Oluştur |
 | `params.eyebrow` | Quiz Parameters | Quiz Ayarları |
+| `topbar.freeRunsLeft` | {{count}} free runs left | {{count}} ücretsiz hakkın kaldı |
 
 ---
 
 ## 11. Accessibility
 
-- Text contrast at least 4.5:1 (ink-500 `#64748B` on white passes for 15px+; do not use ink-400 for essential text).
-- Active nav item: white on `#4F46E5` = passes AA.
+- Text contrast at least 4.5:1 (`muted` `#6B6F85` on paper/card passes for 14px+).
+- Active nav item: amber bar + full-opacity paper text on navy passes AA.
 - All icons paired with visible text, or given `aria-label`.
 - Toggle uses `role="switch"` with `aria-checked`.
 - Tabs use `role="tablist"` / `role="tab"` with arrow-key navigation.
+- Select/dropdown triggers follow the WAI-ARIA listbox pattern (`aria-haspopup="listbox"`, `aria-expanded`, `aria-activedescendant`) — see 7.10.
 - Minimum touch target 40x40px.
 - Respect `prefers-reduced-motion`.
 
@@ -304,83 +279,29 @@ Height 36, padding 0 12px, radius 8, 1px border, white bg, 13px 500 ink-700, tra
 
 ## 12. Design Tokens (copy-paste)
 
-### 12.1 CSS variables
+### 12.1 Tailwind v4 `@theme` (in `src/index.css`)
 
 ```css
-:root {
-  /* Color */
-  --color-primary-50: #EEF2FF;
-  --color-primary-600: #4F46E5;
-  --color-primary-700: #4338CA;
-  --color-blue-600: #2563EB;
-  --color-success-500: #10B981;
-  --color-success-600: #059669;
-  --color-accent-gold: #F59E0B;
-  --color-pro-bg: #FEF3C7;
-  --color-pro-text: #92400E;
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-serif: 'Fraunces Variable', serif;
 
-  --color-ink-900: #0F172A;
-  --color-ink-700: #334155;
-  --color-ink-600: #475569;
-  --color-ink-500: #64748B;
-  --color-ink-400: #94A3B8;
-  --color-border: #E5E7EB;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F8FAFC;
-  --color-toggle-off: #E2E8F0;
+  --color-navy: #0e1330;
+  --color-ink: #14172b;
+  --color-muted: #6b6f85;
 
-  /* Gradients */
-  --gradient-page: linear-gradient(135deg, #2563EB 0%, #3B4FDB 50%, #3730A3 100%);
-  --gradient-primary: linear-gradient(90deg, #4F46E5 0%, #2563EB 100%);
-  --gradient-avatar: linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%);
+  --color-amber: #f5a524;
+  --color-amber-hover: #e0931a;
+  --color-ember: #ff7a2f;
 
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
-  --radius-full: 9999px;
+  --color-paper: #fbf7ef;
+  --color-card: #fffefb;
+  --color-warm-border: #ece5d6;
+  --color-focus-neutral: #d8cdb4;
 
-  /* Shadow */
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-active-nav: 0 4px 12px rgba(79, 70, 229, 0.25);
-  --shadow-cta: 0 8px 20px rgba(79, 70, 229, 0.30);
-  --shadow-app: 0 24px 60px rgba(15, 23, 42, 0.25);
-
-  /* Type */
-  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-
-  /* Layout */
-  --sidebar-width: 256px;
-  --topbar-height: 80px;
+  --color-success: #1f8a5b;
+  --color-error: #d64545;
 }
-```
-
-### 12.2 Tailwind config snippet
-
-```js
-// tailwind.config.js
-module.exports = {
-  theme: {
-    extend: {
-      colors: {
-        primary: { 50: "#EEF2FF", 600: "#4F46E5", 700: "#4338CA" },
-        success: { 500: "#10B981", 600: "#059669" },
-        ink: { 900: "#0F172A", 700: "#334155", 600: "#475569", 500: "#64748B", 400: "#94A3B8" },
-        surface: { DEFAULT: "#FFFFFF", alt: "#F8FAFC" },
-        gold: "#F59E0B",
-      },
-      fontFamily: { sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"] },
-      borderRadius: { sm: "8px", md: "12px", lg: "16px", xl: "24px" },
-      boxShadow: {
-        card: "0 1px 2px rgba(15,23,42,0.04)",
-        nav: "0 4px 12px rgba(79,70,229,0.25)",
-        cta: "0 8px 20px rgba(79,70,229,0.30)",
-        app: "0 24px 60px rgba(15,23,42,0.25)",
-      },
-    },
-  },
-};
 ```
 
 ---
@@ -388,17 +309,17 @@ module.exports = {
 ## 13. Do and Don't
 
 **Do**
-- Keep the gradient reserved for the primary CTA (and the logo mark).
-- Use borders and whitespace to separate; keep shadows soft.
-- Use indigo for "you are here / interactive", green only for upgrade/success, gold only for sparkle.
+- Reserve amber for the single primary CTA, the active nav marker, and focus accents.
+- Use borders and warm whitespace to separate; keep shadows very soft.
+- Use Fraunces for headings only; keep UI text in Plus Jakarta Sans.
 - Keep sidebar labels short (max 2 words in EN).
 
 **Don't**
 - Don't add third-party promos, founder contact lines or cross-app banners on the main screen.
-- Don't introduce new accent colors (no red/orange decorative use; red is for errors only).
-- Don't use more than one gradient button per screen.
+- Don't reintroduce the indigo/violet palette, the blue page background, or the sparkle icon.
+- Don't use gradients anywhere except the one approved top-right radial glow.
+- Don't use ember (`#FF7A2F`) for large areas — tiny highlights only.
 - Don't set fixed pixel widths on text containers (Turkish will overflow).
-- Don't use icon styles other than outline line icons.
 
 ---
 
@@ -406,9 +327,9 @@ module.exports = {
 
 | Screen | Status |
 |---|---|
-| Home / Generate Quiz | **Designed (this spec)** |
+| Home / Generate Quiz | **Designed (this spec — "Solar Paper")** |
 | Quiz result / editor | Not yet |
-| Saved quizzes | Not yet |
+| Archive (`/archive`) | **Designed (7.10)** |
 | Account / billing (Upgrade) | Not yet |
 | Landing page | Not yet |
 

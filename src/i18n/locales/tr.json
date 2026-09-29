@@ -4,35 +4,26 @@
     "tagline": "Işıldayan sorular."
   },
   "nav": {
-    "home": "Ana Sayfa",
-    "bloomsQuiz": "Bloom Quiz",
-    "similarQuiz": "Benzer Quiz",
-    "illustrateStory": "Hikâye Görselleştir",
-    "imageToQuiz": "Görselden Quiz",
-    "matchingQuiz": "Eşleştirme Quizi",
-    "videoToQuiz": "Videodan Quiz",
-    "newsToQuiz": "Haberden Quiz",
-    "pdfToQuiz": "PDF'ten Quiz",
-    "youtubeToQuiz": "YouTube'dan Quiz",
-    "aiSlides": "AI Slaytlar",
-    "pro": "PRO",
-    "saved": "Kayıtlılar",
+    "create": "Oluştur",
+    "archive": "Arşiv",
     "account": "Hesap",
     "openMenu": "Gezinme menüsünü aç",
     "closeMenu": "Gezinme menüsünü kapat"
   },
   "topbar": {
-    "searchLabel": "Şablonlarda ve geçmişte ara",
-    "searchPlaceholder": "Şablonlarda ve geçmişte ara...",
-    "freeRunsRemainingLabel": "Kalan Ücretsiz Kullanım:",
+    "freeRunsLeft": "{{count}} ücretsiz hakkın kaldı",
     "upgrade": "Yükselt",
     "logout": "Çıkış Yap",
     "avatarInitials": "JD",
-    "avatarLabel": "Hesap menüsü"
+    "avatarLabel": "Hesap menüsü",
+    "language": {
+      "buttonLabel": "Dili değiştir",
+      "menuLabel": "Bir dil seçin"
+    }
   },
   "hero": {
-    "title": "MCQ, Doğru/Yanlış, Boşluk Doldurma, SSS ve daha fazlasını yapay zekâ ile oluşturun",
-    "subtitle": "Her türlü ders materyalini, dokümanı veya ders notunu saniyeler içinde interaktif quizlere dönüştürün."
+    "title": "Okuduğun her şeyi bir quize dönüştür.",
+    "subtitle": "Metni yapıştır, PDF bırak ya da bir bağlantı paylaş. Quelio soruları saniyeler içinde yazsın."
   },
   "inputCard": {
     "freePlan": "Ücretsiz plan: <bold>5.000 kelimeye</bold> kadar destek! • 100.000 kelime desteği ve daha yüksek quiz sayısı için <upgrade>Yükselt</upgrade>!",
@@ -45,18 +36,25 @@
       "es": "İspanyolca",
       "fr": "Fransızca",
       "de": "Almanca",
-      "hi": "Hintçe"
+      "hi": "Hintçe",
+      "hyw": "Ermenice (Batı)"
     },
     "tabs": {
       "text": "Metin",
       "file": "Dosya",
-      "url": "URL",
-      "youtube": "YouTube"
+      "url": "URL"
     },
     "placeholder": {
-      "text": "İçeriğinizi buraya yapıştırın veya yazın...",
-      "url": "Bir makale veya web sayfası bağlantısı yapıştırın...",
-      "youtube": "Bir YouTube video bağlantısı yapıştırın..."
+      "text": "Bir paragraf, ders notu ya da makale yapıştırın...",
+      "url": "Bir makale veya web sayfası bağlantısı yapıştırın..."
+    },
+    "samples": {
+      "tryASample": "Bir örnek dene",
+      "tryASampleText": "Fotosentez, yeşil bitkilerin güneş ışığını kullanarak suyu ve karbondioksiti glikoz ve oksijene dönüştürdüğü süreçtir. Bu olay genellikle yapraklarda, kloroplast adı verilen yapılarda gerçekleşir.",
+      "biologyNotes": "Biyoloji notları",
+      "biologyNotesText": "Hücreler, tüm canlıların temel yapı taşlarıdır. Her hücre, genetik materyali barındıran bir çekirdek, hücreye giren ve çıkanları kontrol eden bir hücre zarı ve hücrenin çalışması için enerji üreten mitokondriler içerir.",
+      "historyParagraph": "Tarih paragrafı",
+      "historyParagraphText": "İpek Yolu, Doğu ile Batı'yı birbirine bağlayan, Çin'den Akdeniz'e uzanan antik bir ticaret yolları ağıydı. Yüzyıllar boyunca tüccarlar bu yollar üzerinden ipek, baharat ve fikirler taşıyarak Asya ve Avrupa'daki kültürleri şekillendirdi."
     },
     "dropzone": {
       "title": "Dosyayı buraya sürükleyip bırakın",
@@ -64,9 +62,6 @@
       "browse": "Dosya seç"
     },
     "clearInput": "İçeriği Temizle",
-    "studyMode": "Çalışma Modu",
-    "studyModeOn": "Açık",
-    "studyModeOff": "Kapalı",
     "errorEmpty": "Quiz oluşturmadan önce lütfen içerik ekleyin."
   },
   "params": {
@@ -97,6 +92,19 @@
   "cta": {
     "generate": "Quiz Oluştur",
     "generating": "Quiziniz oluşturuluyor...",
-    "disabledHint": "Oluşturmak için içerik ekleyin"
+    "disabledHint": "Oluşturmak için içerik ekleyin",
+    "success": "Quiz arşivine kaydedildi.",
+    "viewInArchive": "Arşivde Görüntüle"
+  },
+  "archive": {
+    "title": "Arşiv",
+    "subtitle": "Oluşturduğun her quiz burada saklanır.",
+    "untitled": "Adsız quiz",
+    "studyMode": "Çalışma Modu",
+    "empty": {
+      "title": "Henüz quiz yok",
+      "subtitle": "İlk quizini oluştur, burada görünecek.",
+      "cta": "Quiz Oluştur"
+    }
   }
 }

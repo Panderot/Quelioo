@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import { SparkleIcon, SpinnerIcon } from './icons'
+import { SpinnerIcon, SunIcon } from './icons'
 
 interface GenerateButtonProps {
   isLoading: boolean
@@ -16,14 +16,9 @@ export default function GenerateButton({ isLoading, onClick }: GenerateButtonPro
         type="button"
         onClick={onClick}
         aria-busy={isLoading}
-        className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-royal-600 p-4 text-base font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.008] hover:shadow-indigo-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/35 active:scale-[0.995]"
+        className="group flex h-14 w-full items-center justify-center gap-3 rounded-[14px] bg-amber text-base font-bold text-navy shadow-sm transition-all hover:-translate-y-px hover:bg-amber-hover hover:shadow-lg hover:shadow-amber/30 active:translate-y-0"
       >
-        <div className="absolute inset-0 bg-white/10 opacity-0 transition-opacity group-hover:opacity-100" />
-        {isLoading ? (
-          <SpinnerIcon className="h-5 w-5 text-white" />
-        ) : (
-          <SparkleIcon className="h-5 w-5 text-amber-300 transition-transform animate-spin-slow group-hover:rotate-12" />
-        )}
+        {isLoading ? <SpinnerIcon className="h-5 w-5 text-navy" /> : <SunIcon className="h-5 w-5 text-navy" />}
         <span className="tracking-wide">{isLoading ? t('cta.generating') : t('cta.generate')}</span>
       </button>
     </section>
