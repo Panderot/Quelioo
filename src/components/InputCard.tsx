@@ -160,7 +160,7 @@ export default function InputCard({
               onChange={(event) => onTextChange(event.target.value)}
               placeholder={t('inputCard.placeholder.text')}
               aria-invalid={hasError}
-              className={`min-h-[220px] w-full resize-y rounded-2xl border border-dashed bg-card p-4 text-sm leading-relaxed text-ink transition-all placeholder:text-muted focus:border-solid md:p-5 ${
+              className={`min-h-[220px] w-full resize-y rounded-2xl border border-dashed bg-card px-4 py-4 text-sm leading-relaxed text-ink transition-all placeholder:text-muted focus:border-solid md:py-5 ${
                 hasError ? 'border-error' : 'border-warm-border'
               }`}
             />
@@ -181,7 +181,7 @@ export default function InputCard({
 
         {activeTab === 'file' && (
           <div
-            className={`flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-card p-8 text-center md:min-h-[240px] ${
+            className={`flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-card px-4 py-8 text-center md:min-h-[240px] ${
               hasError ? 'border-error' : 'border-warm-border'
             }`}
           >
@@ -206,7 +206,7 @@ export default function InputCard({
             onChange={(event: ChangeEvent<HTMLInputElement>) => onUrlChange(event.target.value)}
             placeholder={t('inputCard.placeholder.url')}
             aria-invalid={hasError}
-            className={`w-full rounded-2xl border border-dashed bg-card p-4 text-sm text-ink transition-all placeholder:text-muted focus:border-solid md:p-5 ${
+            className={`w-full rounded-2xl border border-dashed bg-card px-4 py-4 text-sm text-ink transition-all placeholder:text-muted focus:border-solid md:py-5 ${
               hasError ? 'border-error' : 'border-warm-border'
             }`}
           />

@@ -35,13 +35,13 @@ function prefersReducedMotion() {
 }
 
 const triggerBaseClasses =
-  'flex w-full items-center gap-2 text-left transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-60'
+  'flex w-full items-center text-left transition-colors focus:outline-none disabled:cursor-not-allowed disabled:opacity-60'
 
 const variantClasses: Record<NonNullable<SelectProps['variant']>, string> = {
   param:
-    'justify-between rounded-[10px] border border-transparent bg-transparent px-0 py-1 text-sm font-semibold text-ink',
+    'h-11 justify-between gap-3.5 rounded-[10px] border border-warm-border bg-card pl-4 pr-4 text-sm font-semibold text-ink hover:border-focus-neutral',
   boxed:
-    'justify-between rounded-lg border border-warm-border bg-paper py-1.5 pr-2.5 pl-3 text-xs font-semibold text-ink',
+    'justify-between gap-2.5 rounded-lg border border-warm-border bg-paper py-1.5 pl-3 pr-3 text-xs font-semibold text-ink hover:border-focus-neutral',
 }
 
 export default function Select({ id, value, options, onChange, labelledBy, variant = 'param', className = '' }: SelectProps) {
@@ -252,7 +252,7 @@ export default function Select({ id, value, options, onChange, labelledBy, varia
         onKeyDown={handleTriggerKeyDown}
         className={`${triggerBaseClasses} ${variantClasses[variant]} ${className}`}
       >
-        <span className="truncate">{selected?.label}</span>
+        <span className="min-w-0 flex-1 truncate">{selected?.label}</span>
         <ChevronDownIcon
           className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`}
         />
