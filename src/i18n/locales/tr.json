@@ -1,0 +1,102 @@
+{
+  "app": {
+    "name": "Quelio",
+    "tagline": "Işıldayan sorular."
+  },
+  "nav": {
+    "home": "Ana Sayfa",
+    "bloomsQuiz": "Bloom Quiz",
+    "similarQuiz": "Benzer Quiz",
+    "illustrateStory": "Hikâye Görselleştir",
+    "imageToQuiz": "Görselden Quiz",
+    "matchingQuiz": "Eşleştirme Quizi",
+    "videoToQuiz": "Videodan Quiz",
+    "newsToQuiz": "Haberden Quiz",
+    "pdfToQuiz": "PDF'ten Quiz",
+    "youtubeToQuiz": "YouTube'dan Quiz",
+    "aiSlides": "AI Slaytlar",
+    "pro": "PRO",
+    "saved": "Kayıtlılar",
+    "account": "Hesap",
+    "openMenu": "Gezinme menüsünü aç",
+    "closeMenu": "Gezinme menüsünü kapat"
+  },
+  "topbar": {
+    "searchLabel": "Şablonlarda ve geçmişte ara",
+    "searchPlaceholder": "Şablonlarda ve geçmişte ara...",
+    "freeRunsRemainingLabel": "Kalan Ücretsiz Kullanım:",
+    "upgrade": "Yükselt",
+    "logout": "Çıkış Yap",
+    "avatarInitials": "JD",
+    "avatarLabel": "Hesap menüsü"
+  },
+  "hero": {
+    "title": "MCQ, Doğru/Yanlış, Boşluk Doldurma, SSS ve daha fazlasını yapay zekâ ile oluşturun",
+    "subtitle": "Her türlü ders materyalini, dokümanı veya ders notunu saniyeler içinde interaktif quizlere dönüştürün."
+  },
+  "inputCard": {
+    "freePlan": "Ücretsiz plan: <bold>5.000 kelimeye</bold> kadar destek! • 100.000 kelime desteği ve daha yüksek quiz sayısı için <upgrade>Yükselt</upgrade>!",
+    "wordCount": "Kelime Sayısı: {{count}}",
+    "outputLanguageLabel": "Çıktı Dili:",
+    "outputLanguage": {
+      "auto": "Otomatik",
+      "en": "İngilizce (ABD)",
+      "tr": "Türkçe",
+      "es": "İspanyolca",
+      "fr": "Fransızca",
+      "de": "Almanca",
+      "hi": "Hintçe"
+    },
+    "tabs": {
+      "text": "Metin",
+      "file": "Dosya",
+      "url": "URL",
+      "youtube": "YouTube"
+    },
+    "placeholder": {
+      "text": "İçeriğinizi buraya yapıştırın veya yazın...",
+      "url": "Bir makale veya web sayfası bağlantısı yapıştırın...",
+      "youtube": "Bir YouTube video bağlantısı yapıştırın..."
+    },
+    "dropzone": {
+      "title": "Dosyayı buraya sürükleyip bırakın",
+      "subtitle": "PDF, DOCX veya TXT, 20MB'a kadar",
+      "browse": "Dosya seç"
+    },
+    "clearInput": "İçeriği Temizle",
+    "studyMode": "Çalışma Modu",
+    "studyModeOn": "Açık",
+    "studyModeOff": "Kapalı",
+    "errorEmpty": "Quiz oluşturmadan önce lütfen içerik ekleyin."
+  },
+  "params": {
+    "eyebrow": "Quiz Ayarları",
+    "questionType": {
+      "label": "Soru Türü",
+      "mcq": "Çoktan Seçmeli (MCQ)",
+      "trueFalse": "Doğru veya Yanlış",
+      "fillBlanks": "Boşluk Doldurma",
+      "shortAnswer": "Kısa Cevap"
+    },
+    "questionCount": {
+      "label": "Soru Sayısı",
+      "value": "{{count}} Soru"
+    },
+    "difficulty": {
+      "label": "Zorluk Seviyesi",
+      "easy": "Kolay",
+      "medium": "Orta",
+      "hard": "Zor"
+    },
+    "optionsCount": {
+      "label": "MCQ Şık Sayısı",
+      "value": "{{count}} Şık",
+      "standard": "4 Şık (Standart A, B, C, D)"
+    }
+  },
+  "cta": {
+    "generate": "Quiz Oluştur",
+    "generating": "Quiziniz oluşturuluyor...",
+    "disabledHint": "Oluşturmak için içerik ekleyin"
+  }
+}

@@ -1,0 +1,44 @@
+CONTEXT AND EXECUTION
+- Follow the project's CLAUDE.md instructions. Search first, then read only files and sections relevant to the task; do not reread unchanged references.
+- Complete the requested work quickly and fully. Avoid unnecessary planning and repeated checks, but do not skip checks needed to catch errors.
+- Keep terminal output brief. If build or lint fails, inspect only the relevant error lines; fix the issue and rerun the failed check. Do not save full logs.
+- Do not create progress notes, audit files, debug dumps, or extra documentation. Save only files required by the task.
+- After build, lint, and visual verification pass, deploy the finished site to Vercel production and verify that the production URL loads correctly.
+- Finish with a few lines stating what was built, what passed, and the production URL. Do not paste logs or entire files.
+
+TASK
+Build the Quelio home page as a real front-end project.
+
+REFERENCES (in /reference)
+- quelio-stitch-export.html: the approved Stitch export. Source of truth for layout, Tailwind classes, spacing and copy.
+- reference-screen.png: how the finished page must look. The result should be visually identical.
+- design.md: design system (tokens, components, states, accessibility). Read it once; afterwards open only the section you need.
+
+Recreate the page from the export as a maintainable project, not one static HTML file.
+
+STACK
+- Vite + React + TypeScript + Tailwind CSS, installed via npm (no CDN script).
+- react-i18next with en and tr locale files. Every UI string comes from the locale files. Detect language from the browser; no visible language switcher for now. Add Turkish to the Output Language dropdown (it is missing in the export).
+- Keep the export's Tailwind theme (brand and royal colors) and its font, Plus Jakarta Sans. The export is the source of truth for the font; design.md says Inter, so fix that line in design.md.
+
+COMPONENTS
+Sidebar, TopBar, InputCard (info row, tabs, textarea, footer), ParameterGrid, GenerateButton. Keep the export's ids and data-purpose ideas where useful.
+
+BEHAVIOR
+- Live word count, Clear Input, Study Mode toggle (role="switch"), all four parameter selects with the export's options.
+- Tabs switch the input area: Text = textarea, File = simple dropzone (no upload logic), URL and YouTube = single-line input.
+- Generate Quiz: if input is empty, show the error state from design.md (red textarea border + short helper text); otherwise show the loading state ("Generating your quiz..."). Put the real call in a clearly marked TODO function generateQuiz(); no backend yet.
+- Sidebar items are plain links (href="#"); only Home is active.
+- Responsive and accessible exactly as in design.md sections 6.3 and 11.
+
+DO NOT
+Add extra pages, auth, backend, new features, ads, founder contact lines or cross-app banners. Do not change the visual design.
+
+VERIFY
+Run build and lint, start the dev server, and compare the result with reference-screen.png at about 1280px width. Fix any visible differences.
+
+DEPLOY
+Deploy to Vercel production only after VERIFY passes, then confirm the production URL loads correctly (see CONTEXT AND EXECUTION).
+
+CLAUDE.md
+Add one short line to CLAUDE.md with the stack and the run/build commands (current facts only, no progress log).

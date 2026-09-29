@@ -1,0 +1,102 @@
+{
+  "app": {
+    "name": "Quelio",
+    "tagline": "Questions that shine."
+  },
+  "nav": {
+    "home": "Home",
+    "bloomsQuiz": "Bloom's Quiz",
+    "similarQuiz": "Similar Quiz",
+    "illustrateStory": "Illustrate Story",
+    "imageToQuiz": "Image to Quiz",
+    "matchingQuiz": "Matching Quiz",
+    "videoToQuiz": "Video to Quiz",
+    "newsToQuiz": "News to Quiz",
+    "pdfToQuiz": "PDF to Quiz",
+    "youtubeToQuiz": "YouTube to Quiz",
+    "aiSlides": "AI Slides",
+    "pro": "PRO",
+    "saved": "Saved",
+    "account": "Account",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu"
+  },
+  "topbar": {
+    "searchLabel": "Search templates and history",
+    "searchPlaceholder": "Search templates & history...",
+    "freeRunsRemainingLabel": "Free Runs Remaining:",
+    "upgrade": "Upgrade",
+    "logout": "Logout",
+    "avatarInitials": "JD",
+    "avatarLabel": "Account menu"
+  },
+  "hero": {
+    "title": "Generate different quizzes like MCQs, True or False, Fill-in-the-blanks, FAQs, etc using AI",
+    "subtitle": "Turn any study material, documentation, or lecture notes into interactive quizzes in seconds."
+  },
+  "inputCard": {
+    "freePlan": "Free plan: Supports <bold>5,000 words</bold>! • <upgrade>Upgrade</upgrade> for 100,000 word support and high quiz count!",
+    "wordCount": "Word Count: {{count}}",
+    "outputLanguageLabel": "Output Language:",
+    "outputLanguage": {
+      "auto": "Auto",
+      "en": "English (US)",
+      "tr": "Turkish (TR)",
+      "es": "Spanish",
+      "fr": "French",
+      "de": "German",
+      "hi": "Hindi"
+    },
+    "tabs": {
+      "text": "Text",
+      "file": "File",
+      "url": "URL",
+      "youtube": "YouTube"
+    },
+    "placeholder": {
+      "text": "Paste or type your content here...",
+      "url": "Paste a link to an article or webpage...",
+      "youtube": "Paste a YouTube video link..."
+    },
+    "dropzone": {
+      "title": "Drag and drop a file here",
+      "subtitle": "PDF, DOCX or TXT, up to 20MB",
+      "browse": "Browse files"
+    },
+    "clearInput": "Clear Input",
+    "studyMode": "Study Mode",
+    "studyModeOn": "On",
+    "studyModeOff": "Off",
+    "errorEmpty": "Please add some content before generating a quiz."
+  },
+  "params": {
+    "eyebrow": "Quiz Parameters",
+    "questionType": {
+      "label": "Question Type",
+      "mcq": "MCQ (Multiple Choice Questions)",
+      "trueFalse": "True or False",
+      "fillBlanks": "Fill in the Blanks",
+      "shortAnswer": "Short Answer"
+    },
+    "questionCount": {
+      "label": "Question Count",
+      "value": "{{count}} Questions"
+    },
+    "difficulty": {
+      "label": "Difficulty Level",
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard"
+    },
+    "optionsCount": {
+      "label": "MCQ Options Count",
+      "value": "{{count}} Options",
+      "standard": "4 Options (Standard A, B, C, D)"
+    }
+  },
+  "cta": {
+    "generate": "Generate Quiz",
+    "generating": "Generating your quiz...",
+    "disabledHint": "Add content to generate"
+  }
+}
