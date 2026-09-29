@@ -3,7 +3,7 @@ import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { FileTabIcon, LanguagesIcon, TextTabIcon, TrashIcon, UrlTabIcon } from './icons'
-import Select from './Select'
+import OutputLanguageSelect from './OutputLanguageSelect'
 
 export type InputTab = 'text' | 'file' | 'url'
 
@@ -45,17 +45,6 @@ export default function InputCard({
   const { t } = useTranslation()
   const tabRefs = useRef<Partial<Record<InputTab, HTMLButtonElement | null>>>({})
 
-  const outputLanguageOptions = [
-    { value: 'auto', label: t('inputCard.outputLanguage.auto') },
-    { value: 'en', label: t('inputCard.outputLanguage.en') },
-    { value: 'tr', label: t('inputCard.outputLanguage.tr') },
-    { value: 'es', label: t('inputCard.outputLanguage.es') },
-    { value: 'fr', label: t('inputCard.outputLanguage.fr') },
-    { value: 'de', label: t('inputCard.outputLanguage.de') },
-    { value: 'hi', label: t('inputCard.outputLanguage.hi') },
-    { value: 'hyw', label: t('inputCard.outputLanguage.hyw') },
-  ]
-
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     const currentIndex = TAB_ORDER.indexOf(activeTab)
     let nextIndex: number | null = null
@@ -90,18 +79,22 @@ export default function InputCard({
           <p className="font-bold text-amber-hover">{t('inputCard.wordCount', { count: wordCount })}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <label id="output-lang-label" htmlFor="output-lang" className="flex items-center gap-1 font-medium text-muted">
-            <LanguagesIcon className="h-3.5 w-3.5 text-muted" />
+          <label
+            id="output-lang-label"
+            htmlFor="output-lang"
+            className="flex items-center gap-1 font-medium whitespace-nowrap text-muted"
+          >
+            <LanguagesIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
             {t('inputCard.outputLanguageLabel')}
           </label>
-          <Select
-            id="output-lang"
-            labelledBy="output-lang-label"
-            variant="boxed"
-            value={outputLanguage}
-            onChange={onOutputLanguageChange}
-            options={outputLanguageOptions}
-          />
+          <div className="w-[168px]">
+            <OutputLanguageSelect
+              id="output-lang"
+              labelledBy="output-lang-label"
+              value={outputLanguage}
+              onChange={onOutputLanguageChange}
+            />
+          </div>
         </div>
       </div>
 

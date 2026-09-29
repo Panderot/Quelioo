@@ -8,6 +8,7 @@ import type { GeneratedQuiz, QuizPair, QuizQuestion, QuizQuestionType } from '..
 import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../../src/lib/textStats.js'
 import { QUESTION_TYPES } from '../../src/lib/quizTypes.js'
 import type { QuestionType } from '../../src/lib/quizTypes.js'
+import { OUTPUT_LANGUAGE_CODES, getOutputLanguageEnglishName } from '../../src/data/outputLanguages.js'
 
 export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model'
 export type ResponseProvider = LlmProvider | 'demo'
@@ -34,24 +35,20 @@ export type GenerateResponseBody = GenerateQuizResponseBody | RegenerateOneRespo
 const MAX_REQUEST_BYTES = 512 * 1024
 const DIFFICULTIES = new Set(['easy', 'medium', 'hard'])
 const OPTIONS_COUNTS = new Set(['2', '3', '4', '5'])
-const OUTPUT_LANGUAGES = new Set(['auto', 'en', 'tr', 'es', 'fr', 'de', 'hi', 'hyw'])
 const UI_LANGUAGES = new Set(['en', 'tr', 'hyw'])
 const GENERATE_QUESTION_TYPES = new Set<string>(QUESTION_TYPES.map((type) => type.value))
 const CONCRETE_QUESTION_TYPES = new Set<string>(QUESTION_TYPES.map((type) => type.value).filter((value) => value !== 'mixed'))
 
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: 'English',
-  tr: 'Turkish',
-  es: 'Spanish',
-  fr: 'French',
-  de: 'German',
-  hi: 'Hindi',
+// hyw gets a more specific prompt hint than its plain display name, since "classical
+// orthography" measurably improves Western Armenian output quality.
+const PROMPT_LANGUAGE_NAME_OVERRIDES: Record<string, string> = {
   hyw: 'Western Armenian (classical orthography)',
 }
 
 function outputLanguageInstruction(outputLanguage: string): string {
   if (outputLanguage === 'auto') return 'Write the quiz in the same language as the source text.'
-  return `Write the quiz in ${LANGUAGE_NAMES[outputLanguage] ?? 'English'}.`
+  const name = PROMPT_LANGUAGE_NAME_OVERRIDES[outputLanguage] ?? getOutputLanguageEnglishName(outputLanguage) ?? 'English'
+  return `Write the quiz in ${name}.`
 }
 
 const TYPE_SCHEMA_NOTE = [
@@ -405,7 +402,7 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
   const optionsCount = needsOptionsCount ? optionsCountRaw : undefined
 
   const outputLanguage =
-    typeof payload.outputLanguage === 'string' && OUTPUT_LANGUAGES.has(payload.outputLanguage) ? payload.outputLanguage : 'auto'
+    typeof payload.outputLanguage === 'string' && OUTPUT_LANGUAGE_CODES.has(payload.outputLanguage) ? payload.outputLanguage : 'auto'
   const uiLanguage = typeof payload.uiLanguage === 'string' && UI_LANGUAGES.has(payload.uiLanguage) ? payload.uiLanguage : 'en'
 
   if (mode === 'regenerate_one') {

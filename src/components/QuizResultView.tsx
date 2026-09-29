@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
+import { getOutputLanguage } from '../data/outputLanguages'
 import DemoBanner from './DemoBanner'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
@@ -100,7 +101,10 @@ export default function QuizResultView({
   const metaLine = useMemo(() => {
     const typeLabel = t(QUESTION_TYPE_LABEL_KEYS[meta.questionType] ?? meta.questionType)
     const difficultyLabel = t(`params.difficulty.${meta.difficulty}`)
-    const languageLabel = t(`inputCard.outputLanguage.${meta.outputLanguage}`, { defaultValue: meta.outputLanguage })
+    const languageLabel =
+      meta.outputLanguage === 'auto'
+        ? t('inputCard.outputLanguage.auto')
+        : (getOutputLanguage(meta.outputLanguage)?.nativeName ?? meta.outputLanguage)
     return [t('params.questionCount.value', { count: meta.questionCount }), typeLabel, difficultyLabel, languageLabel].join(' • ')
   }, [meta, t])
 

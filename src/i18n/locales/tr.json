@@ -31,13 +31,10 @@
     "outputLanguageLabel": "Çıktı Dili:",
     "outputLanguage": {
       "auto": "Otomatik",
-      "en": "İngilizce (ABD)",
-      "tr": "Türkçe",
-      "es": "İspanyolca",
-      "fr": "Fransızca",
-      "de": "Almanca",
-      "hi": "Hintçe",
-      "hyw": "Ermenice (Batı)"
+      "suggested": "Önerilen",
+      "allLanguages": "Tüm diller",
+      "searchPlaceholder": "Dil ara...",
+      "noResults": "Dil bulunamadı"
     },
     "tabs": {
       "text": "Metin",
