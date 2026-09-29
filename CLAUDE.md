@@ -18,6 +18,8 @@ Vite + React + TypeScript + Tailwind CSS (v4, `@tailwindcss/vite`) + react-i18ne
 - Ana ekranda üçüncü taraf reklam, kurucu iletişim satırı veya çapraz uygulama tanıtımı olmamalı.
 - Birincil CTA ("Generate Quiz") düz amber (turuncu-sarı) arka plan ve lacivert metinle gösterilir; ekran başına tek bir birincil CTA vardır. Arka planlarda ve butonlarda gradient kullanılmaz.
 - Archive (`/archive`, `/archive/:id`), backend gelene kadar quiz kayıtlarını (üretilen sorular dâhil) tarayıcının localStorage'ında `quelio.archive.v1` anahtarı altında saklar.
+- Arayüzde arkasında gerçek işlevi olmayan kontrol (buton, link, nav öğesi) bulunmasın — ör. Logout, Account, Upgrade gibi placeholder'lar kaldırıldı; bu özellikler gerçekten var olmadan geri eklenmesin.
+- Bilinmeyen rota `*` wildcard route ile `NotFoundPage`'e düşer; yeni sayfa eklerken bu rotayı Routes listesinin en sonunda tut.
 
 ## Context ve token kullanımı
 

@@ -51,15 +51,17 @@ function isErrorCode(value: unknown): value is GenerateErrorCode {
   return typeof value === 'string' && ERROR_CODES.has(value)
 }
 
-async function postGenerate(body: unknown): Promise<unknown> {
+async function postGenerate(body: unknown, signal?: AbortSignal): Promise<unknown> {
   let response: Response
   try {
     response = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
+      signal,
     })
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
     throw new GenerateApiError('network')
   }
 
@@ -78,8 +80,8 @@ async function postGenerate(body: unknown): Promise<unknown> {
   return json
 }
 
-export async function generateQuiz(payload: GenerateQuizPayload): Promise<GenerateQuizResult> {
-  const json = await postGenerate({ mode: 'generate', ...payload })
+export async function generateQuiz(payload: GenerateQuizPayload, signal?: AbortSignal): Promise<GenerateQuizResult> {
+  const json = await postGenerate({ mode: 'generate', ...payload }, signal)
   if (!isRecord(json) || typeof json.demo !== 'boolean' || !isGeneratedQuiz(json)) {
     throw new GenerateApiError('parse')
   }

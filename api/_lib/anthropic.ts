@@ -1,6 +1,7 @@
 import type { IncomingMessage } from 'node:http'
 
 export const DEFAULT_MODEL = 'claude-haiku-4-5'
+const UPSTREAM_TIMEOUT_MS = 25000
 
 export function resolveModel(): string {
   return process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL
@@ -26,6 +27,9 @@ interface CallAnthropicMessagesParams {
 
 /** POSTs a single-turn message to the Anthropic Messages API and returns the model's text reply, or null on any transport/shape failure. */
 export async function callAnthropicMessages(params: CallAnthropicMessagesParams): Promise<string | null> {
+  const timeoutController = new AbortController()
+  const timeout = setTimeout(() => timeoutController.abort(), UPSTREAM_TIMEOUT_MS)
+
   let response: Response
   try {
     response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -41,9 +45,12 @@ export async function callAnthropicMessages(params: CallAnthropicMessagesParams)
         system: params.system,
         messages: [{ role: 'user', content: params.content }],
       }),
+      signal: timeoutController.signal,
     })
   } catch {
     return null
+  } finally {
+    clearTimeout(timeout)
   }
 
   if (!response.ok) return null

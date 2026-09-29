@@ -7,14 +7,10 @@
     "create": "Oluştur",
     "solve": "Çöz",
     "archive": "Arşiv",
-    "account": "Hesap",
     "openMenu": "Gezinme menüsünü aç",
     "closeMenu": "Gezinme menüsünü kapat"
   },
   "topbar": {
-    "logout": "Çıkış Yap",
-    "avatarInitials": "JD",
-    "avatarLabel": "Hesap menüsü",
     "language": {
       "buttonLabel": "Dili değiştir",
       "menuLabel": "Bir dil seçin"
@@ -24,8 +20,13 @@
     "title": "Okuduğun her şeyi bir quize dönüştür.",
     "subtitle": "Metni yapıştır, PDF bırak ya da bir bağlantı paylaş. Quelio soruları saniyeler içinde yazsın."
   },
+  "notFound": {
+    "title": "Sayfa bulunamadı",
+    "subtitle": "Aradığın sayfa mevcut değil.",
+    "cta": "Oluştur'a git"
+  },
   "inputCard": {
-    "freePlan": "Ücretsiz plan: <bold>5.000 kelimeye</bold> kadar destek! • 100.000 kelime desteği ve daha yüksek quiz sayısı için <upgrade>Yükselt</upgrade>!",
+    "wordLimit": "Quiz başına 30 ile 5.000 kelime arası destekler.",
     "wordCount": "Kelime Sayısı: {{count}}",
     "outputLanguageLabel": "Çıktı Dili:",
     "outputLanguage": {
@@ -135,6 +136,7 @@
       "showAnswers": "Cevapları göster",
       "copy": "Kopyala",
       "copied": "Kopyalandı!",
+      "copyFailed": "Kopyalanamadı — metni elle seçebilirsin.",
       "print": "Yazdır / PDF",
       "answerKeyTitle": "Cevap Anahtarı",
       "trueLabel": "Doğru",

@@ -7,14 +7,10 @@
     "create": "Create",
     "solve": "Solve",
     "archive": "Archive",
-    "account": "Account",
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu"
   },
   "topbar": {
-    "logout": "Logout",
-    "avatarInitials": "JD",
-    "avatarLabel": "Account menu",
     "language": {
       "buttonLabel": "Change language",
       "menuLabel": "Choose a language"
@@ -24,8 +20,13 @@
     "title": "Turn anything you read into a quiz.",
     "subtitle": "Paste text, drop a PDF or share a link. Quelio writes the questions in seconds."
   },
+  "notFound": {
+    "title": "Page not found",
+    "subtitle": "The page you're looking for doesn't exist.",
+    "cta": "Go to Create"
+  },
   "inputCard": {
-    "freePlan": "Free plan: Supports <bold>5,000 words</bold>! • <upgrade>Upgrade</upgrade> for 100,000 word support and high quiz count!",
+    "wordLimit": "Supports between 30 and 5,000 words per quiz.",
     "wordCount": "Word Count: {{count}}",
     "outputLanguageLabel": "Output Language:",
     "outputLanguage": {
@@ -135,6 +136,7 @@
       "showAnswers": "Show answers",
       "copy": "Copy",
       "copied": "Copied!",
+      "copyFailed": "Couldn't copy — select the text manually.",
       "print": "Print / PDF",
       "answerKeyTitle": "Answer Key",
       "trueLabel": "True",

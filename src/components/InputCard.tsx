@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import type { ChangeEvent, KeyboardEvent } from 'react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 
 import { FileTabIcon, LanguagesIcon, TextTabIcon, TrashIcon, UrlTabIcon } from './icons'
 import Select from './Select'
@@ -86,15 +86,7 @@ export default function InputCard({
       {/* Info row */}
       <div className="flex flex-col items-start justify-between gap-3 border-b border-warm-border pb-2 text-xs sm:flex-row sm:items-center">
         <div className="space-y-0.5">
-          <p className="font-medium text-muted">
-            <Trans
-              i18nKey="inputCard.freePlan"
-              components={{
-                bold: <span className="font-semibold text-ink" />,
-                upgrade: <span className="cursor-pointer font-semibold text-amber-hover hover:underline" />,
-              }}
-            />
-          </p>
+          <p className="font-medium text-muted">{t('inputCard.wordLimit')}</p>
           <p className="font-bold text-amber-hover">{t('inputCard.wordCount', { count: wordCount })}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">

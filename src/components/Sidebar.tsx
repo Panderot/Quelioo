@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { LogoMark } from './Logo'
-import { AccountIcon, ArchiveIcon, CalculatorIcon, HomeIcon } from './icons'
+import { ArchiveIcon, CalculatorIcon, HomeIcon } from './icons'
 import type { ComponentType, SVGProps } from 'react'
 
 type NavIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -11,7 +11,7 @@ interface NavItem {
   key: string
   labelKey: string
   Icon: NavIcon
-  to?: string
+  to: string
 }
 
 const mainNavItems: NavItem[] = [
@@ -19,10 +19,7 @@ const mainNavItems: NavItem[] = [
   { key: 'solve', labelKey: 'nav.solve', Icon: CalculatorIcon, to: '/solve' },
 ]
 
-const footerNavItems: NavItem[] = [
-  { key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' },
-  { key: 'account', labelKey: 'nav.account', Icon: AccountIcon },
-]
+const footerNavItems: NavItem[] = [{ key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' }]
 
 interface SidebarProps {
   isMobileOpen: boolean
@@ -47,20 +44,11 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
     </>
   )
 
-  const renderItem = (item: NavItem) => {
-    if (item.to) {
-      return (
-        <NavLink key={item.key} to={item.to} end={item.to === '/'} title={t(item.labelKey)} className={({ isActive }) => itemClasses(isActive)}>
-          {({ isActive }) => itemContent(item, isActive)}
-        </NavLink>
-      )
-    }
-    return (
-      <a key={item.key} href="#" title={t(item.labelKey)} className={itemClasses(false)}>
-        {itemContent(item, false)}
-      </a>
-    )
-  }
+  const renderItem = (item: NavItem) => (
+    <NavLink key={item.key} to={item.to} end={item.to === '/'} title={t(item.labelKey)} className={({ isActive }) => itemClasses(isActive)}>
+      {({ isActive }) => itemContent(item, isActive)}
+    </NavLink>
+  )
 
   return (
     <>

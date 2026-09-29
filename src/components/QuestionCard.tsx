@@ -14,6 +14,38 @@ const TYPE_LABEL_KEYS: Record<QuizQuestion['type'], string> = {
   'open-ended': 'create.question.type.openEnded',
 }
 
+function isDraftValid(draft: QuizQuestion): boolean {
+  if (!draft.question.trim()) return false
+  switch (draft.type) {
+    case 'mcq':
+      return draft.options.length >= 2 && draft.options.every((option) => option.trim().length > 0)
+    case 'true-false':
+      return true
+    case 'fill-blanks':
+    case 'short-answer':
+    case 'open-ended':
+      return draft.answer.trim().length > 0
+    case 'matching':
+      return draft.pairs.length >= 2 && draft.pairs.every((pair) => pair.left.trim() && pair.right.trim())
+  }
+}
+
+function trimDraft(draft: QuizQuestion): QuizQuestion {
+  const base = { ...draft, question: draft.question.trim(), explanation: draft.explanation.trim() }
+  switch (base.type) {
+    case 'mcq':
+      return { ...base, options: base.options.map((option) => option.trim()) }
+    case 'matching':
+      return { ...base, pairs: base.pairs.map((pair) => ({ left: pair.left.trim(), right: pair.right.trim() })) }
+    case 'fill-blanks':
+    case 'short-answer':
+    case 'open-ended':
+      return { ...base, answer: base.answer.trim() }
+    default:
+      return base
+  }
+}
+
 interface QuestionCardProps {
   index: number
   question: QuizQuestion
@@ -40,7 +72,9 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
   }
 
   const saveEditing = () => {
-    onUpdate(() => draft)
+    if (!isDraftValid(draft)) return
+    const trimmed = trimDraft(draft)
+    onUpdate(() => trimmed)
     setIsEditing(false)
   }
 
@@ -115,7 +149,7 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
             {isExplanationOpen ? t('create.result.hideExplanation') : t('create.result.showExplanation')}
           </button>
           {isExplanationOpen && (
-            <div className="mt-2 rounded-xl border border-warm-border bg-paper p-3.5 text-xs text-muted">
+            <div className="mt-2 rounded-xl border border-warm-border bg-paper p-3.5 text-xs break-words text-muted">
               <MathText text={question.explanation} />
             </div>
           )}
@@ -130,7 +164,7 @@ function QuestionView({ question, showAnswers }: { question: QuizQuestion; showA
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold text-ink">
+      <p className="text-sm font-semibold break-words text-ink">
         <MathText text={question.question} />
       </p>
 
@@ -146,7 +180,7 @@ function QuestionView({ question, showAnswers }: { question: QuizQuestion; showA
                 }`}
               >
                 <span className="font-bold text-muted">{String.fromCharCode(65 + optionIndex)}.</span>
-                <span className="min-w-0 flex-1">
+                <span className="min-w-0 flex-1 break-words">
                   <MathText text={option} />
                 </span>
                 {isCorrect && <CheckIcon className="h-4 w-4 shrink-0 text-amber-hover" />}
@@ -178,7 +212,7 @@ function QuestionView({ question, showAnswers }: { question: QuizQuestion; showA
         <div className="space-y-1.5">
           <div className="h-px w-full max-w-xs border-b border-dashed border-warm-border" />
           {showAnswers && (
-            <p className="text-sm font-semibold text-amber-hover">
+            <p className="text-sm font-semibold break-words text-amber-hover">
               <MathText text={question.answer} />
             </p>
           )}
@@ -186,7 +220,7 @@ function QuestionView({ question, showAnswers }: { question: QuizQuestion; showA
       )}
 
       {(question.type === 'short-answer' || question.type === 'open-ended') && showAnswers && (
-        <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-sm text-ink">
+        <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-sm break-words text-ink">
           <p className="mb-1 text-[11px] font-bold tracking-wide text-muted uppercase">{t('create.result.modelAnswerLabel')}</p>
           <MathText text={question.answer} />
         </div>
@@ -196,19 +230,19 @@ function QuestionView({ question, showAnswers }: { question: QuizQuestion; showA
         <div className="space-y-1.5">
           <div className="grid grid-cols-2 gap-2">
             {question.pairs.map((pair, pairIndex) => (
-              <span key={`left-${pairIndex}`} className="rounded-lg border border-warm-border px-3 py-2 text-sm text-ink">
+              <span key={`left-${pairIndex}`} className="rounded-lg border border-warm-border px-3 py-2 text-sm break-words text-ink">
                 <MathText text={pair.left} />
               </span>
             ))}
           </div>
           {showAnswers && (
-            <ul className="space-y-1 pt-1 text-sm text-ink">
+            <ul className="space-y-1 pt-1 text-sm break-words text-ink">
               {question.pairs.map((pair, pairIndex) => (
-                <li key={pairIndex} className="flex items-center gap-2">
+                <li key={pairIndex} className="flex items-start gap-2">
                   <span className="font-semibold">
                     <MathText text={pair.left} />
                   </span>
-                  <span className="text-muted">→</span>
+                  <span className="shrink-0 text-muted">→</span>
                   <span>
                     <MathText text={pair.right} />
                   </span>
@@ -384,7 +418,8 @@ function QuestionEditForm({
         <button
           type="button"
           onClick={onSave}
-          className="rounded-xl bg-amber px-3.5 py-2 text-xs font-bold text-navy transition-colors hover:bg-amber-hover"
+          disabled={!isDraftValid(draft)}
+          className="rounded-xl bg-amber px-3.5 py-2 text-xs font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-amber"
         >
           {t('create.question.saveAction')}
         </button>

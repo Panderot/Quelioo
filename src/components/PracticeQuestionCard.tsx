@@ -43,7 +43,7 @@ export default function PracticeQuestionCard({ index, question, onGraded, resetS
     <li key={key} data-purpose="practice-question-card" className="space-y-3 rounded-[14px] border border-warm-border bg-card p-5 md:p-6">
       <div className="flex items-center gap-3">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-bold text-navy">{index + 1}</span>
-        <p className="text-sm font-semibold text-ink">
+        <p className="text-sm font-semibold break-words text-ink">
           <MathText text={question.question} />
         </p>
       </div>
@@ -70,7 +70,7 @@ export default function PracticeQuestionCard({ index, question, onGraded, resetS
                   className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${stateClasses}`}
                 >
                   <span className="font-bold text-muted">{String.fromCharCode(65 + optionIndex)}.</span>
-                  <span className="min-w-0 flex-1 text-ink">
+                  <span className="min-w-0 flex-1 break-words text-ink">
                     <MathText text={option} />
                   </span>
                   {revealState && isCorrectOption && <CheckIcon className="h-4 w-4 shrink-0 text-success" />}
@@ -123,13 +123,13 @@ export default function PracticeQuestionCard({ index, question, onGraded, resetS
           ) : (
             <>
               {question.type === 'matching' ? (
-                <ul className="space-y-1 text-sm text-ink">
+                <ul className="space-y-1 text-sm break-words text-ink">
                   {question.pairs.map((pair, pairIndex) => (
-                    <li key={pairIndex} className="flex items-center gap-2">
+                    <li key={pairIndex} className="flex items-start gap-2">
                       <span className="font-semibold">
                         <MathText text={pair.left} />
                       </span>
-                      <span className="text-muted">→</span>
+                      <span className="shrink-0 text-muted">→</span>
                       <span>
                         <MathText text={pair.right} />
                       </span>
@@ -137,7 +137,7 @@ export default function PracticeQuestionCard({ index, question, onGraded, resetS
                   ))}
                 </ul>
               ) : (
-                <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-sm text-ink">
+                <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-sm break-words text-ink">
                   <MathText text={question.answer} />
                 </div>
               )}

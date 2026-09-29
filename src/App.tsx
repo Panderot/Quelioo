@@ -6,6 +6,7 @@ import TopBar from './components/TopBar'
 import ArchivePage from './pages/ArchivePage'
 import ArchiveQuizPage from './pages/ArchiveQuizPage'
 import CreatePage from './pages/CreatePage'
+import NotFoundPage from './pages/NotFoundPage'
 import SolvePage from './pages/SolvePage'
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="/solve" element={<SolvePage />} />
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/:id" element={<ArchiveQuizPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
       </main>

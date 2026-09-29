@@ -93,7 +93,7 @@ export default function QuizResultView({
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(quiz.title)
   const [showAnswers, setShowAnswers] = useState(true)
-  const [copyLabel, setCopyLabel] = useState<'idle' | 'copied'>('idle')
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
   const [practiceResults, setPracticeResults] = useState<Record<string, boolean>>({})
   const [resetSignal, setResetSignal] = useState(0)
 
@@ -106,7 +106,8 @@ export default function QuizResultView({
 
   const handleTitleSave = () => {
     const trimmed = titleDraft.trim()
-    if (trimmed) onTitleChange(trimmed)
+    if (!trimmed) return
+    onTitleChange(trimmed)
     setIsEditingTitle(false)
   }
 
@@ -119,10 +120,11 @@ export default function QuizResultView({
     })
     try {
       await navigator.clipboard.writeText(text)
-      setCopyLabel('copied')
-      setTimeout(() => setCopyLabel('idle'), 2000)
+      setCopyState('copied')
     } catch {
-      // Clipboard API unavailable or denied — silently ignore, the user can select the text manually.
+      setCopyState('error')
+    } finally {
+      setTimeout(() => setCopyState('idle'), 2500)
     }
   }
 
@@ -152,7 +154,8 @@ export default function QuizResultView({
                 <button
                   type="button"
                   onClick={handleTitleSave}
-                  className="rounded-lg bg-amber px-3 py-1.5 text-xs font-bold text-navy hover:bg-amber-hover"
+                  disabled={!titleDraft.trim()}
+                  className="rounded-lg bg-amber px-3 py-1.5 text-xs font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-amber"
                 >
                   {t('create.question.saveAction')}
                 </button>
@@ -169,7 +172,7 @@ export default function QuizResultView({
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <h2 className="font-serif text-xl leading-snug font-semibold text-navy">{quiz.title}</h2>
+                <h2 className="font-serif text-xl leading-snug font-semibold break-words text-navy">{quiz.title}</h2>
                 <button
                   type="button"
                   title={t('create.result.titleEditLabel')}
@@ -241,9 +244,16 @@ export default function QuizResultView({
               <button
                 type="button"
                 onClick={() => void handleCopy()}
-                className="rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-focus-neutral"
+                aria-live="polite"
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  copyState === 'error' ? 'border-error/40 text-error' : 'border-warm-border text-ink hover:border-focus-neutral'
+                }`}
               >
-                {copyLabel === 'copied' ? t('create.result.copied') : t('create.result.copy')}
+                {copyState === 'copied'
+                  ? t('create.result.copied')
+                  : copyState === 'error'
+                    ? t('create.result.copyFailed')
+                    : t('create.result.copy')}
               </button>
               <button
                 type="button"

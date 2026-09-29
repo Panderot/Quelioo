@@ -60,11 +60,14 @@ export default function CreatePage() {
   const [result, setResult] = useState<GeneratedResult | null>(null)
 
   const resultRef = useRef<HTMLDivElement>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     if (prefillText) navigate(location.pathname, { replace: true, state: null })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => () => abortControllerRef.current?.abort(), [])
 
   useEffect(() => {
     if (!result) return
@@ -130,18 +133,26 @@ export default function CreatePage() {
     setHasError(false)
     setResult(null)
     setIsGenerating(true)
+
+    abortControllerRef.current?.abort()
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
     try {
       const uiLanguage = i18n.language
       const needsOptionsCount = supportsOptionsCount(questionType)
-      const generated = await generateQuiz({
-        text: activeContent,
-        questionType,
-        questionCount,
-        difficulty,
-        optionsCount: needsOptionsCount ? optionsCount : undefined,
-        outputLanguage,
-        uiLanguage,
-      })
+      const generated = await generateQuiz(
+        {
+          text: activeContent,
+          questionType,
+          questionCount,
+          difficulty,
+          optionsCount: needsOptionsCount ? optionsCount : undefined,
+          outputLanguage,
+          uiLanguage,
+        },
+        controller.signal,
+      )
 
       const id = createArchiveEntryId()
       addArchiveEntry({
@@ -171,9 +182,10 @@ export default function CreatePage() {
         questionType,
       })
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
       setGenerateError(error instanceof GenerateApiError ? error.code : 'network')
     } finally {
-      setIsGenerating(false)
+      if (abortControllerRef.current === controller) setIsGenerating(false)
     }
   }
 

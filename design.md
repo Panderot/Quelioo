@@ -157,21 +157,19 @@ App root (flex, bg-paper)
 - **Header:** logo mark + Fraunces wordmark, tagline in amber below. Padding ~20px.
 - **Main nav:** Create, then Solve (calculator icon), in that order.
 - **Nav item:** no filled active pill. Default text `paper/60`, hover `paper`. **Active** (matches current route): a 3px amber bar on the left edge + full-opacity paper text + amber icon.
-- **Footer group** (Archive, Account): pinned to the bottom, top border `paper/10`. Archive routes to `/archive`; Account is a placeholder link (no page yet).
+- **Footer group** (Archive): pinned to the bottom, top border `paper/10`. Routes to `/archive`. No Account item — there is no account/auth system yet, and a nav item that goes nowhere is worse than no nav item; add it back once a real account page exists.
 
 ### 7.2 Top bar
 
-Height 80px, flat (no heavy border), flex, items centered. All content sits right-aligned (mobile menu button is the only left-side element, and only appears below 768px).
+Height 80px, flat (no heavy border), flex, items centered. All content sits right-aligned (mobile menu button is the only left-side element, and only appears below 768px). Currently holds only the language switcher — no Logout or Avatar, since there is no auth/account system to back them; add those controls back once real sign-in exists, not before.
 
 - **Language switcher:** ghost button — globe icon + current language's short code (EN / TR / ՀԱՅ) + chevron — opens a listbox menu (card surface, warm border, radius 12) with the three languages in their own native name. Fully keyboard operable: `Enter`/`Space`/`ArrowDown` opens it, arrow keys move between options, `Escape` closes and returns focus to the button.
-- **Logout:** plain text link, muted → ink on hover.
-- **Avatar:** 36px circle, solid navy background (no gradient), cream initials, thin amber ring.
 
 ### 7.3 Input card
 
 Card surface, 1px warm border, radius 14, padding 20–24.
 
-Info row unchanged in structure (plan blurb + word count left, output language right) but restyled to the warm palette; "Upgrade" link uses `amber-hover`.
+Info row unchanged in structure (word-limit line + word count left, output language right) but restyled to the warm palette. The word-limit line states only the actual generation limit (30–5,000 words) — no plan tiers, no "Upgrade" link, since there is no billing system.
 
 ### 7.4 Tabs
 
@@ -306,9 +304,10 @@ At `/archive/:id`: the same header and question list as 7.14–7.15 when the ent
 ## 10. Content & Voice
 
 - Tone: clear, warm, human. No hype words.
-- Button labels start with a verb: "Generate Quiz", "Upgrade", "Clear Input".
+- Button labels start with a verb: "Generate Quiz", "Solve", "Clear Input".
 - Numbers use thousands separators (5,000).
-- Every string comes from an i18n file (`en`, `tr`); never hard-code widths on labels.
+- Every string comes from an i18n file (`en`, `tr`, `hyw`); never hard-code widths on labels.
+- Never ship a control (button, link, nav item) that has no real behavior behind it — no placeholder Logout, Account or Upgrade links. Add the UI only once the feature it triggers actually exists.
 
 **Key strings**
 
@@ -389,7 +388,8 @@ At `/archive/:id`: the same header and question list as 7.14–7.15 when the ent
 | Solve (`/solve`) | **Designed (7.11)** |
 | Archive (`/archive`) | **Designed (7.13)** |
 | Archived quiz / Study Mode (`/archive/:id`) | **Designed (7.17)** |
-| Account / billing (Upgrade) | Not yet |
+| Not found (unknown route) | **Designed** — same empty-state card pattern as Archive/Solve errors, icon + title + subtitle + a "Go to Create" button linking to `/`. |
+| Account / billing | Not yet — no UI for this exists yet; do not add a placeholder nav item or button for it before the feature is real. |
 | Landing page | Not yet |
 
 New screens must reuse the tokens and components above; add new components to this file before using them.
