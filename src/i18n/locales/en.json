@@ -103,8 +103,8 @@
     "studyMode": "Study Mode",
     "empty": {
       "title": "No quizzes yet",
-      "subtitle": "Generate your first quiz and it will show up here.",
-      "cta": "Create a quiz"
+      "subtitle": "Quizzes you create in the Create section will appear here.",
+      "cta": "Go to Create"
     }
   }
 }

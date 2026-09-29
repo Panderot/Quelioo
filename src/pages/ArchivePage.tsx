@@ -54,7 +54,7 @@ export default function ArchivePage() {
           </div>
           <Link
             to="/"
-            className="mt-1 rounded-xl bg-amber px-4 py-2 text-xs font-bold text-navy shadow-sm transition-all hover:scale-[1.02] hover:bg-amber-hover active:scale-[0.98]"
+            className="mt-1 rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
           >
             {t('archive.empty.cta')}
           </Link>

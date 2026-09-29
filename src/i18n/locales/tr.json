@@ -103,8 +103,8 @@
     "studyMode": "Çalışma Modu",
     "empty": {
       "title": "Henüz quiz yok",
-      "subtitle": "İlk quizini oluştur, burada görünecek.",
-      "cta": "Quiz Oluştur"
+      "subtitle": "Oluştur bölümünde hazırladığın quizler burada görünecek.",
+      "cta": "Oluştur'a git"
     }
   }
 }

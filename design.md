@@ -222,7 +222,7 @@ Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title 
 
 - **List:** single column, newest first (not a card grid). Container is one card surface (warm border, radius 14) with hairline (`warm-border`) dividers between rows instead of separate bordered cards per item.
 - **Row:** title (ink, semibold, truncates), a meta line (question count • type • difficulty, muted, reuses `params.*` labels), the created date/time formatted for the active locale (muted), and a Study Mode toggle pinned right (see 7.7). Long Turkish/Armenian titles truncate with ellipsis rather than wrapping the row taller.
-- **Empty state:** centered card surface with the archive icon, a short title + subtitle, and one amber "Create a quiz" button linking to `/`.
+- **Empty state:** centered card surface with the archive icon, a short title ("No quizzes yet"), a subtitle that makes clear quizzes are made on the Create page ("Quizzes you create in the Create section will appear here."), and one **secondary** "Go to Create" button linking to `/` — outline style (warm border, `card` background, navy bold text, border turns amber on hover), never the solid amber CTA style, which stays reserved for the single primary action per screen (Generate Quiz).
 
 ---
 
