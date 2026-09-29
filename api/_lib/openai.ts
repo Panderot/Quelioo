@@ -22,6 +22,10 @@ export interface OpenAiCallResult {
   usage: OpenAiUsage | null
   /** True only when the provider rejected the request specifically because the model id is unknown/unavailable. */
   modelRejected: boolean
+  /** OpenAI's error.type (e.g. "invalid_request_error", "rate_limit_error") — null on success or an unparseable body. */
+  errorType: string | null
+  /** OpenAI's error.code (e.g. "invalid_api_key", "insufficient_quota", "model_not_found") — null when absent. */
+  errorCode: string | null
 }
 
 /** POSTs a single-turn request to the OpenAI Responses API and returns the model's text reply, or a failure with enough detail for the fallback layer to decide what to do next. */
@@ -46,37 +50,48 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
       signal: timeoutController.signal,
     })
   } catch {
-    return { ok: false, status: null, text: null, usage: null, modelRejected: false }
+    return { ok: false, status: null, text: null, usage: null, modelRejected: false, errorType: null, errorCode: null }
   } finally {
     clearTimeout(timeout)
-  }
-
-  if (!response.ok) {
-    let errorPayload: unknown = null
-    try {
-      errorPayload = await response.json()
-    } catch {
-      // Body wasn't JSON — fall through with no error detail.
-    }
-    const modelRejected = isModelRejection(response.status, errorPayload)
-    return { ok: false, status: response.status, text: null, usage: null, modelRejected }
   }
 
   let payload: unknown
   try {
     payload = await response.json()
   } catch {
-    return { ok: false, status: response.status, text: null, usage: null, modelRejected: false }
+    return { ok: false, status: response.status, text: null, usage: null, modelRejected: false, errorType: null, errorCode: null }
   }
 
-  return { ok: true, status: response.status, text: extractOutputText(payload), usage: extractUsage(payload), modelRejected: false }
+  if (!response.ok) {
+    const { errorType, errorCode, param } = extractError(payload)
+    const modelRejected = isModelRejection(response.status, errorCode, param)
+    return { ok: false, status: response.status, text: null, usage: null, modelRejected, errorType, errorCode }
+  }
+
+  return {
+    ok: true,
+    status: response.status,
+    text: extractOutputText(payload),
+    usage: extractUsage(payload),
+    modelRejected: false,
+    errorType: null,
+    errorCode: null,
+  }
 }
 
-function isModelRejection(status: number, errorPayload: unknown): boolean {
+function extractError(payload: unknown): { errorType: string | null; errorCode: string | null; param: string | null } {
+  if (!isRecord(payload) || !isRecord(payload.error)) return { errorType: null, errorCode: null, param: null }
+  const { type, code, param } = payload.error
+  return {
+    errorType: typeof type === 'string' ? type : null,
+    errorCode: typeof code === 'string' ? code : null,
+    param: typeof param === 'string' ? param : null,
+  }
+}
+
+function isModelRejection(status: number, errorCode: string | null, param: string | null): boolean {
   if (status !== 400 && status !== 404) return false
-  if (!isRecord(errorPayload) || !isRecord(errorPayload.error)) return false
-  const { code, param } = errorPayload.error
-  return (typeof code === 'string' && code.includes('model')) || param === 'model'
+  return (errorCode !== null && errorCode.includes('model')) || param === 'model'
 }
 
 function extractOutputText(payload: unknown): string | null {

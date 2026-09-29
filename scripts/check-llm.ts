@@ -31,8 +31,48 @@ Sakarya Meydan Muharebesi ve ardından Büyük Taarruz, savaşın kaderini belir
 Savaş, 24 Temmuz 1923'te imzalanan Lozan Antlaşması ile sona erdi ve Türkiye'nin bağımsızlığı uluslararası alanda tanındı.
 `.trim()
 
+/** Prints only the "gpt-" model ids this OPENAI_API_KEY can access — nothing else, never the key. */
+async function listOpenAiModels(): Promise<void> {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) {
+    console.log('OPENAI_API_KEY is not set locally — add it to .env.local first.')
+    process.exitCode = 1
+    return
+  }
+
+  let response: Response
+  try {
+    response = await fetch('https://api.openai.com/v1/models', {
+      headers: { authorization: `Bearer ${apiKey}` },
+    })
+  } catch {
+    console.log('Could not reach OpenAI to list models.')
+    process.exitCode = 1
+    return
+  }
+
+  if (!response.ok) {
+    console.log(`OpenAI rejected the models list request (status ${response.status}).`)
+    process.exitCode = 1
+    return
+  }
+
+  const payload = (await response.json()) as { data?: Array<{ id?: string }> }
+  const ids = (payload.data ?? [])
+    .map((model) => model.id)
+    .filter((id): id is string => typeof id === 'string' && id.startsWith('gpt-'))
+    .sort()
+
+  for (const id of ids) console.log(id)
+}
+
 async function main(): Promise<void> {
   loadDotEnvLocal()
+
+  if (process.argv.includes('--list-models')) {
+    await listOpenAiModels()
+    return
+  }
 
   const start = Date.now()
   const { status, body } = await handleGenerateRequest({

@@ -3,8 +3,12 @@ import { callOpenAiResponses } from './openai.js'
 
 export type LlmProvider = 'anthropic' | 'openai'
 export type LlmErrorCode = 'upstream' | 'parse' | 'model'
-/** Only used for the one-line-per-request log; the client always sees the LlmErrorCode above ('auth' collapses to 'upstream'). */
-type LogTag = LlmErrorCode | 'auth' | 'forced_fail'
+/**
+ * Only used for the one-line-per-request diagnostic log; the client always sees the coarse
+ * LlmErrorCode above. quota/rate/auth/bad_request all collapse to 'upstream' for the client —
+ * only 'model' gets its own client-facing code, per the "don't change what users see" rule.
+ */
+type LogTag = 'auth' | 'quota' | 'rate' | 'model' | 'bad_request' | 'upstream' | 'forced_fail'
 
 export interface LlmCallParams {
   system: string
@@ -17,7 +21,15 @@ export type LlmResult =
   | { status: 'error'; error: LlmErrorCode }
   | { status: 'demo' }
 
-type ProviderOutcome = { error: LlmErrorCode; logTag: LogTag; status: number | null } | { text: string } | null
+interface ProviderFailure {
+  error: LlmErrorCode
+  logTag: LogTag
+  status: number | null
+  errorType: string | null
+  errorCode: string | null
+}
+
+type ProviderOutcome = ProviderFailure | { text: string } | null
 
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5-5'
 const DEFAULT_OPENAI_MODEL = 'gpt-5.6-luna'
@@ -56,12 +68,36 @@ function isForcedToFail(provider: LlmProvider): boolean {
   return process.env.LLM_FORCE_FAIL === provider
 }
 
+function classifyAnthropicFailure(status: number | null, errorType: string | null): LogTag {
+  if (status === 401 || status === 403) return 'auth'
+  if (status === 429) return 'rate'
+  if (status === 404 && errorType === 'not_found_error') return 'model'
+  if (status === 400) return 'bad_request'
+  return 'upstream'
+}
+
+function classifyOpenAiFailure(status: number | null, errorCode: string | null, modelRejected: boolean): LogTag {
+  if (modelRejected) return 'model'
+  if (status === 401 || status === 403) return 'auth'
+  if (status === 429) {
+    if (errorCode === 'insufficient_quota' || errorCode === 'credit_balance_exhausted') return 'quota'
+    return 'rate'
+  }
+  if (status === 400) return 'bad_request'
+  return 'upstream'
+}
+
+/** The client-facing code stays coarse — only "model" gets its own message; everything else reads as a generic upstream failure. */
+function toClientErrorCode(logTag: LogTag): LlmErrorCode {
+  return logTag === 'model' ? 'model' : 'upstream'
+}
+
 async function callAnthropic(params: LlmCallParams): Promise<ProviderOutcome> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return null
 
   if (isForcedToFail('anthropic')) {
-    return { error: 'upstream', logTag: 'forced_fail', status: null }
+    return { error: 'upstream', logTag: 'forced_fail', status: null, errorType: null, errorCode: null }
   }
 
   const model = resolveModel(DEFAULT_ANTHROPIC_MODEL)
@@ -76,11 +112,9 @@ async function callAnthropic(params: LlmCallParams): Promise<ProviderOutcome> {
     thinking: effort.thinking,
   })
 
-  if (result.status === 401 || result.status === 403) {
-    return { error: 'upstream', logTag: 'auth', status: result.status }
-  }
   if (!result.ok || result.text === null) {
-    return { error: 'upstream', logTag: 'upstream', status: result.status }
+    const logTag = classifyAnthropicFailure(result.status, result.errorType)
+    return { error: toClientErrorCode(logTag), logTag, status: result.status, errorType: result.errorType, errorCode: null }
   }
   return { text: result.text }
 }
@@ -90,7 +124,7 @@ async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
   if (!apiKey) return null
 
   if (isForcedToFail('openai')) {
-    return { error: 'upstream', logTag: 'forced_fail', status: null }
+    return { error: 'upstream', logTag: 'forced_fail', status: null, errorType: null, errorCode: null }
   }
 
   const model = process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL
@@ -102,14 +136,9 @@ async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
     maxOutputTokens: params.maxTokens,
   })
 
-  if (result.modelRejected) {
-    return { error: 'model', logTag: 'model', status: result.status }
-  }
-  if (result.status === 401 || result.status === 403) {
-    return { error: 'upstream', logTag: 'auth', status: result.status }
-  }
   if (!result.ok || result.text === null) {
-    return { error: 'upstream', logTag: 'upstream', status: result.status }
+    const logTag = classifyOpenAiFailure(result.status, result.errorCode, result.modelRejected)
+    return { error: toClientErrorCode(logTag), logTag, status: result.status, errorType: result.errorType, errorCode: result.errorCode }
   }
   return { text: result.text }
 }
@@ -119,15 +148,22 @@ const CALLERS: Record<LlmProvider, (params: LlmCallParams) => Promise<ProviderOu
   openai: callOpenAi,
 }
 
-/** Tries each provider in order (env-decided, at most two), falling back on any failure. Resolves to 'demo' when no provider has a key configured. Never throws. Logs exactly one line per request — provider, fallbackUsed, duration, error code — and never logs keys, user text or generated questions. */
+/**
+ * Tries each provider in order (env-decided, at most two), falling back on any failure.
+ * Resolves to 'demo' when no provider has a key configured. Never throws.
+ *
+ * Logs exactly one line per request: provider, fallbackUsed, duration, and on failure the
+ * internal error tag plus the upstream HTTP status and the provider's own error.type/error.code
+ * (e.g. auth/quota/rate/model/bad_request) — enough to diagnose a failure from the log alone,
+ * without ever logging keys, prompts, user text or generated questions.
+ */
 export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
   const start = Date.now()
   const order = resolveProviderOrder().slice(0, 2)
 
   let attempts = 0
-  let lastError: LlmErrorCode = 'upstream'
-  let lastLogTag: LogTag = 'upstream'
-  let lastStatus: number | null = null
+  let lastProvider: LlmProvider | null = null
+  let lastFailure: ProviderFailure = { error: 'upstream', logTag: 'upstream', status: null, errorType: null, errorCode: null }
 
   for (const provider of order) {
     let outcome: ProviderOutcome
@@ -135,16 +171,15 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
       outcome = await CALLERS[provider](params)
     } catch (error) {
       console.error('llm: unexpected error', error instanceof Error ? error.message : 'unknown')
-      outcome = { error: 'upstream', logTag: 'upstream', status: null }
+      outcome = { error: 'upstream', logTag: 'upstream', status: null, errorType: null, errorCode: null }
     }
 
     if (outcome === null) continue // no key configured for this provider — not an attempt
 
     attempts += 1
+    lastProvider = provider
     if ('error' in outcome) {
-      lastError = outcome.error
-      lastLogTag = outcome.logTag
-      lastStatus = outcome.status
+      lastFailure = outcome
       continue
     }
 
@@ -159,6 +194,8 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
     return { status: 'demo' }
   }
 
-  console.log(`llm: provider=none fallbackUsed=${attempts > 1} duration=${duration}ms error=${lastLogTag} status=${lastStatus}`)
-  return { status: 'error', error: lastError }
+  console.log(
+    `llm: provider=${lastProvider} fallbackUsed=${attempts > 1} duration=${duration}ms error=${lastFailure.logTag} status=${lastFailure.status} type=${lastFailure.errorType} code=${lastFailure.errorCode}`,
+  )
+  return { status: 'error', error: lastFailure.error }
 }

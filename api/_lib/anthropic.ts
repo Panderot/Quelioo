@@ -39,6 +39,8 @@ export interface AnthropicCallResult {
   status: number | null
   text: string | null
   usage: AnthropicUsage | null
+  /** Anthropic's error.type (e.g. "authentication_error", "rate_limit_error", "not_found_error") — null on success or if the body wasn't parseable JSON. */
+  errorType: string | null
 }
 
 async function postAnthropicMessages(params: CallAnthropicMessagesParams): Promise<AnthropicCallResult> {
@@ -65,23 +67,28 @@ async function postAnthropicMessages(params: CallAnthropicMessagesParams): Promi
       signal: timeoutController.signal,
     })
   } catch {
-    return { ok: false, status: null, text: null, usage: null }
+    return { ok: false, status: null, text: null, usage: null, errorType: null }
   } finally {
     clearTimeout(timeout)
-  }
-
-  if (!response.ok) {
-    return { ok: false, status: response.status, text: null, usage: null }
   }
 
   let payload: unknown
   try {
     payload = await response.json()
   } catch {
-    return { ok: false, status: response.status, text: null, usage: null }
+    return { ok: false, status: response.status, text: null, usage: null, errorType: null }
   }
 
-  return { ok: true, status: response.status, text: extractResponseText(payload), usage: extractUsage(payload) }
+  if (!response.ok) {
+    return { ok: false, status: response.status, text: null, usage: null, errorType: extractErrorType(payload) }
+  }
+
+  return { ok: true, status: response.status, text: extractResponseText(payload), usage: extractUsage(payload), errorType: null }
+}
+
+function extractErrorType(payload: unknown): string | null {
+  if (!isRecord(payload) || !isRecord(payload.error)) return null
+  return typeof payload.error.type === 'string' ? payload.error.type : null
 }
 
 /** POSTs a single-turn message to the Anthropic Messages API and returns the model's text reply, or null on any transport/shape failure. */
