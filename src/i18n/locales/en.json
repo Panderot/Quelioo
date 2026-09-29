@@ -48,14 +48,6 @@
       "text": "Paste a paragraph, lecture notes or an article...",
       "url": "Paste a link to an article or webpage..."
     },
-    "samples": {
-      "tryASample": "Try a sample",
-      "tryASampleText": "Photosynthesis is the process by which green plants use sunlight to turn water and carbon dioxide into glucose and oxygen. It takes place mainly in the leaves, inside structures called chloroplasts.",
-      "biologyNotes": "Biology notes",
-      "biologyNotesText": "Cells are the basic building blocks of all living things. Every cell contains a nucleus that holds genetic material, a cell membrane that controls what enters and leaves, and mitochondria that produce energy for the cell to function.",
-      "historyParagraph": "History paragraph",
-      "historyParagraphText": "The Silk Road was an ancient network of trade routes that connected the East and West, stretching from China to the Mediterranean Sea. For centuries, merchants carried silk, spices, and ideas along these paths, shaping cultures across Asia and Europe."
-    },
     "dropzone": {
       "title": "Drag and drop a file here",
       "subtitle": "PDF, DOCX or TXT, up to 20MB",

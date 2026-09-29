@@ -15,8 +15,6 @@ const TAB_ICONS: Record<InputTab, typeof TextTabIcon> = {
   url: UrlTabIcon,
 }
 
-const SAMPLE_KEYS = ['tryASample', 'biologyNotes', 'historyParagraph'] as const
-
 interface InputCardProps {
   activeTab: InputTab
   onTabChange: (tab: InputTab) => void
@@ -78,10 +76,6 @@ export default function InputCard({
       onTabChange(nextTab)
       tabRefs.current[nextTab]?.focus()
     }
-  }
-
-  const handleSampleClick = (key: (typeof SAMPLE_KEYS)[number]) => {
-    onTextChange(t(`inputCard.samples.${key}Text`))
   }
 
   return (
@@ -152,31 +146,17 @@ export default function InputCard({
       {/* Panel */}
       <div id="input-panel" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'text' && (
-          <>
-            <textarea
-              id="quiz-content-input"
-              rows={9}
-              value={textValue}
-              onChange={(event) => onTextChange(event.target.value)}
-              placeholder={t('inputCard.placeholder.text')}
-              aria-invalid={hasError}
-              className={`min-h-[220px] w-full resize-y rounded-2xl border border-dashed bg-card px-4 py-4 text-sm leading-relaxed text-ink transition-all placeholder:text-muted focus:border-solid md:py-5 ${
-                hasError ? 'border-error' : 'border-warm-border'
-              }`}
-            />
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {SAMPLE_KEYS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleSampleClick(key)}
-                  className="rounded-full border border-warm-border bg-paper px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-amber hover:text-amber-hover"
-                >
-                  {t(`inputCard.samples.${key}`)}
-                </button>
-              ))}
-            </div>
-          </>
+          <textarea
+            id="quiz-content-input"
+            rows={9}
+            value={textValue}
+            onChange={(event) => onTextChange(event.target.value)}
+            placeholder={t('inputCard.placeholder.text')}
+            aria-invalid={hasError}
+            className={`min-h-[220px] w-full resize-y rounded-2xl border border-dashed bg-card px-4 py-4 text-sm leading-relaxed text-ink transition-all placeholder:text-muted focus:border-solid md:py-5 ${
+              hasError ? 'border-error' : 'border-warm-border'
+            }`}
+          />
         )}
 
         {activeTab === 'file' && (

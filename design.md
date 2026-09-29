@@ -98,7 +98,7 @@ Both faces must render Turkish glyphs correctly (İ ı ğ ş ç ö ü) — verif
 | Small | 10px | Parameter selects |
 | Medium | 14px | Input card, quiz-parameters panel, Generate button |
 | Large | 16–24px | Reserved for future large surfaces |
-| Full | 9999px | Chips, avatar, toggle, sample pills |
+| Full | 9999px | Avatar, toggle |
 
 ### 5.3 Shadow
 
@@ -132,7 +132,7 @@ App root (flex, bg-paper)
    - Info row: plan info + word count (left), Output Language select (right)
    - Divider
    - Input tabs (Text, File, URL) — amber underline on active
-   - Textarea (dashed warm border → solid amber on focus) with sample chips underneath (text tab only)
+   - Textarea (dashed warm border → solid amber on focus, text tab only)
    - Footer row: Clear Input only
 3. Eyebrow: `QUIZ PARAMETERS`
 4. **Single parameters panel** (2 columns, hairline dividers, not four separate cards)
@@ -183,7 +183,6 @@ Row with icon (16px) + label, bottom border on the row. **Active:** ink text (bo
 
 - Background `--color-card` (no separate gray fill), **dashed** warm border by default, turns **solid amber** on focus with a soft amber ring.
 - **Error:** border/ring `--color-error`.
-- Sample chips row directly under the textarea (text tab only): pill buttons ("Try a sample", "Biology notes", "History paragraph") that fill the textarea with a short sample paragraph on click.
 
 ### 7.6 Ghost button (Clear Input)
 
