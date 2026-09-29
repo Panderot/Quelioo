@@ -135,6 +135,20 @@ export function UrlTabIcon(props: IconProps) {
   )
 }
 
+export function CalculatorIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="5" y="3" width="14" height="18" rx="2" strokeWidth="2" />
+      <path
+        d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18h.01M12 18h.01M16 18h.01"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}
+
 export function TrashIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

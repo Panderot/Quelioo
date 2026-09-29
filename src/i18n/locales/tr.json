@@ -5,6 +5,7 @@
   },
   "nav": {
     "create": "Oluştur",
+    "solve": "Çöz",
     "archive": "Arşiv",
     "account": "Hesap",
     "openMenu": "Gezinme menüsünü aç",
@@ -99,6 +100,43 @@
       "title": "Henüz quiz yok",
       "subtitle": "Oluştur bölümünde hazırladığın quizler burada görünecek.",
       "cta": "Oluştur'a git"
+    }
+  },
+  "solve": {
+    "title": "Matematik sorunu çöz",
+    "subtitle": "Sorunun fotoğrafını çek, Quelio adım adım anlatsın.",
+    "upload": {
+      "dragTitle": "Fotoğrafı buraya sürükleyip bırakın",
+      "dragSubtitle": "ya da dosya seçmek, yapıştırmak veya fotoğraf çekmek için tıklayın",
+      "browse": "Fotoğraf seç",
+      "changePhoto": "Fotoğrafı değiştir",
+      "hint": "JPEG, PNG veya WEBP, 4MB'a kadar"
+    },
+    "cta": {
+      "solve": "Çöz",
+      "solving": "Çözülüyor...",
+      "createQuiz": "Bu konudan quiz oluştur"
+    },
+    "result": {
+      "answerLabel": "Cevap",
+      "tipLabel": "İpucu"
+    },
+    "demoNotice": "Demo mod: bu örnek bir çözüm.",
+    "footerNote": "Quelio cevabı kopyalaman için değil, yöntemi öğrenmen için anlatır.",
+    "errors": {
+      "not_math": "Bu fotoğrafta bir matematik sorusu bulamadık. Sorunun daha net bir fotoğrafını dene.",
+      "too_large": "Bu fotoğraf çok büyük. Daha küçük ya da daha sıkıştırılmış bir fotoğraf dene.",
+      "bad_type": "Lütfen JPEG, PNG veya WEBP formatında bir fotoğraf yükle.",
+      "upstream": "Quelio'nun çözücüsüne ulaşırken bir şeyler ters gitti. Lütfen tekrar dene.",
+      "parse": "Quelio bu sefer net bir cevap okuyamadı. Lütfen tekrar dene.",
+      "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
+      "tryAnother": "Başka bir fotoğraf dene"
+    },
+    "prefill": {
+      "topicLabel": "Konu",
+      "questionLabel": "Soru",
+      "stepsLabel": "Adımlar",
+      "answerLabel": "Cevap"
     }
   }
 }

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { generateQuiz } from '../api/generateQuiz'
@@ -19,11 +19,18 @@ function firstWords(value: string, maxWords: number): string {
   return value.trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ')
 }
 
+interface CreatePageLocationState {
+  prefillText?: string
+}
+
 export default function CreatePage() {
   const { t } = useTranslation()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const prefillText = (location.state as CreatePageLocationState | null)?.prefillText
 
   const [activeTab, setActiveTab] = useState<InputTab>('text')
-  const [textValue, setTextValue] = useState('')
+  const [textValue, setTextValue] = useState(prefillText ?? '')
   const [urlValue, setUrlValue] = useState('')
   const [outputLanguage, setOutputLanguage] = useState('auto')
 
@@ -35,6 +42,11 @@ export default function CreatePage() {
   const [hasError, setHasError] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [savedQuizId, setSavedQuizId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (prefillText) navigate(location.pathname, { replace: true, state: null })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const wordCount = useMemo(() => countWords(textValue), [textValue])
 

@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { LogoMark } from './Logo'
-import { AccountIcon, ArchiveIcon, HomeIcon } from './icons'
+import { AccountIcon, ArchiveIcon, CalculatorIcon, HomeIcon } from './icons'
 import type { ComponentType, SVGProps } from 'react'
 
 type NavIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -14,7 +14,10 @@ interface NavItem {
   to?: string
 }
 
-const mainNavItems: NavItem[] = [{ key: 'create', labelKey: 'nav.create', Icon: HomeIcon, to: '/' }]
+const mainNavItems: NavItem[] = [
+  { key: 'create', labelKey: 'nav.create', Icon: HomeIcon, to: '/' },
+  { key: 'solve', labelKey: 'nav.solve', Icon: CalculatorIcon, to: '/solve' },
+]
 
 const footerNavItems: NavItem[] = [
   { key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' },

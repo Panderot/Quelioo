@@ -4,7 +4,9 @@ Yapay zekâ ile metin, dosya, URL ve YouTube içeriğinden quiz üreten web uygu
 
 ## Stack
 
-Vite + React + TypeScript + Tailwind CSS (v4, `@tailwindcss/vite`) + react-i18next (en/tr). Geliştirme: `npm run dev`. Derleme: `npm run build`. Lint: `npm run lint`.
+Vite + React + TypeScript + Tailwind CSS (v4, `@tailwindcss/vite`) + react-i18next (en/tr/hyw) + KaTeX (math rendering). Backend: `/api/solve` bir Vercel serverless fonksiyonu (Node runtime, `api/_lib/solve.ts`), Anthropic Messages API'ye fotoğraftaki matematik sorusunu çözdürür. Geliştirme: `npm run dev` (Vite'a eklenen dev middleware `/api/solve`'u da yerelde servis eder — ayrıca `vercel dev` de kullanılabilir). Derleme: `npm run build`. Lint: `npm run lint`.
+
+`/api/solve` için env değişkenleri (değerleri değil, isimlerini burada tut): `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL` (opsiyonel, varsayılan `claude-haiku-4-5`). Örnek için `.env.example`'a bak, gerçek değerleri `.env.local`'e (git'e girmez) veya Vercel proje ortam değişkenlerine yaz. API anahtarı yalnızca Vercel ortam değişkenlerinde ve `.env.local`'de yaşar — asla kodda, commit'te ya da sohbette paylaşılmaz. `ANTHROPIC_API_KEY` tanımlı değilse `/api/solve` demo modda çalışır (`demo: true`, sabit örnek çözüm).
 
 ## Proje kuralları
 

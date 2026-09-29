@@ -155,7 +155,7 @@ App root (flex, bg-paper)
 
 - Width **256px** (72px icon rail at md, drawer below 768px), background `--color-navy`, text in `--color-paper`.
 - **Header:** logo mark + Fraunces wordmark, tagline in amber below. Padding ~20px.
-- **Main nav:** a single item, Create.
+- **Main nav:** Create, then Solve (calculator icon), in that order.
 - **Nav item:** no filled active pill. Default text `paper/60`, hover `paper`. **Active** (matches current route): a 3px amber bar on the left edge + full-opacity paper text + amber icon.
 - **Footer group** (Archive, Account): pinned to the bottom, top border `paper/10`. Archive routes to `/archive`; Account is a placeholder link (no page yet).
 
@@ -217,7 +217,23 @@ Every choice field (the four quiz-parameter selects, Output Language, the top-ba
 - **Motion:** 120ms fade + 4px slide on open/close; respects `prefers-reduced-motion`.
 - **Keyboard:** WAI-ARIA listbox pattern — trigger is a button with `aria-haspopup="listbox"`, `aria-expanded`, `aria-labelledby` (pointing at the visible field label) and `aria-activedescendant`; the menu is `role="listbox"` with `role="option"` rows. Arrow keys move the highlight, Home/End jump to the ends, Enter/Space selects, Escape closes and returns focus to the trigger, typing jumps to a matching label (type-ahead). Closes on outside click, Escape, Tab, and after a selection.
 
-### 7.11 Archive page
+### 7.11 Solve page
+
+Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title in Fraunces ("Solve a math question") + one-line muted subtitle.
+
+- **Upload area:** input-card surface (warm border, radius 14). While empty, a dashed-border dropzone (matches 7.5's file-tab styling) — click to choose, drag-and-drop, paste from clipboard, and on mobile the file input opens the camera (`capture="environment"`). Once a photo is chosen, the dropzone is replaced by a preview image (rounded, bordered, `object-contain`, max height ~360px) with a "Change photo" text link below it that re-opens the picker.
+- **Primary CTA:** same solid-amber/navy-text button as Generate Quiz (7.9), label "Solve", disabled until a photo is selected. Loading state swaps the sun icon for the spinner and the label for "Solving...".
+- **Result card:** card surface (warm border, radius 14). Topic as a small bold uppercase amber-hover label, then the question, then numbered steps — each step is a row with a small filled-amber circular badge (number, navy bold text) beside the step text. The final answer renders as an inline amber-tinted chip (`bg-amber/15`, rounded, bold navy text) with an uppercase amber-hover "Answer" label. The tip sits below in a muted `paper`-background box with a warm border. All model-provided text (question, steps, answer, tip) renders through the shared math-aware text component (7.12) rather than being shown as raw markup.
+- **Demo notice:** shown above the result card when the response is a fallback sample (no API key configured) — a muted amber banner (`border-amber/30`, `bg-amber/10`, amber-hover bold text).
+- **Error state:** card surface with an error-tinted border/background, a localized message per error code, and a "Try another photo" secondary button that resets the page.
+- **Secondary action:** below the result, an outline "Create a quiz on this topic" button (warm border, `card` background, navy bold text, border turns amber on hover — never the solid amber CTA style, since Solve already reserved for Solve). Navigates to Create with the topic/question/steps/answer prefilled into the text textarea (Question Type MCQ, Difficulty Medium — both already the Create page defaults).
+- **Footer note:** small centered muted line under the result, framing Quelio as a learning tool rather than an answer-copying shortcut.
+
+### 7.12 Math text rendering
+
+Model output (question/steps/answer/tip on the Solve page) mixes plain text with LaTeX (`$...$` inline, `$$...$$` block). A shared component splits each string into text and math segments and renders math via KaTeX (`trust: false`, `throwOnError: false`) — never `dangerouslySetInnerHTML` on raw model text directly, only on KaTeX's own generated markup.
+
+### 7.13 Archive page
 
 Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title in Fraunces ("Archive") + one-line muted subtitle.
 
@@ -329,7 +345,8 @@ Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title 
 |---|---|
 | Home / Generate Quiz | **Designed (this spec — "Solar Paper")** |
 | Quiz result / editor | Not yet |
-| Archive (`/archive`) | **Designed (7.10)** |
+| Solve (`/solve`) | **Designed (7.11)** |
+| Archive (`/archive`) | **Designed (7.13)** |
 | Account / billing (Upgrade) | Not yet |
 | Landing page | Not yet |
 

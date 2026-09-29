@@ -1,6 +1,7 @@
 @import '@fontsource-variable/fraunces/soft.css';
 @import '@fontsource-variable/noto-sans-armenian';
 @import '@fontsource-variable/noto-serif-armenian';
+@import 'katex/dist/katex.min.css';
 @import 'tailwindcss';
 
 @theme {

@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import ArchivePage from './pages/ArchivePage'
 import CreatePage from './pages/CreatePage'
+import SolvePage from './pages/SolvePage'
 
 export default function App() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
@@ -27,6 +28,7 @@ export default function App() {
         <div className="animate-fade-in relative mx-auto w-full max-w-5xl space-y-7 p-6 lg:p-8 xl:p-10">
           <Routes>
             <Route path="/" element={<CreatePage />} />
+            <Route path="/solve" element={<SolvePage />} />
             <Route path="/archive" element={<ArchivePage />} />
           </Routes>
         </div>

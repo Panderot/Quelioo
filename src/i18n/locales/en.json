@@ -5,6 +5,7 @@
   },
   "nav": {
     "create": "Create",
+    "solve": "Solve",
     "archive": "Archive",
     "account": "Account",
     "openMenu": "Open navigation menu",
@@ -99,6 +100,43 @@
       "title": "No quizzes yet",
       "subtitle": "Quizzes you create in the Create section will appear here.",
       "cta": "Go to Create"
+    }
+  },
+  "solve": {
+    "title": "Solve a math question",
+    "subtitle": "Take a photo of the question. Quelio explains it step by step.",
+    "upload": {
+      "dragTitle": "Drag and drop a photo here",
+      "dragSubtitle": "or click to choose a file, paste, or take a photo",
+      "browse": "Choose a photo",
+      "changePhoto": "Change photo",
+      "hint": "JPEG, PNG or WEBP, up to 4MB"
+    },
+    "cta": {
+      "solve": "Solve",
+      "solving": "Solving...",
+      "createQuiz": "Create a quiz on this topic"
+    },
+    "result": {
+      "answerLabel": "Answer",
+      "tipLabel": "Tip"
+    },
+    "demoNotice": "Demo mode: this is a sample solution.",
+    "footerNote": "Quelio explains the method so you can learn it, not just copy the answer.",
+    "errors": {
+      "not_math": "We couldn't find a math question in this photo. Try a clearer photo of just the question.",
+      "too_large": "This photo is too large. Try a smaller or more compressed photo.",
+      "bad_type": "Please upload a JPEG, PNG or WEBP photo.",
+      "upstream": "Something went wrong reaching Quelio's solver. Please try again.",
+      "parse": "Quelio couldn't read a clear answer this time. Please try again.",
+      "network": "Couldn't connect. Check your connection and try again.",
+      "tryAnother": "Try another photo"
+    },
+    "prefill": {
+      "topicLabel": "Topic",
+      "questionLabel": "Question",
+      "stepsLabel": "Steps",
+      "answerLabel": "Answer"
     }
   }
 }
