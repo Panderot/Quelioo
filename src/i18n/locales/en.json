@@ -11,8 +11,6 @@
     "closeMenu": "Close navigation menu"
   },
   "topbar": {
-    "freeRunsLeft": "{{count}} free runs left",
-    "upgrade": "Upgrade",
     "logout": "Logout",
     "avatarInitials": "JD",
     "avatarLabel": "Account menu",

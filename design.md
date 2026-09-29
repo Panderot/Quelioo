@@ -58,7 +58,7 @@ background: radial-gradient(circle, rgba(245, 165, 36, 0.08) 0%, rgba(245, 165, 
 
 ### 3.3 Contrast
 
-All text must keep WCAG AA contrast. Navy text on amber is required for the CTA and the Upgrade button (`text-navy` on `bg-amber` passes AA for bold UI text).
+All text must keep WCAG AA contrast. Navy text on amber is required for the CTA (`text-navy` on `bg-amber` passes AA for bold UI text).
 
 ---
 
@@ -163,8 +163,6 @@ App root (flex, bg-paper)
 
 Height 80px, flat (no heavy border), flex, items centered. All content sits right-aligned (mobile menu button is the only left-side element, and only appears below 768px).
 
-- **Free runs:** "{{count}} free runs left" text plus a thin (4px) amber progress bar underneath — replaces the old pill + dot.
-- **Upgrade button:** solid amber, navy bold text, radius 12. No green, no icon.
 - **Language switcher:** ghost button — globe icon + current language's short code (EN / TR / ՀԱՅ) + chevron — opens a listbox menu (card surface, warm border, radius 12) with the three languages in their own native name. Fully keyboard operable: `Enter`/`Space`/`ArrowDown` opens it, arrow keys move between options, `Escape` closes and returns focus to the button.
 - **Logout:** plain text link, muted → ink on hover.
 - **Avatar:** 36px circle, solid navy background (no gradient), cream initials, thin amber ring.
@@ -259,7 +257,6 @@ Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title 
 | `hero.subtitle` | Paste text, drop a PDF or share a link. Quelio writes the questions in seconds. | Metni yapıştır, PDF bırak ya da bir bağlantı paylaş. Quelio soruları saniyeler içinde yazsın. |
 | `cta.generate` | Generate Quiz | Quiz Oluştur |
 | `params.eyebrow` | Quiz Parameters | Quiz Ayarları |
-| `topbar.freeRunsLeft` | {{count}} free runs left | {{count}} ücretsiz hakkın kaldı |
 
 ---
 

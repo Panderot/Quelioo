@@ -11,8 +11,6 @@
     "closeMenu": "Gezinme menüsünü kapat"
   },
   "topbar": {
-    "freeRunsLeft": "{{count}} ücretsiz hakkın kaldı",
-    "upgrade": "Yükselt",
     "logout": "Çıkış Yap",
     "avatarInitials": "JD",
     "avatarLabel": "Hesap menüsü",

@@ -22,7 +22,7 @@ export default function App() {
           aria-hidden
         />
 
-        <TopBar onOpenMobileNav={() => setIsMobileNavOpen(true)} freeRunsRemaining={20} freeRunsTotal={20} />
+        <TopBar onOpenMobileNav={() => setIsMobileNavOpen(true)} />
 
         <div className="animate-fade-in relative mx-auto w-full max-w-5xl space-y-7 p-6 lg:p-8 xl:p-10">
           <Routes>

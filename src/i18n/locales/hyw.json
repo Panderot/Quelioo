@@ -11,8 +11,6 @@
     "closeMenu": "Գոցել նաւարկութեան ցանկը"
   },
   "topbar": {
-    "freeRunsLeft": "{{count}} ձրի փորձ մնացած",
-    "upgrade": "Լաւացնել",
     "logout": "Դուրս գալ",
     "avatarInitials": "JD",
     "avatarLabel": "Հաշիւի ցանկ",
