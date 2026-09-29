@@ -100,6 +100,72 @@
       "title": "No quizzes yet",
       "subtitle": "Quizzes you create in the Create section will appear here.",
       "cta": "Go to Create"
+    },
+    "detail": {
+      "notFoundTitle": "Quiz not found",
+      "notFoundBody": "This quiz may have been deleted.",
+      "backToArchive": "Back to Archive",
+      "legacyBody": "This quiz was created before questions were saved. Create a new one to see the full result."
+    },
+    "practice": {
+      "reveal": "Reveal answer",
+      "gotItRight": "I got it right",
+      "gotItWrong": "I got it wrong",
+      "score": "{{correct}} / {{total}} correct",
+      "tryAgain": "Try again"
+    }
+  },
+  "create": {
+    "notSupported": {
+      "message": "For now, quizzes can be generated from text. Paste the content into the Text tab.",
+      "switchTab": "Switch to Text tab"
+    },
+    "errors": {
+      "too_short": "Add a bit more text — at least 30 words — so Quelio has enough to work with.",
+      "too_long": "That's a lot of text. Please keep it under 5,000 words.",
+      "not_supported": "Something about these settings isn't supported right now. Please adjust them and try again.",
+      "upstream": "Something went wrong generating your quiz. Please try again.",
+      "parse": "Quelio couldn't read a valid quiz this time. Please try again.",
+      "network": "Couldn't connect. Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "result": {
+      "demoNotice": "Demo mode: these are sample questions.",
+      "titleEditLabel": "Edit title",
+      "showAnswers": "Show answers",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "print": "Print / PDF",
+      "answerKeyTitle": "Answer Key",
+      "trueLabel": "True",
+      "falseLabel": "False",
+      "modelAnswerLabel": "Model answer",
+      "explanationLabel": "Explanation",
+      "showExplanation": "Show explanation",
+      "hideExplanation": "Hide explanation"
+    },
+    "question": {
+      "editAction": "Edit",
+      "regenerateAction": "Regenerate",
+      "deleteAction": "Delete",
+      "saveAction": "Save",
+      "cancelAction": "Cancel",
+      "addOption": "Add option",
+      "removeOption": "Remove option",
+      "addPair": "Add pair",
+      "removePair": "Remove pair",
+      "leftLabel": "Left",
+      "rightLabel": "Right",
+      "deletedUndo": "Question deleted.",
+      "undo": "Undo",
+      "type": {
+        "mcq": "Multiple Choice",
+        "trueFalse": "True / False",
+        "fillBlanks": "Fill in the Blank",
+        "shortAnswer": "Short Answer",
+        "matching": "Matching",
+        "openEnded": "Open-ended"
+      }
     }
   },
   "solve": {

@@ -1,30 +1,44 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { generateQuiz } from '../api/generateQuiz'
-import { addArchiveEntry, createArchiveEntryId } from '../lib/archive'
+import { GenerateApiError, generateQuiz } from '../api/generateQuiz'
+import type { GenerateErrorCode } from '../api/generateQuiz'
+import { addArchiveEntry, createArchiveEntryId, updateArchiveEntry } from '../lib/archive'
 import { supportsOptionsCount } from '../lib/quizTypes'
+import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../lib/textStats'
+import type { GeneratedQuiz } from '../lib/quiz'
 import GenerateButton from '../components/GenerateButton'
 import InputCard from '../components/InputCard'
 import type { InputTab } from '../components/InputCard'
 import ParameterGrid from '../components/ParameterGrid'
-
-function countWords(value: string): number {
-  const trimmed = value.trim()
-  return trimmed ? trimmed.split(/\s+/).filter(Boolean).length : 0
-}
+import QuizWorkspace from '../components/QuizWorkspace'
 
 function firstWords(value: string, maxWords: number): string {
   return value.trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ')
+}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 interface CreatePageLocationState {
   prefillText?: string
 }
 
+interface GeneratedResult {
+  entryId: string
+  quiz: GeneratedQuiz
+  demo: boolean
+  sourceText: string
+  difficulty: string
+  optionsCount?: string
+  outputLanguage: string
+  questionType: string
+}
+
 export default function CreatePage() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const prefillText = (location.state as CreatePageLocationState | null)?.prefillText
@@ -41,12 +55,21 @@ export default function CreatePage() {
 
   const [hasError, setHasError] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [savedQuizId, setSavedQuizId] = useState<string | null>(null)
+  const [generateError, setGenerateError] = useState<GenerateErrorCode | null>(null)
+  const [showTabNotSupported, setShowTabNotSupported] = useState(false)
+  const [result, setResult] = useState<GeneratedResult | null>(null)
+
+  const resultRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (prefillText) navigate(location.pathname, { replace: true, state: null })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (!result) return
+    resultRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+  }, [result?.entryId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const wordCount = useMemo(() => countWords(textValue), [textValue])
 
@@ -55,61 +78,100 @@ export default function CreatePage() {
   const handleTabChange = (tab: InputTab) => {
     setActiveTab(tab)
     setHasError(false)
-    setSavedQuizId(null)
+    setGenerateError(null)
+    setShowTabNotSupported(false)
   }
 
   const handleClear = () => {
     if (activeTab === 'text') setTextValue('')
     if (activeTab === 'url') setUrlValue('')
     setHasError(false)
-    setSavedQuizId(null)
+    setGenerateError(null)
   }
 
   const handleTextChange = (value: string) => {
     setTextValue(value)
     if (value.trim()) setHasError(false)
-    setSavedQuizId(null)
+    setGenerateError(null)
   }
 
   const handleUrlChange = (value: string) => {
     setUrlValue(value)
     if (value.trim()) setHasError(false)
-    setSavedQuizId(null)
+  }
+
+  const persistEntry = (entryId: string, quiz: GeneratedQuiz) => {
+    updateArchiveEntry(entryId, (entry) => ({ ...entry, title: quiz.title, quiz }))
   }
 
   const handleGenerate = async () => {
+    setShowTabNotSupported(false)
+    setGenerateError(null)
+
+    if (activeTab !== 'text') {
+      setShowTabNotSupported(true)
+      return
+    }
+
     if (!activeContent.trim()) {
       setHasError(true)
       return
     }
 
+    if (wordCount < MIN_QUIZ_WORDS) {
+      setGenerateError('too_short')
+      return
+    }
+    if (wordCount > MAX_QUIZ_WORDS) {
+      setGenerateError('too_long')
+      return
+    }
+
     setHasError(false)
-    setSavedQuizId(null)
+    setResult(null)
     setIsGenerating(true)
     try {
-      await generateQuiz({
-        source: activeTab,
-        content: activeContent,
-        outputLanguage,
+      const uiLanguage = i18n.language
+      const needsOptionsCount = supportsOptionsCount(questionType)
+      const generated = await generateQuiz({
+        text: activeContent,
         questionType,
         questionCount,
         difficulty,
-        optionsCount,
+        optionsCount: needsOptionsCount ? optionsCount : undefined,
+        outputLanguage,
+        uiLanguage,
       })
 
       const id = createArchiveEntryId()
       addArchiveEntry({
         id,
-        title: firstWords(activeContent, 6) || t('archive.untitled'),
+        title: generated.title || firstWords(activeContent, 6) || t('archive.untitled'),
         createdAt: new Date().toISOString(),
         source: activeTab,
         questionType,
         difficulty,
         questionCount,
-        optionsCount: supportsOptionsCount(questionType) ? optionsCount : null,
+        optionsCount: needsOptionsCount ? optionsCount : null,
+        outputLanguage,
+        sourceText: activeContent,
+        quiz: { title: generated.title, questions: generated.questions },
+        demo: generated.demo,
         studyMode: false,
       })
-      setSavedQuizId(id)
+
+      setResult({
+        entryId: id,
+        quiz: { title: generated.title, questions: generated.questions },
+        demo: generated.demo,
+        sourceText: activeContent,
+        difficulty,
+        optionsCount: needsOptionsCount ? optionsCount : undefined,
+        outputLanguage,
+        questionType,
+      })
+    } catch (error) {
+      setGenerateError(error instanceof GenerateApiError ? error.code : 'network')
     } finally {
       setIsGenerating(false)
     }
@@ -149,15 +211,63 @@ export default function CreatePage() {
         onOptionsCountChange={setOptionsCount}
       />
 
-      <GenerateButton isLoading={isGenerating} onClick={handleGenerate} />
+      <GenerateButton isLoading={isGenerating} onClick={() => void handleGenerate()} />
 
-      {savedQuizId && (
-        <p data-purpose="generate-success" role="status" className="-mt-4 pb-6 text-sm font-medium text-success">
-          {t('cta.success')}{' '}
-          <Link to="/archive" className="font-semibold text-amber-hover hover:underline">
-            {t('cta.viewInArchive')}
-          </Link>
-        </p>
+      {showTabNotSupported && (
+        <div className="-mt-4 space-y-3 rounded-[14px] border border-warm-border bg-card p-5 text-center">
+          <p className="text-sm font-medium text-ink">{t('create.notSupported.message')}</p>
+          <button
+            type="button"
+            onClick={() => handleTabChange('text')}
+            className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
+          >
+            {t('create.notSupported.switchTab')}
+          </button>
+        </div>
+      )}
+
+      {generateError && (
+        <div role="alert" className="-mt-4 space-y-3 rounded-[14px] border border-error/40 bg-error/5 p-5 text-center">
+          <p className="text-sm font-semibold text-error">{t(`create.errors.${generateError}`)}</p>
+          <button
+            type="button"
+            onClick={() => void handleGenerate()}
+            className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
+          >
+            {t('create.errors.retry')}
+          </button>
+        </div>
+      )}
+
+      {isGenerating && (
+        <ul className="-mt-4 animate-pulse space-y-4" aria-hidden>
+          {[0, 1, 2].map((index) => (
+            <li key={index} className="h-32 rounded-[14px] border border-warm-border bg-card" />
+          ))}
+        </ul>
+      )}
+
+      {result && (
+        <div ref={resultRef} className="-mt-4">
+          <QuizWorkspace
+            key={result.entryId}
+            initialQuiz={result.quiz}
+            demo={result.demo}
+            sourceText={result.sourceText}
+            meta={{
+              questionCount: result.quiz.questions.length,
+              questionType: result.questionType,
+              difficulty: result.difficulty,
+              outputLanguage: result.outputLanguage,
+            }}
+            difficulty={result.difficulty}
+            optionsCount={result.optionsCount}
+            outputLanguage={result.outputLanguage}
+            uiLanguage={i18n.language}
+            onPersist={(quiz) => persistEntry(result.entryId, quiz)}
+            archiveLink={{ href: `/archive/${result.entryId}`, label: t('cta.viewInArchive') }}
+          />
+        </div>
       )}
     </>
   )

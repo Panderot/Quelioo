@@ -67,11 +67,11 @@ export default function ArchivePage() {
 
             return (
               <li key={entry.id} className="flex items-center justify-between gap-4 p-4 md:p-5">
-                <div className="min-w-0 space-y-1">
-                  <p className="truncate text-sm font-semibold text-ink">{entry.title}</p>
+                <Link to={`/archive/${entry.id}`} className="min-w-0 flex-1 space-y-1">
+                  <p className="truncate text-sm font-semibold text-ink hover:text-amber-hover">{entry.title}</p>
                   <p className="truncate text-xs text-muted">{meta}</p>
                   <p className="truncate text-xs text-muted">{formatCreatedAt(entry.createdAt, i18n.language)}</p>
-                </div>
+                </Link>
 
                 <div className="flex shrink-0 items-center gap-2.5">
                   <span className="hidden text-xs font-semibold text-ink sm:inline">{t('archive.studyMode')}</span>

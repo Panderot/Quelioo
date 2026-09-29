@@ -4,6 +4,7 @@ import { Route, Routes } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import ArchivePage from './pages/ArchivePage'
+import ArchiveQuizPage from './pages/ArchiveQuizPage'
 import CreatePage from './pages/CreatePage'
 import SolvePage from './pages/SolvePage'
 
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/" element={<CreatePage />} />
             <Route path="/solve" element={<SolvePage />} />
             <Route path="/archive" element={<ArchivePage />} />
+            <Route path="/archive/:id" element={<ArchiveQuizPage />} />
           </Routes>
         </div>
       </main>

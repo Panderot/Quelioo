@@ -186,9 +186,9 @@ Row with icon (16px) + label, bottom border on the row. **Active:** ink text (bo
 
 Card surface, 1px warm border, radius 12, muted text, hover border/text shift to error tone (signals a destructive-ish clear action) without being alarming by default.
 
-### 7.7 Toggle (Study Mode)
+### 7.7 Toggle (Study Mode, Show answers)
 
-Used on each Archive row, not on the Create page. Track **off** = warm-border with card-colored knob; **on** = amber with knob moved right. `role="switch"`, `aria-checked`, `aria-label` includes the quiz title.
+Same switch styling wherever a binary on/off control is needed: each Archive row's Study Mode toggle, the Study Mode toggle repeated in a quiz's detail header (7.17), and the result view's Show answers toggle (7.14). Track **off** = warm-border with card-colored knob; **on** = amber with knob moved right. `role="switch"`, `aria-checked`, `aria-label` includes the quiz title where relevant.
 
 ### 7.8 Parameters panel
 
@@ -238,8 +238,49 @@ Model output (question/steps/answer/tip on the Solve page) mixes plain text with
 Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title in Fraunces ("Archive") + one-line muted subtitle.
 
 - **List:** single column, newest first (not a card grid). Container is one card surface (warm border, radius 14) with hairline (`warm-border`) dividers between rows instead of separate bordered cards per item.
-- **Row:** title (ink, semibold, truncates), a meta line (question count • type • difficulty, muted, reuses `params.*` labels; an extra "• N Options" segment is appended only for MCQ and Mixed entries, since those are the only types an options count is stored for), the created date/time formatted for the active locale (muted), and a Study Mode toggle pinned right (see 7.7). Long Turkish/Armenian titles truncate with ellipsis rather than wrapping the row taller.
+- **Row:** title is a link to `/archive/:id` (ink, semibold, truncates, amber-hover on hover/focus), a meta line (question count • type • difficulty, muted, reuses `params.*` labels; an extra "• N Options" segment is appended only for MCQ and Mixed entries, since those are the only types an options count is stored for), the created date/time formatted for the active locale (muted), and a Study Mode toggle pinned right, outside the link (see 7.7). Long Turkish/Armenian titles truncate with ellipsis rather than wrapping the row taller.
 - **Empty state:** centered card surface with the archive icon, a short title ("No quizzes yet"), a subtitle that makes clear quizzes are made on the Create page ("Quizzes you create in the Create section will appear here."), and one **secondary** "Go to Create" button linking to `/` — outline style (warm border, `card` background, navy bold text, border turns amber on hover), never the solid amber CTA style, which stays reserved for the single primary action per screen (Generate Quiz).
+
+### 7.14 Quiz result view (Create page, and Archive detail when Study Mode is off)
+
+Shown below the Generate button on the Create page after a successful generation (auto-scrolled into view, respecting `prefers-reduced-motion`), and reused unchanged at `/archive/:id`. Same shell content column, not a modal.
+
+- **Demo notice:** shown above the result header when the response is a fallback sample (no API key configured) — the same muted amber banner as Solve (7.11).
+- **Header:** card surface (warm border, radius 14). Editable title in Fraunces (pencil icon toggles an inline text input with Save/Cancel) and a meta line (question count • type • difficulty • output language, muted, reuses `params.*` and `inputCard.outputLanguage.*` labels). A hairline divider, then a left-to-right action row: the Study Mode toggle (only present on the Archive detail page, 7.17), the Show answers toggle (7.7, on by default), then two secondary buttons — **Copy** and **Print / PDF** (outline style, warm border, `card` background, navy/ink text, border turns focus-neutral on hover — never solid amber, which stays reserved for Generate Quiz/Solve). On the Create page only, a "View in Archive" text link sits top-right; on the Archive detail page it reads "Back to Archive" instead.
+- **Loading state:** while generating, three skeleton cards (`animate-pulse`, card surface, no content) replace the result area; the Generate button keeps its own spinner/label state (7.9).
+- **Error state:** shown in place of the result when generation fails — card surface with an error-tinted border/background, a localized message per error code (`too_short`, `too_long`, `not_supported`, `upstream`, `parse`, `network`), and a "Try again" secondary button.
+- **Not-yet-supported note (File/URL tabs):** if Generate is pressed while the File or URL tab is active, no request is sent — a card surface note explains quizzes currently generate from text only, with a "Switch to Text tab" secondary button.
+- **Undo snackbar:** a fixed, bottom-centered dark navy pill (`bg-navy`, `text-paper`) appears after deleting a question, with an amber "Undo" action; auto-dismisses after a few seconds.
+
+### 7.15 Question cards
+
+Card surface (warm border, radius 14), one per question, in a vertical list with consistent gaps.
+
+- **Header row:** a number in an amber circle (same style as Solve's step badges, 7.11), a small type badge (amber-tinted pill, uppercase, e.g. "Multiple Choice"), and — in the non-editing, non-practice view — three icon buttons pinned right: Edit (pencil), Regenerate (circular refresh), Delete (trash), each with a tooltip/`aria-label`. While a single question is regenerating, the card shows a centered spinner over a semi-transparent overlay instead of its content.
+- **By type:**
+  - **mcq:** options labelled A, B, C…; when Show answers is on, the correct option gets a soft amber tint, bold text and a trailing amber check icon.
+  - **true-false:** two labelled chips ("True" / "False"); the correct one gets the same amber tint treatment when answers are shown.
+  - **fill-blanks:** the blank rendered as a short dashed underline; the answer appears as bold amber-hover text beneath it when shown.
+  - **short-answer / open-ended:** a "Model answer" block (muted `paper` background, warm border) shown when answers are on.
+  - **matching:** left-hand terms as plain chips; when answers are on, the correct pairs are listed beneath as "Left → Right" rows.
+  - All question/option/answer/explanation text renders through the shared math-aware text component (7.12), so any LaTeX in generated content (formulas, symbols) renders correctly.
+- **Explanation:** collapsed by default behind a "Show explanation" / "Hide explanation" text toggle; expands into a muted `paper` box.
+- **Edit mode:** replaces the view with inline form controls scoped to the question's type (option/pair rows with add/remove, a true/false chip picker, or a plain textarea for text answers), plus Save/Cancel buttons (solid amber Save, outline Cancel — the one place a second amber-ish action is allowed, since it's a scoped in-card confirm, not a second page-level primary CTA).
+
+### 7.16 Print / PDF
+
+Triggered by the header's "Print / PDF" button (`window.print()`). A dedicated, screen-hidden print layout (plain semantic HTML, no card chrome) renders alongside the interactive result and becomes the only visible content under `@media print`: black text on white, the quiz title and numbered questions first (options/pairs listed but not marked), then the "Answer Key" on its own page (`page-break-before`) listing each question's correct answer and explanation — independent of the on-screen Show answers state, since print always separates questions from answers. Sidebar, top bar and every interactive control are hidden.
+
+### 7.17 Archived quiz view & Study Mode practice
+
+At `/archive/:id`: the same header and question list as 7.14–7.15 when the entry's Study Mode is off. Three additional states:
+
+- **Not found:** centered card surface (archive icon, "Quiz not found", a "Back to Archive" button) for a deleted or invalid id.
+- **Legacy entry:** for archive rows saved before real generation shipped (no stored questions) — centered card surface naming the quiz, a note that it predates saved questions, and a "Go to Create" button.
+- **Study Mode practice:** when the row's Study Mode toggle (7.7) is on, the header's Show answers/Copy/Print controls are replaced by the Study Mode toggle alone, and each question renders as a practice card instead of an editable one — no number badge actions, no explanation toggle:
+  - **mcq / true-false:** tap an option to answer; it immediately colors green (correct) or red (incorrect, with the correct option also highlighted green) and locks further taps on that card.
+  - **fill-blanks / short-answer / matching / open-ended:** a "Reveal answer" button shows the model answer (or the matching pairs), then two small self-grade buttons — "I got it right" / "I got it wrong" — record the result.
+  - **Score:** once every card has been answered, a summary row appears below the list ("3 / 5 correct") with a "Try again" button that clears all answers and re-shows the cards fresh.
 
 ---
 
@@ -344,9 +385,10 @@ Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title 
 | Screen | Status |
 |---|---|
 | Home / Generate Quiz | **Designed (this spec — "Solar Paper")** |
-| Quiz result / editor | Not yet |
+| Quiz result / editor | **Designed (7.14–7.16)** |
 | Solve (`/solve`) | **Designed (7.11)** |
 | Archive (`/archive`) | **Designed (7.13)** |
+| Archived quiz / Study Mode (`/archive/:id`) | **Designed (7.17)** |
 | Account / billing (Upgrade) | Not yet |
 | Landing page | Not yet |
 

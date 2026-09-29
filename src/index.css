@@ -131,3 +131,45 @@ select,
     scroll-behavior: auto !important;
   }
 }
+
+/* Print / PDF: a clean black-on-white quiz page, questions first, then the
+   answer key on its own page. Everything outside the result view (sidebar,
+   top bar, buttons, toggles) is hidden; [data-print-only] holds a plain
+   semantic duplicate of the quiz built for print instead of the interactive
+   on-screen cards, since printed output always shows answers separately
+   regardless of the on-screen Show-answers toggle state. */
+[data-print-only] {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  [data-purpose='quiz-result'],
+  [data-purpose='quiz-result'] * {
+    visibility: visible;
+  }
+
+  [data-purpose='quiz-result'] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  [data-print-only] {
+    display: block !important;
+    color: #000;
+    background: #fff;
+  }
+
+  [data-print-answer-key] {
+    page-break-before: always;
+  }
+}

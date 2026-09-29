@@ -7,6 +7,7 @@ import { SolveApiError, solveMathPhoto } from '../api/solve'
 import type { SolveErrorCode, SolveResult } from '../api/solve'
 import { compressImageForSolve } from '../lib/imageCompression'
 import type { CompressedImage } from '../lib/imageCompression'
+import DemoBanner from '../components/DemoBanner'
 import MathText from '../components/MathText'
 import { FileTabIcon, SpinnerIcon, SunIcon } from '../components/icons'
 
@@ -230,11 +231,7 @@ export default function SolvePage() {
 
       {result && (
         <div data-purpose="solve-result" className="-mt-4 space-y-4 pb-6">
-          {result.demo && (
-            <p className="rounded-xl border border-amber/30 bg-amber/10 px-4 py-2.5 text-xs font-semibold text-amber-hover">
-              {t('solve.demoNotice')}
-            </p>
-          )}
+          {result.demo && <DemoBanner message={t('solve.demoNotice')} />}
 
           <section className="space-y-4 rounded-[14px] border border-warm-border bg-card p-5 md:p-6">
             <p className="text-xs font-bold tracking-wide text-amber-hover uppercase">{result.topic}</p>

@@ -100,6 +100,72 @@
       "title": "Henüz quiz yok",
       "subtitle": "Oluştur bölümünde hazırladığın quizler burada görünecek.",
       "cta": "Oluştur'a git"
+    },
+    "detail": {
+      "notFoundTitle": "Quiz bulunamadı",
+      "notFoundBody": "Bu quiz silinmiş olabilir.",
+      "backToArchive": "Arşive dön",
+      "legacyBody": "Bu quiz, sorular kaydedilmeden önce oluşturulmuş. Tam sonucu görmek için yeni bir tane oluştur."
+    },
+    "practice": {
+      "reveal": "Cevabı göster",
+      "gotItRight": "Doğru bildim",
+      "gotItWrong": "Yanlış bildim",
+      "score": "{{correct}} / {{total}} doğru",
+      "tryAgain": "Tekrar dene"
+    }
+  },
+  "create": {
+    "notSupported": {
+      "message": "Şimdilik quizler metinden oluşturulabiliyor. İçeriği Metin sekmesine yapıştır.",
+      "switchTab": "Metin sekmesine geç"
+    },
+    "errors": {
+      "too_short": "Biraz daha metin ekle — en az 30 kelime — Quelio'nun yeterli içeriği olsun.",
+      "too_long": "Bu oldukça uzun bir metin. Lütfen 5.000 kelimenin altında tut.",
+      "not_supported": "Bu ayarlarla ilgili bir şey şu anda desteklenmiyor. Lütfen ayarları düzenleyip tekrar dene.",
+      "upstream": "Quizini oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
+      "parse": "Quelio bu sefer geçerli bir quiz okuyamadı. Lütfen tekrar dene.",
+      "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
+      "retry": "Tekrar dene"
+    },
+    "result": {
+      "demoNotice": "Demo mod: bunlar örnek sorulardır.",
+      "titleEditLabel": "Başlığı düzenle",
+      "showAnswers": "Cevapları göster",
+      "copy": "Kopyala",
+      "copied": "Kopyalandı!",
+      "print": "Yazdır / PDF",
+      "answerKeyTitle": "Cevap Anahtarı",
+      "trueLabel": "Doğru",
+      "falseLabel": "Yanlış",
+      "modelAnswerLabel": "Örnek cevap",
+      "explanationLabel": "Açıklama",
+      "showExplanation": "Açıklamayı göster",
+      "hideExplanation": "Açıklamayı gizle"
+    },
+    "question": {
+      "editAction": "Düzenle",
+      "regenerateAction": "Yeniden oluştur",
+      "deleteAction": "Sil",
+      "saveAction": "Kaydet",
+      "cancelAction": "Vazgeç",
+      "addOption": "Şık ekle",
+      "removeOption": "Şıkkı kaldır",
+      "addPair": "Eşleşme ekle",
+      "removePair": "Eşleşmeyi kaldır",
+      "leftLabel": "Sol",
+      "rightLabel": "Sağ",
+      "deletedUndo": "Soru silindi.",
+      "undo": "Geri al",
+      "type": {
+        "mcq": "Çoktan Seçmeli",
+        "trueFalse": "Doğru / Yanlış",
+        "fillBlanks": "Boşluk Doldurma",
+        "shortAnswer": "Kısa Cevap",
+        "matching": "Eşleştirme",
+        "openEnded": "Açık Uçlu"
+      }
     }
   },
   "solve": {

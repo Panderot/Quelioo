@@ -1,3 +1,5 @@
+import type { GeneratedQuiz } from './quiz'
+
 export interface ArchiveEntry {
   id: string
   title: string
@@ -8,6 +10,11 @@ export interface ArchiveEntry {
   questionCount: string
   optionsCount: string | null
   studyMode: boolean
+  /** Absent on entries created before real quiz generation shipped. */
+  outputLanguage?: string
+  sourceText?: string
+  quiz?: GeneratedQuiz
+  demo?: boolean
 }
 
 const STORAGE_KEY = 'quelio.archive.v1'
@@ -35,10 +42,24 @@ export function getArchiveEntries(): ArchiveEntry[] {
   return readEntries().sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
+export function getArchiveEntry(id: string): ArchiveEntry | undefined {
+  return readEntries().find((entry) => entry.id === id)
+}
+
 export function addArchiveEntry(entry: ArchiveEntry): void {
   const entries = readEntries()
   entries.push(entry)
   writeEntries(entries)
+}
+
+export function updateArchiveEntry(id: string, updater: (entry: ArchiveEntry) => ArchiveEntry): ArchiveEntry | undefined {
+  const entries = readEntries()
+  const index = entries.findIndex((entry) => entry.id === id)
+  if (index === -1) return undefined
+  const updated = updater(entries[index])
+  entries[index] = updated
+  writeEntries(entries)
+  return updated
 }
 
 export function setArchiveEntryStudyMode(id: string, studyMode: boolean): void {

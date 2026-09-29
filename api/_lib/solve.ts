@@ -1,5 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
+import { callAnthropicMessages, extractJson, isRecord, readRequestBody, resolveModel } from './anthropic.js'
+
 export type SolveErrorCode = 'not_math' | 'too_large' | 'bad_type' | 'upstream' | 'parse'
 
 export interface SolveSuccess {
@@ -24,7 +26,6 @@ const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 // never gets truncated before the size check below can return a clean error.
 const MAX_REQUEST_BYTES = 8 * 1024 * 1024
 const SUPPORTED_LANGUAGES = new Set(['en', 'tr', 'hyw'])
-const DEFAULT_MODEL = 'claude-haiku-4-5'
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
@@ -81,10 +82,6 @@ function demoResult(language: string): SolveSuccess {
   return { ...content, demo: true }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-}
-
 function isSolveSuccessShape(value: unknown): value is Omit<SolveSuccess, 'demo'> {
   if (!isRecord(value)) return false
   return (
@@ -100,28 +97,6 @@ function isSolveSuccessShape(value: unknown): value is Omit<SolveSuccess, 'demo'
 
 function isNotMathShape(value: unknown): boolean {
   return isRecord(value) && value.error === 'not_math'
-}
-
-function extractResponseText(payload: unknown): string | null {
-  if (!isRecord(payload) || !Array.isArray(payload.content)) return null
-  for (const block of payload.content) {
-    if (isRecord(block) && block.type === 'text' && typeof block.text === 'string') {
-      return block.text
-    }
-  }
-  return null
-}
-
-function extractJson(text: string): unknown {
-  const attempts = [text.trim(), text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()]
-  for (const attempt of attempts) {
-    try {
-      return JSON.parse(attempt)
-    } catch {
-      continue
-    }
-  }
-  return null
 }
 
 async function callAnthropic(params: {
@@ -142,46 +117,16 @@ async function callAnthropic(params: {
     'If the photo does not contain a readable math question, respond with exactly {"error": "not_math"}.',
   ].join(' ')
 
-  let response: Response
-  try {
-    response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': params.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: params.model,
-        max_tokens: 1200,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: params.mimeType, data: params.base64Data } },
-              { type: 'text', text: 'Solve the math question in this photo.' },
-            ],
-          },
-        ],
-      }),
-    })
-  } catch {
-    return { error: 'upstream' }
-  }
-
-  if (!response.ok) {
-    return { error: 'upstream' }
-  }
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    return { error: 'upstream' }
-  }
-
-  const text = extractResponseText(payload)
+  const text = await callAnthropicMessages({
+    apiKey: params.apiKey,
+    model: params.model,
+    maxTokens: 1200,
+    system: systemPrompt,
+    content: [
+      { type: 'image', source: { type: 'base64', media_type: params.mimeType, data: params.base64Data } },
+      { type: 'text', text: 'Solve the math question in this photo.' },
+    ],
+  })
   if (text === null) return { error: 'upstream' }
 
   const parsed = extractJson(text)
@@ -191,24 +136,6 @@ async function callAnthropic(params: {
   if (!isSolveSuccessShape(parsed)) return { error: 'parse' }
 
   return { ...parsed, demo: false }
-}
-
-function readRequestBody(req: IncomingMessage, maxBytes: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = []
-    let total = 0
-    req.on('data', (chunk: Buffer) => {
-      total += chunk.length
-      if (total > maxBytes) {
-        reject(new Error('payload_too_large'))
-        req.destroy()
-        return
-      }
-      chunks.push(chunk)
-    })
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
-    req.on('error', (error) => reject(error as Error))
-  })
 }
 
 export async function solveRequestHandler(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -271,7 +198,7 @@ export async function solveRequestHandler(req: IncomingMessage, res: ServerRespo
     return
   }
 
-  const model = process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL
+  const model = resolveModel()
 
   let result: SolveResponseBody
   try {
