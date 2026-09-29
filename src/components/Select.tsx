@@ -17,6 +17,7 @@ interface SelectProps {
   labelledBy: string
   variant?: 'param' | 'boxed'
   className?: string
+  disabled?: boolean
 }
 
 interface TriggerRect {
@@ -44,7 +45,16 @@ const variantClasses: Record<NonNullable<SelectProps['variant']>, string> = {
     'justify-between gap-2.5 rounded-lg border border-warm-border bg-paper py-1.5 pl-3 pr-3 text-xs font-semibold text-ink hover:border-focus-neutral',
 }
 
-export default function Select({ id, value, options, onChange, labelledBy, variant = 'param', className = '' }: SelectProps) {
+export default function Select({
+  id,
+  value,
+  options,
+  onChange,
+  labelledBy,
+  variant = 'param',
+  className = '',
+  disabled = false,
+}: SelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [entered, setEntered] = useState(false)
@@ -243,14 +253,16 @@ export default function Select({ id, value, options, onChange, labelledBy, varia
         type="button"
         data-select-trigger
         data-open={isOpen}
+        disabled={disabled}
+        aria-disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-labelledby={labelledBy}
         aria-controls={listboxId}
         aria-activedescendant={mounted ? `${id}-option-${highlightedIndex}` : undefined}
-        onClick={toggleOpen}
-        onKeyDown={handleTriggerKeyDown}
-        className={`${triggerBaseClasses} ${variantClasses[variant]} ${className}`}
+        onClick={disabled ? undefined : toggleOpen}
+        onKeyDown={disabled ? undefined : handleTriggerKeyDown}
+        className={`${triggerBaseClasses} ${variantClasses[variant]} ${disabled ? 'text-muted' : ''} ${className}`}
       >
         <span className="min-w-0 flex-1 truncate">{selected?.label}</span>
         <ChevronDownIcon

@@ -4,14 +4,8 @@ import { useTranslation } from 'react-i18next'
 
 import { getArchiveEntries, setArchiveEntryStudyMode } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
+import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { ArchiveIcon } from '../components/icons'
-
-const QUESTION_TYPE_LABEL_KEY: Record<string, string> = {
-  mcq: 'params.questionType.mcq',
-  'true-false': 'params.questionType.trueFalse',
-  'fill-blanks': 'params.questionType.fillBlanks',
-  'short-answer': 'params.questionType.shortAnswer',
-}
 
 function formatCreatedAt(iso: string, locale: string): string {
   const date = new Date(iso)
@@ -62,12 +56,13 @@ export default function ArchivePage() {
       ) : (
         <ul data-purpose="archive-list" className="divide-y divide-warm-border rounded-[14px] border border-warm-border bg-card">
           {entries.map((entry) => {
-            const typeLabelKey = QUESTION_TYPE_LABEL_KEY[entry.questionType] ?? entry.questionType
+            const typeLabelKey = QUESTION_TYPE_LABEL_KEYS[entry.questionType] ?? entry.questionType
             const difficultyLabelKey = `params.difficulty.${entry.difficulty}`
             const meta = [
               t('params.questionCount.value', { count: entry.questionCount }),
               t(typeLabelKey),
               t(difficultyLabelKey),
+              ...(entry.optionsCount ? [t('params.optionsCount.value', { count: entry.optionsCount })] : []),
             ].join(' • ')
 
             return (

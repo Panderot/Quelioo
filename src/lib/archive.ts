@@ -6,7 +6,7 @@ export interface ArchiveEntry {
   questionType: string
   difficulty: string
   questionCount: string
-  optionsCount: string
+  optionsCount: string | null
   studyMode: boolean
 }
 

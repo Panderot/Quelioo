@@ -194,6 +194,9 @@ Used on each Archive row, not on the Create page. Track **off** = warm-border wi
 
 One panel (card surface, 1px warm border, radius 14) with a 2-column grid and hairline (`warm-border`) dividers between cells instead of four separate bordered cards. Field label: 11px bold uppercase muted, 4px above the select trigger (see 7.10 for the trigger's own visible-box spec — it always shows its border, in every state, so the four fields read as identical regardless of hover/focus).
 
+- **Question Type options** (in order): MCQ (Multiple Choice Questions), True or False, Fill in the Blanks, Short Answer, Matching, Open-ended, Mixed.
+- **MCQ Options Count** only applies to types that contain multiple-choice questions — MCQ and Mixed. For every other type the field stays in place (no layout shift) but renders in the dropdown's disabled state (7.10) with a short muted helper line underneath it explaining it only applies to multiple choice and mixed. The last chosen options count is preserved and restored when switching back to MCQ or Mixed.
+
 ### 7.9 Primary CTA (Generate Quiz)
 
 - Full width, height **56px**, radius 14, solid **amber**, navy bold text. No gradient.
@@ -210,6 +213,7 @@ Every choice field (the four quiz-parameter selects, Output Language, the top-ba
 - **Menu:** `card` background, 1px warm border, radius 12, soft warm shadow, 6px inner padding, rendered in a portal so it always sits above surrounding content (never clipped or covered by the Generate button). Width matches the trigger exactly; long labels wrap instead of overflowing. Max-height ~280px with a thin warm scrollbar past that. Opens below the trigger, flips above it when there isn't room below (e.g. the last parameter row).
 - **Rows:** min 40px tall, 10px radius, 15px text, generous horizontal padding. Hover and keyboard-highlighted rows get a light amber tint (~12% opacity) — never a blue/native highlight. The selected row is semibold with an amber check icon on the right.
 - **States:** at rest the border is `warm-border`; hover, mouse-click focus, and the open state all show the same slightly darker warm-neutral border `#D8CDB4` (1px) — the same look whether opened by mouse or keyboard, with no ring stacked on top of it. Keyboard focus (`:focus-visible`) adds a single 2px amber ring with a 2px offset instead. The chevron rotates 180° when open.
+- **Disabled:** trigger keeps its usual visible box (same border, radius, background — no layout shift) but the value text and chevron render muted, the cursor shows not-allowed, it does not open on click or key press, is not reachable by Tab, and carries `aria-disabled="true"` alongside the native disabled state. Used e.g. for MCQ Options Count when the selected Question Type isn't MCQ or Mixed (7.8).
 - **Motion:** 120ms fade + 4px slide on open/close; respects `prefers-reduced-motion`.
 - **Keyboard:** WAI-ARIA listbox pattern — trigger is a button with `aria-haspopup="listbox"`, `aria-expanded`, `aria-labelledby` (pointing at the visible field label) and `aria-activedescendant`; the menu is `role="listbox"` with `role="option"` rows. Arrow keys move the highlight, Home/End jump to the ends, Enter/Space selects, Escape closes and returns focus to the trigger, typing jumps to a matching label (type-ahead). Closes on outside click, Escape, Tab, and after a selection.
 
@@ -218,7 +222,7 @@ Every choice field (the four quiz-parameter selects, Output Language, the top-ba
 Same shell as Create (sidebar, top bar, `max-w-5xl` content column). Page title in Fraunces ("Archive") + one-line muted subtitle.
 
 - **List:** single column, newest first (not a card grid). Container is one card surface (warm border, radius 14) with hairline (`warm-border`) dividers between rows instead of separate bordered cards per item.
-- **Row:** title (ink, semibold, truncates), a meta line (question count • type • difficulty, muted, reuses `params.*` labels), the created date/time formatted for the active locale (muted), and a Study Mode toggle pinned right (see 7.7). Long Turkish/Armenian titles truncate with ellipsis rather than wrapping the row taller.
+- **Row:** title (ink, semibold, truncates), a meta line (question count • type • difficulty, muted, reuses `params.*` labels; an extra "• N Options" segment is appended only for MCQ and Mixed entries, since those are the only types an options count is stored for), the created date/time formatted for the active locale (muted), and a Study Mode toggle pinned right (see 7.7). Long Turkish/Armenian titles truncate with ellipsis rather than wrapping the row taller.
 - **Empty state:** centered card surface with the archive icon, a short title ("No quizzes yet"), a subtitle that makes clear quizzes are made on the Create page ("Quizzes you create in the Create section will appear here."), and one **secondary** "Go to Create" button linking to `/` — outline style (warm border, `card` background, navy bold text, border turns amber on hover), never the solid amber CTA style, which stays reserved for the single primary action per screen (Generate Quiz).
 
 ---

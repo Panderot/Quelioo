@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import Select from './Select'
+import { QUESTION_TYPES, supportsOptionsCount } from '../lib/quizTypes'
 
 interface ParameterGridProps {
   questionType: string
@@ -27,12 +28,12 @@ export default function ParameterGrid({
 }: ParameterGridProps) {
   const { t } = useTranslation()
 
-  const questionTypeOptions = [
-    { value: 'mcq', label: t('params.questionType.mcq') },
-    { value: 'true-false', label: t('params.questionType.trueFalse') },
-    { value: 'fill-blanks', label: t('params.questionType.fillBlanks') },
-    { value: 'short-answer', label: t('params.questionType.shortAnswer') },
-  ]
+  const questionTypeOptions = QUESTION_TYPES.map((type) => ({
+    value: type.value,
+    label: t(type.labelKey),
+  }))
+
+  const optionsCountEnabled = supportsOptionsCount(questionType)
 
   const questionCountOptions = ['3', '5', '10', '15', '20'].map((count) => ({
     value: count,
@@ -105,7 +106,11 @@ export default function ParameterGrid({
             value={optionsCount}
             onChange={onOptionsCountChange}
             options={optionsCountOptions}
+            disabled={!optionsCountEnabled}
           />
+          {!optionsCountEnabled && (
+            <p className="mt-1.5 text-[11px] text-muted">{t('params.optionsCount.disabledHint')}</p>
+          )}
         </div>
       </div>
     </section>

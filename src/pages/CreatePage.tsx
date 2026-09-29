@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { generateQuiz } from '../api/generateQuiz'
 import { addArchiveEntry, createArchiveEntryId } from '../lib/archive'
+import { supportsOptionsCount } from '../lib/quizTypes'
 import GenerateButton from '../components/GenerateButton'
 import InputCard from '../components/InputCard'
 import type { InputTab } from '../components/InputCard'
@@ -93,7 +94,7 @@ export default function CreatePage() {
         questionType,
         difficulty,
         questionCount,
-        optionsCount,
+        optionsCount: supportsOptionsCount(questionType) ? optionsCount : null,
         studyMode: false,
       })
       setSavedQuizId(id)

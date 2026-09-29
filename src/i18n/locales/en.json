@@ -61,7 +61,10 @@
       "mcq": "MCQ (Multiple Choice Questions)",
       "trueFalse": "True or False",
       "fillBlanks": "Fill in the Blanks",
-      "shortAnswer": "Short Answer"
+      "shortAnswer": "Short Answer",
+      "matching": "Matching",
+      "openEnded": "Open-ended",
+      "mixed": "Mixed"
     },
     "questionCount": {
       "label": "Question Count",
@@ -76,7 +79,8 @@
     "optionsCount": {
       "label": "MCQ Options Count",
       "value": "{{count}} Options",
-      "standard": "4 Options (Standard A, B, C, D)"
+      "standard": "4 Options (Standard A, B, C, D)",
+      "disabledHint": "Only for multiple choice and mixed"
     }
   },
   "cta": {

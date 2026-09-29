@@ -61,7 +61,10 @@
       "mcq": "Çoktan Seçmeli (MCQ)",
       "trueFalse": "Doğru veya Yanlış",
       "fillBlanks": "Boşluk Doldurma",
-      "shortAnswer": "Kısa Cevap"
+      "shortAnswer": "Kısa Cevap",
+      "matching": "Eşleştirme",
+      "openEnded": "Açık Uçlu / Klasik",
+      "mixed": "Karışık"
     },
     "questionCount": {
       "label": "Soru Sayısı",
@@ -76,7 +79,8 @@
     "optionsCount": {
       "label": "MCQ Şık Sayısı",
       "value": "{{count}} Şık",
-      "standard": "4 Şık (Standart A, B, C, D)"
+      "standard": "4 Şık (Standart A, B, C, D)",
+      "disabledHint": "Sadece çoktan seçmeli ve karışık için"
     }
   },
   "cta": {
