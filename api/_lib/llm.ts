@@ -17,7 +17,7 @@ export type LlmResult =
   | { status: 'error'; error: LlmErrorCode }
   | { status: 'demo' }
 
-type ProviderOutcome = { error: LlmErrorCode; logTag: LogTag } | { text: string } | null
+type ProviderOutcome = { error: LlmErrorCode; logTag: LogTag; status: number | null } | { text: string } | null
 
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5-5'
 const DEFAULT_OPENAI_MODEL = 'gpt-5.6-luna'
@@ -61,7 +61,7 @@ async function callAnthropic(params: LlmCallParams): Promise<ProviderOutcome> {
   if (!apiKey) return null
 
   if (isForcedToFail('anthropic')) {
-    return { error: 'upstream', logTag: 'forced_fail' }
+    return { error: 'upstream', logTag: 'forced_fail', status: null }
   }
 
   const model = resolveModel(DEFAULT_ANTHROPIC_MODEL)
@@ -77,10 +77,10 @@ async function callAnthropic(params: LlmCallParams): Promise<ProviderOutcome> {
   })
 
   if (result.status === 401 || result.status === 403) {
-    return { error: 'upstream', logTag: 'auth' }
+    return { error: 'upstream', logTag: 'auth', status: result.status }
   }
   if (!result.ok || result.text === null) {
-    return { error: 'upstream', logTag: 'upstream' }
+    return { error: 'upstream', logTag: 'upstream', status: result.status }
   }
   return { text: result.text }
 }
@@ -90,7 +90,7 @@ async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
   if (!apiKey) return null
 
   if (isForcedToFail('openai')) {
-    return { error: 'upstream', logTag: 'forced_fail' }
+    return { error: 'upstream', logTag: 'forced_fail', status: null }
   }
 
   const model = process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL
@@ -103,13 +103,13 @@ async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
   })
 
   if (result.modelRejected) {
-    return { error: 'model', logTag: 'model' }
+    return { error: 'model', logTag: 'model', status: result.status }
   }
   if (result.status === 401 || result.status === 403) {
-    return { error: 'upstream', logTag: 'auth' }
+    return { error: 'upstream', logTag: 'auth', status: result.status }
   }
   if (!result.ok || result.text === null) {
-    return { error: 'upstream', logTag: 'upstream' }
+    return { error: 'upstream', logTag: 'upstream', status: result.status }
   }
   return { text: result.text }
 }
@@ -127,6 +127,7 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
   let attempts = 0
   let lastError: LlmErrorCode = 'upstream'
   let lastLogTag: LogTag = 'upstream'
+  let lastStatus: number | null = null
 
   for (const provider of order) {
     let outcome: ProviderOutcome
@@ -134,7 +135,7 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
       outcome = await CALLERS[provider](params)
     } catch (error) {
       console.error('llm: unexpected error', error instanceof Error ? error.message : 'unknown')
-      outcome = { error: 'upstream', logTag: 'upstream' }
+      outcome = { error: 'upstream', logTag: 'upstream', status: null }
     }
 
     if (outcome === null) continue // no key configured for this provider — not an attempt
@@ -143,6 +144,7 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
     if ('error' in outcome) {
       lastError = outcome.error
       lastLogTag = outcome.logTag
+      lastStatus = outcome.status
       continue
     }
 
@@ -157,6 +159,6 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
     return { status: 'demo' }
   }
 
-  console.log(`llm: provider=none fallbackUsed=${attempts > 1} duration=${duration}ms error=${lastLogTag}`)
+  console.log(`llm: provider=none fallbackUsed=${attempts > 1} duration=${duration}ms error=${lastLogTag} status=${lastStatus}`)
   return { status: 'error', error: lastError }
 }

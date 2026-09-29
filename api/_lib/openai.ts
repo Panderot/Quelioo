@@ -42,7 +42,6 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
         instructions: params.system,
         input: params.user,
         max_output_tokens: params.maxOutputTokens,
-        text: { format: { type: 'json_object' } },
       }),
       signal: timeoutController.signal,
     })
