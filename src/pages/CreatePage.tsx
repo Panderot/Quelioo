@@ -4,13 +4,18 @@ import { useTranslation } from 'react-i18next'
 
 import { GenerateApiError, generateQuiz } from '../api/generateQuiz'
 import type { GenerateErrorCode } from '../api/generateQuiz'
+import { ExtractUrlApiError, extractUrlText } from '../api/extractUrl'
+import type { ExtractUrlErrorCode } from '../api/extractUrl'
 import { addArchiveEntry, createArchiveEntryId, updateArchiveEntry } from '../lib/archive'
+import { extractTextFromFile, FileExtractionError } from '../lib/fileExtraction'
+import type { FileErrorCode } from '../lib/fileExtraction'
 import { supportsOptionsCount } from '../lib/quizTypes'
-import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../lib/textStats'
+import { sanitizeTextLight } from '../lib/sanitizeText'
+import { MAX_QUIZ_WORDS, MAX_SOURCE_TEXT_CHARS, MIN_QUIZ_WORDS, countWords } from '../lib/textStats'
 import type { GeneratedQuiz } from '../lib/quiz'
 import GenerateButton from '../components/GenerateButton'
 import InputCard from '../components/InputCard'
-import type { InputTab } from '../components/InputCard'
+import type { FileTabState, InputTab, UrlTabState } from '../components/InputCard'
 import ParameterGrid from '../components/ParameterGrid'
 import QuizWorkspace from '../components/QuizWorkspace'
 
@@ -35,6 +40,29 @@ interface GeneratedResult {
   optionsCount?: string
   outputLanguage: string
   questionType: string
+  requestedCount: number
+  incomplete: boolean
+}
+
+const EMPTY_FILE_STATE: FileTabState = {
+  file: null,
+  fileName: '',
+  fileSizeBytes: 0,
+  extractedText: '',
+  wordCount: 0,
+  truncated: false,
+  isExtracting: false,
+  error: null,
+}
+
+const EMPTY_URL_STATE: UrlTabState = {
+  title: '',
+  extractedText: '',
+  wordCount: 0,
+  truncated: false,
+  isFetching: false,
+  error: null,
+  fetched: false,
 }
 
 export default function CreatePage() {
@@ -46,6 +74,8 @@ export default function CreatePage() {
   const [activeTab, setActiveTab] = useState<InputTab>('text')
   const [textValue, setTextValue] = useState(prefillText ?? '')
   const [urlValue, setUrlValue] = useState('')
+  const [fileState, setFileState] = useState<FileTabState>(EMPTY_FILE_STATE)
+  const [urlState, setUrlState] = useState<UrlTabState>(EMPTY_URL_STATE)
   const [outputLanguage, setOutputLanguage] = useState('auto')
 
   const [questionType, setQuestionType] = useState('mcq')
@@ -56,11 +86,15 @@ export default function CreatePage() {
   const [hasError, setHasError] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<GenerateErrorCode | null>(null)
-  const [showTabNotSupported, setShowTabNotSupported] = useState(false)
   const [result, setResult] = useState<GeneratedResult | null>(null)
 
   const resultRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const fileExtractionTokenRef = useRef(0)
+  const urlFetchAbortRef = useRef<AbortController | null>(null)
+  /** Last quiz generated from this exact input+settings combination, kept in memory only (never
+   * localStorage) so a repeat Generate click on the same source avoids repeating its questions. */
+  const lastGenerationRef = useRef<{ key: string; questions: string[] } | null>(null)
 
   useEffect(() => {
     if (prefillText) navigate(location.pathname, { replace: true, state: null })
@@ -68,6 +102,7 @@ export default function CreatePage() {
   }, [])
 
   useEffect(() => () => abortControllerRef.current?.abort(), [])
+  useEffect(() => () => urlFetchAbortRef.current?.abort(), [])
 
   useEffect(() => {
     if (!result) return
@@ -76,31 +111,115 @@ export default function CreatePage() {
 
   const wordCount = useMemo(() => countWords(textValue), [textValue])
 
-  const activeContent = activeTab === 'text' ? textValue : activeTab === 'url' ? urlValue : ''
+  const activeContent =
+    activeTab === 'text' ? textValue : activeTab === 'file' ? fileState.extractedText : activeTab === 'url' ? urlState.extractedText : ''
+
+  const activeWordCount = activeTab === 'text' ? wordCount : activeTab === 'file' ? fileState.wordCount : urlState.wordCount
+  const activeTruncated = activeTab === 'file' ? fileState.truncated : activeTab === 'url' ? urlState.truncated : false
 
   const handleTabChange = (tab: InputTab) => {
     setActiveTab(tab)
     setHasError(false)
     setGenerateError(null)
-    setShowTabNotSupported(false)
   }
 
   const handleClear = () => {
     if (activeTab === 'text') setTextValue('')
-    if (activeTab === 'url') setUrlValue('')
+    if (activeTab === 'url') {
+      setUrlValue('')
+      setUrlState(EMPTY_URL_STATE)
+    }
+    if (activeTab === 'file') setFileState(EMPTY_FILE_STATE)
     setHasError(false)
     setGenerateError(null)
   }
 
   const handleTextChange = (value: string) => {
-    setTextValue(value)
-    if (value.trim()) setHasError(false)
+    const sanitized = sanitizeTextLight(value)
+    setTextValue(sanitized)
+    if (sanitized.trim()) setHasError(false)
     setGenerateError(null)
   }
 
   const handleUrlChange = (value: string) => {
     setUrlValue(value)
     if (value.trim()) setHasError(false)
+    setGenerateError(null)
+    setUrlState((current) => (current.fetched || current.error ? EMPTY_URL_STATE : current))
+  }
+
+  const handleFileSelected = async (file: File) => {
+    const token = ++fileExtractionTokenRef.current
+    setHasError(false)
+    setGenerateError(null)
+    setFileState({ ...EMPTY_FILE_STATE, file, fileName: file.name, fileSizeBytes: file.size, isExtracting: true })
+
+    try {
+      const extracted = await extractTextFromFile(file)
+      if (fileExtractionTokenRef.current !== token) return
+      setFileState({
+        file,
+        fileName: file.name,
+        fileSizeBytes: file.size,
+        extractedText: extracted.text,
+        wordCount: extracted.wordCount,
+        truncated: extracted.truncated,
+        isExtracting: false,
+        error: null,
+      })
+    } catch (error) {
+      if (fileExtractionTokenRef.current !== token) return
+      const code: FileErrorCode = error instanceof FileExtractionError ? error.code : 'corrupt'
+      setFileState({ ...EMPTY_FILE_STATE, file, fileName: file.name, fileSizeBytes: file.size, isExtracting: false, error: code })
+    }
+  }
+
+  const handleFileRemove = () => {
+    fileExtractionTokenRef.current++
+    setFileState(EMPTY_FILE_STATE)
+  }
+
+  const handleEditFileAsText = () => {
+    if (!fileState.extractedText) return
+    setTextValue(fileState.extractedText)
+    setActiveTab('text')
+  }
+
+  const handleUrlFetch = async () => {
+    const url = urlValue.trim()
+    if (!url) {
+      setHasError(true)
+      return
+    }
+    setHasError(false)
+    setGenerateError(null)
+    urlFetchAbortRef.current?.abort()
+    const controller = new AbortController()
+    urlFetchAbortRef.current = controller
+    setUrlState({ ...EMPTY_URL_STATE, isFetching: true })
+
+    try {
+      const extracted = await extractUrlText(url, controller.signal)
+      setUrlState({
+        title: extracted.title,
+        extractedText: extracted.text,
+        wordCount: extracted.wordCount,
+        truncated: extracted.truncated,
+        isFetching: false,
+        error: null,
+        fetched: true,
+      })
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      const code: ExtractUrlErrorCode = error instanceof ExtractUrlApiError ? error.code : 'network'
+      setUrlState({ ...EMPTY_URL_STATE, isFetching: false, error: code })
+    }
+  }
+
+  const handleEditUrlAsText = () => {
+    if (!urlState.extractedText) return
+    setTextValue(urlState.extractedText)
+    setActiveTab('text')
   }
 
   const persistEntry = (entryId: string, quiz: GeneratedQuiz) => {
@@ -108,24 +227,22 @@ export default function CreatePage() {
   }
 
   const handleGenerate = async () => {
-    setShowTabNotSupported(false)
     setGenerateError(null)
-
-    if (activeTab !== 'text') {
-      setShowTabNotSupported(true)
-      return
-    }
 
     if (!activeContent.trim()) {
       setHasError(true)
       return
     }
 
-    if (wordCount < MIN_QUIZ_WORDS) {
+    if (activeContent.length > MAX_SOURCE_TEXT_CHARS) {
+      setGenerateError('too_long_chars')
+      return
+    }
+    if (activeWordCount < MIN_QUIZ_WORDS) {
       setGenerateError('too_short')
       return
     }
-    if (wordCount > MAX_QUIZ_WORDS) {
+    if (activeWordCount > MAX_QUIZ_WORDS) {
       setGenerateError('too_long')
       return
     }
@@ -138,9 +255,14 @@ export default function CreatePage() {
     const controller = new AbortController()
     abortControllerRef.current = controller
 
+    const needsOptionsCount = supportsOptionsCount(questionType)
+    const generationKey = [activeContent.trim(), questionType, questionCount, difficulty, needsOptionsCount ? optionsCount : '', outputLanguage].join(
+      '|',
+    )
+    const avoidQuestions = lastGenerationRef.current?.key === generationKey ? lastGenerationRef.current.questions : []
+
     try {
       const uiLanguage = i18n.language
-      const needsOptionsCount = supportsOptionsCount(questionType)
       const generated = await generateQuiz(
         {
           text: activeContent,
@@ -150,9 +272,15 @@ export default function CreatePage() {
           optionsCount: needsOptionsCount ? optionsCount : undefined,
           outputLanguage,
           uiLanguage,
+          avoidQuestions,
         },
         controller.signal,
       )
+
+      lastGenerationRef.current = {
+        key: generationKey,
+        questions: generated.questions.map((question) => question.question).slice(0, 30),
+      }
 
       const id = createArchiveEntryId()
       addArchiveEntry({
@@ -180,6 +308,8 @@ export default function CreatePage() {
         optionsCount: needsOptionsCount ? optionsCount : undefined,
         outputLanguage,
         questionType,
+        requestedCount: generated.requestedCount,
+        incomplete: generated.incomplete,
       })
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
@@ -205,7 +335,15 @@ export default function CreatePage() {
         onTextChange={handleTextChange}
         urlValue={urlValue}
         onUrlChange={handleUrlChange}
-        wordCount={wordCount}
+        fileState={fileState}
+        onFileSelected={(file) => void handleFileSelected(file)}
+        onFileRemove={handleFileRemove}
+        onEditFileAsText={handleEditFileAsText}
+        urlState={urlState}
+        onUrlFetch={() => void handleUrlFetch()}
+        onEditUrlAsText={handleEditUrlAsText}
+        wordCount={activeWordCount}
+        truncated={activeTruncated}
         outputLanguage={outputLanguage}
         onOutputLanguageChange={setOutputLanguage}
         onClear={handleClear}
@@ -224,19 +362,6 @@ export default function CreatePage() {
       />
 
       <GenerateButton isLoading={isGenerating} onClick={() => void handleGenerate()} />
-
-      {showTabNotSupported && (
-        <div className="-mt-4 space-y-3 rounded-[14px] border border-warm-border bg-card p-5 text-center">
-          <p className="text-sm font-medium text-ink">{t('create.notSupported.message')}</p>
-          <button
-            type="button"
-            onClick={() => handleTabChange('text')}
-            className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
-          >
-            {t('create.notSupported.switchTab')}
-          </button>
-        </div>
-      )}
 
       {generateError && (
         <div role="alert" className="-mt-4 space-y-3 rounded-[14px] border border-error/40 bg-error/5 p-5 text-center">
@@ -276,6 +401,8 @@ export default function CreatePage() {
             optionsCount={result.optionsCount}
             outputLanguage={result.outputLanguage}
             uiLanguage={i18n.language}
+            requestedCount={result.requestedCount}
+            incomplete={result.incomplete}
             onPersist={(quiz) => persistEntry(result.entryId, quiz)}
             archiveLink={{ href: `/archive/${result.entryId}`, label: t('cta.viewInArchive') }}
           />

@@ -5,6 +5,8 @@ import type { Plugin } from 'vite'
 
 import { solveRequestHandler } from './api/_lib/solve.js'
 import { generateRequestHandler } from './api/_lib/generate.js'
+import { extractUrlRequestHandler } from './api/_lib/extract-url.js'
+import { gradeRequestHandler } from './api/_lib/grade.js'
 
 function apiDevMiddleware(): Plugin {
   return {
@@ -15,6 +17,12 @@ function apiDevMiddleware(): Plugin {
       })
       server.middlewares.use('/api/generate', (req, res) => {
         void generateRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/extract-url', (req, res) => {
+        void extractUrlRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/grade', (req, res) => {
+        void gradeRequestHandler(req, res)
       })
     },
   }

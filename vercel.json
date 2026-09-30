@@ -2,7 +2,13 @@
   "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
   "functions": {
     "api/generate.ts": {
-      "maxDuration": 60
+      "maxDuration": 90
+    },
+    "api/extract-url.ts": {
+      "maxDuration": 15
+    },
+    "api/grade.ts": {
+      "maxDuration": 20
     }
   }
 }

@@ -1,3 +1,5 @@
+import { computeDerangement } from './matching.js'
+
 export type QuizQuestionType = 'mcq' | 'true-false' | 'fill-blanks' | 'short-answer' | 'matching' | 'open-ended'
 
 export interface QuizPair {
@@ -25,21 +27,50 @@ export interface TrueFalseQuestion extends QuizQuestionBase {
 export interface FillBlankQuestion extends QuizQuestionBase {
   type: 'fill-blanks'
   answer: string
+  /** Up to 4 alternative correct phrasings, checked leniently alongside `answer`. Optional only
+   * for backward compatibility with questions saved before this existed. */
+  acceptableAnswers?: string[]
 }
 
 export interface ShortAnswerQuestion extends QuizQuestionBase {
   type: 'short-answer'
   answer: string
+  acceptableAnswers?: string[]
+  /** One short sentence/excerpt from the source text supporting the answer — sent to the AI
+   * grader as context, never shown to the student. Optional for backward compatibility. */
+  evidence?: string
 }
 
 export interface MatchingQuestion extends QuizQuestionBase {
   type: 'matching'
   pairs: QuizPair[]
+  /** Display order for the right-hand column: rightOrder[position] is the index into `pairs`
+   * shown at that position. Always a derangement (no position shows its own pair's right value).
+   * Optional only for backward compatibility with archived questions saved before this existed —
+   * see getRightOrder() in lib/matching.ts, which computes a stable stand-in when absent. */
+  rightOrder?: number[]
 }
 
 export interface OpenEndedQuestion extends QuizQuestionBase {
   type: 'open-ended'
   answer: string
+  /** 2-4 short essential ideas the AI grader checks coverage against. Optional for backward
+   * compatibility with questions saved before this existed — see getKeyPoints(). */
+  keyPoints?: string[]
+  evidence?: string
+}
+
+/** Every essential idea the AI grader should check for — the question's own keyPoints when
+ * present, else the model answer treated as a single point (for questions saved before keyPoints
+ * existed). */
+export function getKeyPoints(question: Pick<OpenEndedQuestion, 'answer' | 'keyPoints'>): string[] {
+  return question.keyPoints && question.keyPoints.length > 0 ? question.keyPoints : [question.answer]
+}
+
+/** Alternative correct phrasings for a fill-blanks/short-answer question, or an empty list for
+ * questions saved before acceptableAnswers existed. */
+export function getAcceptableAnswers(question: Pick<FillBlankQuestion | ShortAnswerQuestion, 'acceptableAnswers'>): string[] {
+  return question.acceptableAnswers ?? []
 }
 
 export type QuizQuestion =
@@ -61,6 +92,19 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
+}
+
+function isOptionalStringArray(value: unknown): boolean {
+  return value === undefined || (Array.isArray(value) && value.every((entry) => typeof entry === 'string'))
+}
+
+/** Trims, drops empty entries and caps a raw model-provided string list at `max` entries. */
+function sanitizeStringList(raw: unknown, max: number): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
+    .map((entry) => entry.trim())
+    .slice(0, max)
 }
 
 /** Strict shape check for a question that has already gone through sanitizeQuizQuestion (or came from a trusted server response). */
@@ -85,13 +129,29 @@ export function isQuizQuestion(value: unknown): value is QuizQuestion {
     case 'fill-blanks':
     case 'short-answer':
     case 'open-ended':
-      return isNonEmptyString(value.answer)
-    case 'matching':
       return (
-        Array.isArray(value.pairs) &&
-        value.pairs.length >= 2 &&
-        value.pairs.every((pair) => isRecord(pair) && isNonEmptyString(pair.left) && isNonEmptyString(pair.right))
+        isNonEmptyString(value.answer) &&
+        isOptionalStringArray(value.acceptableAnswers) &&
+        (value.evidence === undefined || typeof value.evidence === 'string') &&
+        isOptionalStringArray(value.keyPoints)
       )
+    case 'matching': {
+      const pairs = value.pairs
+      if (
+        !Array.isArray(pairs) ||
+        pairs.length < 3 ||
+        !pairs.every((pair) => isRecord(pair) && isNonEmptyString(pair.left) && isNonEmptyString(pair.right))
+      ) {
+        return false
+      }
+      const rightOrder = value.rightOrder
+      if (rightOrder === undefined) return true
+      return (
+        Array.isArray(rightOrder) &&
+        rightOrder.length === pairs.length &&
+        rightOrder.every((n) => typeof n === 'number' && n >= 0 && n < pairs.length)
+      )
+    }
     default:
       return false
   }
@@ -130,12 +190,25 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
       if (typeof raw.answerBool !== 'boolean') return null
       return { id, type: 'true-false', question, explanation, answerBool: raw.answerBool }
     }
-    case 'fill-blanks':
-    case 'short-answer':
+    case 'fill-blanks': {
+      const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
+      if (!answer) return null
+      const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, 4)
+      return { id, type: 'fill-blanks', question, explanation, answer, acceptableAnswers }
+    }
+    case 'short-answer': {
+      const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
+      if (!answer) return null
+      const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, 4)
+      const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : ''
+      return { id, type: 'short-answer', question, explanation, answer, acceptableAnswers, evidence }
+    }
     case 'open-ended': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
-      return { id, type: raw.type, question, explanation, answer }
+      const keyPoints = sanitizeStringList(raw.keyPoints, 4)
+      const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : ''
+      return { id, type: 'open-ended', question, explanation, answer, keyPoints, evidence }
     }
     case 'matching': {
       const pairs = Array.isArray(raw.pairs)
@@ -147,8 +220,8 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
             }))
             .filter((pair) => pair.left && pair.right)
         : []
-      if (pairs.length < 2) return null
-      return { id, type: 'matching', question, explanation, pairs }
+      if (pairs.length < 3) return null
+      return { id, type: 'matching', question, explanation, pairs, rightOrder: computeDerangement(pairs.length, id) }
     }
     default:
       return null

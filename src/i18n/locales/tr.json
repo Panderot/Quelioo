@@ -47,11 +47,48 @@
     },
     "dropzone": {
       "title": "Dosyayı buraya sürükleyip bırakın",
-      "subtitle": "PDF, DOCX veya TXT, 20MB'a kadar",
+      "subtitle": "PDF, DOCX, TXT veya MD, 10MB'a kadar",
       "browse": "Dosya seç"
     },
+    "truncatedNote": "Yalnızca ilk 5.000 kelime kullanılıyor.",
     "clearInput": "İçeriği Temizle",
-    "errorEmpty": "Quiz oluşturmadan önce lütfen içerik ekleyin."
+    "errorEmpty": "Quiz oluşturmadan önce lütfen içerik ekleyin.",
+    "file": {
+      "privacyHelper": "Dosyan tarayıcında okunur, yüklenmez.",
+      "extracting": "Dosyan okunuyor...",
+      "wordCount": "{{count}} kelime",
+      "remove": "Dosyayı kaldır",
+      "showPreview": "Önizlemeyi göster",
+      "hidePreview": "Önizlemeyi gizle",
+      "editAsText": "Metin olarak düzenle",
+      "chooseAnother": "Başka bir dosya seç",
+      "errors": {
+        "unsupported_type": "Bu dosya türü desteklenmiyor. PDF, DOCX, TXT veya MD dosyası kullan.",
+        "too_large": "Bu dosya çok büyük. Lütfen 10MB'ın altında bir dosya kullan.",
+        "password_protected": "Bu PDF parola korumalı. Parolayı kaldırıp tekrar dene.",
+        "no_text": "Bu, metni seçilemeyen taranmış bir PDF gibi görünüyor — OCR henüz desteklenmiyor.",
+        "corrupt": "Bu dosya okunamadı. Bozuk olabilir.",
+        "empty": "Bu dosya boş görünüyor.",
+        "too_short": "Bu dosyada yeterli metin yok — en az 30 kelime gerekiyor."
+      }
+    },
+    "url": {
+      "fetch": "Getir",
+      "fetching": "Sayfa getiriliyor...",
+      "retry": "Tekrar dene",
+      "errors": {
+        "invalid_url": "Bu geçerli bir web adresine benzemiyor.",
+        "blocked_address": "Bu adres güvenlik nedeniyle getirilemez.",
+        "unreachable": "Bu sayfaya ulaşılamadı. Adresi kontrol edip tekrar dene.",
+        "timeout": "Bu sayfa yanıt vermek için çok uzun sürdü. Lütfen tekrar dene.",
+        "not_html": "Bu bağlantı okunabilir bir web sayfasına işaret etmiyor.",
+        "no_readable_text": "Bu sayfada okunabilir makale metni bulunamadı (yalnızca JavaScript ile yüklenen ya da ücretli erişimli bir sayfa olabilir).",
+        "youtube_not_supported": "YouTube bağlantıları henüz desteklenmiyor — videonun transkriptini Metin sekmesine yapıştırmayı dene.",
+        "too_many_redirects": "Bu bağlantı çok fazla yönlendirme yapıyor.",
+        "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
+        "parse": "Bu sayfayı okurken bir şeyler ters gitti. Lütfen tekrar dene."
+      }
+    }
   },
   "params": {
     "eyebrow": "Quiz Ayarları",
@@ -106,21 +143,15 @@
       "legacyBody": "Bu quiz, sorular kaydedilmeden önce oluşturulmuş. Tam sonucu görmek için yeni bir tane oluştur."
     },
     "practice": {
-      "reveal": "Cevabı göster",
-      "gotItRight": "Doğru bildim",
-      "gotItWrong": "Yanlış bildim",
       "score": "{{correct}} / {{total}} doğru",
       "tryAgain": "Tekrar dene"
     }
   },
   "create": {
-    "notSupported": {
-      "message": "Şimdilik quizler metinden oluşturulabiliyor. İçeriği Metin sekmesine yapıştır.",
-      "switchTab": "Metin sekmesine geç"
-    },
     "errors": {
       "too_short": "Biraz daha metin ekle — en az 30 kelime — Quelio'nun yeterli içeriği olsun.",
       "too_long": "Bu oldukça uzun bir metin. Lütfen 5.000 kelimenin altında tut.",
+      "too_long_chars": "Bu oldukça uzun bir metin. Lütfen biraz kısaltıp tekrar dene.",
       "not_supported": "Bu ayarlarla ilgili bir şey şu anda desteklenmiyor. Lütfen ayarları düzenleyip tekrar dene.",
       "model": "Quelio'nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen kısa süre sonra tekrar dene.",
       "upstream": "Quizini oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
@@ -142,7 +173,29 @@
       "modelAnswerLabel": "Örnek cevap",
       "explanationLabel": "Açıklama",
       "showExplanation": "Açıklamayı göster",
-      "hideExplanation": "Açıklamayı gizle"
+      "hideExplanation": "Açıklamayı gizle",
+      "matchingHint": "Her numarayı bir harfle eşleştir.",
+      "matchingAnswerPlaceholder": "Eşleştirmelerini yaz, örn. 1-A, 2-B, 3-C",
+      "matchingCheckLabel": "Cevabı kontrol et",
+      "matchingHintIncomplete": "{{n}} eşleştirmenin hepsini yaz.",
+      "matchingHintUnreadable": "1-A, 2-B gibi numara ve harf kullan.",
+      "matchingResultCorrect": "Doğru!",
+      "matchingResultIncorrect": "Tam değil. İşaretli eşleşmeleri kontrol edip tekrar dene.",
+      "matchingCorrectMarkLabel": "Doğru eşleşme",
+      "matchingIncorrectMarkLabel": "Yanlış eşleşme",
+      "incompleteNote": "{{requested}} sorudan {{created}} tanesi oluşturuldu.",
+      "createRest": "Kalanını oluştur",
+      "creatingRest": "Oluşturuluyor...",
+      "checkAnswerLabel": "Cevabı kontrol et",
+      "yourAnswerLabel": "Cevabın",
+      "answerPlaceholder": "Cevabını yaz",
+      "checkCorrect": "Doğru!",
+      "checkPartial": "Kısmen doğru",
+      "checkIncorrect": "Henüz değil. Tekrar dene.",
+      "checkCorrectMarkLabel": "Doğru cevap",
+      "checkIncorrectMarkLabel": "Yanlış cevap",
+      "coverageCount": "{{total}} ana fikirden {{covered}}'i var",
+      "checkError": "Cevabın kontrol edilemedi. Lütfen tekrar dene."
     },
     "question": {
       "editAction": "Düzenle",
@@ -158,6 +211,8 @@
       "rightLabel": "Sağ",
       "deletedUndo": "Soru silindi.",
       "undo": "Geri al",
+      "acceptableAnswersLabel": "Kabul edilen cevaplar (satır başına bir tane)",
+      "keyPointsLabel": "Ana fikirler (satır başına bir tane)",
       "type": {
         "mcq": "Çoktan Seçmeli",
         "trueFalse": "Doğru / Yanlış",

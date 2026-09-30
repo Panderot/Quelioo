@@ -8,15 +8,22 @@
     "build": "tsc -b && vite build",
     "lint": "eslint src",
     "preview": "vite preview",
-    "check:llm": "tsx scripts/check-llm.ts"
+    "check:llm": "tsx scripts/check-llm.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:quick": "playwright test --project=desktop --only-changed",
+    "test:live": "playwright test --config=playwright.live.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/noto-sans-armenian": "^5.3.0",
     "@fontsource-variable/noto-serif-armenian": "^5.3.0",
+    "@mozilla/readability": "^0.6.0",
     "i18next": "^26.4.2",
     "i18next-browser-languagedetector": "^8.2.1",
     "katex": "^0.16.11",
+    "linkedom": "^0.18.5",
+    "mammoth": "^1.9.0",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-i18next": "^17.0.15",
@@ -24,6 +31,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",

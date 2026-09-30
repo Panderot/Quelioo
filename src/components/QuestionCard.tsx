@@ -2,8 +2,39 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { QuizPair, QuizQuestion } from '../lib/quiz'
+import { computeDerangement, getRightOrder } from '../lib/matching'
+import { answerSignature } from '../lib/answerCheck'
 import MathText from './MathText'
+import MatchingColumns from './MatchingColumns'
+import McqCheck from './McqCheck'
+import TrueFalseCheck from './TrueFalseCheck'
+import FillBlankCheck from './FillBlankCheck'
+import ShortAnswerCheck from './ShortAnswerCheck'
+import OpenEndedCheck from './OpenEndedCheck'
+import { useExplanationUnlocked } from '../hooks/useExplanationUnlocked'
 import { CheckIcon, PencilIcon, RefreshIcon, SpinnerIcon, TrashIcon } from './icons'
+
+const MIN_MATCHING_PAIRS = 3
+const MAX_MATCHING_PAIRS = 6
+
+function hasDuplicates(values: string[]): boolean {
+  const normalized = values.map((value) => value.trim().toLowerCase())
+  return new Set(normalized).size !== normalized.length
+}
+
+/** Splits a "one per line" textarea value into a trimmed, non-empty list — used for key points
+ * and accepted answers in the edit form. */
+function linesToList(text: string, max: number): string[] {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .slice(0, max)
+}
+
+function listToLines(list: string[] | undefined): string {
+  return (list ?? []).join('\n')
+}
 
 const TYPE_LABEL_KEYS: Record<QuizQuestion['type'], string> = {
   mcq: 'create.question.type.mcq',
@@ -23,10 +54,17 @@ function isDraftValid(draft: QuizQuestion): boolean {
       return true
     case 'fill-blanks':
     case 'short-answer':
-    case 'open-ended':
       return draft.answer.trim().length > 0
+    case 'open-ended':
+      return draft.answer.trim().length > 0 && (draft.keyPoints ?? []).some((point) => point.trim().length > 0)
     case 'matching':
-      return draft.pairs.length >= 2 && draft.pairs.every((pair) => pair.left.trim() && pair.right.trim())
+      return (
+        draft.pairs.length >= MIN_MATCHING_PAIRS &&
+        draft.pairs.length <= MAX_MATCHING_PAIRS &&
+        draft.pairs.every((pair) => pair.left.trim() && pair.right.trim()) &&
+        !hasDuplicates(draft.pairs.map((pair) => pair.left)) &&
+        !hasDuplicates(draft.pairs.map((pair) => pair.right))
+      )
   }
 }
 
@@ -35,12 +73,15 @@ function trimDraft(draft: QuizQuestion): QuizQuestion {
   switch (base.type) {
     case 'mcq':
       return { ...base, options: base.options.map((option) => option.trim()) }
-    case 'matching':
-      return { ...base, pairs: base.pairs.map((pair) => ({ left: pair.left.trim(), right: pair.right.trim() })) }
+    case 'matching': {
+      const pairs = base.pairs.map((pair) => ({ left: pair.left.trim(), right: pair.right.trim() }))
+      return { ...base, pairs, rightOrder: computeDerangement(pairs.length, base.id) }
+    }
     case 'fill-blanks':
     case 'short-answer':
+      return { ...base, answer: base.answer.trim(), acceptableAnswers: (base.acceptableAnswers ?? []).map((entry) => entry.trim()).filter(Boolean) }
     case 'open-ended':
-      return { ...base, answer: base.answer.trim() }
+      return { ...base, answer: base.answer.trim(), keyPoints: (base.keyPoints ?? []).map((entry) => entry.trim()).filter(Boolean) }
     default:
       return base
   }
@@ -51,16 +92,23 @@ interface QuestionCardProps {
   question: QuizQuestion
   showAnswers: boolean
   isRegenerating: boolean
+  outputLanguage: string
   onUpdate: (updater: (question: QuizQuestion) => QuizQuestion) => void
   onDelete: () => void
   onRegenerate: () => void
 }
 
-export default function QuestionCard({ index, question, showAnswers, isRegenerating, onUpdate, onDelete, onRegenerate }: QuestionCardProps) {
+export default function QuestionCard({ index, question, showAnswers, isRegenerating, outputLanguage, onUpdate, onDelete, onRegenerate }: QuestionCardProps) {
   const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [isExplanationOpen, setIsExplanationOpen] = useState(false)
   const [draft, setDraft] = useState<QuizQuestion>(question)
+
+  // The explanation stays hidden, for every question type, until the student completes their
+  // first check (right, partial or wrong) or the global Show answers switch is on — never a free
+  // spoiler. The signature resets this the moment the question's correctness-relevant content
+  // actually changes (edit/regenerate/replace), not on unrelated re-renders.
+  const { unlocked: explanationAllowed, markChecked: markExplanationChecked } = useExplanationUnlocked(answerSignature(question), showAnswers)
 
   const startEditing = () => {
     setDraft(question)
@@ -136,10 +184,10 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
       {isEditing ? (
         <QuestionEditForm draft={draft} onChange={setDraft} onSave={saveEditing} onCancel={cancelEditing} />
       ) : (
-        <QuestionView question={question} showAnswers={showAnswers} />
+        <QuestionView question={question} showAnswers={showAnswers} outputLanguage={outputLanguage} onFirstCheck={markExplanationChecked} />
       )}
 
-      {!isEditing && question.explanation && (
+      {!isEditing && question.explanation && explanationAllowed && (
         <div data-print-hide>
           <button
             type="button"
@@ -159,8 +207,19 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
   )
 }
 
-function QuestionView({ question, showAnswers }: { question: QuizQuestion; showAnswers: boolean }) {
+function QuestionView({
+  question,
+  showAnswers,
+  outputLanguage,
+  onFirstCheck,
+}: {
+  question: QuizQuestion
+  showAnswers: boolean
+  outputLanguage: string
+  onFirstCheck?: () => void
+}) {
   const { t } = useTranslation()
+  const signature = answerSignature(question)
 
   return (
     <div className="space-y-3">
@@ -169,88 +228,92 @@ function QuestionView({ question, showAnswers }: { question: QuizQuestion; showA
       </p>
 
       {question.type === 'mcq' && (
-        <ul className="space-y-1.5">
-          {question.options.map((option, optionIndex) => {
-            const isCorrect = showAnswers && optionIndex === question.answerIndex
-            return (
-              <li
-                key={optionIndex}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                  isCorrect ? 'border-amber/40 bg-amber/12 font-semibold text-ink' : 'border-warm-border text-ink'
-                }`}
-              >
-                <span className="font-bold text-muted">{String.fromCharCode(65 + optionIndex)}.</span>
-                <span className="min-w-0 flex-1 break-words">
-                  <MathText text={option} />
-                </span>
-                {isCorrect && <CheckIcon className="h-4 w-4 shrink-0 text-amber-hover" />}
-              </li>
-            )
-          })}
-        </ul>
+        <>
+          {showAnswers && (
+            <ul className="space-y-1.5" data-print-hide>
+              {question.options.map((option, optionIndex) => {
+                const isCorrect = optionIndex === question.answerIndex
+                return (
+                  <li
+                    key={optionIndex}
+                    className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                      isCorrect ? 'border-amber/40 bg-amber/12 font-semibold text-ink' : 'border-warm-border text-ink'
+                    }`}
+                  >
+                    <span className="font-bold text-muted">{String.fromCharCode(65 + optionIndex)}.</span>
+                    <span className="min-w-0 flex-1 break-words">
+                      <MathText text={option} />
+                    </span>
+                    {isCorrect && <CheckIcon className="h-4 w-4 shrink-0 text-amber-hover" />}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <McqCheck options={question.options} answerIndex={question.answerIndex} signature={signature} onFirstCheck={onFirstCheck} />
+        </>
       )}
 
       {question.type === 'true-false' && (
-        <div className="flex gap-2">
-          {[true, false].map((value) => {
-            const isCorrect = showAnswers && value === question.answerBool
-            return (
-              <span
-                key={String(value)}
-                className={`rounded-lg border px-3.5 py-2 text-sm font-semibold ${
-                  isCorrect ? 'border-amber/40 bg-amber/12 text-ink' : 'border-warm-border text-muted'
-                }`}
-              >
-                {value ? t('create.result.trueLabel') : t('create.result.falseLabel')}
-              </span>
-            )
-          })}
-        </div>
+        <>
+          {showAnswers && (
+            <div className="flex gap-2" data-print-hide>
+              {[true, false].map((value) => {
+                const isCorrect = value === question.answerBool
+                return (
+                  <span
+                    key={String(value)}
+                    className={`rounded-lg border px-3.5 py-2 text-sm font-semibold ${
+                      isCorrect ? 'border-amber/40 bg-amber/12 text-ink' : 'border-warm-border text-muted'
+                    }`}
+                  >
+                    {value ? t('create.result.trueLabel') : t('create.result.falseLabel')}
+                  </span>
+                )
+              })}
+            </div>
+          )}
+          <TrueFalseCheck answerBool={question.answerBool} signature={signature} onFirstCheck={onFirstCheck} />
+        </>
       )}
 
       {question.type === 'fill-blanks' && (
         <div className="space-y-1.5">
-          <div className="h-px w-full max-w-xs border-b border-dashed border-warm-border" />
           {showAnswers && (
-            <p className="text-sm font-semibold break-words text-amber-hover">
+            <p className="text-sm font-semibold break-words text-amber-hover" data-print-hide>
               <MathText text={question.answer} />
             </p>
           )}
+          <FillBlankCheck question={question} signature={signature} onFirstCheck={onFirstCheck} />
         </div>
       )}
 
-      {(question.type === 'short-answer' || question.type === 'open-ended') && showAnswers && (
-        <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-sm break-words text-ink">
-          <p className="mb-1 text-[11px] font-bold tracking-wide text-muted uppercase">{t('create.result.modelAnswerLabel')}</p>
-          <MathText text={question.answer} />
+      {question.type === 'short-answer' && (
+        <div className="space-y-1.5">
+          {showAnswers && (
+            <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-sm break-words text-ink" data-print-hide>
+              <p className="mb-1 text-[11px] font-bold tracking-wide text-muted uppercase">{t('create.result.modelAnswerLabel')}</p>
+              <MathText text={question.answer} />
+            </div>
+          )}
+          <ShortAnswerCheck question={question} signature={signature} outputLanguage={outputLanguage} onFirstCheck={onFirstCheck} />
+        </div>
+      )}
+
+      {question.type === 'open-ended' && (
+        <div className="space-y-1.5">
+          {showAnswers && (
+            <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-sm break-words text-ink" data-print-hide>
+              <p className="mb-1 text-[11px] font-bold tracking-wide text-muted uppercase">{t('create.result.modelAnswerLabel')}</p>
+              <MathText text={question.answer} />
+            </div>
+          )}
+          <OpenEndedCheck question={question} signature={signature} outputLanguage={outputLanguage} onFirstCheck={onFirstCheck} />
         </div>
       )}
 
       {question.type === 'matching' && (
-        <div className="space-y-1.5">
-          <div className="grid grid-cols-2 gap-2">
-            {question.pairs.map((pair, pairIndex) => (
-              <span key={`left-${pairIndex}`} className="rounded-lg border border-warm-border px-3 py-2 text-sm break-words text-ink">
-                <MathText text={pair.left} />
-              </span>
-            ))}
-          </div>
-          {showAnswers && (
-            <ul className="space-y-1 pt-1 text-sm break-words text-ink">
-              {question.pairs.map((pair, pairIndex) => (
-                <li key={pairIndex} className="flex items-start gap-2">
-                  <span className="font-semibold">
-                    <MathText text={pair.left} />
-                  </span>
-                  <span className="shrink-0 text-muted">→</span>
-                  <span>
-                    <MathText text={pair.right} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <MatchingColumns pairs={question.pairs} rightOrder={getRightOrder(question)} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
       )}
     </div>
   )
@@ -298,12 +361,12 @@ function QuestionEditForm({
   }
 
   const addPair = () => {
-    if (draft.type !== 'matching') return
+    if (draft.type !== 'matching' || draft.pairs.length >= MAX_MATCHING_PAIRS) return
     onChange({ ...draft, pairs: [...draft.pairs, { left: '', right: '' }] })
   }
 
   const removePair = (index: number) => {
-    if (draft.type !== 'matching' || draft.pairs.length <= 2) return
+    if (draft.type !== 'matching' || draft.pairs.length <= MIN_MATCHING_PAIRS) return
     onChange({ ...draft, pairs: draft.pairs.filter((_, i) => i !== index) })
   }
 
@@ -373,6 +436,32 @@ function QuestionEditForm({
         />
       )}
 
+      {(draft.type === 'fill-blanks' || draft.type === 'short-answer') && (
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-muted">{t('create.question.acceptableAnswersLabel')}</label>
+          <textarea
+            rows={2}
+            value={listToLines(draft.acceptableAnswers)}
+            onChange={(event) => onChange({ ...draft, acceptableAnswers: linesToList(event.target.value, 4) })}
+            placeholder={t('create.question.acceptableAnswersLabel')}
+            className={textareaClasses}
+          />
+        </div>
+      )}
+
+      {draft.type === 'open-ended' && (
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-muted">{t('create.question.keyPointsLabel')}</label>
+          <textarea
+            rows={3}
+            value={listToLines(draft.keyPoints)}
+            onChange={(event) => onChange({ ...draft, keyPoints: linesToList(event.target.value, 4) })}
+            placeholder={t('create.question.keyPointsLabel')}
+            className={textareaClasses}
+          />
+        </div>
+      )}
+
       {draft.type === 'matching' && (
         <div className="space-y-2">
           {draft.pairs.map((pair, pairIndex) => (
@@ -392,7 +481,7 @@ function QuestionEditForm({
               <button
                 type="button"
                 onClick={() => removePair(pairIndex)}
-                disabled={draft.pairs.length <= 2}
+                disabled={draft.pairs.length <= MIN_MATCHING_PAIRS}
                 aria-label={t('create.question.removePair')}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-warm-border/50 hover:text-error disabled:opacity-40"
               >
@@ -400,7 +489,12 @@ function QuestionEditForm({
               </button>
             </div>
           ))}
-          <button type="button" onClick={addPair} className="text-xs font-semibold text-amber-hover hover:underline">
+          <button
+            type="button"
+            onClick={addPair}
+            disabled={draft.pairs.length >= MAX_MATCHING_PAIRS}
+            className="text-xs font-semibold text-amber-hover hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
+          >
             + {t('create.question.addPair')}
           </button>
         </div>

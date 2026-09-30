@@ -82,6 +82,8 @@ export default function ArchiveQuizPage() {
       optionsCount={entry.optionsCount ?? undefined}
       outputLanguage={entry.outputLanguage ?? 'auto'}
       uiLanguage={i18n.language}
+      requestedCount={entry.quiz.questions.length}
+      incomplete={false}
       onPersist={handlePersist}
       archiveLink={{ href: '/archive', label: t('archive.detail.backToArchive') }}
       studyMode={entry.studyMode}

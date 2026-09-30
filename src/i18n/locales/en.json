@@ -47,11 +47,48 @@
     },
     "dropzone": {
       "title": "Drag and drop a file here",
-      "subtitle": "PDF, DOCX or TXT, up to 20MB",
+      "subtitle": "PDF, DOCX, TXT or MD, up to 10MB",
       "browse": "Browse files"
     },
+    "truncatedNote": "Only the first 5,000 words are used.",
     "clearInput": "Clear Input",
-    "errorEmpty": "Please add some content before generating a quiz."
+    "errorEmpty": "Please add some content before generating a quiz.",
+    "file": {
+      "privacyHelper": "Your file is read in your browser and is not uploaded.",
+      "extracting": "Reading your file...",
+      "wordCount": "{{count}} words",
+      "remove": "Remove file",
+      "showPreview": "Show preview",
+      "hidePreview": "Hide preview",
+      "editAsText": "Edit as text",
+      "chooseAnother": "Choose another file",
+      "errors": {
+        "unsupported_type": "This file type isn't supported. Use a PDF, DOCX, TXT or MD file.",
+        "too_large": "This file is too large. Please use a file under 10MB.",
+        "password_protected": "This PDF is password-protected. Remove the password and try again.",
+        "no_text": "This looks like a scanned PDF with no selectable text — OCR isn't supported yet.",
+        "corrupt": "This file couldn't be read. It may be corrupted.",
+        "empty": "This file appears to be empty.",
+        "too_short": "This file doesn't have enough text — at least 30 words are needed."
+      }
+    },
+    "url": {
+      "fetch": "Fetch",
+      "fetching": "Fetching the page...",
+      "retry": "Try again",
+      "errors": {
+        "invalid_url": "That doesn't look like a valid web address.",
+        "blocked_address": "This address can't be fetched for security reasons.",
+        "unreachable": "Couldn't reach that page. Check the address and try again.",
+        "timeout": "That page took too long to respond. Please try again.",
+        "not_html": "That link doesn't point to a readable web page.",
+        "no_readable_text": "Couldn't find readable article text on that page (it may be JavaScript-only or behind a paywall).",
+        "youtube_not_supported": "YouTube links aren't supported yet — try pasting the video's transcript into the Text tab instead.",
+        "too_many_redirects": "That link redirects too many times.",
+        "network": "Couldn't connect. Check your connection and try again.",
+        "parse": "Something went wrong reading that page. Please try again."
+      }
+    }
   },
   "params": {
     "eyebrow": "Quiz Parameters",
@@ -106,21 +143,15 @@
       "legacyBody": "This quiz was created before questions were saved. Create a new one to see the full result."
     },
     "practice": {
-      "reveal": "Reveal answer",
-      "gotItRight": "I got it right",
-      "gotItWrong": "I got it wrong",
       "score": "{{correct}} / {{total}} correct",
       "tryAgain": "Try again"
     }
   },
   "create": {
-    "notSupported": {
-      "message": "For now, quizzes can be generated from text. Paste the content into the Text tab.",
-      "switchTab": "Switch to Text tab"
-    },
     "errors": {
       "too_short": "Add a bit more text — at least 30 words — so Quelio has enough to work with.",
       "too_long": "That's a lot of text. Please keep it under 5,000 words.",
+      "too_long_chars": "That's a lot of text. Please shorten it a bit and try again.",
       "not_supported": "Something about these settings isn't supported right now. Please adjust them and try again.",
       "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
       "upstream": "Something went wrong generating your quiz. Please try again.",
@@ -142,7 +173,29 @@
       "modelAnswerLabel": "Model answer",
       "explanationLabel": "Explanation",
       "showExplanation": "Show explanation",
-      "hideExplanation": "Hide explanation"
+      "hideExplanation": "Hide explanation",
+      "matchingHint": "Match each number with a letter.",
+      "matchingAnswerPlaceholder": "Write your matches, e.g. 1-A, 2-B, 3-C",
+      "matchingCheckLabel": "Check answer",
+      "matchingHintIncomplete": "Write all {{n}} matches.",
+      "matchingHintUnreadable": "Use a number and a letter like 1-A, 2-B.",
+      "matchingResultCorrect": "Correct!",
+      "matchingResultIncorrect": "Not quite. Check the marked pairs and try again.",
+      "matchingCorrectMarkLabel": "Correct match",
+      "matchingIncorrectMarkLabel": "Incorrect match",
+      "incompleteNote": "{{created}} of {{requested}} questions were created.",
+      "createRest": "Create the rest",
+      "creatingRest": "Creating...",
+      "checkAnswerLabel": "Check answer",
+      "yourAnswerLabel": "Your answer",
+      "answerPlaceholder": "Write your answer",
+      "checkCorrect": "Correct!",
+      "checkPartial": "Partly correct",
+      "checkIncorrect": "Not yet. Try again.",
+      "checkCorrectMarkLabel": "Correct answer",
+      "checkIncorrectMarkLabel": "Incorrect answer",
+      "coverageCount": "{{covered}} of {{total}} key ideas covered",
+      "checkError": "Couldn't check your answer. Please try again."
     },
     "question": {
       "editAction": "Edit",
@@ -158,6 +211,8 @@
       "rightLabel": "Right",
       "deletedUndo": "Question deleted.",
       "undo": "Undo",
+      "acceptableAnswersLabel": "Accepted answers (one per line)",
+      "keyPointsLabel": "Key points (one per line)",
       "type": {
         "mcq": "Multiple Choice",
         "trueFalse": "True / False",

@@ -19,6 +19,8 @@ interface QuizWorkspaceProps {
   optionsCount?: string
   outputLanguage: string
   uiLanguage: string
+  requestedCount: number
+  incomplete: boolean
   onPersist: (quiz: GeneratedQuiz) => void
   archiveLink?: ArchiveLink
   studyMode?: boolean
@@ -34,13 +36,26 @@ export default function QuizWorkspace({
   optionsCount,
   outputLanguage,
   uiLanguage,
+  requestedCount,
+  incomplete,
   onPersist,
   archiveLink,
   studyMode,
   onToggleStudyMode,
 }: QuizWorkspaceProps) {
   const { t } = useTranslation()
-  const editor = useQuizEditor({ initialQuiz, sourceText, difficulty, optionsCount, outputLanguage, uiLanguage, onPersist })
+  const editor = useQuizEditor({
+    initialQuiz,
+    sourceText,
+    questionType: meta.questionType,
+    difficulty,
+    optionsCount,
+    outputLanguage,
+    uiLanguage,
+    requestedCount,
+    incomplete,
+    onPersist,
+  })
 
   return (
     <>
@@ -58,10 +73,18 @@ export default function QuizWorkspace({
         archiveLink={archiveLink}
         studyMode={studyMode}
         onToggleStudyMode={onToggleStudyMode}
+        missingCount={editor.missingCount}
+        isToppingUp={editor.isToppingUp}
+        onTopUp={() => void editor.topUp()}
       />
       {editor.regenerateError && (
         <p role="alert" className="-mt-2 text-xs font-medium text-error">
           {t(`create.errors.${editor.regenerateError}`)}
+        </p>
+      )}
+      {editor.topUpError && (
+        <p role="alert" className="-mt-2 text-xs font-medium text-error">
+          {t(`create.errors.${editor.topUpError}`)}
         </p>
       )}
     </>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { getOutputLanguage } from '../data/outputLanguages'
+import { buildAnswerKeyLine, getRightOrder, letterFor } from '../lib/matching'
 import DemoBanner from './DemoBanner'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
@@ -36,6 +37,21 @@ interface QuizResultViewProps {
   archiveLink?: ArchiveLink
   studyMode?: boolean
   onToggleStudyMode?: () => void
+  missingCount?: number
+  isToppingUp?: boolean
+  onTopUp?: () => void
+}
+
+/** Ruled writing lines for the print/PDF layout — a blank line for fill-blanks, a couple for
+ * short-answer, more for open-ended, so the printed page is actually usable on paper. */
+function PrintWritingLines({ count }: { count: number }) {
+  return (
+    <div style={{ marginTop: '0.4rem' }}>
+      {Array.from({ length: count }, (_, index) => (
+        <div key={index} style={{ borderBottom: '1px solid #000', height: '1.4rem' }} />
+      ))}
+    </div>
+  )
 }
 
 function buildQuizPlainText(
@@ -53,7 +69,9 @@ function buildQuizPlainText(
     } else if (question.type === 'fill-blanks') {
       lines.push(`   ${labels.blank}`)
     } else if (question.type === 'matching') {
-      question.pairs.forEach((pair) => lines.push(`   ${pair.left} — ______`))
+      const rightOrder = getRightOrder(question)
+      question.pairs.forEach((pair, pairIndex) => lines.push(`   ${pairIndex + 1}) ${pair.left}`))
+      rightOrder.forEach((pairIndex, position) => lines.push(`   ${letterFor(position)}) ${question.pairs[pairIndex].right}`))
     }
     lines.push('')
   })
@@ -65,8 +83,9 @@ function buildQuizPlainText(
     } else if (question.type === 'true-false') {
       lines.push(`${index + 1}. ${question.answerBool ? labels.trueLabel : labels.falseLabel} — ${question.explanation}`)
     } else if (question.type === 'matching') {
+      const rightOrder = getRightOrder(question)
       const pairsText = question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')
-      lines.push(`${index + 1}. ${pairsText}`)
+      lines.push(`${index + 1}. ${buildAnswerKeyLine(rightOrder)} — ${pairsText}`)
     } else {
       lines.push(`${index + 1}. ${question.answer} — ${question.explanation}`)
     }
@@ -89,11 +108,14 @@ export default function QuizResultView({
   archiveLink,
   studyMode = false,
   onToggleStudyMode,
+  missingCount = 0,
+  isToppingUp = false,
+  onTopUp,
 }: QuizResultViewProps) {
   const { t } = useTranslation()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(quiz.title)
-  const [showAnswers, setShowAnswers] = useState(true)
+  const [showAnswers, setShowAnswers] = useState(false)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
   const [practiceResults, setPracticeResults] = useState<Record<string, boolean>>({})
   const [resetSignal, setResetSignal] = useState(0)
@@ -279,6 +301,7 @@ export default function QuizResultView({
                 key={`${question.id}-${resetSignal}`}
                 index={index}
                 question={question}
+                outputLanguage={meta.outputLanguage}
                 resetSignal={resetSignal}
                 onGraded={(correct) => setPracticeResults((current) => ({ ...current, [question.id]: correct }))}
               />
@@ -310,12 +333,33 @@ export default function QuizResultView({
               question={question}
               showAnswers={showAnswers}
               isRegenerating={regeneratingId === question.id}
+              outputLanguage={meta.outputLanguage}
               onUpdate={(updater) => onQuestionUpdate(question.id, updater)}
               onDelete={() => onQuestionDelete(question.id)}
               onRegenerate={() => onQuestionRegenerate(question.id)}
             />
           ))}
         </ul>
+      )}
+
+      {!studyMode && missingCount > 0 && onTopUp && (
+        <div
+          data-print-hide
+          className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-warm-border bg-card p-5"
+        >
+          <p className="text-sm font-medium text-ink">
+            {t('create.result.incompleteNote', { created: quiz.questions.length, requested: quiz.questions.length + missingCount })}
+          </p>
+          <button
+            type="button"
+            onClick={onTopUp}
+            disabled={isToppingUp}
+            aria-busy={isToppingUp}
+            className="shrink-0 rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isToppingUp ? t('create.result.creatingRest') : t('create.result.createRest')}
+          </button>
+        </div>
       )}
 
       {deletedQuestion && (
@@ -347,8 +391,23 @@ export default function QuizResultView({
                     ))}
                   </ul>
                 )}
-                {question.type === 'matching' &&
-                  question.pairs.map((pair, pairIndex) => <p key={pairIndex}>{pair.left} — ______</p>)}
+                {question.type === 'matching' && (
+                  <div style={{ display: 'flex', gap: '2rem' }}>
+                    <ol>
+                      {question.pairs.map((pair, pairIndex) => (
+                        <li key={pairIndex}>{pair.left}</li>
+                      ))}
+                    </ol>
+                    <ol style={{ listStyleType: 'upper-alpha' }}>
+                      {getRightOrder(question).map((pairIndex, position) => (
+                        <li key={position}>{question.pairs[pairIndex].right}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                {question.type === 'fill-blanks' && <PrintWritingLines count={1} />}
+                {question.type === 'short-answer' && <PrintWritingLines count={2} />}
+                {question.type === 'open-ended' && <PrintWritingLines count={4} />}
               </li>
             ))}
           </ol>
@@ -361,7 +420,7 @@ export default function QuizResultView({
                   {question.type === 'true-false' &&
                     `${question.answerBool ? t('create.result.trueLabel') : t('create.result.falseLabel')} — ${question.explanation}`}
                   {question.type === 'matching' &&
-                    question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')}
+                    `${buildAnswerKeyLine(getRightOrder(question))} — ${question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')}`}
                   {(question.type === 'fill-blanks' || question.type === 'short-answer' || question.type === 'open-ended') &&
                     `${question.answer} — ${question.explanation}`}
                 </li>

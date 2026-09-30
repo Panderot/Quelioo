@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { GenerateApiError, regenerateOneQuestion } from '../api/generateQuiz'
+import { GenerateApiError, regenerateOneQuestion, topUpQuestions } from '../api/generateQuiz'
 import type { GenerateErrorCode } from '../api/generateQuiz'
 import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 
@@ -12,10 +12,13 @@ interface DeletedQuestionState {
 interface UseQuizEditorParams {
   initialQuiz: GeneratedQuiz
   sourceText: string
+  questionType: string
   difficulty: string
   optionsCount?: string
   outputLanguage: string
   uiLanguage: string
+  requestedCount: number
+  incomplete: boolean
   onPersist: (quiz: GeneratedQuiz) => void
 }
 
@@ -24,16 +27,22 @@ const UNDO_WINDOW_MS = 6000
 export function useQuizEditor({
   initialQuiz,
   sourceText,
+  questionType,
   difficulty,
   optionsCount,
   outputLanguage,
   uiLanguage,
+  requestedCount,
+  incomplete,
   onPersist,
 }: UseQuizEditorParams) {
   const [quiz, setQuiz] = useState(initialQuiz)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
   const [regenerateError, setRegenerateError] = useState<GenerateErrorCode | null>(null)
   const [deleted, setDeleted] = useState<DeletedQuestionState | null>(null)
+  const [missingCount, setMissingCount] = useState(incomplete ? Math.max(0, requestedCount - initialQuiz.questions.length) : 0)
+  const [isToppingUp, setIsToppingUp] = useState(false)
+  const [topUpError, setTopUpError] = useState<GenerateErrorCode | null>(null)
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Read the latest quiz without adding it as a dependency everywhere — every mutator below
@@ -127,6 +136,33 @@ export function useQuizEditor({
     [sourceText, difficulty, optionsCount, outputLanguage, uiLanguage, persist],
   )
 
+  const topUp = useCallback(async () => {
+    if (missingCount <= 0) return
+    setIsToppingUp(true)
+    setTopUpError(null)
+    try {
+      const current = quizRef.current
+      const avoidQuestions = current.questions.slice(-30).map((question) => question.question)
+      const result = await topUpQuestions({
+        text: sourceText,
+        questionType,
+        questionCount: String(missingCount),
+        difficulty,
+        optionsCount,
+        outputLanguage,
+        uiLanguage,
+        avoidQuestions,
+      })
+      const latest = quizRef.current
+      persist({ ...latest, questions: [...latest.questions, ...result.questions] })
+      setMissingCount((count) => Math.max(0, count - result.questions.length))
+    } catch (error) {
+      setTopUpError(error instanceof GenerateApiError ? error.code : 'upstream')
+    } finally {
+      setIsToppingUp(false)
+    }
+  }, [missingCount, sourceText, questionType, difficulty, optionsCount, outputLanguage, uiLanguage, persist])
+
   return {
     quiz,
     updateTitle,
@@ -137,5 +173,9 @@ export function useQuizEditor({
     regeneratingId,
     regenerateError,
     regenerateQuestion,
+    missingCount,
+    isToppingUp,
+    topUpError,
+    topUp,
   }
 }
