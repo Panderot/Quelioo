@@ -49,6 +49,7 @@ interface GeneratedResult {
   incomplete: boolean
   includeExplanations: boolean
   shuffleOptions: boolean
+  includeHints: boolean
   focusSnippets: string[]
 }
 
@@ -102,6 +103,7 @@ export default function CreatePage() {
   const [optionsCount, setOptionsCount] = useState(initialDraft?.optionsCount ?? '4')
   const [includeExplanations, setIncludeExplanations] = useState(initialDraft?.includeExplanations ?? true)
   const [shuffleOptions, setShuffleOptions] = useState(initialDraft?.shuffleOptions ?? true)
+  const [includeHints, setIncludeHints] = useState(initialDraft?.includeHints ?? true)
 
   const [hasError, setHasError] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -150,6 +152,7 @@ export default function CreatePage() {
       optionsCount,
       includeExplanations,
       shuffleOptions,
+      includeHints,
       focusParts,
     },
     true,
@@ -171,6 +174,7 @@ export default function CreatePage() {
     setOptionsCount('4')
     setIncludeExplanations(true)
     setShuffleOptions(true)
+    setIncludeHints(true)
     setFocusParts([])
     setHasError(false)
     setGenerateError(null)
@@ -368,6 +372,7 @@ export default function CreatePage() {
           title: title.trim() || undefined,
           includeExplanations,
           shuffleOptions: shuffleApplies,
+          includeHints,
           focusSnippets,
         },
         controller.signal,
@@ -397,6 +402,7 @@ export default function CreatePage() {
         studyMode: false,
         includeExplanations,
         shuffleOptions: shuffleApplies,
+        includeHints,
         focusPartsCount: focusSnippets.length,
       })
 
@@ -412,6 +418,7 @@ export default function CreatePage() {
         incomplete: generated.incomplete,
         includeExplanations,
         shuffleOptions: shuffleApplies,
+        includeHints,
         focusSnippets,
       })
     } catch (error) {
@@ -479,6 +486,8 @@ export default function CreatePage() {
         onIncludeExplanationsChange={setIncludeExplanations}
         shuffleOptions={shuffleOptions}
         onShuffleOptionsChange={setShuffleOptions}
+        includeHints={includeHints}
+        onIncludeHintsChange={setIncludeHints}
       />
 
       <GenerateButton isLoading={isGenerating} onClick={() => void handleGenerate()} timeEstimateLabel={timeEstimateLabel} />
@@ -525,6 +534,7 @@ export default function CreatePage() {
             archiveLink={{ href: `/archive/${result.entryId}`, label: t('cta.viewInArchive') }}
             includeExplanations={result.includeExplanations}
             shuffleOptions={result.shuffleOptions}
+            includeHints={result.includeHints}
             focusSnippets={result.focusSnippets}
           />
         </div>

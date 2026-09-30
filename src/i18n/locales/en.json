@@ -112,6 +112,10 @@
       "helper": "The correct answer won't always be in the same place",
       "disabledHint": "Only for multiple choice and mixed"
     },
+    "hints": {
+      "label": "Hints",
+      "helper": "Guide students without giving the answer"
+    },
     "questionType": {
       "label": "Question Type",
       "mcq": "MCQ (Multiple Choice Questions)",
@@ -161,6 +165,7 @@
     },
     "practice": {
       "score": "{{correct}} / {{total}} correct",
+      "hintsUsed": "Hints used: {{count}}",
       "tryAgain": "Try again"
     }
   },
@@ -214,6 +219,9 @@
       "createRest": "Create the rest",
       "creatingRest": "Creating...",
       "checkAnswerLabel": "Check answer",
+      "hint": "Hint",
+      "anotherHint": "Another hint",
+      "noMoreHints": "No more hints",
       "yourAnswerLabel": "Your answer",
       "answerPlaceholder": "Write your answer",
       "checkCorrect": "Correct!",
@@ -242,6 +250,9 @@
       "undo": "Undo",
       "acceptableAnswersLabel": "Accepted answers (one per line)",
       "keyPointsLabel": "Key points (one per line)",
+      "hint1Label": "Hint 1",
+      "hint2Label": "Hint 2",
+      "hintLeakError": "This hint reveals the answer — please rewrite it.",
       "type": {
         "mcq": "Multiple Choice",
         "trueFalse": "True / False",

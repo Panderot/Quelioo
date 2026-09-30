@@ -2,19 +2,25 @@ import { useTranslation } from 'react-i18next'
 
 import { ResultLiveRegion } from './AnswerBar'
 import type { CheckResultState } from './AnswerBar'
+import { HintBox, HintButton } from './HintControls'
 import { CheckIcon, CloseIcon } from './icons'
 import { useCheckableAnswer } from '../hooks/useCheckableAnswer'
+import { useHints } from '../hooks/useHints'
 
 interface TrueFalseCheckProps {
   answerBool: boolean
   signature: string
+  hints?: string[]
+  showAnswers?: boolean
   onFirstCheck?: () => void
   onGraded?: (correct: boolean) => void
+  onHintUsed?: () => void
 }
 
-export default function TrueFalseCheck({ answerBool, signature, onFirstCheck, onGraded }: TrueFalseCheckProps) {
+export default function TrueFalseCheck({ answerBool, signature, hints = [], showAnswers = false, onFirstCheck, onGraded, onHintUsed }: TrueFalseCheckProps) {
   const { t } = useTranslation()
   const state = useCheckableAnswer<boolean | null, CheckResultState>(signature, null)
+  const hintState = useHints(signature, hints.length)
 
   const selectValue = (value: boolean) => {
     state.setValue(value)
@@ -64,6 +70,15 @@ export default function TrueFalseCheck({ answerBool, signature, onFirstCheck, on
             </label>
           )
         })}
+        <HintButton
+          hints={hints}
+          revealedCount={hintState.revealedCount}
+          onReveal={() => {
+            hintState.revealNext()
+            onHintUsed?.()
+          }}
+          hidden={showAnswers || state.result?.status === 'correct'}
+        />
         <button
           type="button"
           onClick={runCheck}
@@ -75,6 +90,8 @@ export default function TrueFalseCheck({ answerBool, signature, onFirstCheck, on
           <CheckIcon className="h-4 w-4" />
         </button>
       </div>
+
+      <HintBox hints={hints} revealedCount={hintState.revealedCount} />
 
       <ResultLiveRegion result={state.result} />
     </div>

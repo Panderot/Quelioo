@@ -17,6 +17,7 @@ export const SAMPLE_QUIZ = {
       options: ['Oxygen', 'Carbon dioxide', 'Nitrogen', 'Hydrogen'],
       answerIndex: 1,
       estimatedSeconds: 30,
+      hints: ['Think about what plants take in from the air to make their food.', 'Oxygen is what plants release afterward, not what they take in.'],
     },
     {
       id: 'q-tf',
@@ -25,6 +26,7 @@ export const SAMPLE_QUIZ = {
       explanation: 'This is a common myth; it is not visible without aid.',
       answerBool: false,
       estimatedSeconds: 15,
+      hints: ['Check what can actually be seen with the unaided human eye from orbit.', 'Think about how wide the wall is compared to other large structures.'],
     },
     {
       id: 'q-fill',
@@ -34,6 +36,7 @@ export const SAMPLE_QUIZ = {
       answer: '100',
       acceptableAnswers: ['one hundred'],
       estimatedSeconds: 20,
+      hints: ['This is a temperature, measured in degrees Celsius.', 'It starts with "1" and has 3 digits.'],
     },
     {
       id: 'q-short',
@@ -44,6 +47,7 @@ export const SAMPLE_QUIZ = {
       acceptableAnswers: ['The planet Jupiter'],
       evidence: 'Jupiter is the largest planet in the solar system by mass and volume.',
       estimatedSeconds: 45,
+      hints: ['Look at the part of the text naming the largest planet by mass and volume.', 'It is the fifth planet from the Sun, a gas giant.'],
     },
     {
       id: 'q-matching',
@@ -59,6 +63,7 @@ export const SAMPLE_QUIZ = {
       // Deliberately a non-identity derangement: position i never shows pair i's own right value.
       rightOrder: [1, 2, 3, 0],
       estimatedSeconds: 60,
+      hints: ['Start with which planet orbits closest to the Sun.', 'Mercury is first from the Sun.'],
     },
     {
       id: 'q-open',
@@ -69,6 +74,7 @@ export const SAMPLE_QUIZ = {
       keyPoints: ['Sunlight is scattered by the atmosphere', 'Blue light scatters more because of its shorter wavelength'],
       evidence: 'Blue light has a shorter wavelength than other visible colors and scatters more in the atmosphere.',
       estimatedSeconds: 90,
+      hints: ['A good answer covers 2 ideas: what happens to sunlight, and why blue light in particular.', 'Think about wavelength and how it affects scattering in the atmosphere.'],
     },
   ],
 }

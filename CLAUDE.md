@@ -13,7 +13,7 @@ Yapay zekâ ile metin, dosya, URL ve YouTube içeriğinden quiz üreten web uygu
 ## API uç noktaları
 
 - `/api/solve` (`api/_lib/solve.ts`): fotoğraftaki matematik sorusunu yalnızca Anthropic ile çözer, sağlayıcı fallback'i yok — dokunma.
-- `/api/generate` (`api/_lib/generate.ts`): quiz üretir; `mode: "regenerate_one"` tek soru yeniler, `mode: "top_up"` eksik soruyu tamamlar. >10 soru paralel batch'lere bölünür, yakın-yinelenenler ayıklanır, eksik kalan otomatik top-up ile tamamlanmaya çalışılır; yine eksikse `incomplete`/`requestedCount` döner.
+- `/api/generate` (`api/_lib/generate.ts`): quiz üretir; `mode: "regenerate_one"` tek soru yeniler, `mode: "top_up"` eksik soruyu tamamlar. >10 soru paralel batch'lere bölünür, yakın-yinelenenler ayıklanır, eksik kalan otomatik top-up ile tamamlanmaya çalışılır; yine eksikse `incomplete`/`requestedCount` döner. `includeHints` açıkken her soru için ilerleyen 2 ipucu üretilir ve sunucuda (`src/lib/hints.ts`) sızıntı kontrolünden geçer — asla cevabı ele vermez; başarısız olursa bir kez yeniden yazılır, yine olmazsa o sorunun ipuçları silinir.
 - `/api/extract-url` (`api/_lib/extract-url.ts`, yalnızca POST): URL'den makale metni çıkarır (Readability + linkedom); SSRF korumaları zorunlu (bkz. `api/_lib/ssrf.ts`).
 - `/api/grade` (`api/_lib/grade.ts`, yalnızca POST): `short-answer`/`open-ended` cevabını AI ile serbest metin olarak değerlendirir.
 

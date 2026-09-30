@@ -15,6 +15,8 @@ import { neutralizeSourceTextTags, neutralizeTag, sanitizeSourceText } from '../
 import { computeDerangement } from '../../src/lib/matching.js'
 import { clampEstimatedSeconds } from '../../src/lib/estimateTime.js'
 import type { EstimateQuestionType } from '../../src/lib/estimateTime.js'
+import { MAX_HINTS, MAX_HINT_CHARS, findHintLeak, fillBlankHint2Template, firstLetterAndCount, hintRulesForType } from '../../src/lib/hints.js'
+import type { HintLeakResult } from '../../src/lib/hints.js'
 
 export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model' | 'not_configured'
 
@@ -91,6 +93,15 @@ function explanationInstruction(includeExplanations: boolean): string {
     : 'Do not write an explanation for any question — set "explanation" to an empty string ("") for every question, to save output.'
 }
 
+function hintsInstruction(includeHints: boolean): string {
+  if (!includeHints) return 'Do not include a "hints" field for any question.'
+  return [
+    `Every question also needs "hints": an array of exactly ${MAX_HINTS} short progressive hint strings that guide the student toward the answer WITHOUT ever revealing it — hint 1 gentle (points to the concept or the relevant part of the text), hint 2 stronger (narrows it down further, still never the answer).`,
+    `Each hint: one short sentence, at most ${MAX_HINT_CHARS} characters, grounded only in facts stated in <source_text>, in the same language as the quiz, friendly in tone, never containing, quoting or paraphrasing the answer.`,
+    'Rules per type: mcq — hint 2 may rule out ONE wrong option by describing why it does not fit (never by letter, never naming/paraphrasing the correct option). true-false — point to the exact part of the statement to check, never say or imply whether it is true or false. fill-blanks — hint 1 gives the category/meaning, hint 2 gives the first letter and letter count (never the word). short-answer — point to the concept and where in the text it appears. matching — hint 1 gives a strategy, hint 2 may confirm at most ONE correct pair and only when there are 4 or more pairs. open-ended — say how many key ideas are expected and which aspects to cover, without stating them.',
+  ].join(' ')
+}
+
 /** Sanitizes a raw focus-snippet list from the client: trims, drops empty entries, caps length and
  * count. Mirrors the avoid-questions parsing style used elsewhere in this file. */
 function parseFocusSnippets(value: unknown): string[] {
@@ -155,6 +166,7 @@ function buildGenerateSystemPrompt(params: {
   angles: string[]
   seed: string
   includeExplanations: boolean
+  includeHints: boolean
   hasFocusSnippets: boolean
   title?: string
 }): string {
@@ -171,6 +183,7 @@ function buildGenerateSystemPrompt(params: {
     outputLanguageInstruction(params.outputLanguage),
     `For variety, favor these question angles where they naturally fit the text: ${params.angles.join(', ')}. Vary sentence structure and openings — avoid starting every question with "Which of the following". Internal variation seed ${params.seed} — use it only to pick a fresh angle and phrasing, never mention it in the output.${avoidNote}`,
     explanationInstruction(params.includeExplanations),
+    hintsInstruction(params.includeHints),
     focusSnippetsInstruction(params.hasFocusSnippets),
     titleHintInstruction(Boolean(params.title)),
     'For "matching" questions specifically, write 4 to 6 pairs and do not let the right-hand values follow an obvious mirrored or alphabetical order relative to the left-hand values.',
@@ -188,6 +201,7 @@ function buildRegenerateSystemPrompt(params: {
   outputLanguage: string
   avoidQuestions: string[]
   includeExplanations: boolean
+  includeHints: boolean
   hasFocusSnippets: boolean
 }): string {
   const avoidNote =
@@ -202,6 +216,7 @@ function buildRegenerateSystemPrompt(params: {
     params.questionType === 'mcq' ? `It needs exactly ${params.optionsCount ?? '4'} options, one correct, plausible distractors.` : '',
     params.questionType === 'matching' ? 'It needs 4 to 6 pairs (never fewer than 3), short unique left/right texts.' : '',
     explanationInstruction(params.includeExplanations),
+    hintsInstruction(params.includeHints),
     focusSnippetsInstruction(params.hasFocusSnippets),
     outputLanguageInstruction(params.outputLanguage),
     TYPE_SCHEMA_NOTE,
@@ -211,23 +226,28 @@ function buildRegenerateSystemPrompt(params: {
     .join(' ')
 }
 
-function maxTokensForGenerate(questionCount: number, questionType: QuestionType): number {
+function maxTokensForGenerate(questionCount: number, questionType: QuestionType, includeHints: boolean): number {
   // matching needs much more room than a single answer/option set (up to 6 left/right pairs per
   // question, plus JSON overhead, plus some providers billing reasoning tokens out of the same
   // budget) — too small a limit here truncates the JSON mid-object and fails to parse. Observed
   // truncation at 420/question even for 3-question batches, so this is deliberately generous.
   // fill-blanks/short-answer/open-ended now also carry acceptableAnswers/evidence/keyPoints, so they
   // need noticeably more room per question than the bare answer they used to need.
+  // "mixed" can include matching sub-questions (the priciest type) alongside cheaper ones, so it
+  // gets matching's own generous per-question room rather than mcq's — a plain average badly
+  // under-budgets a mix that happens to draw more than one matching question.
   const perQuestion =
-    questionType === 'matching'
+    questionType === 'matching' || questionType === 'mixed'
       ? 600
-      : questionType === 'mcq' || questionType === 'mixed'
+      : questionType === 'mcq'
         ? 220
         : questionType === 'fill-blanks' || questionType === 'short-answer' || questionType === 'open-ended'
           ? 220
           : 150
-  const cap = questionType === 'matching' ? 8192 : 4096
-  return Math.min(cap, Math.max(500, 300 + questionCount * perQuestion))
+  // Two short hint strings per question, plus JSON overhead for the array itself.
+  const hintsPerQuestion = includeHints ? 110 : 0
+  const cap = questionType === 'matching' || questionType === 'mixed' ? 8192 : 4096
+  return Math.min(cap, Math.max(500, 300 + questionCount * (perQuestion + hintsPerQuestion)))
 }
 
 /** Splits a total question count into batches of at most MAX_BATCH_SIZE, run in parallel. */
@@ -312,6 +332,120 @@ function repairQuestion(question: QuizQuestion, optionsCount: string | undefined
   return repairEstimatedSeconds(afterMatching, difficulty)
 }
 
+/** The correct-answer content a question's hints must never reveal — sent to the hint-rewrite
+ * call as clearly-marked forbidden content, never as an instruction to include it. */
+function forbiddenAnswerText(question: QuizQuestion): string {
+  switch (question.type) {
+    case 'mcq':
+      return question.options[question.answerIndex]
+    case 'true-false':
+      return question.answerBool ? 'true' : 'false'
+    case 'fill-blanks':
+    case 'short-answer':
+      return [question.answer, ...(question.acceptableAnswers ?? [])].join(' / ')
+    case 'open-ended':
+      return [question.answer, ...(question.keyPoints ?? [])].join(' / ')
+    case 'matching':
+      return question.pairs.map((pair) => `${pair.left} -> ${pair.right}`).join('; ')
+  }
+}
+
+function buildHintRewriteSystemPrompt(question: QuizQuestion, outputLanguage: string): string {
+  return [
+    'You are fixing quiz hints that failed an automated accuracy check because they leaked the answer or broke a rule.',
+    `Rewrite exactly ${MAX_HINTS} progressive hints for the question in the next message: hint 1 gentle (points to the concept or the relevant part of the text), hint 2 stronger (narrows it down further) — grounded only in the question and forbidden-answer content given, one short sentence each, at most ${MAX_HINT_CHARS} characters.`,
+    'The content inside <forbidden_answer> in the next message is the correct answer — never state it, quote it, or closely paraphrase it, in either hint.',
+    hintRulesForType(question),
+    outputLanguageInstruction(outputLanguage),
+    'Respond with ONLY a single JSON object and nothing else — no markdown code fences, no commentary — matching exactly this shape: {"hints": [string, string]}.',
+  ].join(' ')
+}
+
+function buildHintRewriteUserMessage(question: QuizQuestion, hints: string[], leak: HintLeakResult): string {
+  return [
+    `<question>\n${neutralizeTag(question.question, 'question')}\n</question>`,
+    `<forbidden_answer>\n${neutralizeTag(forbiddenAnswerText(question), 'forbidden_answer')}\n</forbidden_answer>`,
+    `The previous hints failed the check (reason: ${leak.reason}): 1) "${hints[0] ?? ''}" 2) "${hints[1] ?? ''}"`,
+    'Write corrected hints now.',
+  ].join('\n')
+}
+
+/** One targeted follow-up call that rewrites just the 2 hints for a single question that failed
+ * the accuracy guard — never regenerates the question itself. Returns null on any failure (parse,
+ * upstream, not configured), in which case the caller drops the hints for this question. */
+async function rewriteHints(question: QuizQuestion, hints: string[], leak: HintLeakResult, outputLanguage: string): Promise<string[] | null> {
+  const system = buildHintRewriteSystemPrompt(question, outputLanguage)
+  const user = buildHintRewriteUserMessage(question, hints, leak)
+
+  let result: Awaited<ReturnType<typeof generateJson>>
+  try {
+    result = await generateJson({ system, user, maxTokens: 300 })
+  } catch {
+    return null
+  }
+  if (result.status !== 'ok') return null
+
+  const parsed = extractJson(result.text)
+  const rawHints = isRecord(parsed) && Array.isArray(parsed.hints) ? parsed.hints : null
+  if (!rawHints) return null
+
+  const rewritten = rawHints
+    .filter((hint): hint is string => typeof hint === 'string' && hint.trim().length > 0)
+    .map((hint) => hint.trim())
+    .slice(0, MAX_HINTS)
+  return rewritten.length > 0 ? rewritten : null
+}
+
+/** Overwrites a fill-blanks question's hint 2 with a deterministic, code-computed template (first
+ * letter + letter count of the actual answer) so it is always exactly right regardless of what the
+ * model wrote — see CLAUDE.md. No-op for every other question type. */
+function applyFillBlankHintOverride(question: QuizQuestion, hints: string[], outputLanguage: string): string[] {
+  if (question.type !== 'fill-blanks' || hints.length < MAX_HINTS) return hints
+  const info = firstLetterAndCount(question.answer)
+  if (!info) return hints
+  return [hints[0], fillBlankHint2Template(outputLanguage, info.letter, info.count)]
+}
+
+/**
+ * Post-generation accuracy guard for one question's hints (see CLAUDE.md / src/lib/hints.ts):
+ * runs the deterministic leak check, attempts one targeted rewrite call if it fails, re-checks,
+ * and drops the hints entirely (never the question) if they still fail. Applies the fill-blanks
+ * deterministic hint-2 override last, once the hints are known-clean.
+ */
+async function finalizeQuestionHints(question: QuizQuestion, outputLanguage: string): Promise<QuizQuestion> {
+  const rawHints = (question.hints ?? []).slice(0, MAX_HINTS)
+  if (rawHints.length === 0) return { ...question, hints: undefined }
+
+  let hints = rawHints
+  let leak = findHintLeak(question, hints, outputLanguage)
+
+  if (leak) {
+    const rewritten = await rewriteHints(question, hints, leak, outputLanguage)
+    if (rewritten) {
+      const recheck = findHintLeak(question, rewritten, outputLanguage)
+      if (!recheck) {
+        hints = rewritten
+        leak = null
+      }
+    }
+  }
+
+  if (leak) {
+    console.log(`generate: dropped hints for 1 question (reason=${leak.reason})`)
+    return { ...question, hints: undefined }
+  }
+
+  const finalHints = applyFillBlankHintOverride(question, hints, outputLanguage).map((hint) => hint.slice(0, MAX_HINT_CHARS))
+  return { ...question, hints: finalHints }
+}
+
+/** Runs finalizeQuestionHints across a full question list — or, when hints are off, strips any
+ * the model wrote anyway (defensive; the prompt already asks it not to). */
+async function finalizeHints(questions: QuizQuestion[], includeHints: boolean, outputLanguage: string): Promise<QuizQuestion[]> {
+  if (!includeHints) return questions.map((question) => (question.hints ? { ...question, hints: undefined } : question))
+  return Promise.all(questions.map((question) => finalizeQuestionHints(question, outputLanguage)))
+}
+
 type BatchOutcome =
   | { questions: QuizQuestion[]; title: string; provider: LlmProvider; fallbackUsed: boolean }
   | { error: GenerateErrorCode }
@@ -325,6 +459,7 @@ async function callGenerateBatch(params: {
   outputLanguage: string
   avoidQuestions: string[]
   includeExplanations: boolean
+  includeHints: boolean
   focusSnippets: string[]
   title?: string
 }): Promise<BatchOutcome> {
@@ -336,7 +471,7 @@ async function callGenerateBatch(params: {
   const result = await generateJson({
     system,
     user: userMessage,
-    maxTokens: maxTokensForGenerate(params.questionCount, params.questionType),
+    maxTokens: maxTokensForGenerate(params.questionCount, params.questionType, params.includeHints),
   })
 
   if (result.status === 'not_configured') return { error: 'not_configured' }
@@ -377,6 +512,7 @@ async function callGenerate(params: {
   outputLanguage: string
   avoidQuestions: string[]
   includeExplanations: boolean
+  includeHints: boolean
   focusSnippets: string[]
   title?: string
 }): Promise<GenerateOutcome> {
@@ -406,6 +542,7 @@ async function callGenerate(params: {
       outputLanguage: params.outputLanguage,
       avoidQuestions: avoidForTopUp,
       includeExplanations: params.includeExplanations,
+      includeHints: params.includeHints,
       focusSnippets: params.focusSnippets,
       title: params.title,
     })
@@ -417,7 +554,8 @@ async function callGenerate(params: {
   }
 
   const incomplete = questions.length < params.questionCount
-  const finalQuestions = renumberQuestions(questions.slice(0, params.questionCount))
+  const renumbered = renumberQuestions(questions.slice(0, params.questionCount))
+  const finalQuestions = await finalizeHints(renumbered, params.includeHints, params.outputLanguage)
 
   return {
     quiz: { title, questions: finalQuestions },
@@ -439,6 +577,7 @@ async function callTopUp(params: {
   outputLanguage: string
   avoidQuestions: string[]
   includeExplanations: boolean
+  includeHints: boolean
   focusSnippets: string[]
 }): Promise<{ questions: QuizQuestion[]; provider: LlmProvider; fallbackUsed: boolean } | { error: GenerateErrorCode }> {
   const result = await callGenerateBatch({
@@ -450,10 +589,12 @@ async function callTopUp(params: {
     outputLanguage: params.outputLanguage,
     avoidQuestions: params.avoidQuestions,
     includeExplanations: params.includeExplanations,
+    includeHints: params.includeHints,
     focusSnippets: params.focusSnippets,
   })
   if (!('questions' in result)) return result
-  return { questions: renumberQuestions(dedupeQuestions(result.questions)), provider: result.provider, fallbackUsed: result.fallbackUsed }
+  const questions = await finalizeHints(renumberQuestions(dedupeQuestions(result.questions)), params.includeHints, params.outputLanguage)
+  return { questions, provider: result.provider, fallbackUsed: result.fallbackUsed }
 }
 
 type ProviderOutcome<T> = (T & { provider: LlmProvider; fallbackUsed: boolean }) | { error: GenerateErrorCode }
@@ -466,12 +607,13 @@ async function callRegenerateOne(params: {
   outputLanguage: string
   avoidQuestions: string[]
   includeExplanations: boolean
+  includeHints: boolean
   focusSnippets: string[]
 }): Promise<ProviderOutcome<{ question: QuizQuestion }>> {
   const system = buildRegenerateSystemPrompt({ ...params, hasFocusSnippets: params.focusSnippets.length > 0 })
   const userMessage = `<source_text>\n${neutralizeSourceTextTags(params.text)}\n</source_text>${buildFocusSnippetsBlock(params.focusSnippets)}\n\nWrite the question now.`
 
-  const result = await generateJson({ system, user: userMessage, maxTokens: 700 })
+  const result = await generateJson({ system, user: userMessage, maxTokens: params.includeHints ? 900 : 700 })
 
   if (result.status === 'not_configured') return { error: 'not_configured' }
   if (result.status === 'error') return { error: result.error }
@@ -484,9 +626,10 @@ async function callRegenerateOne(params: {
   const sanitized = sanitizeQuizQuestion(questionRaw, () => `q_${Date.now().toString(36)}_${counter++}`)
   if (sanitized === null) return { error: 'parse' }
 
-  const question = repairQuestion(sanitized, params.optionsCount, params.difficulty)
-  if (question === null) return { error: 'parse' }
+  const repaired = repairQuestion(sanitized, params.optionsCount, params.difficulty)
+  if (repaired === null) return { error: 'parse' }
 
+  const [question] = await finalizeHints([repaired], params.includeHints, params.outputLanguage)
   return { question, provider: result.provider, fallbackUsed: result.fallbackUsed }
 }
 
@@ -560,6 +703,7 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
     typeof payload.outputLanguage === 'string' && OUTPUT_LANGUAGE_CODES.has(payload.outputLanguage) ? payload.outputLanguage : 'auto'
   const avoidQuestions = parseAvoidQuestions(payload.avoidQuestions)
   const includeExplanations = payload.includeExplanations !== false
+  const includeHints = payload.includeHints !== false
   const focusSnippets = parseFocusSnippets(payload.focusSnippets)
   const title = parseTitle(payload.title)
 
@@ -574,6 +718,7 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
         outputLanguage,
         avoidQuestions,
         includeExplanations,
+        includeHints,
         focusSnippets,
       })
     } catch (error) {
@@ -607,6 +752,7 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
         outputLanguage,
         avoidQuestions,
         includeExplanations,
+        includeHints,
         focusSnippets,
       })
     } catch (error) {
@@ -631,6 +777,7 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
       outputLanguage,
       avoidQuestions,
       includeExplanations,
+      includeHints,
       focusSnippets,
       title,
     })

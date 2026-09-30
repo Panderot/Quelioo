@@ -22,6 +22,7 @@ interface UseQuizEditorParams {
   onPersist: (quiz: GeneratedQuiz) => void
   includeExplanations?: boolean
   shuffleOptions?: boolean
+  includeHints?: boolean
   focusSnippets?: string[]
 }
 
@@ -39,6 +40,7 @@ export function useQuizEditor({
   onPersist,
   includeExplanations = true,
   shuffleOptions = false,
+  includeHints = true,
   focusSnippets = [],
 }: UseQuizEditorParams) {
   const [quiz, setQuiz] = useState(initialQuiz)
@@ -129,6 +131,7 @@ export function useQuizEditor({
           outputLanguage,
           avoidQuestions,
           includeExplanations,
+          includeHints,
           focusSnippets,
         })
         const nextQuestion = shuffleOptions ? shuffleSingleQuestionOptions(result.question) : result.question
@@ -140,7 +143,7 @@ export function useQuizEditor({
         setRegeneratingId(null)
       }
     },
-    [sourceText, difficulty, optionsCount, outputLanguage, persist, includeExplanations, focusSnippets, shuffleOptions],
+    [sourceText, difficulty, optionsCount, outputLanguage, persist, includeExplanations, includeHints, focusSnippets, shuffleOptions],
   )
 
   const topUp = useCallback(async () => {
@@ -159,6 +162,7 @@ export function useQuizEditor({
         outputLanguage,
         avoidQuestions,
         includeExplanations,
+        includeHints,
         focusSnippets,
       })
       const newQuestions = shuffleOptions ? shuffleQuizOptions(result.questions) : result.questions
@@ -170,7 +174,7 @@ export function useQuizEditor({
     } finally {
       setIsToppingUp(false)
     }
-  }, [missingCount, sourceText, questionType, difficulty, optionsCount, outputLanguage, persist, includeExplanations, focusSnippets, shuffleOptions])
+  }, [missingCount, sourceText, questionType, difficulty, optionsCount, outputLanguage, persist, includeExplanations, includeHints, focusSnippets, shuffleOptions])
 
   return {
     quiz,

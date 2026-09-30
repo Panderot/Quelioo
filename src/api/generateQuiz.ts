@@ -23,6 +23,7 @@ export interface GenerateQuizPayload {
   title?: string
   includeExplanations?: boolean
   shuffleOptions?: boolean
+  includeHints?: boolean
   focusSnippets?: string[]
 }
 
@@ -42,6 +43,7 @@ export interface RegenerateOnePayload {
   outputLanguage: string
   avoidQuestions: string[]
   includeExplanations?: boolean
+  includeHints?: boolean
   focusSnippets?: string[]
 }
 
@@ -61,6 +63,7 @@ export interface TopUpPayload {
   outputLanguage: string
   avoidQuestions: string[]
   includeExplanations?: boolean
+  includeHints?: boolean
   focusSnippets?: string[]
 }
 

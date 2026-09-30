@@ -112,6 +112,10 @@
       "helper": "Doğru cevap hep aynı yerde olmaz",
       "disabledHint": "Sadece çoktan seçmeli ve karışık için"
     },
+    "hints": {
+      "label": "İpucu",
+      "helper": "Cevabı söylemeden öğrenciyi yönlendirir"
+    },
     "questionType": {
       "label": "Soru Türü",
       "mcq": "Çoktan Seçmeli (MCQ)",
@@ -161,6 +165,7 @@
     },
     "practice": {
       "score": "{{correct}} / {{total}} doğru",
+      "hintsUsed": "Kullanılan ipucu: {{count}}",
       "tryAgain": "Tekrar dene"
     }
   },
@@ -214,6 +219,9 @@
       "createRest": "Kalanını oluştur",
       "creatingRest": "Oluşturuluyor...",
       "checkAnswerLabel": "Cevabı kontrol et",
+      "hint": "İpucu",
+      "anotherHint": "Bir ipucu daha",
+      "noMoreHints": "Başka ipucu yok",
       "yourAnswerLabel": "Cevabın",
       "answerPlaceholder": "Cevabını yaz",
       "checkCorrect": "Doğru!",
@@ -242,6 +250,9 @@
       "undo": "Geri al",
       "acceptableAnswersLabel": "Kabul edilen cevaplar (satır başına bir tane)",
       "keyPointsLabel": "Ana fikirler (satır başına bir tane)",
+      "hint1Label": "İpucu 1",
+      "hint2Label": "İpucu 2",
+      "hintLeakError": "Bu ipucu cevabı ele veriyor — lütfen yeniden yaz.",
       "type": {
         "mcq": "Çoktan Seçmeli",
         "trueFalse": "Doğru / Yanlış",

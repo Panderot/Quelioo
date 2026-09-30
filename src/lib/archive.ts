@@ -18,6 +18,9 @@ export interface ArchiveEntry {
   /** Older entries saved before this existed were never shuffled — undefined reads as false so a
    * later regenerate-one on them keeps matching their original (unshuffled) behavior. */
   shuffleOptions?: boolean
+  /** Older entries saved before this existed never had hints — undefined reads as true (matching
+   * the setting's own default) so a later regenerate-one on them still requests hints. */
+  includeHints?: boolean
   /** Number of focus parts used at generation time — never the snippet text itself. */
   focusPartsCount?: number
 }

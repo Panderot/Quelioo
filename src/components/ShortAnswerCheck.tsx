@@ -2,25 +2,32 @@ import { useTranslation } from 'react-i18next'
 
 import AnswerBar from './AnswerBar'
 import type { CheckResultState } from './AnswerBar'
+import { HintBox, HintButton } from './HintControls'
 import { useCheckableAnswer } from '../hooks/useCheckableAnswer'
+import { useHints } from '../hooks/useHints'
 import { isLenientMatch } from '../lib/answerCheck'
 import { getAcceptableAnswers } from '../lib/quiz'
 import type { ShortAnswerQuestion } from '../lib/quiz'
 import { gradeAnswer } from '../api/gradeAnswer'
+import { getHints } from '../lib/hints'
 
 interface ShortAnswerCheckProps {
   question: ShortAnswerQuestion
   signature: string
   outputLanguage: string
+  showAnswers?: boolean
   onFirstCheck?: () => void
   onGraded?: (correct: boolean) => void
+  onHintUsed?: () => void
 }
 
 /** Short answer: checked locally first (same lenient comparison as fill-blanks); only when that
  * doesn't match does it ask the AI grader for a second opinion before showing "wrong". */
-export default function ShortAnswerCheck({ question, signature, outputLanguage, onFirstCheck, onGraded }: ShortAnswerCheckProps) {
+export default function ShortAnswerCheck({ question, signature, outputLanguage, showAnswers = false, onFirstCheck, onGraded, onHintUsed }: ShortAnswerCheckProps) {
   const { t } = useTranslation()
   const state = useCheckableAnswer<string, CheckResultState>(signature, '')
+  const hints = getHints(question)
+  const hintState = useHints(signature, hints.length)
 
   const finish = (result: CheckResultState) => {
     state.setResult(result)
@@ -79,6 +86,18 @@ export default function ShortAnswerCheck({ question, signature, outputLanguage, 
       onRetry={() => void runCheck()}
       placeholder={t('create.result.answerPlaceholder')}
       ariaLabel={t('create.result.yourAnswerLabel')}
+      hintButton={
+        <HintButton
+          hints={hints}
+          revealedCount={hintState.revealedCount}
+          onReveal={() => {
+            hintState.revealNext()
+            onHintUsed?.()
+          }}
+          hidden={showAnswers || state.result?.status === 'correct'}
+        />
+      }
+      hintBox={<HintBox hints={hints} revealedCount={hintState.revealedCount} />}
     />
   )
 }

@@ -1,4 +1,5 @@
 import { computeDerangement } from './matching.js'
+import { MAX_HINTS, MAX_HINT_CHARS } from './hints.js'
 
 export type QuizQuestionType = 'mcq' | 'true-false' | 'fill-blanks' | 'short-answer' | 'matching' | 'open-ended'
 
@@ -15,6 +16,11 @@ interface QuizQuestionBase {
    * server-clamped per type, or computed from the shared formula for questions saved before this
    * existed. See src/lib/estimateTime.ts. */
   estimatedSeconds?: number
+  /** Up to 2 progressive hints (gentle, then stronger) that guide toward the answer without
+   * revealing it — present only when the quiz's Hints setting was on and the server-side leak
+   * check (src/lib/hints.ts) passed for this question. Absent for older questions and whenever
+   * hints were off, disabled or dropped. */
+  hints?: string[]
 }
 
 export interface McqQuestion extends QuizQuestionBase {
@@ -118,6 +124,7 @@ export function isQuizQuestion(value: unknown): value is QuizQuestion {
   if (!isNonEmptyString(value.question)) return false
   if (typeof value.explanation !== 'string') return false
   if (value.estimatedSeconds !== undefined && (typeof value.estimatedSeconds !== 'number' || !Number.isFinite(value.estimatedSeconds))) return false
+  if (!isOptionalStringArray(value.hints)) return false
 
   switch (value.type) {
     case 'mcq':
@@ -182,6 +189,8 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
 
   const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : makeId()
   const estimatedSeconds = typeof raw.estimatedSeconds === 'number' && Number.isFinite(raw.estimatedSeconds) ? raw.estimatedSeconds : undefined
+  const sanitizedHints = sanitizeStringList(raw.hints, MAX_HINTS).map((hint) => hint.slice(0, MAX_HINT_CHARS * 2))
+  const hints = sanitizedHints.length > 0 ? sanitizedHints : undefined
 
   switch (raw.type) {
     case 'mcq': {
@@ -190,31 +199,31 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
         : []
       const answerIndex = typeof raw.answerIndex === 'number' ? raw.answerIndex : -1
       if (options.length < 2 || answerIndex < 0 || answerIndex >= options.length) return null
-      return { id, type: 'mcq', question, explanation, options, answerIndex, estimatedSeconds }
+      return { id, type: 'mcq', question, explanation, options, answerIndex, estimatedSeconds, hints }
     }
     case 'true-false': {
       if (typeof raw.answerBool !== 'boolean') return null
-      return { id, type: 'true-false', question, explanation, answerBool: raw.answerBool, estimatedSeconds }
+      return { id, type: 'true-false', question, explanation, answerBool: raw.answerBool, estimatedSeconds, hints }
     }
     case 'fill-blanks': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
       const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, 4)
-      return { id, type: 'fill-blanks', question, explanation, answer, acceptableAnswers, estimatedSeconds }
+      return { id, type: 'fill-blanks', question, explanation, answer, acceptableAnswers, estimatedSeconds, hints }
     }
     case 'short-answer': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
       const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, 4)
       const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : ''
-      return { id, type: 'short-answer', question, explanation, answer, acceptableAnswers, evidence, estimatedSeconds }
+      return { id, type: 'short-answer', question, explanation, answer, acceptableAnswers, evidence, estimatedSeconds, hints }
     }
     case 'open-ended': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
       const keyPoints = sanitizeStringList(raw.keyPoints, 4)
       const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : ''
-      return { id, type: 'open-ended', question, explanation, answer, keyPoints, evidence, estimatedSeconds }
+      return { id, type: 'open-ended', question, explanation, answer, keyPoints, evidence, estimatedSeconds, hints }
     }
     case 'matching': {
       const pairs = Array.isArray(raw.pairs)
@@ -227,7 +236,7 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
             .filter((pair) => pair.left && pair.right)
         : []
       if (pairs.length < 3) return null
-      return { id, type: 'matching', question, explanation, pairs, rightOrder: computeDerangement(pairs.length, id), estimatedSeconds }
+      return { id, type: 'matching', question, explanation, pairs, rightOrder: computeDerangement(pairs.length, id), estimatedSeconds, hints }
     }
     default:
       return null

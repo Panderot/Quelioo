@@ -6,27 +6,31 @@ import type { QuizPair } from '../lib/quiz'
 import { buildAnswerKeyLine, checkMatchingAnswer, letterFor } from '../lib/matching'
 import type { MatchingCheckResult } from '../lib/matching'
 import MathText from './MathText'
+import { HintBox, HintButton } from './HintControls'
 import { CheckIcon, CloseIcon } from './icons'
 
 interface MatchingColumnsProps {
   pairs: QuizPair[]
   rightOrder: number[]
   showAnswers: boolean
+  hints?: string[]
   /** Fires once, the first time the student completes a full check (right or wrong) — used to
    * unlock the "Show explanation" link without spoiling it before then. */
   onFirstCheck?: () => void
   /** Fires every time a complete check is run (students may recheck after editing their answer) —
    * used by Study Mode to auto-grade the question from the latest check. */
   onGraded?: (allCorrect: boolean) => void
+  onHintUsed?: () => void
 }
 
 /** Two-column matching display with a checkable student answer field, shared by the editable
  * result view and Study Mode so both use the same shuffle, layout and checking behavior. */
-export default function MatchingColumns({ pairs, rightOrder, showAnswers, onFirstCheck, onGraded }: MatchingColumnsProps) {
+export default function MatchingColumns({ pairs, rightOrder, showAnswers, hints = [], onFirstCheck, onGraded, onHintUsed }: MatchingColumnsProps) {
   const { t } = useTranslation()
   const [answerText, setAnswerText] = useState('')
   const [result, setResult] = useState<MatchingCheckResult | null>(null)
   const [hasCheckedOnce, setHasCheckedOnce] = useState(false)
+  const [revealedHints, setRevealedHints] = useState(0)
 
   // A stable signature of the actual pair content (not the array reference) — resets the
   // student's in-progress answer and check state when the question is edited, regenerated or
@@ -41,6 +45,7 @@ export default function MatchingColumns({ pairs, rightOrder, showAnswers, onFirs
     setAnswerText('')
     setResult(null)
     setHasCheckedOnce(false)
+    setRevealedHints(0)
   }
 
   const runCheck = () => {
@@ -122,6 +127,15 @@ export default function MatchingColumns({ pairs, rightOrder, showAnswers, onFirs
             placeholder={t('create.result.matchingAnswerPlaceholder')}
             className="min-w-0 flex-1 resize-none rounded-xl border border-warm-border bg-card px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-solid"
           />
+          <HintButton
+            hints={hints}
+            revealedCount={revealedHints}
+            onReveal={() => {
+              setRevealedHints((count) => Math.min(hints.length, count + 1))
+              onHintUsed?.()
+            }}
+            hidden={showAnswers || (result?.status === 'checked' && result.allCorrect)}
+          />
           <button
             type="button"
             onClick={runCheck}
@@ -132,6 +146,8 @@ export default function MatchingColumns({ pairs, rightOrder, showAnswers, onFirs
             <CheckIcon className="h-4 w-4" />
           </button>
         </div>
+
+        <HintBox hints={hints} revealedCount={revealedHints} />
 
         <div aria-live="polite">
           {result?.status === 'unreadable' && <p className="text-xs font-medium text-muted">{t('create.result.matchingHintUnreadable')}</p>}

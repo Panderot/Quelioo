@@ -21,6 +21,8 @@ interface ParameterGridProps {
   onIncludeExplanationsChange: (value: boolean) => void
   shuffleOptions: boolean
   onShuffleOptionsChange: (value: boolean) => void
+  includeHints: boolean
+  onIncludeHintsChange: (value: boolean) => void
 }
 
 const fieldClasses = 'p-4'
@@ -76,6 +78,8 @@ export default function ParameterGrid({
   onIncludeExplanationsChange,
   shuffleOptions,
   onShuffleOptionsChange,
+  includeHints,
+  onIncludeHintsChange,
 }: ParameterGridProps) {
   const { t } = useTranslation()
 
@@ -129,8 +133,13 @@ export default function ParameterGrid({
           )}
         </div>
 
-        <div className="grid grid-cols-1 divide-y divide-warm-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
-          <div className={`${fieldClasses} sm:border-b sm:border-warm-border`}>
+        {/* Explicit per-cell borders instead of divide-x/divide-y: Tailwind's divide-* utilities
+            border every child after the first regardless of grid row, which stray-bordered the
+            left column of later rows in this 2-col grid. Each cell below states its own
+            border-bottom (all but the last cell) and border-left (right column only, sm+), so
+            every border always meets a real neighboring edge. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2">
+          <div className={`${fieldClasses} border-b border-warm-border`}>
             <label id="param-type-label" htmlFor="param-type" className="mb-1 block text-[11px] font-bold tracking-wide text-muted uppercase">
               {t('params.questionType.label')}
             </label>
@@ -143,7 +152,7 @@ export default function ParameterGrid({
             />
           </div>
 
-          <div className={`${fieldClasses} sm:border-b sm:border-warm-border`}>
+          <div className={`${fieldClasses} border-b border-warm-border sm:border-l`}>
             <label id="param-count-label" htmlFor="param-count" className="mb-1 block text-[11px] font-bold tracking-wide text-muted uppercase">
               {t('params.questionCount.label')}
             </label>
@@ -156,7 +165,7 @@ export default function ParameterGrid({
             />
           </div>
 
-          <div className={`${fieldClasses} sm:border-b sm:border-warm-border`}>
+          <div className={`${fieldClasses} border-b border-warm-border`}>
             <label
               id="param-difficulty-label"
               htmlFor="param-difficulty"
@@ -173,7 +182,7 @@ export default function ParameterGrid({
             />
           </div>
 
-          <div className={`${fieldClasses} sm:border-b sm:border-warm-border`}>
+          <div className={`${fieldClasses} border-b border-warm-border sm:border-l`}>
             <label id="param-options-label" htmlFor="param-options" className="mb-1 block text-[11px] font-bold tracking-wide text-muted uppercase">
               {t('params.optionsCount.label')}
             </label>
@@ -188,7 +197,7 @@ export default function ParameterGrid({
             {!optionsCountEnabled && <p className="mt-1.5 text-[11px] text-muted">{t('params.optionsCount.disabledHint')}</p>}
           </div>
 
-          <div className={fieldClasses}>
+          <div className={`${fieldClasses} border-b border-warm-border`}>
             <div className="flex items-center gap-2.5">
               <Switch
                 id="param-explanations"
@@ -203,7 +212,7 @@ export default function ParameterGrid({
             <p className="mt-1.5 text-[11px] text-muted">{t('params.explanations.helper')}</p>
           </div>
 
-          <div className={fieldClasses}>
+          <div className={`${fieldClasses} border-b border-warm-border sm:border-l`}>
             <div className="flex items-center gap-2.5">
               <Switch
                 id="param-shuffle"
@@ -217,6 +226,21 @@ export default function ParameterGrid({
               </label>
             </div>
             <p className="mt-1.5 text-[11px] text-muted">{shuffleEnabled ? t('params.shuffle.helper') : t('params.shuffle.disabledHint')}</p>
+          </div>
+
+          <div className={fieldClasses}>
+            <div className="flex items-center gap-2.5">
+              <Switch
+                id="param-hints"
+                checked={includeHints}
+                onChange={() => onIncludeHintsChange(!includeHints)}
+                ariaLabel={t('params.hints.label')}
+              />
+              <label htmlFor="param-hints" className="text-sm font-semibold text-ink">
+                {t('params.hints.label')}
+              </label>
+            </div>
+            <p className="mt-1.5 text-[11px] text-muted">{t('params.hints.helper')}</p>
           </div>
         </div>
       </div>

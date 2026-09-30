@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { CheckIcon, CloseIcon, SpinnerIcon } from './icons'
@@ -92,6 +92,11 @@ interface AnswerBarProps {
   error?: string | null
   onRetry?: () => void
   charCount?: { current: number; max: number }
+  /** Rendered to the left of the check button (HintButton) — the caller owns the hint
+   * reveal state so it can share it with the result-hiding logic. */
+  hintButton?: ReactNode
+  /** Rendered above the result line (HintBox) — only occupies space once a hint is revealed. */
+  hintBox?: ReactNode
 }
 
 /** Shared answer field + check button + result line, reused by fill-blanks, short-answer and
@@ -112,6 +117,8 @@ export default function AnswerBar({
   error,
   onRetry,
   charCount,
+  hintButton,
+  hintBox,
 }: AnswerBarProps) {
   const { t } = useTranslation()
 
@@ -152,6 +159,7 @@ export default function AnswerBar({
             className={fieldClasses}
           />
         )}
+        {hintButton}
         <button
           type="button"
           onClick={onCheck}
@@ -170,6 +178,8 @@ export default function AnswerBar({
           {charCount.current}/{charCount.max}
         </p>
       )}
+
+      {hintBox}
 
       <ResultLiveRegion result={result} error={error} onRetry={onRetry} />
     </div>

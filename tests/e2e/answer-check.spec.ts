@@ -357,6 +357,9 @@ test('keyboard-only: arrow keys move between mcq options, Tab reaches the check 
   await page.keyboard.press('ArrowDown')
   await expect(card.getByRole('radio', { name: /Nitrogen/ })).toBeChecked()
 
+  // The Hint button sits between the option group and the check button in tab order.
+  await page.keyboard.press('Tab')
+  await expect(card.getByRole('button', { name: 'Hint' })).toBeFocused()
   await page.keyboard.press('Tab')
   await expect(card.getByRole('button', { name: 'Check answer' })).toBeFocused()
   await page.keyboard.press('Enter')

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { QuizPair, QuizQuestion } from '../lib/quiz'
 import { computeDerangement, getRightOrder } from '../lib/matching'
 import { answerSignature } from '../lib/answerCheck'
+import { MAX_HINT_CHARS, findHintLeak, getHints } from '../lib/hints'
 import MathText from './MathText'
 import MatchingColumns from './MatchingColumns'
 import McqCheck from './McqCheck'
@@ -68,8 +69,13 @@ function isDraftValid(draft: QuizQuestion): boolean {
   }
 }
 
+function trimHints(hints: string[] | undefined): string[] | undefined {
+  const trimmed = (hints ?? []).map((hint) => hint.trim().slice(0, MAX_HINT_CHARS)).filter(Boolean)
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
 function trimDraft(draft: QuizQuestion): QuizQuestion {
-  const base = { ...draft, question: draft.question.trim(), explanation: draft.explanation.trim() }
+  const base = { ...draft, question: draft.question.trim(), explanation: draft.explanation.trim(), hints: trimHints(draft.hints) }
   switch (base.type) {
     case 'mcq':
       return { ...base, options: base.options.map((option) => option.trim()) }
@@ -103,6 +109,7 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
   const [isEditing, setIsEditing] = useState(false)
   const [isExplanationOpen, setIsExplanationOpen] = useState(false)
   const [draft, setDraft] = useState<QuizQuestion>(question)
+  const [hintLeakError, setHintLeakError] = useState(false)
 
   // The explanation stays hidden, for every question type, until the student completes their
   // first check (right, partial or wrong) or the global Show answers switch is on — never a free
@@ -112,16 +119,23 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
 
   const startEditing = () => {
     setDraft(question)
+    setHintLeakError(false)
     setIsEditing(true)
   }
 
   const cancelEditing = () => {
     setIsEditing(false)
+    setHintLeakError(false)
   }
 
   const saveEditing = () => {
     if (!isDraftValid(draft)) return
     const trimmed = trimDraft(draft)
+    if (findHintLeak(trimmed, getHints(trimmed), outputLanguage, { requireComplete: false })) {
+      setHintLeakError(true)
+      return
+    }
+    setHintLeakError(false)
     onUpdate(() => trimmed)
     setIsEditing(false)
   }
@@ -182,7 +196,16 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
       </div>
 
       {isEditing ? (
-        <QuestionEditForm draft={draft} onChange={setDraft} onSave={saveEditing} onCancel={cancelEditing} />
+        <QuestionEditForm
+          draft={draft}
+          onChange={(next) => {
+            setDraft(next)
+            setHintLeakError(false)
+          }}
+          onSave={saveEditing}
+          onCancel={cancelEditing}
+          hintLeakError={hintLeakError}
+        />
       ) : (
         <QuestionView question={question} showAnswers={showAnswers} outputLanguage={outputLanguage} onFirstCheck={markExplanationChecked} />
       )}
@@ -250,7 +273,14 @@ function QuestionView({
               })}
             </ul>
           )}
-          <McqCheck options={question.options} answerIndex={question.answerIndex} signature={signature} onFirstCheck={onFirstCheck} />
+          <McqCheck
+            options={question.options}
+            answerIndex={question.answerIndex}
+            signature={signature}
+            hints={getHints(question)}
+            showAnswers={showAnswers}
+            onFirstCheck={onFirstCheck}
+          />
         </>
       )}
 
@@ -273,7 +303,13 @@ function QuestionView({
               })}
             </div>
           )}
-          <TrueFalseCheck answerBool={question.answerBool} signature={signature} onFirstCheck={onFirstCheck} />
+          <TrueFalseCheck
+            answerBool={question.answerBool}
+            signature={signature}
+            hints={getHints(question)}
+            showAnswers={showAnswers}
+            onFirstCheck={onFirstCheck}
+          />
         </>
       )}
 
@@ -284,7 +320,7 @@ function QuestionView({
               <MathText text={question.answer} />
             </p>
           )}
-          <FillBlankCheck question={question} signature={signature} onFirstCheck={onFirstCheck} />
+          <FillBlankCheck question={question} signature={signature} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
         </div>
       )}
 
@@ -296,7 +332,7 @@ function QuestionView({
               <MathText text={question.answer} />
             </div>
           )}
-          <ShortAnswerCheck question={question} signature={signature} outputLanguage={outputLanguage} onFirstCheck={onFirstCheck} />
+          <ShortAnswerCheck question={question} signature={signature} outputLanguage={outputLanguage} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
         </div>
       )}
 
@@ -308,12 +344,18 @@ function QuestionView({
               <MathText text={question.answer} />
             </div>
           )}
-          <OpenEndedCheck question={question} signature={signature} outputLanguage={outputLanguage} onFirstCheck={onFirstCheck} />
+          <OpenEndedCheck question={question} signature={signature} outputLanguage={outputLanguage} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
         </div>
       )}
 
       {question.type === 'matching' && (
-        <MatchingColumns pairs={question.pairs} rightOrder={getRightOrder(question)} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
+        <MatchingColumns
+          pairs={question.pairs}
+          rightOrder={getRightOrder(question)}
+          showAnswers={showAnswers}
+          hints={getHints(question)}
+          onFirstCheck={onFirstCheck}
+        />
       )}
     </div>
   )
@@ -324,17 +366,26 @@ function QuestionEditForm({
   onChange,
   onSave,
   onCancel,
+  hintLeakError,
 }: {
   draft: QuizQuestion
   onChange: (question: QuizQuestion) => void
   onSave: () => void
   onCancel: () => void
+  hintLeakError: boolean
 }) {
   const { t } = useTranslation()
 
   const textareaClasses =
     'w-full resize-y rounded-xl border border-warm-border bg-card px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-solid'
   const inputClasses = 'w-full rounded-lg border border-warm-border bg-card px-3 py-1.5 text-sm text-ink'
+
+  const updateHint = (index: 0 | 1, value: string) => {
+    const hints = [...(draft.hints ?? ['', ''])]
+    while (hints.length < 2) hints.push('')
+    hints[index] = value.slice(0, MAX_HINT_CHARS)
+    onChange({ ...draft, hints })
+  }
 
   const updateOption = (index: number, value: string) => {
     if (draft.type !== 'mcq') return
@@ -507,6 +558,36 @@ function QuestionEditForm({
         placeholder={t('create.result.explanationLabel')}
         className={textareaClasses}
       />
+
+      <div className="space-y-2">
+        <div>
+          <label htmlFor={`hint1-${draft.id}`} className="text-xs font-semibold text-muted">
+            {t('create.question.hint1Label')}
+          </label>
+          <input
+            id={`hint1-${draft.id}`}
+            value={draft.hints?.[0] ?? ''}
+            onChange={(event) => updateHint(0, event.target.value)}
+            maxLength={MAX_HINT_CHARS}
+            placeholder={t('create.question.hint1Label')}
+            className={inputClasses}
+          />
+        </div>
+        <div>
+          <label htmlFor={`hint2-${draft.id}`} className="text-xs font-semibold text-muted">
+            {t('create.question.hint2Label')}
+          </label>
+          <input
+            id={`hint2-${draft.id}`}
+            value={draft.hints?.[1] ?? ''}
+            onChange={(event) => updateHint(1, event.target.value)}
+            maxLength={MAX_HINT_CHARS}
+            placeholder={t('create.question.hint2Label')}
+            className={inputClasses}
+          />
+        </div>
+        {hintLeakError && <p className="text-xs font-medium text-error">{t('create.question.hintLeakError')}</p>}
+      </div>
 
       <div className="flex items-center gap-2">
         <button

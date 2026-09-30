@@ -67,6 +67,7 @@ export default function ArchiveQuizPage() {
       onToggleStudyMode={handleToggleStudyMode}
       includeExplanations={entry.includeExplanations ?? true}
       shuffleOptions={entry.shuffleOptions ?? false}
+      includeHints={entry.includeHints ?? true}
     />
   )
 }

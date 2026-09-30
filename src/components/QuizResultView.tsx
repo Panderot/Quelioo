@@ -123,6 +123,7 @@ export default function QuizResultView({
   const [showAnswers, setShowAnswers] = useState(false)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
   const [practiceResults, setPracticeResults] = useState<Record<string, boolean>>({})
+  const [hintsUsed, setHintsUsed] = useState(0)
   const [resetSignal, setResetSignal] = useState(0)
 
   const timeEstimateLabel = useMemo(() => {
@@ -167,6 +168,7 @@ export default function QuizResultView({
 
   const handleTryAgain = () => {
     setPracticeResults({})
+    setHintsUsed(0)
     setResetSignal((value) => value + 1)
   }
 
@@ -313,16 +315,20 @@ export default function QuizResultView({
                 outputLanguage={meta.outputLanguage}
                 resetSignal={resetSignal}
                 onGraded={(correct) => setPracticeResults((current) => ({ ...current, [question.id]: correct }))}
+                onHintUsed={() => setHintsUsed((count) => count + 1)}
               />
             ))}
           </ul>
 
           {answeredCount === quiz.questions.length && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-warm-border bg-card p-5">
-              <p className="flex items-center gap-2 text-sm font-bold text-ink">
-                <CheckIcon className="h-4 w-4 text-success" />
-                {t('archive.practice.score', { correct: correctCount, total: quiz.questions.length })}
-              </p>
+              <div className="space-y-0.5">
+                <p className="flex items-center gap-2 text-sm font-bold text-ink">
+                  <CheckIcon className="h-4 w-4 text-success" />
+                  {t('archive.practice.score', { correct: correctCount, total: quiz.questions.length })}
+                </p>
+                {hintsUsed > 0 && <p className="text-xs text-muted">{t('archive.practice.hintsUsed', { count: hintsUsed })}</p>}
+              </div>
               <button
                 type="button"
                 onClick={handleTryAgain}

@@ -1,4 +1,4 @@
-import type { QuizQuestion } from './quiz'
+import type { QuizQuestion } from './quiz.js'
 
 /** Lenient local answer checking for fill-blanks and short-answer questions — normalizes both the
  * student's text and the correct answer(s) the same way, then allows a tiny typo tolerance, so a
@@ -72,7 +72,7 @@ export function isLenientMatch(studentAnswer: string, correctAnswers: string[]):
  * actually changes (edit, regenerate, replace), without resetting on unrelated re-renders. Two
  * questions with the same id but different correctness-relevant content produce different
  * signatures; unrelated field changes (e.g. explanation text) don't affect it. */
-export function answerSignature(question: QuizQuestion): string {
+function baseAnswerSignature(question: QuizQuestion): string {
   switch (question.type) {
     case 'mcq':
       return `mcq|${question.options.join('\u0000')}|${question.answerIndex}`
@@ -87,4 +87,11 @@ export function answerSignature(question: QuizQuestion): string {
     case 'matching':
       return `matching|${question.pairs.map((pair) => `${pair.left}\u0000${pair.right}`).join('\u0001')}|${(question.rightOrder ?? []).join(',')}`
   }
+}
+
+/** Same as baseAnswerSignature, plus the question's hints — so hint-reveal state (useHints) also
+ * resets whenever hints change (edit, regenerate, replace), the same triggers as the rest of the
+ * per-question check state built on this signature. */
+export function answerSignature(question: QuizQuestion): string {
+  return `${baseAnswerSignature(question)}|hints:${(question.hints ?? []).join('\u0000')}`
 }

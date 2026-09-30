@@ -19,6 +19,7 @@ export interface QuizDraft {
   optionsCount: string
   includeExplanations: boolean
   shuffleOptions: boolean
+  includeHints: boolean
   focusParts: FocusPart[]
 }
 
@@ -58,6 +59,7 @@ export function readDraft(): QuizDraft | null {
       optionsCount: typeof draft.optionsCount === 'string' ? draft.optionsCount : '4',
       includeExplanations: typeof draft.includeExplanations === 'boolean' ? draft.includeExplanations : true,
       shuffleOptions: typeof draft.shuffleOptions === 'boolean' ? draft.shuffleOptions : true,
+      includeHints: typeof draft.includeHints === 'boolean' ? draft.includeHints : true,
       focusParts: Array.isArray(draft.focusParts) ? draft.focusParts.filter(isFocusPart) : [],
     }
   } catch {

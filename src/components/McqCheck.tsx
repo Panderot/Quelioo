@@ -3,23 +3,29 @@ import { useTranslation } from 'react-i18next'
 import MathText from './MathText'
 import { ResultLiveRegion } from './AnswerBar'
 import type { CheckResultState } from './AnswerBar'
+import { HintBox, HintButton } from './HintControls'
 import { CheckIcon, CloseIcon } from './icons'
 import { useCheckableAnswer } from '../hooks/useCheckableAnswer'
+import { useHints } from '../hooks/useHints'
 
 interface McqCheckProps {
   options: string[]
   answerIndex: number
   signature: string
+  hints?: string[]
+  showAnswers?: boolean
   onFirstCheck?: () => void
   onGraded?: (correct: boolean) => void
+  onHintUsed?: () => void
 }
 
 /** Multiple choice, checkable and retryable: the student picks an option, checks it, and — if
  * wrong — may pick again and recheck, since the correct option is never revealed. Real radio
  * inputs (visually styled) give native arrow-key navigation between options for free. */
-export default function McqCheck({ options, answerIndex, signature, onFirstCheck, onGraded }: McqCheckProps) {
+export default function McqCheck({ options, answerIndex, signature, hints = [], showAnswers = false, onFirstCheck, onGraded, onHintUsed }: McqCheckProps) {
   const { t } = useTranslation()
   const state = useCheckableAnswer<number | null, CheckResultState>(signature, null)
+  const hintState = useHints(signature, hints.length)
 
   const selectOption = (index: number) => {
     state.setValue(index)
@@ -74,7 +80,16 @@ export default function McqCheck({ options, answerIndex, signature, onFirstCheck
         })}
       </div>
 
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <HintButton
+          hints={hints}
+          revealedCount={hintState.revealedCount}
+          onReveal={() => {
+            hintState.revealNext()
+            onHintUsed?.()
+          }}
+          hidden={showAnswers || state.result?.status === 'correct'}
+        />
         <button
           type="button"
           onClick={runCheck}
@@ -86,6 +101,8 @@ export default function McqCheck({ options, answerIndex, signature, onFirstCheck
           <CheckIcon className="h-4 w-4" />
         </button>
       </div>
+
+      <HintBox hints={hints} revealedCount={hintState.revealedCount} />
 
       <ResultLiveRegion result={state.result} />
     </div>

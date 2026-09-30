@@ -25,6 +25,7 @@ interface QuizWorkspaceProps {
   onToggleStudyMode?: () => void
   includeExplanations?: boolean
   shuffleOptions?: boolean
+  includeHints?: boolean
   focusSnippets?: string[]
 }
 
@@ -43,6 +44,7 @@ export default function QuizWorkspace({
   onToggleStudyMode,
   includeExplanations,
   shuffleOptions,
+  includeHints,
   focusSnippets,
 }: QuizWorkspaceProps) {
   const { t } = useTranslation()
@@ -58,6 +60,7 @@ export default function QuizWorkspace({
     onPersist,
     includeExplanations,
     shuffleOptions,
+    includeHints,
     focusSnippets,
   })
 
