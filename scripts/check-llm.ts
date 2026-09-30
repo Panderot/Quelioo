@@ -86,19 +86,18 @@ async function main(): Promise<void> {
     difficulty: 'medium',
     optionsCount: '4',
     outputLanguage: 'auto',
-    uiLanguage: 'tr',
   })
   const duration = Date.now() - start
+
+  if ('error' in body && body.error === 'not_configured') {
+    console.log(`provider=n/a fallbackUsed=n/a duration=${duration}ms status=SKIPPED (no ANTHROPIC_API_KEY or OPENAI_API_KEY configured)`)
+    return
+  }
 
   if (status !== 200 || 'error' in body) {
     const errorCode = 'error' in body ? body.error : 'unknown'
     console.log(`provider=n/a fallbackUsed=n/a validQuestions=0 duration=${duration}ms status=FAIL (${errorCode})`)
     process.exitCode = 1
-    return
-  }
-
-  if (body.provider === 'demo') {
-    console.log(`provider=demo fallbackUsed=false duration=${duration}ms status=SKIPPED (no ANTHROPIC_API_KEY or OPENAI_API_KEY configured)`)
     return
   }
 

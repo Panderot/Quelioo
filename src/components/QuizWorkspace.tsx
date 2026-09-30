@@ -12,13 +12,11 @@ interface ArchiveLink {
 
 interface QuizWorkspaceProps {
   initialQuiz: GeneratedQuiz
-  demo: boolean
   sourceText: string
   meta: QuizResultMeta
   difficulty: string
   optionsCount?: string
   outputLanguage: string
-  uiLanguage: string
   requestedCount: number
   incomplete: boolean
   onPersist: (quiz: GeneratedQuiz) => void
@@ -29,13 +27,11 @@ interface QuizWorkspaceProps {
 
 export default function QuizWorkspace({
   initialQuiz,
-  demo,
   sourceText,
   meta,
   difficulty,
   optionsCount,
   outputLanguage,
-  uiLanguage,
   requestedCount,
   incomplete,
   onPersist,
@@ -51,7 +47,6 @@ export default function QuizWorkspace({
     difficulty,
     optionsCount,
     outputLanguage,
-    uiLanguage,
     requestedCount,
     incomplete,
     onPersist,
@@ -61,7 +56,6 @@ export default function QuizWorkspace({
     <>
       <QuizResultView
         quiz={editor.quiz}
-        demo={demo}
         meta={meta}
         onTitleChange={editor.updateTitle}
         onQuestionUpdate={editor.updateQuestion}

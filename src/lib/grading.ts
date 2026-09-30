@@ -7,16 +7,6 @@ export type GradeErrorCode = 'empty' | 'too_long' | 'upstream' | 'parse' | 'not_
 
 export const MAX_STUDENT_ANSWER_CHARS = 1000
 
-export interface GradeRequestPayload {
-  type: GradeQuestionType
-  question: string
-  modelAnswer: string
-  keyPoints: string[]
-  evidence: string
-  studentAnswer: string
-  language: string
-}
-
 export interface GradeResponseBody {
   verdict: GradeVerdict
   feedback: string

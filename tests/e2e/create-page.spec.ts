@@ -123,7 +123,7 @@ test('edit, regenerate, delete and undo a question', async ({ page, mockGenerate
   })
 
   await test.step('regenerate replaces the question', async () => {
-    const regenerated = { question: { ...SAMPLE_QUIZ.questions[3], id: 'q-short-2', question: 'Name the coldest planet.' }, demo: false }
+    const regenerated = { question: { ...SAMPLE_QUIZ.questions[3], id: 'q-short-2', question: 'Name the coldest planet.' } }
     await page.route('**/api/generate', async (route) => {
       const body = route.request().postDataJSON()
       if (body?.mode === 'regenerate_one') {

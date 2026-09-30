@@ -92,10 +92,6 @@ async function extractPlainText(file: File): Promise<string> {
   }
 }
 
-export function isAcceptedFileName(fileName: string): boolean {
-  return ACCEPTED_EXTENSIONS.has(getExtension(fileName))
-}
-
 /**
  * Extracts text from an uploaded file entirely in the browser (never uploaded to a server).
  * Throws FileExtractionError with a code the UI maps to a localized message.

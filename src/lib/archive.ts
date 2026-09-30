@@ -10,21 +10,33 @@ export interface ArchiveEntry {
   questionCount: string
   optionsCount: string | null
   studyMode: boolean
-  /** Absent on entries created before real quiz generation shipped. */
   outputLanguage?: string
   sourceText?: string
-  quiz?: GeneratedQuiz
-  demo?: boolean
+  quiz: GeneratedQuiz
 }
 
 const STORAGE_KEY = 'quelio.archive.v1'
+
+function hasValidQuestions(entry: unknown): entry is ArchiveEntry {
+  if (typeof entry !== 'object' || entry === null) return false
+  const quiz = (entry as { quiz?: unknown }).quiz
+  return (
+    typeof quiz === 'object' &&
+    quiz !== null &&
+    Array.isArray((quiz as { questions?: unknown }).questions) &&
+    (quiz as { questions: unknown[] }).questions.length > 0
+  )
+}
 
 function readEntries(): ArchiveEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed: unknown = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as ArchiveEntry[]) : []
+    if (!Array.isArray(parsed)) return []
+    const valid = parsed.filter(hasValidQuestions)
+    if (valid.length !== parsed.length) writeEntries(valid) // migrate once: drop entries with no valid questions array
+    return valid
   } catch {
     return []
   }

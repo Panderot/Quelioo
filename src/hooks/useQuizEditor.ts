@@ -16,7 +16,6 @@ interface UseQuizEditorParams {
   difficulty: string
   optionsCount?: string
   outputLanguage: string
-  uiLanguage: string
   requestedCount: number
   incomplete: boolean
   onPersist: (quiz: GeneratedQuiz) => void
@@ -31,7 +30,6 @@ export function useQuizEditor({
   difficulty,
   optionsCount,
   outputLanguage,
-  uiLanguage,
   requestedCount,
   incomplete,
   onPersist,
@@ -122,7 +120,6 @@ export function useQuizEditor({
           difficulty,
           optionsCount,
           outputLanguage,
-          uiLanguage,
           avoidQuestions,
         })
         const latest = quizRef.current
@@ -133,7 +130,7 @@ export function useQuizEditor({
         setRegeneratingId(null)
       }
     },
-    [sourceText, difficulty, optionsCount, outputLanguage, uiLanguage, persist],
+    [sourceText, difficulty, optionsCount, outputLanguage, persist],
   )
 
   const topUp = useCallback(async () => {
@@ -150,7 +147,6 @@ export function useQuizEditor({
         difficulty,
         optionsCount,
         outputLanguage,
-        uiLanguage,
         avoidQuestions,
       })
       const latest = quizRef.current
@@ -161,7 +157,7 @@ export function useQuizEditor({
     } finally {
       setIsToppingUp(false)
     }
-  }, [missingCount, sourceText, questionType, difficulty, optionsCount, outputLanguage, uiLanguage, persist])
+  }, [missingCount, sourceText, questionType, difficulty, optionsCount, outputLanguage, persist])
 
   return {
     quiz,

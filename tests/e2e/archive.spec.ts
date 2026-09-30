@@ -14,7 +14,6 @@ const SEEDED_ENTRY = {
   outputLanguage: 'auto',
   sourceText: 'Seeded source text for the archived quiz.',
   quiz: { title: SAMPLE_QUIZ.title, questions: SAMPLE_QUIZ.questions },
-  demo: false,
 }
 
 test('seeded archive list renders and opening a quiz shows its content; direct load and refresh both work', async ({ page, seedArchive }) => {

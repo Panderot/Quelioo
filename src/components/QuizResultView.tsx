@@ -6,7 +6,6 @@ import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { getOutputLanguage } from '../data/outputLanguages'
 import { buildAnswerKeyLine, getRightOrder, letterFor } from '../lib/matching'
-import DemoBanner from './DemoBanner'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
 import { CheckIcon, PencilIcon } from './icons'
@@ -25,7 +24,6 @@ interface ArchiveLink {
 
 interface QuizResultViewProps {
   quiz: GeneratedQuiz
-  demo: boolean
   meta: QuizResultMeta
   onTitleChange: (title: string) => void
   onQuestionUpdate: (id: string, updater: (question: QuizQuestion) => QuizQuestion) => void
@@ -96,7 +94,6 @@ function buildQuizPlainText(
 
 export default function QuizResultView({
   quiz,
-  demo,
   meta,
   onTitleChange,
   onQuestionUpdate,
@@ -164,8 +161,6 @@ export default function QuizResultView({
 
   return (
     <section data-purpose="quiz-result" className="space-y-5">
-      {demo && <DemoBanner message={t('create.result.demoNotice')} />}
-
       <div className="space-y-3 rounded-[14px] border border-warm-border bg-card p-5 md:p-6" data-print-hide>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1.5">

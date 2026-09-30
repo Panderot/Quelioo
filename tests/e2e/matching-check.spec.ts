@@ -15,7 +15,6 @@ const SEEDED_ENTRY = {
   outputLanguage: 'auto',
   sourceText: 'Seeded source text for the archived quiz.',
   quiz: { title: SAMPLE_QUIZ.title, questions: SAMPLE_QUIZ.questions },
-  demo: false,
 }
 
 // The fixture's matching question has rightOrder [1,2,3,0], so the correct student answer

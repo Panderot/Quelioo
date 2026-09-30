@@ -19,7 +19,7 @@ export interface LlmCallParams {
 export type LlmResult =
   | { status: 'ok'; text: string; provider: LlmProvider; fallbackUsed: boolean }
   | { status: 'error'; error: LlmErrorCode }
-  | { status: 'demo' }
+  | { status: 'not_configured' }
 
 interface ProviderFailure {
   error: LlmErrorCode
@@ -150,7 +150,7 @@ const CALLERS: Record<LlmProvider, (params: LlmCallParams) => Promise<ProviderOu
 
 /**
  * Tries each provider in order (env-decided, at most two), falling back on any failure.
- * Resolves to 'demo' when no provider has a key configured. Never throws.
+ * Resolves to 'not_configured' when no provider has a key configured. Never throws.
  *
  * Logs exactly one line per request: provider, fallbackUsed, duration, and on failure the
  * internal error tag plus the upstream HTTP status and the provider's own error.type/error.code
@@ -190,8 +190,8 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
 
   const duration = Date.now() - start
   if (attempts === 0) {
-    console.log(`llm: provider=demo fallbackUsed=false duration=${duration}ms error=none`)
-    return { status: 'demo' }
+    console.log(`llm: provider=none fallbackUsed=false duration=${duration}ms error=not_configured`)
+    return { status: 'not_configured' }
   }
 
   console.log(

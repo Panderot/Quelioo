@@ -34,7 +34,6 @@ interface CreatePageLocationState {
 interface GeneratedResult {
   entryId: string
   quiz: GeneratedQuiz
-  demo: boolean
   sourceText: string
   difficulty: string
   optionsCount?: string
@@ -66,7 +65,7 @@ const EMPTY_URL_STATE: UrlTabState = {
 }
 
 export default function CreatePage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
   const prefillText = (location.state as CreatePageLocationState | null)?.prefillText
@@ -262,7 +261,6 @@ export default function CreatePage() {
     const avoidQuestions = lastGenerationRef.current?.key === generationKey ? lastGenerationRef.current.questions : []
 
     try {
-      const uiLanguage = i18n.language
       const generated = await generateQuiz(
         {
           text: activeContent,
@@ -271,7 +269,6 @@ export default function CreatePage() {
           difficulty,
           optionsCount: needsOptionsCount ? optionsCount : undefined,
           outputLanguage,
-          uiLanguage,
           avoidQuestions,
         },
         controller.signal,
@@ -295,14 +292,12 @@ export default function CreatePage() {
         outputLanguage,
         sourceText: activeContent,
         quiz: { title: generated.title, questions: generated.questions },
-        demo: generated.demo,
         studyMode: false,
       })
 
       setResult({
         entryId: id,
         quiz: { title: generated.title, questions: generated.questions },
-        demo: generated.demo,
         sourceText: activeContent,
         difficulty,
         optionsCount: needsOptionsCount ? optionsCount : undefined,
@@ -389,7 +384,6 @@ export default function CreatePage() {
           <QuizWorkspace
             key={result.entryId}
             initialQuiz={result.quiz}
-            demo={result.demo}
             sourceText={result.sourceText}
             meta={{
               questionCount: result.quiz.questions.length,
@@ -400,7 +394,6 @@ export default function CreatePage() {
             difficulty={result.difficulty}
             optionsCount={result.optionsCount}
             outputLanguage={result.outputLanguage}
-            uiLanguage={i18n.language}
             requestedCount={result.requestedCount}
             incomplete={result.incomplete}
             onPersist={(quiz) => persistEntry(result.entryId, quiz)}

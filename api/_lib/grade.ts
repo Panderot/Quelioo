@@ -129,7 +129,7 @@ export async function handleGradeRequest(payload: unknown): Promise<{ status: nu
     return { status: 502, body: { error: 'upstream' } }
   }
 
-  if (result.status === 'demo') {
+  if (result.status === 'not_configured') {
     return { status: errorStatus('not_configured'), body: { error: 'not_configured' } }
   }
   if (result.status === 'error') {

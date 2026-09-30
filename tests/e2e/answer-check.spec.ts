@@ -15,7 +15,6 @@ const SEEDED_ENTRY = {
   outputLanguage: 'auto',
   sourceText: 'Seeded source text for the archived quiz.',
   quiz: { title: SAMPLE_QUIZ.title, questions: SAMPLE_QUIZ.questions },
-  demo: false,
 }
 
 async function openQuiz(page: import('@playwright/test').Page, lng = 'en') {

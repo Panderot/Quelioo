@@ -122,8 +122,6 @@
   "cta": {
     "generate": "Generate Quiz",
     "generating": "Generating your quiz...",
-    "disabledHint": "Add content to generate",
-    "success": "Quiz saved to your archive.",
     "viewInArchive": "View in Archive"
   },
   "archive": {
@@ -139,8 +137,7 @@
     "detail": {
       "notFoundTitle": "Quiz not found",
       "notFoundBody": "This quiz may have been deleted.",
-      "backToArchive": "Back to Archive",
-      "legacyBody": "This quiz was created before questions were saved. Create a new one to see the full result."
+      "backToArchive": "Back to Archive"
     },
     "practice": {
       "score": "{{correct}} / {{total}} correct",
@@ -157,10 +154,10 @@
       "upstream": "Something went wrong generating your quiz. Please try again.",
       "parse": "Quelio couldn't read a valid quiz this time. Please try again.",
       "network": "Couldn't connect. Check your connection and try again.",
+      "not_configured": "Quiz generation is temporarily unavailable. Please try again shortly.",
       "retry": "Try again"
     },
     "result": {
-      "demoNotice": "Demo mode: these are sample questions.",
       "titleEditLabel": "Edit title",
       "showAnswers": "Show answers",
       "copy": "Copy",

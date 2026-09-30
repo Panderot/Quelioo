@@ -31,13 +31,11 @@ test('one real generation from a short Turkish paragraph returns 3 valid, ground
       difficulty: 'medium',
       optionsCount: '4',
       outputLanguage: 'auto',
-      uiLanguage: 'tr',
     },
   })
   expect(response.ok()).toBeTruthy()
   const body = await response.json()
 
-  expect(body.demo).toBe(false)
   expect(Array.isArray(body.questions)).toBe(true)
   expect(body.questions).toHaveLength(3)
   for (const question of body.questions) {

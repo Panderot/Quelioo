@@ -14,16 +14,14 @@ import { pickRandomAngles, randomVariationSeed } from '../../src/lib/questionAng
 import { neutralizeSourceTextTags, sanitizeSourceText } from '../../src/lib/sanitizeText.js'
 import { computeDerangement } from '../../src/lib/matching.js'
 
-export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model'
-export type ResponseProvider = LlmProvider | 'demo'
+export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model' | 'not_configured'
 
 export interface GenerateApiErrorBody {
   error: GenerateErrorCode
 }
 
 export interface GenerateQuizResponseBody extends GeneratedQuiz {
-  demo: boolean
-  provider: ResponseProvider
+  provider: LlmProvider
   fallbackUsed: boolean
   requestedCount: number
   incomplete: boolean
@@ -31,15 +29,13 @@ export interface GenerateQuizResponseBody extends GeneratedQuiz {
 
 export interface RegenerateOneResponseBody {
   question: QuizQuestion
-  demo: boolean
-  provider: ResponseProvider
+  provider: LlmProvider
   fallbackUsed: boolean
 }
 
 export interface TopUpResponseBody {
   questions: QuizQuestion[]
-  demo: boolean
-  provider: ResponseProvider
+  provider: LlmProvider
   fallbackUsed: boolean
 }
 
@@ -48,7 +44,6 @@ export type GenerateResponseBody = GenerateQuizResponseBody | RegenerateOneRespo
 const MAX_REQUEST_BYTES = 512 * 1024
 const DIFFICULTIES = new Set(['easy', 'medium', 'hard'])
 const OPTIONS_COUNTS = new Set(['2', '3', '4', '5'])
-const UI_LANGUAGES = new Set(['en', 'tr', 'hyw'])
 const GENERATE_QUESTION_TYPES = new Set<string>(QUESTION_TYPES.map((type) => type.value))
 const CONCRETE_QUESTION_TYPES = new Set<string>(QUESTION_TYPES.map((type) => type.value).filter((value) => value !== 'mixed'))
 const MAX_BATCH_SIZE = 10
@@ -243,7 +238,6 @@ function repairQuestion(question: QuizQuestion, optionsCount: string | undefined
 type BatchOutcome =
   | { questions: QuizQuestion[]; title: string; provider: LlmProvider; fallbackUsed: boolean }
   | { error: GenerateErrorCode }
-  | { demo: true }
 
 async function callGenerateBatch(params: {
   text: string
@@ -265,7 +259,7 @@ async function callGenerateBatch(params: {
     maxTokens: maxTokensForGenerate(params.questionCount, params.questionType),
   })
 
-  if (result.status === 'demo') return { demo: true }
+  if (result.status === 'not_configured') return { error: 'not_configured' }
   if (result.status === 'error') return { error: result.error }
 
   const parsedJson = extractJson(result.text)
@@ -289,7 +283,7 @@ interface GenerateOutcomeSuccess {
   incomplete: boolean
 }
 
-type GenerateOutcome = GenerateOutcomeSuccess | { error: GenerateErrorCode } | { demo: true }
+type GenerateOutcome = GenerateOutcomeSuccess | { error: GenerateErrorCode }
 
 /** Generates exactly `questionCount` questions, batching into parallel calls of at most 10,
  * merging + deduplicating the results, and topping up any shortfall (from failed batches,
@@ -308,7 +302,6 @@ async function callGenerate(params: {
 
   const successes = batchResults.filter((result): result is Extract<BatchOutcome, { questions: QuizQuestion[] }> => 'questions' in result)
   if (successes.length === 0) {
-    if (batchResults.some((result) => 'demo' in result)) return { demo: true }
     const failure = batchResults.find((result): result is { error: GenerateErrorCode } => 'error' in result)
     return failure ?? { error: 'upstream' }
   }
@@ -330,7 +323,7 @@ async function callGenerate(params: {
       outputLanguage: params.outputLanguage,
       avoidQuestions: avoidForTopUp,
     })
-    if ('demo' in topUp) break // no provider key at all — retrying won't help
+    if ('error' in topUp && topUp.error === 'not_configured') break // no provider key at all — retrying won't help
     if ('error' in topUp) continue // transient provider hiccup — try the next round instead of giving up
     questions = dedupeQuestions([...questions, ...topUp.questions])
     provider = topUp.provider
@@ -359,7 +352,7 @@ async function callTopUp(params: {
   optionsCount?: string
   outputLanguage: string
   avoidQuestions: string[]
-}): Promise<{ questions: QuizQuestion[]; provider: LlmProvider; fallbackUsed: boolean } | { error: GenerateErrorCode } | { demo: true }> {
+}): Promise<{ questions: QuizQuestion[]; provider: LlmProvider; fallbackUsed: boolean } | { error: GenerateErrorCode }> {
   const result = await callGenerateBatch({
     text: params.text,
     questionType: params.questionType,
@@ -373,7 +366,7 @@ async function callTopUp(params: {
   return { questions: renumberQuestions(dedupeQuestions(result.questions)), provider: result.provider, fallbackUsed: result.fallbackUsed }
 }
 
-type ProviderOutcome<T> = (T & { provider: LlmProvider; fallbackUsed: boolean }) | { error: GenerateErrorCode } | { demo: true }
+type ProviderOutcome<T> = (T & { provider: LlmProvider; fallbackUsed: boolean }) | { error: GenerateErrorCode }
 
 async function callRegenerateOne(params: {
   text: string
@@ -388,7 +381,7 @@ async function callRegenerateOne(params: {
 
   const result = await generateJson({ system, user: userMessage, maxTokens: 700 })
 
-  if (result.status === 'demo') return { demo: true }
+  if (result.status === 'not_configured') return { error: 'not_configured' }
   if (result.status === 'error') return { error: result.error }
 
   const parsedJson = extractJson(result.text)
@@ -405,204 +398,14 @@ async function callRegenerateOne(params: {
   return { question, provider: result.provider, fallbackUsed: result.fallbackUsed }
 }
 
-// ---- Demo content (no ANTHROPIC_API_KEY configured) ----
-
-interface DemoQuestionTemplate {
-  type: QuizQuestionType
-  question: string
-  explanation: string
-  options?: string[]
-  answerIndex?: number
-  answerBool?: boolean
-  answer?: string
-  acceptableAnswers?: string[]
-  evidence?: string
-  keyPoints?: string[]
-  pairs?: { left: string; right: string }[]
-}
-
-const DEMO_TITLES: Record<string, string> = {
-  en: 'The Water Cycle',
-  tr: 'Su Döngüsü',
-  hyw: 'Ջրային ցիկլը',
-}
-
-const DEMO_TEMPLATES: Record<string, Record<QuizQuestionType, DemoQuestionTemplate>> = {
-  en: {
-    mcq: {
-      type: 'mcq',
-      question: 'Which process is the direct result of water vapor cooling and turning into liquid droplets in the sky?',
-      options: ['Evaporation', 'Condensation', 'Precipitation', 'Collection'],
-      answerIndex: 1,
-      explanation: 'Condensation is when water vapor cools and changes back into liquid droplets, forming clouds.',
-    },
-    'true-false': {
-      type: 'true-false',
-      question: 'Precipitation only occurs as rain.',
-      answerBool: false,
-      explanation: 'Precipitation can fall as rain, snow, sleet, or hail, depending on temperature.',
-    },
-    'fill-blanks': {
-      type: 'fill-blanks',
-      question: "The sun's heat causes water to change into vapor through a process called ______.",
-      answer: 'evaporation',
-      acceptableAnswers: ['vaporization'],
-      explanation: 'Evaporation is the process where liquid water is heated and turns into water vapor.',
-    },
-    'short-answer': {
-      type: 'short-answer',
-      question: 'Name the stage of the water cycle where water flows into rivers, lakes and oceans.',
-      answer: 'Collection (or runoff)',
-      acceptableAnswers: ['Runoff', 'Collection'],
-      evidence: 'Water gathers in rivers, lakes and oceans after precipitation falls back to Earth.',
-      explanation: 'Collection is when water gathers in bodies like rivers, lakes, and oceans after precipitation.',
-    },
-    matching: {
-      type: 'matching',
-      question: 'Match each water cycle stage to its description.',
-      pairs: [
-        { left: 'Evaporation', right: 'Liquid water turns into vapor' },
-        { left: 'Condensation', right: 'Vapor cools into droplets' },
-        { left: 'Precipitation', right: 'Water falls back to Earth' },
-        { left: 'Collection', right: 'Water gathers in rivers and oceans' },
-      ],
-      explanation: 'Each stage of the water cycle transforms water between its liquid, vapor, and falling forms.',
-    },
-    'open-ended': {
-      type: 'open-ended',
-      question: 'Explain why the water cycle is important for life on Earth.',
-      answer:
-        'It continuously renews fresh water supplies, supports weather patterns, and sustains ecosystems and agriculture.',
-      keyPoints: ['Renews fresh water supplies', 'Supports weather patterns', 'Sustains ecosystems and agriculture'],
-      evidence: 'The water cycle continuously moves water between the atmosphere, land, and oceans, sustaining ecosystems.',
-      explanation: 'A strong answer should mention water renewal, weather, and support for living things.',
-    },
-  },
-  tr: {
-    mcq: {
-      type: 'mcq',
-      question: 'Gökyüzünde su buharının soğuyup sıvı damlacıklara dönüşmesinin doğrudan sonucu olan süreç hangisidir?',
-      options: ['Buharlaşma', 'Yoğuşma', 'Yağış', 'Toplanma'],
-      answerIndex: 1,
-      explanation: 'Yoğuşma, su buharının soğuyup tekrar sıvı damlacıklara dönüşerek bulutları oluşturmasıdır.',
-    },
-    'true-false': {
-      type: 'true-false',
-      question: 'Yağış yalnızca yağmur şeklinde gerçekleşir.',
-      answerBool: false,
-      explanation: 'Yağış, sıcaklığa bağlı olarak yağmur, kar, sulu kar veya dolu şeklinde düşebilir.',
-    },
-    'fill-blanks': {
-      type: 'fill-blanks',
-      question: 'Güneşin ısısı, suyun buhara dönüşmesine neden olur; bu sürece ______ denir.',
-      answer: 'buharlaşma',
-      acceptableAnswers: ['buharlaşması'],
-      explanation: 'Buharlaşma, sıvı suyun ısınıp su buharına dönüştüğü süreçtir.',
-    },
-    'short-answer': {
-      type: 'short-answer',
-      question: 'Su döngüsünün, suyun nehirlere, göllere ve okyanuslara aktığı aşamasının adını verin.',
-      answer: 'Toplanma (ya da yüzey akışı)',
-      acceptableAnswers: ['Yüzey akışı', 'Toplanma'],
-      evidence: 'Yağıştan sonra su nehirlerde, göllerde ve okyanuslarda birikir.',
-      explanation: 'Toplanma, yağıştan sonra suyun nehir, göl ve okyanus gibi su kütlelerinde birikmesidir.',
-    },
-    matching: {
-      type: 'matching',
-      question: 'Her su döngüsü aşamasını tanımıyla eşleştirin.',
-      pairs: [
-        { left: 'Buharlaşma', right: 'Sıvı su buhara dönüşür' },
-        { left: 'Yoğuşma', right: 'Buhar soğuyup damlacıklara dönüşür' },
-        { left: 'Yağış', right: 'Su tekrar yeryüzüne düşer' },
-        { left: 'Toplanma', right: 'Su nehir ve okyanuslarda birikir' },
-      ],
-      explanation: 'Su döngüsünün her aşaması, suyu sıvı, buhar ve düşen su hâlleri arasında dönüştürür.',
-    },
-    'open-ended': {
-      type: 'open-ended',
-      question: "Su döngüsünün Dünya'daki yaşam için neden önemli olduğunu açıklayın.",
-      answer: 'Tatlı su kaynaklarını sürekli yeniler, hava olaylarını destekler, ekosistemleri ve tarımı sürdürür.',
-      keyPoints: ['Tatlı su kaynaklarını yeniler', 'Hava olaylarını destekler', 'Ekosistemleri ve tarımı sürdürür'],
-      evidence: 'Su döngüsü, suyu atmosfer, kara ve okyanuslar arasında sürekli hareket ettirerek ekosistemleri besler.',
-      explanation: 'İyi bir cevap suyun yenilenmesinden, hava olaylarından ve canlıların desteklenmesinden söz etmelidir.',
-    },
-  },
-  hyw: {
-    mcq: {
-      type: 'mcq',
-      question: 'Որ՞ գործընթացն է ջրային գոլորշիին երկինքի մէջ սառելուն եւ հեղուկ կաթիլներու վերածուելուն ուղղակի հետեւանքը։',
-      options: ['Գոլորշիացում', 'Խտացում', 'Տեղումներ', 'Հաւաքում'],
-      answerIndex: 1,
-      explanation: 'Խտացումը այն է, երբ ջրային գոլորշին կը սառի եւ կրկին հեղուկ կաթիլներու կը վերածուի՝ ամպեր կազմելով։',
-    },
-    'true-false': {
-      type: 'true-false',
-      question: 'Տեղումները միայն անձրեւի ձեւով կ՚ըլլան։',
-      answerBool: false,
-      explanation: 'Տեղումները կրնան ըլլալ անձրեւ, ձիւն, կարկուտ կամ սառնամանիք՝ ջերմաստիճանէն կախեալ։',
-    },
-    'fill-blanks': {
-      type: 'fill-blanks',
-      question: 'Արեւուն ջերմութիւնը ջուրը գոլորշիի կը վերածէ՝ գործընթաց մը որ կը կոչուի ______։',
-      answer: 'գոլորշիացում',
-      acceptableAnswers: ['գոլորշիացումը'],
-      explanation: 'Գոլորշիացումը այն գործընթացն է, ուր հեղուկ ջուրը կը տաքնայ եւ ջրային գոլորշիի կը վերածուի։',
-    },
-    'short-answer': {
-      type: 'short-answer',
-      question: 'Անուանէ ջրային ցիկլին այն փուլը՝ ուր ջուրը կը հոսի գետեր, լիճեր ու ովկիաններ։',
-      answer: 'Հաւաքում (կամ հոսք)',
-      acceptableAnswers: ['Հոսք', 'Հաւաքում'],
-      evidence: 'Տեղումներէն ետք ջուրը կը հաւաքուի գետերու, լիճերու ու ովկիաններու մէջ։',
-      explanation: 'Հաւաքումը այն է, երբ ջուրը կը հաւաքուի գետերու, լիճերու ու ովկիաններու մէջ՝ տեղումներէն ետք։',
-    },
-    matching: {
-      type: 'matching',
-      question: 'Զուգակցէ ջրային ցիկլի իւրաքանչիւր փուլը իր բացատրութեան հետ։',
-      pairs: [
-        { left: 'Գոլորշիացում', right: 'Հեղուկ ջուրը կը վերածուի գոլորշիի' },
-        { left: 'Խտացում', right: 'Գոլորշին կը սառի ու կաթիլներու կը վերածուի' },
-        { left: 'Տեղումներ', right: 'Ջուրը կրկին կ՚իյնայ երկիր' },
-        { left: 'Հաւաքում', right: 'Ջուրը կը հաւաքուի գետերու ու ովկիաններու մէջ' },
-      ],
-      explanation: 'Ջրային ցիկլի իւրաքանչիւր փուլը ջուրը կը փոխակերպէ իր հեղուկ, գոլորշի եւ իյնալու ձեւերուն միջեւ։',
-    },
-    'open-ended': {
-      type: 'open-ended',
-      question: 'Բացատրէ թէ ինչո՛ւ ջրային ցիկլը կարեւոր է երկրի վրայ կեանքին համար։',
-      answer:
-        'Ան մշտապէս կը նորոգէ քաղցրահամ ջրի պաշարները, կ՚ազդէ եղանակային երեւոյթներուն վրայ, ու կը սատարէ էկոհամակարգերուն եւ գիւղատնտեսութեան։',
-      keyPoints: ['Կը նորոգէ քաղցրահամ ջրի պաշարները', 'Կ՚ազդէ եղանակային երեւոյթներուն վրայ', 'Կը սատարէ էկոհամակարգերուն եւ գիւղատնտեսութեան'],
-      evidence: 'Ջրային ցիկլը մշտապէս ջուրը կը հոսեցնէ մթնոլորտին, ցամաքին ու ովկիաններուն միջեւ՝ սատարելով էկոհամակարգերուն։',
-      explanation: 'Լաւ պատասխան մը պէտք է նշէ ջրի նորոգումը, եղանակը, ու կենդանի էակներուն աջակցութիւնը։',
-    },
-  },
-}
-
-const CONCRETE_TYPE_ORDER: QuizQuestionType[] = ['mcq', 'true-false', 'fill-blanks', 'short-answer', 'matching', 'open-ended']
-
-function buildDemoQuestion(type: QuizQuestionType, uiLanguage: string, seed: number): QuizQuestion {
-  const templates = DEMO_TEMPLATES[uiLanguage] ?? DEMO_TEMPLATES.en
-  const template = templates[type]
-  return { ...template, id: `demo_${type}_${seed}` } as QuizQuestion
-}
-
-function buildDemoQuiz(questionType: QuestionType, questionCount: number, uiLanguage: string): GeneratedQuiz {
-  const title = DEMO_TITLES[uiLanguage] ?? DEMO_TITLES.en
-  const typesToUse = questionType === 'mixed' ? CONCRETE_TYPE_ORDER : [questionType as QuizQuestionType]
-  const questions: QuizQuestion[] = []
-  for (let index = 0; index < questionCount; index++) {
-    questions.push(buildDemoQuestion(typesToUse[index % typesToUse.length], uiLanguage, index))
-  }
-  return { title, questions }
-}
-
 function errorStatus(code: GenerateErrorCode): number {
   switch (code) {
     case 'too_short':
     case 'too_long':
     case 'not_supported':
       return 400
+    case 'not_configured':
+      return 503
     case 'upstream':
     case 'parse':
     case 'model':
@@ -663,7 +466,6 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
 
   const outputLanguage =
     typeof payload.outputLanguage === 'string' && OUTPUT_LANGUAGE_CODES.has(payload.outputLanguage) ? payload.outputLanguage : 'auto'
-  const uiLanguage = typeof payload.uiLanguage === 'string' && UI_LANGUAGES.has(payload.uiLanguage) ? payload.uiLanguage : 'en'
   const avoidQuestions = parseAvoidQuestions(payload.avoidQuestions)
 
   if (mode === 'regenerate_one') {
@@ -682,18 +484,12 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
       result = { error: 'upstream' }
     }
 
-    if ('demo' in result) {
-      return {
-        status: 200,
-        body: { question: buildDemoQuestion(questionType as QuizQuestionType, uiLanguage, Date.now()), demo: true, provider: 'demo', fallbackUsed: false },
-      }
-    }
     if ('error' in result) {
       return { status: errorStatus(result.error), body: { error: result.error } }
     }
     return {
       status: 200,
-      body: { question: result.question, demo: false, provider: result.provider, fallbackUsed: result.fallbackUsed },
+      body: { question: result.question, provider: result.provider, fallbackUsed: result.fallbackUsed },
     }
   }
 
@@ -719,16 +515,10 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
       result = { error: 'upstream' }
     }
 
-    if ('demo' in result) {
-      const questions = Array.from({ length: questionCountParsed }, (_, index) =>
-        buildDemoQuestion((questionType === 'mixed' ? CONCRETE_TYPE_ORDER : [questionType as QuizQuestionType])[index % (questionType === 'mixed' ? CONCRETE_TYPE_ORDER.length : 1)], uiLanguage, Date.now() + index),
-      )
-      return { status: 200, body: { questions, demo: true, provider: 'demo', fallbackUsed: false } }
-    }
     if ('error' in result) {
       return { status: errorStatus(result.error), body: { error: result.error } }
     }
-    return { status: 200, body: { questions: result.questions, demo: false, provider: result.provider, fallbackUsed: result.fallbackUsed } }
+    return { status: 200, body: { questions: result.questions, provider: result.provider, fallbackUsed: result.fallbackUsed } }
   }
 
   let result: Awaited<ReturnType<typeof callGenerate>>
@@ -747,19 +537,6 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
     result = { error: 'upstream' }
   }
 
-  if ('demo' in result) {
-    return {
-      status: 200,
-      body: {
-        ...buildDemoQuiz(questionType, questionCountParsed, uiLanguage),
-        demo: true,
-        provider: 'demo',
-        fallbackUsed: false,
-        requestedCount: questionCountParsed,
-        incomplete: false,
-      },
-    }
-  }
   if ('error' in result) {
     return { status: errorStatus(result.error), body: { error: result.error } }
   }
@@ -767,7 +544,6 @@ export async function handleGenerateRequest(payload: unknown): Promise<{ status:
     status: 200,
     body: {
       ...result.quiz,
-      demo: false,
       provider: result.provider,
       fallbackUsed: result.fallbackUsed,
       requestedCount: result.requestedCount,

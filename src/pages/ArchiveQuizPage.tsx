@@ -9,7 +9,7 @@ import QuizWorkspace from '../components/QuizWorkspace'
 import { ArchiveIcon } from '../components/icons'
 
 export default function ArchiveQuizPage() {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const [entry, setEntry] = useState<ArchiveEntry | undefined>(() => (id ? getArchiveEntry(id) : undefined))
 
@@ -34,27 +34,6 @@ export default function ArchiveQuizPage() {
     )
   }
 
-  if (!entry.quiz) {
-    return (
-      <div
-        data-purpose="archive-quiz-legacy"
-        className="flex flex-col items-center gap-3 rounded-[14px] border border-warm-border bg-card p-10 text-center"
-      >
-        <ArchiveIcon className="h-8 w-8 text-muted" />
-        <div>
-          <p className="text-sm font-semibold text-ink">{entry.title}</p>
-          <p className="mt-1 text-xs text-muted">{t('archive.detail.legacyBody')}</p>
-        </div>
-        <Link
-          to="/"
-          className="mt-1 rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
-        >
-          {t('archive.empty.cta')}
-        </Link>
-      </div>
-    )
-  }
-
   const handlePersist = (quiz: GeneratedQuiz) => {
     const updated = updateArchiveEntry(entry.id, (current) => ({ ...current, title: quiz.title, quiz }))
     if (updated) setEntry(updated)
@@ -70,7 +49,6 @@ export default function ArchiveQuizPage() {
     <QuizWorkspace
       key={entry.id}
       initialQuiz={entry.quiz}
-      demo={entry.demo ?? false}
       sourceText={entry.sourceText ?? ''}
       meta={{
         questionCount: entry.quiz.questions.length,
@@ -81,7 +59,6 @@ export default function ArchiveQuizPage() {
       difficulty={entry.difficulty}
       optionsCount={entry.optionsCount ?? undefined}
       outputLanguage={entry.outputLanguage ?? 'auto'}
-      uiLanguage={i18n.language}
       requestedCount={entry.quiz.questions.length}
       incomplete={false}
       onPersist={handlePersist}

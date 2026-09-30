@@ -122,8 +122,6 @@
   "cta": {
     "generate": "Quiz Oluştur",
     "generating": "Quiziniz oluşturuluyor...",
-    "disabledHint": "Oluşturmak için içerik ekleyin",
-    "success": "Quiz arşivine kaydedildi.",
     "viewInArchive": "Arşivde Görüntüle"
   },
   "archive": {
@@ -139,8 +137,7 @@
     "detail": {
       "notFoundTitle": "Quiz bulunamadı",
       "notFoundBody": "Bu quiz silinmiş olabilir.",
-      "backToArchive": "Arşive dön",
-      "legacyBody": "Bu quiz, sorular kaydedilmeden önce oluşturulmuş. Tam sonucu görmek için yeni bir tane oluştur."
+      "backToArchive": "Arşive dön"
     },
     "practice": {
       "score": "{{correct}} / {{total}} doğru",
@@ -157,10 +154,10 @@
       "upstream": "Quizini oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
       "parse": "Quelio bu sefer geçerli bir quiz okuyamadı. Lütfen tekrar dene.",
       "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
+      "not_configured": "Quiz oluşturma şu anda geçici olarak kullanılamıyor. Lütfen kısa süre sonra tekrar dene.",
       "retry": "Tekrar dene"
     },
     "result": {
-      "demoNotice": "Demo mod: bunlar örnek sorulardır.",
       "titleEditLabel": "Başlığı düzenle",
       "showAnswers": "Cevapları göster",
       "copy": "Kopyala",

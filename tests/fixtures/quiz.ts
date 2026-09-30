@@ -4,7 +4,6 @@
  */
 export const SAMPLE_QUIZ = {
   title: 'Sample Quiz',
-  demo: false,
   provider: 'openai' as const,
   fallbackUsed: false,
   requestedCount: 6,
