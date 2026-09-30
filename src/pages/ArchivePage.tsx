@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { getArchiveEntries, setArchiveEntryStudyMode } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
+import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
+import type { EstimateDifficulty } from '../lib/estimateTime'
 import { ArchiveIcon } from '../components/icons'
 
 function formatCreatedAt(iso: string, locale: string): string {
@@ -58,11 +60,15 @@ export default function ArchivePage() {
           {entries.map((entry) => {
             const typeLabelKey = QUESTION_TYPE_LABEL_KEYS[entry.questionType] ?? entry.questionType
             const difficultyLabelKey = `params.difficulty.${entry.difficulty}`
+            const totalSeconds = computeQuizTotalSeconds(entry.quiz.questions, (entry.difficulty as EstimateDifficulty) ?? 'medium')
+            const { underAMinute, minutes } = secondsToDisplayMinutes(totalSeconds)
+            const timeLabel = underAMinute ? t('create.result.timeUnderMinute') : t('create.result.timeTotal', { minutes })
             const meta = [
               t('params.questionCount.value', { count: entry.questionCount }),
               t(typeLabelKey),
               t(difficultyLabelKey),
               ...(entry.optionsCount ? [t('params.optionsCount.value', { count: entry.optionsCount })] : []),
+              timeLabel,
             ].join(' • ')
 
             return (

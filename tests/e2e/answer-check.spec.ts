@@ -346,6 +346,9 @@ test('@mobile open-ended field and result are usable at 390px', async ({ page, m
 test('keyboard-only: arrow keys move between mcq options, Tab reaches the check button, Enter checks', async ({ page, mockGenerate }) => {
   await mockGenerate(SAMPLE_QUIZ)
   await openQuiz(page)
+  // Shuffle options defaults ON — turn it off so the mcq option order (and this test's
+  // position-based ArrowDown navigation) matches SAMPLE_QUIZ's own fixed order deterministically.
+  await page.getByRole('switch', { name: 'Shuffle options' }).click()
   await page.getByRole('button', { name: 'Generate Quiz' }).click()
   const card = cardByText(page, 'photosynthesis')
 

@@ -194,7 +194,9 @@ test('settings dropdowns list every option and MCQ options count enables only fo
   await chooseOption(page, 'Question Type', 'True or False')
   await expect(optionsCountTrigger).toBeDisabled()
   await expect(optionsCountTrigger).toHaveAttribute('aria-disabled', 'true')
-  await expect(page.getByText('Only for multiple choice and mixed')).toBeVisible()
+  // Both MCQ Options Count and Shuffle options show this same disabled hint when the type doesn't
+  // support them — assert at least one rather than a single unique match.
+  await expect(page.getByText('Only for multiple choice and mixed').first()).toBeVisible()
 
   await chooseOption(page, 'Question Type', 'Mixed')
   await expect(optionsCountTrigger).toBeEnabled()

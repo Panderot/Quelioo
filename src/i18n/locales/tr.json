@@ -36,6 +36,13 @@
       "searchPlaceholder": "Dil ara...",
       "noResults": "Dil bulunamadı"
     },
+    "focus": {
+      "markSelection": "Odak olarak işaretle",
+      "limitReached": "En fazla {{max}} bölüm işaretleyebilirsin.",
+      "removedByEdit": "Metin değiştiği için bir odak bölümü kaldırıldı.",
+      "chipsLabel": "Odak bölümleri",
+      "removeChip": "Odak bölümünü kaldır"
+    },
     "tabs": {
       "text": "Metin",
       "file": "Dosya",
@@ -92,6 +99,19 @@
   },
   "params": {
     "eyebrow": "Quiz Ayarları",
+    "title": {
+      "label": "Quiz başlığı (isteğe bağlı)",
+      "placeholder": "Örn. Fotosentez - 1. Ünite"
+    },
+    "explanations": {
+      "label": "Cevap açıklaması",
+      "helper": "Her cevabın neden doğru olduğunu açıklar"
+    },
+    "shuffle": {
+      "label": "Şıkları karıştır",
+      "helper": "Doğru cevap hep aynı yerde olmaz",
+      "disabledHint": "Sadece çoktan seçmeli ve karışık için"
+    },
     "questionType": {
       "label": "Soru Türü",
       "mcq": "Çoktan Seçmeli (MCQ)",
@@ -145,6 +165,16 @@
     }
   },
   "create": {
+    "draft": {
+      "restored": "Taslağın geri yüklendi",
+      "startFresh": "Baştan başla"
+    },
+    "timeEstimate": {
+      "underMinute": "Bu quiz 1 dakikadan kısa sürer",
+      "singleMinute": "Bu quiz yaklaşık 1 dakika sürer",
+      "single": "Bu quiz yaklaşık {{minutes}} dakika sürer",
+      "range": "Bu quiz yaklaşık {{min}}-{{max}} dakika sürer"
+    },
     "errors": {
       "too_short": "Biraz daha metin ekle — en az 30 kelime — Quelio'nun yeterli içeriği olsun.",
       "too_long": "Bu oldukça uzun bir metin. Lütfen 5.000 kelimenin altında tut.",
@@ -192,7 +222,9 @@
       "checkCorrectMarkLabel": "Doğru cevap",
       "checkIncorrectMarkLabel": "Yanlış cevap",
       "coverageCount": "{{total}} ana fikirden {{covered}}'i var",
-      "checkError": "Cevabın kontrol edilemedi. Lütfen tekrar dene."
+      "checkError": "Cevabın kontrol edilemedi. Lütfen tekrar dene.",
+      "timeUnderMinute": "1 dakikadan kısa",
+      "timeTotal": "Yaklaşık {{minutes}} dk"
     },
     "question": {
       "editAction": "Düzenle",

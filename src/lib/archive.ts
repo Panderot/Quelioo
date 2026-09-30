@@ -13,6 +13,13 @@ export interface ArchiveEntry {
   outputLanguage?: string
   sourceText?: string
   quiz: GeneratedQuiz
+  /** Older entries saved before this existed always had explanations — undefined reads as true. */
+  includeExplanations?: boolean
+  /** Older entries saved before this existed were never shuffled — undefined reads as false so a
+   * later regenerate-one on them keeps matching their original (unshuffled) behavior. */
+  shuffleOptions?: boolean
+  /** Number of focus parts used at generation time — never the snippet text itself. */
+  focusPartsCount?: number
 }
 
 const STORAGE_KEY = 'quelio.archive.v1'

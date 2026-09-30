@@ -65,6 +65,8 @@ export default function ArchiveQuizPage() {
       archiveLink={{ href: '/archive', label: t('archive.detail.backToArchive') }}
       studyMode={entry.studyMode}
       onToggleStudyMode={handleToggleStudyMode}
+      includeExplanations={entry.includeExplanations ?? true}
+      shuffleOptions={entry.shuffleOptions ?? false}
     />
   )
 }

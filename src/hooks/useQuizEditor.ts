@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { GenerateApiError, regenerateOneQuestion, topUpQuestions } from '../api/generateQuiz'
 import type { GenerateErrorCode } from '../api/generateQuiz'
 import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
+import { shuffleQuizOptions, shuffleSingleQuestionOptions } from '../lib/shuffleOptions'
 
 interface DeletedQuestionState {
   question: QuizQuestion
@@ -19,6 +20,9 @@ interface UseQuizEditorParams {
   requestedCount: number
   incomplete: boolean
   onPersist: (quiz: GeneratedQuiz) => void
+  includeExplanations?: boolean
+  shuffleOptions?: boolean
+  focusSnippets?: string[]
 }
 
 const UNDO_WINDOW_MS = 6000
@@ -33,6 +37,9 @@ export function useQuizEditor({
   requestedCount,
   incomplete,
   onPersist,
+  includeExplanations = true,
+  shuffleOptions = false,
+  focusSnippets = [],
 }: UseQuizEditorParams) {
   const [quiz, setQuiz] = useState(initialQuiz)
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null)
@@ -121,16 +128,19 @@ export function useQuizEditor({
           optionsCount,
           outputLanguage,
           avoidQuestions,
+          includeExplanations,
+          focusSnippets,
         })
+        const nextQuestion = shuffleOptions ? shuffleSingleQuestionOptions(result.question) : result.question
         const latest = quizRef.current
-        persist({ ...latest, questions: latest.questions.map((question) => (question.id === id ? result.question : question)) })
+        persist({ ...latest, questions: latest.questions.map((question) => (question.id === id ? nextQuestion : question)) })
       } catch (error) {
         setRegenerateError(error instanceof GenerateApiError ? error.code : 'upstream')
       } finally {
         setRegeneratingId(null)
       }
     },
-    [sourceText, difficulty, optionsCount, outputLanguage, persist],
+    [sourceText, difficulty, optionsCount, outputLanguage, persist, includeExplanations, focusSnippets, shuffleOptions],
   )
 
   const topUp = useCallback(async () => {
@@ -148,16 +158,19 @@ export function useQuizEditor({
         optionsCount,
         outputLanguage,
         avoidQuestions,
+        includeExplanations,
+        focusSnippets,
       })
+      const newQuestions = shuffleOptions ? shuffleQuizOptions(result.questions) : result.questions
       const latest = quizRef.current
-      persist({ ...latest, questions: [...latest.questions, ...result.questions] })
+      persist({ ...latest, questions: [...latest.questions, ...newQuestions] })
       setMissingCount((count) => Math.max(0, count - result.questions.length))
     } catch (error) {
       setTopUpError(error instanceof GenerateApiError ? error.code : 'upstream')
     } finally {
       setIsToppingUp(false)
     }
-  }, [missingCount, sourceText, questionType, difficulty, optionsCount, outputLanguage, persist])
+  }, [missingCount, sourceText, questionType, difficulty, optionsCount, outputLanguage, persist, includeExplanations, focusSnippets, shuffleOptions])
 
   return {
     quiz,

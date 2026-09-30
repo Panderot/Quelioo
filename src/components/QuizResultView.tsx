@@ -6,6 +6,8 @@ import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { getOutputLanguage } from '../data/outputLanguages'
 import { buildAnswerKeyLine, getRightOrder, letterFor } from '../lib/matching'
+import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
+import type { EstimateDifficulty } from '../lib/estimateTime'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
 import { CheckIcon, PencilIcon } from './icons'
@@ -52,6 +54,12 @@ function PrintWritingLines({ count }: { count: number }) {
   )
 }
 
+/** Joins an answer-key prefix with its explanation, omitting the "— explanation" suffix entirely
+ * when explanations are off (empty string) instead of printing a dangling "— ". */
+function withExplanation(prefix: string, explanation: string): string {
+  return explanation ? `${prefix} — ${explanation}` : prefix
+}
+
 function buildQuizPlainText(
   quiz: GeneratedQuiz,
   labels: { answerKey: string; trueLabel: string; falseLabel: string; blank: string },
@@ -77,15 +85,15 @@ function buildQuizPlainText(
   lines.push(labels.answerKey)
   quiz.questions.forEach((question, index) => {
     if (question.type === 'mcq') {
-      lines.push(`${index + 1}. ${String.fromCharCode(65 + question.answerIndex)} — ${question.explanation}`)
+      lines.push(`${index + 1}. ${withExplanation(String.fromCharCode(65 + question.answerIndex), question.explanation)}`)
     } else if (question.type === 'true-false') {
-      lines.push(`${index + 1}. ${question.answerBool ? labels.trueLabel : labels.falseLabel} — ${question.explanation}`)
+      lines.push(`${index + 1}. ${withExplanation(question.answerBool ? labels.trueLabel : labels.falseLabel, question.explanation)}`)
     } else if (question.type === 'matching') {
       const rightOrder = getRightOrder(question)
       const pairsText = question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')
       lines.push(`${index + 1}. ${buildAnswerKeyLine(rightOrder)} — ${pairsText}`)
     } else {
-      lines.push(`${index + 1}. ${question.answer} — ${question.explanation}`)
+      lines.push(`${index + 1}. ${withExplanation(question.answer, question.explanation)}`)
     }
   })
 
@@ -117,6 +125,12 @@ export default function QuizResultView({
   const [practiceResults, setPracticeResults] = useState<Record<string, boolean>>({})
   const [resetSignal, setResetSignal] = useState(0)
 
+  const timeEstimateLabel = useMemo(() => {
+    const totalSeconds = computeQuizTotalSeconds(quiz.questions, (meta.difficulty as EstimateDifficulty) ?? 'medium')
+    const { underAMinute, minutes } = secondsToDisplayMinutes(totalSeconds)
+    return underAMinute ? t('create.result.timeUnderMinute') : t('create.result.timeTotal', { minutes })
+  }, [quiz.questions, meta.difficulty, t])
+
   const metaLine = useMemo(() => {
     const typeLabel = t(QUESTION_TYPE_LABEL_KEYS[meta.questionType] ?? meta.questionType)
     const difficultyLabel = t(`params.difficulty.${meta.difficulty}`)
@@ -124,8 +138,8 @@ export default function QuizResultView({
       meta.outputLanguage === 'auto'
         ? t('inputCard.outputLanguage.auto')
         : (getOutputLanguage(meta.outputLanguage)?.nativeName ?? meta.outputLanguage)
-    return [t('params.questionCount.value', { count: meta.questionCount }), typeLabel, difficultyLabel, languageLabel].join(' • ')
-  }, [meta, t])
+    return [t('params.questionCount.value', { count: meta.questionCount }), typeLabel, difficultyLabel, languageLabel, timeEstimateLabel].join(' • ')
+  }, [meta, t, timeEstimateLabel])
 
   const handleTitleSave = () => {
     const trimmed = titleDraft.trim()
@@ -411,13 +425,13 @@ export default function QuizResultView({
             <ol>
               {quiz.questions.map((question) => (
                 <li key={question.id}>
-                  {question.type === 'mcq' && `${String.fromCharCode(65 + question.answerIndex)} — ${question.explanation}`}
+                  {question.type === 'mcq' && withExplanation(String.fromCharCode(65 + question.answerIndex), question.explanation)}
                   {question.type === 'true-false' &&
-                    `${question.answerBool ? t('create.result.trueLabel') : t('create.result.falseLabel')} — ${question.explanation}`}
+                    withExplanation(question.answerBool ? t('create.result.trueLabel') : t('create.result.falseLabel'), question.explanation)}
                   {question.type === 'matching' &&
                     `${buildAnswerKeyLine(getRightOrder(question))} — ${question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')}`}
                   {(question.type === 'fill-blanks' || question.type === 'short-answer' || question.type === 'open-ended') &&
-                    `${question.answer} — ${question.explanation}`}
+                    withExplanation(question.answer, question.explanation)}
                 </li>
               ))}
             </ol>

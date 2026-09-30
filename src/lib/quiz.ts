@@ -11,6 +11,10 @@ interface QuizQuestionBase {
   id: string
   question: string
   explanation: string
+  /** Seconds a typical student needs to read, think and answer this question — AI-provided and
+   * server-clamped per type, or computed from the shared formula for questions saved before this
+   * existed. See src/lib/estimateTime.ts. */
+  estimatedSeconds?: number
 }
 
 export interface McqQuestion extends QuizQuestionBase {
@@ -113,6 +117,7 @@ export function isQuizQuestion(value: unknown): value is QuizQuestion {
   if (typeof value.id !== 'string' || !value.id) return false
   if (!isNonEmptyString(value.question)) return false
   if (typeof value.explanation !== 'string') return false
+  if (value.estimatedSeconds !== undefined && (typeof value.estimatedSeconds !== 'number' || !Number.isFinite(value.estimatedSeconds))) return false
 
   switch (value.type) {
     case 'mcq':
@@ -176,6 +181,7 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
   if (!question) return null
 
   const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : makeId()
+  const estimatedSeconds = typeof raw.estimatedSeconds === 'number' && Number.isFinite(raw.estimatedSeconds) ? raw.estimatedSeconds : undefined
 
   switch (raw.type) {
     case 'mcq': {
@@ -184,31 +190,31 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
         : []
       const answerIndex = typeof raw.answerIndex === 'number' ? raw.answerIndex : -1
       if (options.length < 2 || answerIndex < 0 || answerIndex >= options.length) return null
-      return { id, type: 'mcq', question, explanation, options, answerIndex }
+      return { id, type: 'mcq', question, explanation, options, answerIndex, estimatedSeconds }
     }
     case 'true-false': {
       if (typeof raw.answerBool !== 'boolean') return null
-      return { id, type: 'true-false', question, explanation, answerBool: raw.answerBool }
+      return { id, type: 'true-false', question, explanation, answerBool: raw.answerBool, estimatedSeconds }
     }
     case 'fill-blanks': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
       const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, 4)
-      return { id, type: 'fill-blanks', question, explanation, answer, acceptableAnswers }
+      return { id, type: 'fill-blanks', question, explanation, answer, acceptableAnswers, estimatedSeconds }
     }
     case 'short-answer': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
       const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, 4)
       const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : ''
-      return { id, type: 'short-answer', question, explanation, answer, acceptableAnswers, evidence }
+      return { id, type: 'short-answer', question, explanation, answer, acceptableAnswers, evidence, estimatedSeconds }
     }
     case 'open-ended': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
       const keyPoints = sanitizeStringList(raw.keyPoints, 4)
       const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : ''
-      return { id, type: 'open-ended', question, explanation, answer, keyPoints, evidence }
+      return { id, type: 'open-ended', question, explanation, answer, keyPoints, evidence, estimatedSeconds }
     }
     case 'matching': {
       const pairs = Array.isArray(raw.pairs)
@@ -221,7 +227,7 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
             .filter((pair) => pair.left && pair.right)
         : []
       if (pairs.length < 3) return null
-      return { id, type: 'matching', question, explanation, pairs, rightOrder: computeDerangement(pairs.length, id) }
+      return { id, type: 'matching', question, explanation, pairs, rightOrder: computeDerangement(pairs.length, id), estimatedSeconds }
     }
     default:
       return null

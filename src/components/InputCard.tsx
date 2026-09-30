@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next'
 
 import type { ExtractUrlErrorCode } from '../api/extractUrl'
 import type { FileErrorCode } from '../lib/fileExtraction'
+import type { FocusPart } from '../lib/focusSnippets'
 import { CheckIcon, ChevronDownIcon, FileTabIcon, LanguagesIcon, PencilIcon, SpinnerIcon, TextTabIcon, TrashIcon, UrlTabIcon } from './icons'
 import OutputLanguageSelect from './OutputLanguageSelect'
+import FocusTextArea from './FocusTextArea'
 
 export type InputTab = 'text' | 'file' | 'url'
 
@@ -64,6 +66,8 @@ interface InputCardProps {
   onOutputLanguageChange: (value: string) => void
   onClear: () => void
   hasError: boolean
+  focusParts: FocusPart[]
+  onFocusPartsChange: (parts: FocusPart[]) => void
 }
 
 export default function InputCard({
@@ -86,6 +90,8 @@ export default function InputCard({
   onOutputLanguageChange,
   onClear,
   hasError,
+  focusParts,
+  onFocusPartsChange,
 }: InputCardProps) {
   const { t } = useTranslation()
   const tabRefs = useRef<Partial<Record<InputTab, HTMLButtonElement | null>>>({})
@@ -192,16 +198,14 @@ export default function InputCard({
       {/* Panel */}
       <div id="input-panel" role="tabpanel" aria-labelledby={`tab-${activeTab}`}>
         {activeTab === 'text' && (
-          <textarea
+          <FocusTextArea
             id="quiz-content-input"
-            rows={9}
             value={textValue}
-            onChange={(event) => onTextChange(event.target.value)}
+            onChange={onTextChange}
             placeholder={t('inputCard.placeholder.text')}
-            aria-invalid={hasError}
-            className={`min-h-[220px] w-full resize-y rounded-2xl border border-dashed bg-card px-4 py-4 text-sm leading-relaxed text-ink transition-all placeholder:text-muted focus:border-solid md:py-5 ${
-              hasError ? 'border-error' : 'border-warm-border'
-            }`}
+            hasError={hasError}
+            focusParts={focusParts}
+            onFocusPartsChange={onFocusPartsChange}
           />
         )}
 

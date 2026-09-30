@@ -16,6 +16,7 @@ export const SAMPLE_QUIZ = {
       explanation: 'Plants absorb carbon dioxide and release oxygen.',
       options: ['Oxygen', 'Carbon dioxide', 'Nitrogen', 'Hydrogen'],
       answerIndex: 1,
+      estimatedSeconds: 30,
     },
     {
       id: 'q-tf',
@@ -23,6 +24,7 @@ export const SAMPLE_QUIZ = {
       question: 'The Great Wall of China is visible from space with the naked eye.',
       explanation: 'This is a common myth; it is not visible without aid.',
       answerBool: false,
+      estimatedSeconds: 15,
     },
     {
       id: 'q-fill',
@@ -31,6 +33,7 @@ export const SAMPLE_QUIZ = {
       explanation: 'Standard atmospheric pressure boiling point of water.',
       answer: '100',
       acceptableAnswers: ['one hundred'],
+      estimatedSeconds: 20,
     },
     {
       id: 'q-short',
@@ -40,6 +43,7 @@ export const SAMPLE_QUIZ = {
       answer: 'Jupiter',
       acceptableAnswers: ['The planet Jupiter'],
       evidence: 'Jupiter is the largest planet in the solar system by mass and volume.',
+      estimatedSeconds: 45,
     },
     {
       id: 'q-matching',
@@ -54,6 +58,7 @@ export const SAMPLE_QUIZ = {
       ],
       // Deliberately a non-identity derangement: position i never shows pair i's own right value.
       rightOrder: [1, 2, 3, 0],
+      estimatedSeconds: 60,
     },
     {
       id: 'q-open',
@@ -63,6 +68,7 @@ export const SAMPLE_QUIZ = {
       answer: 'Sunlight is scattered by the atmosphere, and blue light scatters more than other colors because of its shorter wavelength.',
       keyPoints: ['Sunlight is scattered by the atmosphere', 'Blue light scatters more because of its shorter wavelength'],
       evidence: 'Blue light has a shorter wavelength than other visible colors and scatters more in the atmosphere.',
+      estimatedSeconds: 90,
     },
   ],
 }

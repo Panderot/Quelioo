@@ -20,6 +20,10 @@ export interface GenerateQuizPayload {
   optionsCount?: string
   outputLanguage: string
   avoidQuestions?: string[]
+  title?: string
+  includeExplanations?: boolean
+  shuffleOptions?: boolean
+  focusSnippets?: string[]
 }
 
 export interface GenerateQuizResult extends GeneratedQuiz {
@@ -37,6 +41,8 @@ export interface RegenerateOnePayload {
   optionsCount?: string
   outputLanguage: string
   avoidQuestions: string[]
+  includeExplanations?: boolean
+  focusSnippets?: string[]
 }
 
 export interface RegenerateOneResult {
@@ -54,6 +60,8 @@ export interface TopUpPayload {
   optionsCount?: string
   outputLanguage: string
   avoidQuestions: string[]
+  includeExplanations?: boolean
+  focusSnippets?: string[]
 }
 
 export interface TopUpResult {

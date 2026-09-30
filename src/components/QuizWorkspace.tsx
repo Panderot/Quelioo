@@ -23,6 +23,9 @@ interface QuizWorkspaceProps {
   archiveLink?: ArchiveLink
   studyMode?: boolean
   onToggleStudyMode?: () => void
+  includeExplanations?: boolean
+  shuffleOptions?: boolean
+  focusSnippets?: string[]
 }
 
 export default function QuizWorkspace({
@@ -38,6 +41,9 @@ export default function QuizWorkspace({
   archiveLink,
   studyMode,
   onToggleStudyMode,
+  includeExplanations,
+  shuffleOptions,
+  focusSnippets,
 }: QuizWorkspaceProps) {
   const { t } = useTranslation()
   const editor = useQuizEditor({
@@ -50,6 +56,9 @@ export default function QuizWorkspace({
     requestedCount,
     incomplete,
     onPersist,
+    includeExplanations,
+    shuffleOptions,
+    focusSnippets,
   })
 
   return (

@@ -36,6 +36,13 @@
       "searchPlaceholder": "Search languages...",
       "noResults": "No languages found"
     },
+    "focus": {
+      "markSelection": "Mark as focus",
+      "limitReached": "You can mark up to {{max}} parts.",
+      "removedByEdit": "A focus part was removed because the text changed.",
+      "chipsLabel": "Focus parts",
+      "removeChip": "Remove focus part"
+    },
     "tabs": {
       "text": "Text",
       "file": "File",
@@ -92,6 +99,19 @@
   },
   "params": {
     "eyebrow": "Quiz Parameters",
+    "title": {
+      "label": "Quiz title (optional)",
+      "placeholder": "e.g. Photosynthesis - Unit 1"
+    },
+    "explanations": {
+      "label": "Answer explanations",
+      "helper": "Explain why each answer is correct"
+    },
+    "shuffle": {
+      "label": "Shuffle options",
+      "helper": "The correct answer won't always be in the same place",
+      "disabledHint": "Only for multiple choice and mixed"
+    },
     "questionType": {
       "label": "Question Type",
       "mcq": "MCQ (Multiple Choice Questions)",
@@ -145,6 +165,16 @@
     }
   },
   "create": {
+    "draft": {
+      "restored": "Your draft was restored",
+      "startFresh": "Start fresh"
+    },
+    "timeEstimate": {
+      "underMinute": "This quiz takes less than a minute",
+      "singleMinute": "This quiz takes about a minute",
+      "single": "This quiz takes about {{minutes}} minutes",
+      "range": "This quiz takes about {{min}}-{{max}} minutes"
+    },
     "errors": {
       "too_short": "Add a bit more text — at least 30 words — so Quelio has enough to work with.",
       "too_long": "That's a lot of text. Please keep it under 5,000 words.",
@@ -192,7 +222,9 @@
       "checkCorrectMarkLabel": "Correct answer",
       "checkIncorrectMarkLabel": "Incorrect answer",
       "coverageCount": "{{covered}} of {{total}} key ideas covered",
-      "checkError": "Couldn't check your answer. Please try again."
+      "checkError": "Couldn't check your answer. Please try again.",
+      "timeUnderMinute": "Less than a minute",
+      "timeTotal": "About {{minutes}} min"
     },
     "question": {
       "editAction": "Edit",

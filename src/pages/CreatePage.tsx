@@ -10,9 +10,15 @@ import { addArchiveEntry, createArchiveEntryId, updateArchiveEntry } from '../li
 import { extractTextFromFile, FileExtractionError } from '../lib/fileExtraction'
 import type { FileErrorCode } from '../lib/fileExtraction'
 import { supportsOptionsCount } from '../lib/quizTypes'
-import { sanitizeTextLight } from '../lib/sanitizeText'
 import { MAX_QUIZ_WORDS, MAX_SOURCE_TEXT_CHARS, MIN_QUIZ_WORDS, countWords } from '../lib/textStats'
 import type { GeneratedQuiz } from '../lib/quiz'
+import { shuffleQuizOptions } from '../lib/shuffleOptions'
+import type { FocusPart } from '../lib/focusSnippets'
+import { focusSnippetsFor } from '../lib/focusSnippets'
+import { estimateQuizTimeRange } from '../lib/estimateTime'
+import type { EstimateDifficulty, EstimateQuestionType } from '../lib/estimateTime'
+import { clearDraft, readDraft, useSaveDraft } from '../hooks/useDraft'
+import type { QuizDraft } from '../hooks/useDraft'
 import GenerateButton from '../components/GenerateButton'
 import InputCard from '../components/InputCard'
 import type { FileTabState, InputTab, UrlTabState } from '../components/InputCard'
@@ -41,6 +47,9 @@ interface GeneratedResult {
   questionType: string
   requestedCount: number
   incomplete: boolean
+  includeExplanations: boolean
+  shuffleOptions: boolean
+  focusSnippets: string[]
 }
 
 const EMPTY_FILE_STATE: FileTabState = {
@@ -70,22 +79,35 @@ export default function CreatePage() {
   const navigate = useNavigate()
   const prefillText = (location.state as CreatePageLocationState | null)?.prefillText
 
-  const [activeTab, setActiveTab] = useState<InputTab>('text')
-  const [textValue, setTextValue] = useState(prefillText ?? '')
-  const [urlValue, setUrlValue] = useState('')
+  // Computed once (memoized, never re-read from localStorage on later renders) so the initial
+  // state below can be seeded directly instead of being overwritten a moment later in an effect —
+  // which would cascade into an extra render per field and briefly flash the empty defaults. Only
+  // the very first evaluation actually matters: each `useState` below reads it eagerly, and React
+  // ignores that argument on every render after the first anyway.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally computed once, not on every prefillText change
+  const initialDraft: QuizDraft | null = useMemo(() => (prefillText ? null : readDraft()), [])
+
+  const [activeTab, setActiveTab] = useState<InputTab>(initialDraft?.activeTab ?? 'text')
+  const [textValue, setTextValue] = useState(initialDraft?.textValue ?? prefillText ?? '')
+  const [urlValue, setUrlValue] = useState(initialDraft?.urlValue ?? '')
   const [fileState, setFileState] = useState<FileTabState>(EMPTY_FILE_STATE)
   const [urlState, setUrlState] = useState<UrlTabState>(EMPTY_URL_STATE)
-  const [outputLanguage, setOutputLanguage] = useState('auto')
+  const [outputLanguage, setOutputLanguage] = useState(initialDraft?.outputLanguage ?? 'auto')
+  const [focusParts, setFocusParts] = useState<FocusPart[]>(initialDraft?.focusParts ?? [])
 
-  const [questionType, setQuestionType] = useState('mcq')
-  const [questionCount, setQuestionCount] = useState('3')
-  const [difficulty, setDifficulty] = useState('medium')
-  const [optionsCount, setOptionsCount] = useState('4')
+  const [title, setTitle] = useState(initialDraft?.title ?? '')
+  const [questionType, setQuestionType] = useState(initialDraft?.questionType ?? 'mcq')
+  const [questionCount, setQuestionCount] = useState(initialDraft?.questionCount ?? '3')
+  const [difficulty, setDifficulty] = useState(initialDraft?.difficulty ?? 'medium')
+  const [optionsCount, setOptionsCount] = useState(initialDraft?.optionsCount ?? '4')
+  const [includeExplanations, setIncludeExplanations] = useState(initialDraft?.includeExplanations ?? true)
+  const [shuffleOptions, setShuffleOptions] = useState(initialDraft?.shuffleOptions ?? true)
 
   const [hasError, setHasError] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [generateError, setGenerateError] = useState<GenerateErrorCode | null>(null)
   const [result, setResult] = useState<GeneratedResult | null>(null)
+  const [draftRestoredNoticeVisible, setDraftRestoredNoticeVisible] = useState(Boolean(initialDraft))
 
   const resultRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -100,6 +122,13 @@ export default function CreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (!initialDraft) return undefined
+    const timeout = setTimeout(() => setDraftRestoredNoticeVisible(false), 5000)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => () => abortControllerRef.current?.abort(), [])
   useEffect(() => () => urlFetchAbortRef.current?.abort(), [])
 
@@ -107,6 +136,46 @@ export default function CreatePage() {
     if (!result) return
     resultRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
   }, [result?.entryId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useSaveDraft(
+    {
+      textValue,
+      activeTab,
+      urlValue,
+      outputLanguage,
+      title,
+      questionType,
+      questionCount,
+      difficulty,
+      optionsCount,
+      includeExplanations,
+      shuffleOptions,
+      focusParts,
+    },
+    true,
+  )
+
+  const handleStartFresh = () => {
+    clearDraft()
+    setDraftRestoredNoticeVisible(false)
+    setTextValue('')
+    setActiveTab('text')
+    setUrlValue('')
+    setUrlState(EMPTY_URL_STATE)
+    setFileState(EMPTY_FILE_STATE)
+    setOutputLanguage('auto')
+    setTitle('')
+    setQuestionType('mcq')
+    setQuestionCount('3')
+    setDifficulty('medium')
+    setOptionsCount('4')
+    setIncludeExplanations(true)
+    setShuffleOptions(true)
+    setFocusParts([])
+    setHasError(false)
+    setGenerateError(null)
+    setResult(null)
+  }
 
   const wordCount = useMemo(() => countWords(textValue), [textValue])
 
@@ -116,6 +185,20 @@ export default function CreatePage() {
   const activeWordCount = activeTab === 'text' ? wordCount : activeTab === 'file' ? fileState.wordCount : urlState.wordCount
   const activeTruncated = activeTab === 'file' ? fileState.truncated : activeTab === 'url' ? urlState.truncated : false
 
+  const timeEstimateLabel = useMemo(() => {
+    const parsedCount = Number.parseInt(questionCount, 10)
+    if (!Number.isFinite(parsedCount) || parsedCount <= 0) return undefined
+    const { underAMinute, minMinutes, maxMinutes } = estimateQuizTimeRange({
+      questionType: questionType as EstimateQuestionType | 'mixed',
+      questionCount: parsedCount,
+      difficulty: (difficulty as EstimateDifficulty) ?? 'medium',
+      optionsCount: supportsOptionsCount(questionType) ? Number.parseInt(optionsCount, 10) : undefined,
+    })
+    if (underAMinute) return t('create.timeEstimate.underMinute')
+    if (minMinutes !== maxMinutes) return t('create.timeEstimate.range', { min: minMinutes, max: maxMinutes })
+    return minMinutes === 1 ? t('create.timeEstimate.singleMinute') : t('create.timeEstimate.single', { minutes: minMinutes })
+  }, [questionType, questionCount, difficulty, optionsCount, t])
+
   const handleTabChange = (tab: InputTab) => {
     setActiveTab(tab)
     setHasError(false)
@@ -123,7 +206,10 @@ export default function CreatePage() {
   }
 
   const handleClear = () => {
-    if (activeTab === 'text') setTextValue('')
+    if (activeTab === 'text') {
+      setTextValue('')
+      setFocusParts([])
+    }
     if (activeTab === 'url') {
       setUrlValue('')
       setUrlState(EMPTY_URL_STATE)
@@ -134,9 +220,10 @@ export default function CreatePage() {
   }
 
   const handleTextChange = (value: string) => {
-    const sanitized = sanitizeTextLight(value)
-    setTextValue(sanitized)
-    if (sanitized.trim()) setHasError(false)
+    // FocusTextArea already applies sanitizeTextLight before calling this, so its own focus-part
+    // reconciliation diffs against the same final text stored here — never a second, divergent pass.
+    setTextValue(value)
+    if (value.trim()) setHasError(false)
     setGenerateError(null)
   }
 
@@ -255,9 +342,17 @@ export default function CreatePage() {
     abortControllerRef.current = controller
 
     const needsOptionsCount = supportsOptionsCount(questionType)
-    const generationKey = [activeContent.trim(), questionType, questionCount, difficulty, needsOptionsCount ? optionsCount : '', outputLanguage].join(
-      '|',
-    )
+    const focusSnippets = activeTab === 'text' ? focusSnippetsFor(activeContent, focusParts) : []
+    const shuffleApplies = shuffleOptions && needsOptionsCount
+    const generationKey = [
+      activeContent.trim(),
+      questionType,
+      questionCount,
+      difficulty,
+      needsOptionsCount ? optionsCount : '',
+      outputLanguage,
+      focusSnippets.join('\u0000'),
+    ].join('|')
     const avoidQuestions = lastGenerationRef.current?.key === generationKey ? lastGenerationRef.current.questions : []
 
     try {
@@ -270,6 +365,10 @@ export default function CreatePage() {
           optionsCount: needsOptionsCount ? optionsCount : undefined,
           outputLanguage,
           avoidQuestions,
+          title: title.trim() || undefined,
+          includeExplanations,
+          shuffleOptions: shuffleApplies,
+          focusSnippets,
         },
         controller.signal,
       )
@@ -279,10 +378,13 @@ export default function CreatePage() {
         questions: generated.questions.map((question) => question.question).slice(0, 30),
       }
 
+      const finalTitle = title.trim() || generated.title || firstWords(activeContent, 6) || t('archive.untitled')
+      const questions = shuffleApplies ? shuffleQuizOptions(generated.questions) : generated.questions
+
       const id = createArchiveEntryId()
       addArchiveEntry({
         id,
-        title: generated.title || firstWords(activeContent, 6) || t('archive.untitled'),
+        title: finalTitle,
         createdAt: new Date().toISOString(),
         source: activeTab,
         questionType,
@@ -291,13 +393,16 @@ export default function CreatePage() {
         optionsCount: needsOptionsCount ? optionsCount : null,
         outputLanguage,
         sourceText: activeContent,
-        quiz: { title: generated.title, questions: generated.questions },
+        quiz: { title: finalTitle, questions },
         studyMode: false,
+        includeExplanations,
+        shuffleOptions: shuffleApplies,
+        focusPartsCount: focusSnippets.length,
       })
 
       setResult({
         entryId: id,
-        quiz: { title: generated.title, questions: generated.questions },
+        quiz: { title: finalTitle, questions },
         sourceText: activeContent,
         difficulty,
         optionsCount: needsOptionsCount ? optionsCount : undefined,
@@ -305,6 +410,9 @@ export default function CreatePage() {
         questionType,
         requestedCount: generated.requestedCount,
         incomplete: generated.incomplete,
+        includeExplanations,
+        shuffleOptions: shuffleApplies,
+        focusSnippets,
       })
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return
@@ -322,6 +430,15 @@ export default function CreatePage() {
         </h1>
         <p className="text-sm font-normal text-muted">{t('hero.subtitle')}</p>
       </section>
+
+      {draftRestoredNoticeVisible && (
+        <div className="-mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warm-border bg-card px-4 py-2.5 text-xs">
+          <span className="font-medium text-muted">{t('create.draft.restored')}</span>
+          <button type="button" onClick={handleStartFresh} className="font-bold text-amber-hover hover:underline">
+            {t('create.draft.startFresh')}
+          </button>
+        </div>
+      )}
 
       <InputCard
         activeTab={activeTab}
@@ -343,9 +460,13 @@ export default function CreatePage() {
         onOutputLanguageChange={setOutputLanguage}
         onClear={handleClear}
         hasError={hasError}
+        focusParts={focusParts}
+        onFocusPartsChange={setFocusParts}
       />
 
       <ParameterGrid
+        title={title}
+        onTitleChange={setTitle}
         questionType={questionType}
         onQuestionTypeChange={setQuestionType}
         questionCount={questionCount}
@@ -354,9 +475,13 @@ export default function CreatePage() {
         onDifficultyChange={setDifficulty}
         optionsCount={optionsCount}
         onOptionsCountChange={setOptionsCount}
+        includeExplanations={includeExplanations}
+        onIncludeExplanationsChange={setIncludeExplanations}
+        shuffleOptions={shuffleOptions}
+        onShuffleOptionsChange={setShuffleOptions}
       />
 
-      <GenerateButton isLoading={isGenerating} onClick={() => void handleGenerate()} />
+      <GenerateButton isLoading={isGenerating} onClick={() => void handleGenerate()} timeEstimateLabel={timeEstimateLabel} />
 
       {generateError && (
         <div role="alert" className="-mt-4 space-y-3 rounded-[14px] border border-error/40 bg-error/5 p-5 text-center">
@@ -398,6 +523,9 @@ export default function CreatePage() {
             incomplete={result.incomplete}
             onPersist={(quiz) => persistEntry(result.entryId, quiz)}
             archiveLink={{ href: `/archive/${result.entryId}`, label: t('cta.viewInArchive') }}
+            includeExplanations={result.includeExplanations}
+            shuffleOptions={result.shuffleOptions}
+            focusSnippets={result.focusSnippets}
           />
         </div>
       )}
