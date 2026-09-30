@@ -185,6 +185,16 @@ At `/archive/:id`: same header/question list as 7.14–7.15 when Study Mode is o
 - **Not found:** centered card (archive icon, "Quiz not found", "Back to Archive" button) for a deleted/invalid id.
 - **Study Mode practice:** when the row's Study Mode toggle is on, header controls reduce to the Study Mode toggle alone; each question renders as a practice card (no edit actions, no explanation toggle) using the same checkable/retryable UI as 7.15 for every type, hint button included. Once every card has been answered once, a summary row appears ("3 / 5 correct") plus a muted "Hints used: N" line when at least one hint was revealed during the session, with "Try again" to clear and reshow (also resets the hint count).
 
+### 7.18 "Turn into a song"
+Entry point: a secondary button (music-note icon, card surface, warm border, never solid amber) in the quiz result header's action row (7.14) and the archived quiz view — rendered only once `GET /api/song` reports the feature enabled (hidden entirely otherwise, including while that check is in flight).
+- **Panel:** opens as a right-side panel on desktop (max-width 420px) / bottom sheet on mobile (max-height 85vh, rounded top), a scrim backdrop, `role="dialog"`, focus trapped, Escape and a header close button both close it and return focus to the trigger.
+- **Step A — Options:** style chips (single choice, pill buttons — unselected: card surface/warm border; selected: `bg-amber/15` + `border-amber` + amber-hover text, never solid amber), length shown as static text ("30-second song"), then an outline "Write lyrics" button.
+- **Step B — Lyrics:** an editable, monospace textarea with `[Verse]`/`[Chorus]` tags and a character counter (turns error-red over the limit); the solid-amber "Make the song" button (the panel's one primary action) disables when empty or over the limit.
+- **Step C — Creating:** centered pulsing music-note icon, a calm rotating status line (`aria-live="polite"`), and an outline Cancel button that aborts the request and returns to Step B with no error.
+- **Step D — Player** (`SongPlayerCard`, shared with the Archive "Listen" section, 7.13/7.17): optional "Demo sound" badge (amber-tinted pill) when the response used the demo provider; custom play/pause, seek and volume controls plus a Download link around a native (visually hidden) `<audio>` element; the final lyrics below the player; a muted AI-disclosure line; an outline "Make another" button resets to Step A.
+- **Storage:** songs are saved client-side to IndexedDB, keyed by quiz id (see CLAUDE.md); a save failure shows a muted note but the song still plays for the session.
+- **Errors:** every step shows a localized message + outline "Try again" for its own error codes (`not_configured`, `disabled`, `too_long`, `blocked`, `upstream`, `timeout`, `parse`, `network`, `storage_full`), plus a daily per-quiz generation-limit note.
+
 ## 8. Iconography
 Outline line icons, stroke ~1.75–2px, rounded caps/joins. 16px in nav/tabs/buttons, 20px for the CTA sun icon. Color inherits context (navy on amber, paper/amber on navy sidebar). The sun icon (circle + 8 rays) is the only "AI moment" motif, used on the CTA only.
 

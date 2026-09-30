@@ -299,5 +299,58 @@
       "stepsLabel": "Steps",
       "answerLabel": "Answer"
     }
+  },
+  "song": {
+    "button": "Turn into a song",
+    "panelTitle": "Turn into a song",
+    "close": "Close",
+    "demoBadge": "Demo sound",
+    "aiDisclosure": "This song was made with AI.",
+    "length30s": "30-second song",
+    "lengthLabel": "Length",
+    "style": {
+      "label": "Style",
+      "pop": "Pop",
+      "rap": "Rap",
+      "kids": "Kids song",
+      "rock": "Rock",
+      "acoustic": "Acoustic",
+      "lofi": "Lo-fi"
+    },
+    "writeLyrics": "Write lyrics",
+    "writingLyrics": "Writing lyrics...",
+    "rewriteLyrics": "Rewrite lyrics",
+    "lyricsLabel": "Lyrics",
+    "lyricsCounter": "{{count}}/{{max}} characters",
+    "makeTheSong": "Make the song",
+    "cancel": "Cancel",
+    "loading": {
+      "messages": ["Warming up the instruments...", "Composing the melody...", "Mixing the track...", "Almost there..."]
+    },
+    "player": {
+      "play": "Play",
+      "pause": "Pause",
+      "seek": "Seek",
+      "volume": "Volume",
+      "download": "Download",
+      "makeAnother": "Make another"
+    },
+    "costGuardReached": "You've reached today's limit of {{max}} songs for this quiz. Please try again tomorrow.",
+    "archive": {
+      "listenTitle": "Listen",
+      "hasSongLabel": "This quiz has a song"
+    },
+    "errors": {
+      "not_configured": "Song generation is temporarily unavailable. Please try again shortly.",
+      "disabled": "Turning quizzes into songs isn't available right now.",
+      "too_long": "These lyrics are too long. Please shorten them a bit and try again.",
+      "blocked": "Quelio couldn't create music from this request. Please adjust the lyrics or style and try again.",
+      "upstream": "Something went wrong creating your song. Please try again.",
+      "timeout": "That took too long. Please try again.",
+      "parse": "Quelio couldn't read a valid song this time. Please try again.",
+      "network": "Couldn't connect. Check your connection and try again.",
+      "storage_full": "This song couldn't be saved on this device, but it will keep playing for this session.",
+      "retry": "Try again"
+    }
   }
 }

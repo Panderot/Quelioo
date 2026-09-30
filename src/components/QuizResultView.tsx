@@ -8,8 +8,11 @@ import { getOutputLanguage } from '../data/outputLanguages'
 import { buildAnswerKeyLine, getRightOrder, letterFor } from '../lib/matching'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
 import type { EstimateDifficulty } from '../lib/estimateTime'
+import { buildSongKeyFacts } from '../lib/songFacts'
+import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
+import SongButton from './SongButton'
 import { CheckIcon, PencilIcon } from './icons'
 
 export interface QuizResultMeta {
@@ -25,6 +28,8 @@ interface ArchiveLink {
 }
 
 interface QuizResultViewProps {
+  quizId: string
+  sourceText: string
   quiz: GeneratedQuiz
   meta: QuizResultMeta
   onTitleChange: (title: string) => void
@@ -40,6 +45,7 @@ interface QuizResultViewProps {
   missingCount?: number
   isToppingUp?: boolean
   onTopUp?: () => void
+  onSongSaved?: () => void
 }
 
 /** Ruled writing lines for the print/PDF layout — a blank line for fill-blanks, a couple for
@@ -101,6 +107,8 @@ function buildQuizPlainText(
 }
 
 export default function QuizResultView({
+  quizId,
+  sourceText,
   quiz,
   meta,
   onTitleChange,
@@ -116,6 +124,7 @@ export default function QuizResultView({
   missingCount = 0,
   isToppingUp = false,
   onTopUp,
+  onSongSaved,
 }: QuizResultViewProps) {
   const { t } = useTranslation()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -141,6 +150,9 @@ export default function QuizResultView({
         : (getOutputLanguage(meta.outputLanguage)?.nativeName ?? meta.outputLanguage)
     return [t('params.questionCount.value', { count: meta.questionCount }), typeLabel, difficultyLabel, languageLabel, timeEstimateLabel].join(' • ')
   }, [meta, t, timeEstimateLabel])
+
+  const songKeyFacts = useMemo(() => buildSongKeyFacts(quiz), [quiz])
+  const songSourceExcerpt = useMemo(() => sourceText.slice(0, MAX_SOURCE_EXCERPT_CHARS), [sourceText])
 
   const handleTitleSave = () => {
     const trimmed = titleDraft.trim()
@@ -301,6 +313,15 @@ export default function QuizResultView({
               </button>
             </>
           )}
+
+          <SongButton
+            quizId={quizId}
+            quizTitle={quiz.title}
+            keyFacts={songKeyFacts}
+            sourceExcerpt={songSourceExcerpt}
+            language={meta.outputLanguage}
+            onSongSaved={onSongSaved}
+          />
         </div>
       </div>
 

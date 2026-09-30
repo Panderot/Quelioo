@@ -6,12 +6,14 @@ import { getArchiveEntry, setArchiveEntryStudyMode, updateArchiveEntry } from '.
 import type { ArchiveEntry } from '../lib/archive'
 import type { GeneratedQuiz } from '../lib/quiz'
 import QuizWorkspace from '../components/QuizWorkspace'
+import SongListenSection from '../components/SongListenSection'
 import { ArchiveIcon } from '../components/icons'
 
 export default function ArchiveQuizPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const [entry, setEntry] = useState<ArchiveEntry | undefined>(() => (id ? getArchiveEntry(id) : undefined))
+  const [songRefreshKey, setSongRefreshKey] = useState(0)
 
   if (!entry) {
     return (
@@ -46,28 +48,33 @@ export default function ArchiveQuizPage() {
   }
 
   return (
-    <QuizWorkspace
-      key={entry.id}
-      initialQuiz={entry.quiz}
-      sourceText={entry.sourceText ?? ''}
-      meta={{
-        questionCount: entry.quiz.questions.length,
-        questionType: entry.questionType,
-        difficulty: entry.difficulty,
-        outputLanguage: entry.outputLanguage ?? 'auto',
-      }}
-      difficulty={entry.difficulty}
-      optionsCount={entry.optionsCount ?? undefined}
-      outputLanguage={entry.outputLanguage ?? 'auto'}
-      requestedCount={entry.quiz.questions.length}
-      incomplete={false}
-      onPersist={handlePersist}
-      archiveLink={{ href: '/archive', label: t('archive.detail.backToArchive') }}
-      studyMode={entry.studyMode}
-      onToggleStudyMode={handleToggleStudyMode}
-      includeExplanations={entry.includeExplanations ?? true}
-      shuffleOptions={entry.shuffleOptions ?? false}
-      includeHints={entry.includeHints ?? true}
-    />
+    <>
+      <QuizWorkspace
+        key={entry.id}
+        quizId={entry.id}
+        initialQuiz={entry.quiz}
+        sourceText={entry.sourceText ?? ''}
+        meta={{
+          questionCount: entry.quiz.questions.length,
+          questionType: entry.questionType,
+          difficulty: entry.difficulty,
+          outputLanguage: entry.outputLanguage ?? 'auto',
+        }}
+        difficulty={entry.difficulty}
+        optionsCount={entry.optionsCount ?? undefined}
+        outputLanguage={entry.outputLanguage ?? 'auto'}
+        requestedCount={entry.quiz.questions.length}
+        incomplete={false}
+        onPersist={handlePersist}
+        archiveLink={{ href: '/archive', label: t('archive.detail.backToArchive') }}
+        studyMode={entry.studyMode}
+        onToggleStudyMode={handleToggleStudyMode}
+        includeExplanations={entry.includeExplanations ?? true}
+        shuffleOptions={entry.shuffleOptions ?? false}
+        includeHints={entry.includeHints ?? true}
+        onSongSaved={() => setSongRefreshKey((key) => key + 1)}
+      />
+      <SongListenSection key={songRefreshKey} quizId={entry.id} quizTitle={entry.quiz.title} />
+    </>
   )
 }

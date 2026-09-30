@@ -9,6 +9,12 @@
     },
     "api/grade.ts": {
       "maxDuration": 20
+    },
+    "api/song-lyrics.ts": {
+      "maxDuration": 20
+    },
+    "api/song.ts": {
+      "maxDuration": 60
     }
   }
 }

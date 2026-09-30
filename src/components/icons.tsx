@@ -245,6 +245,61 @@ export function LightbulbIcon(props: IconProps) {
   )
 }
 
+export function MusicNoteIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M9 18V5l11-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm11-2a3 3 0 11-6 0 3 3 0 016 0z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}
+
+export function PlayIcon(props: IconProps) {
+  return (
+    <svg {...base(props)} fill="currentColor" stroke="none">
+      <path d="M8 5v14l11-7L8 5z" />
+    </svg>
+  )
+}
+
+export function PauseIcon(props: IconProps) {
+  return (
+    <svg {...base(props)} fill="currentColor" stroke="none">
+      <path d="M7 5h4v14H7V5zm6 0h4v14h-4V5z" />
+    </svg>
+  )
+}
+
+export function DownloadIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M12 3v12m0 0l-4-4m4 4l4-4M5 19h14"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}
+
+export function VolumeIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M4 9v6h4l5 5V4L8 9H4zM17 8a5 5 0 010 8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}
+
 export function CheckIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

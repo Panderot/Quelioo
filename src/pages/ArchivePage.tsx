@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -7,7 +7,8 @@ import type { ArchiveEntry } from '../lib/archive'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
 import type { EstimateDifficulty } from '../lib/estimateTime'
-import { ArchiveIcon } from '../components/icons'
+import { getQuizIdsWithSongs } from '../lib/songStorage'
+import { ArchiveIcon, MusicNoteIcon } from '../components/icons'
 
 function formatCreatedAt(iso: string, locale: string): string {
   const date = new Date(iso)
@@ -22,6 +23,11 @@ function formatCreatedAt(iso: string, locale: string): string {
 export default function ArchivePage() {
   const { t, i18n } = useTranslation()
   const [entries, setEntries] = useState<ArchiveEntry[]>(() => getArchiveEntries())
+  const [songQuizIds, setSongQuizIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    void getQuizIdsWithSongs().then(setSongQuizIds)
+  }, [])
 
   const handleToggleStudyMode = (entry: ArchiveEntry) => {
     const nextValue = !entry.studyMode
@@ -74,7 +80,17 @@ export default function ArchivePage() {
             return (
               <li key={entry.id} className="flex items-center justify-between gap-4 p-4 md:p-5">
                 <Link to={`/archive/${entry.id}`} className="min-w-0 flex-1 space-y-1">
-                  <p className="truncate text-sm font-semibold text-ink hover:text-amber-hover">{entry.title}</p>
+                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink hover:text-amber-hover">
+                    <span className="truncate">{entry.title}</span>
+                    {songQuizIds.has(entry.id) && (
+                      <MusicNoteIcon
+                        className="h-3.5 w-3.5 shrink-0 text-amber-hover"
+                        role="img"
+                        aria-hidden={false}
+                        aria-label={t('song.archive.hasSongLabel')}
+                      />
+                    )}
+                  </p>
                   <p className="truncate text-xs text-muted">{meta}</p>
                   <p className="truncate text-xs text-muted">{formatCreatedAt(entry.createdAt, i18n.language)}</p>
                 </Link>

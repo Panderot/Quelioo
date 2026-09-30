@@ -7,6 +7,8 @@ import { solveRequestHandler } from './api/_lib/solve.js'
 import { generateRequestHandler } from './api/_lib/generate.js'
 import { extractUrlRequestHandler } from './api/_lib/extract-url.js'
 import { gradeRequestHandler } from './api/_lib/grade.js'
+import { songLyricsRequestHandler } from './api/_lib/song-lyrics.js'
+import { songRequestHandler } from './api/_lib/song.js'
 
 function apiDevMiddleware(): Plugin {
   return {
@@ -23,6 +25,12 @@ function apiDevMiddleware(): Plugin {
       })
       server.middlewares.use('/api/grade', (req, res) => {
         void gradeRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/song-lyrics', (req, res) => {
+        void songLyricsRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/song', (req, res) => {
+        void songRequestHandler(req, res)
       })
     },
   }

@@ -517,6 +517,7 @@ export default function CreatePage() {
         <div ref={resultRef} className="-mt-4">
           <QuizWorkspace
             key={result.entryId}
+            quizId={result.entryId}
             initialQuiz={result.quiz}
             sourceText={result.sourceText}
             meta={{

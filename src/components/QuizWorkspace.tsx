@@ -11,6 +11,7 @@ interface ArchiveLink {
 }
 
 interface QuizWorkspaceProps {
+  quizId: string
   initialQuiz: GeneratedQuiz
   sourceText: string
   meta: QuizResultMeta
@@ -27,9 +28,11 @@ interface QuizWorkspaceProps {
   shuffleOptions?: boolean
   includeHints?: boolean
   focusSnippets?: string[]
+  onSongSaved?: () => void
 }
 
 export default function QuizWorkspace({
+  quizId,
   initialQuiz,
   sourceText,
   meta,
@@ -46,6 +49,7 @@ export default function QuizWorkspace({
   shuffleOptions,
   includeHints,
   focusSnippets,
+  onSongSaved,
 }: QuizWorkspaceProps) {
   const { t } = useTranslation()
   const editor = useQuizEditor({
@@ -67,6 +71,8 @@ export default function QuizWorkspace({
   return (
     <>
       <QuizResultView
+        quizId={quizId}
+        sourceText={sourceText}
         quiz={editor.quiz}
         meta={meta}
         onTitleChange={editor.updateTitle}
@@ -82,6 +88,7 @@ export default function QuizWorkspace({
         missingCount={editor.missingCount}
         isToppingUp={editor.isToppingUp}
         onTopUp={() => void editor.topUp()}
+        onSongSaved={onSongSaved}
       />
       {editor.regenerateError && (
         <p role="alert" className="-mt-2 text-xs font-medium text-error">

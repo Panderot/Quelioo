@@ -299,5 +299,58 @@
       "stepsLabel": "Adımlar",
       "answerLabel": "Cevap"
     }
+  },
+  "song": {
+    "button": "Şarkıya çevir",
+    "panelTitle": "Şarkıya çevir",
+    "close": "Kapat",
+    "demoBadge": "Demo ses",
+    "aiDisclosure": "Bu şarkı yapay zekâ ile yapıldı.",
+    "length30s": "30 saniyelik şarkı",
+    "lengthLabel": "Uzunluk",
+    "style": {
+      "label": "Tarz",
+      "pop": "Pop",
+      "rap": "Rap",
+      "kids": "Çocuk şarkısı",
+      "rock": "Rock",
+      "acoustic": "Akustik",
+      "lofi": "Lo-fi"
+    },
+    "writeLyrics": "Sözleri yaz",
+    "writingLyrics": "Sözler yazılıyor...",
+    "rewriteLyrics": "Sözleri yeniden yaz",
+    "lyricsLabel": "Sözler",
+    "lyricsCounter": "{{count}}/{{max}} karakter",
+    "makeTheSong": "Şarkıyı oluştur",
+    "cancel": "Vazgeç",
+    "loading": {
+      "messages": ["Enstrümanlar ısınıyor...", "Melodi besteleniyor...", "Parça mikslenıyor...", "Neredeyse bitti..."]
+    },
+    "player": {
+      "play": "Oynat",
+      "pause": "Duraklat",
+      "seek": "Konum",
+      "volume": "Ses düzeyi",
+      "download": "İndir",
+      "makeAnother": "Başka bir tane oluştur"
+    },
+    "costGuardReached": "Bu quiz için bugünkü {{max}} şarkı sınırına ulaştın. Lütfen yarın tekrar dene.",
+    "archive": {
+      "listenTitle": "Dinle",
+      "hasSongLabel": "Bu quizin bir şarkısı var"
+    },
+    "errors": {
+      "not_configured": "Şarkı oluşturma şu anda geçici olarak kullanılamıyor. Lütfen kısa süre sonra tekrar dene.",
+      "disabled": "Quizleri şarkıya çevirme şu anda kullanılamıyor.",
+      "too_long": "Bu sözler çok uzun. Lütfen biraz kısaltıp tekrar dene.",
+      "blocked": "Quelio bu istekten müzik oluşturamadı. Lütfen sözleri veya tarzı değiştirip tekrar dene.",
+      "upstream": "Şarkını oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
+      "timeout": "Bu işlem çok uzun sürdü. Lütfen tekrar dene.",
+      "parse": "Quelio bu sefer geçerli bir şarkı okuyamadı. Lütfen tekrar dene.",
+      "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
+      "storage_full": "Bu şarkı bu cihazda kaydedilemedi ama bu oturum boyunca çalmaya devam edecek.",
+      "retry": "Tekrar dene"
+    }
   }
 }
