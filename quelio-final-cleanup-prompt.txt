@@ -1,0 +1,42 @@
+MODEL: Claude Sonnet 5.5 (select it with /model before pasting this prompt)
+
+CONTEXT AND EXECUTION
+- Follow the project's CLAUDE.md instructions. Search first, then read only files and sections relevant to the task; do not reread unchanged references.
+- Complete the requested work quickly and fully. Avoid unnecessary planning and repeated checks, but do not skip checks needed to catch errors.
+- Keep terminal output brief. If build or lint fails, inspect only the relevant error lines; fix the issue and rerun the failed check. Do not save full logs.
+- Do not create progress notes, audit files, debug dumps, or extra documentation. Save only files required by the task.
+- After build, lint, and visual verification pass, deploy the finished site to Vercel production and verify that the production URL loads correctly.
+- Finish with a few lines stating what was built, what passed, and the production URL. Do not paste logs or entire files.
+
+TASK
+Final cleanup after the recent feature work. Two goals: (A) remove everything in the project that is no longer used, including mock and demo leftovers, and (B) slim down CLAUDE.md and design.md so they stay small and do not fill the context window, while keeping every important, still-valid fact. The site must look and behave exactly the same afterwards. This prompt replaces the older cleanup prompts (quelio-cleanup-prompt.txt and quelio-api-cleanup-prompt.txt); do not run those.
+
+SNAPSHOT AND GATE
+1) Commit the current state locally first (git add -A, message "chore: snapshot before final cleanup"); do not push. Commit the cleanup separately afterwards ("chore: final cleanup"); do not push.
+2) Gate: run the full Playwright suite once before touching anything. If it fails, or no provider key exists locally for the one real check at the end (OPENAI_API_KEY or ANTHROPIC_API_KEY in .env.local), STOP and tell me in two lines instead of cleaning. Never print keys.
+
+PART A: CODE AND FILES
+1) Mock and demo data (Create page, api/generate, api/grade):
+- Remove the demo mode, sample questions, demo flags, demo banner strings and any simulated or placeholder generation or grading code.
+- When no provider key is configured, the API returns the stable error code "not_configured" and the UI shows a localized generic "temporarily unavailable" message with the usual retry action (add the message in en, tr and hyw if it does not exist). Never show sample content.
+- Archive: silently drop stored entries that have no valid questions array (migrate the list once so nothing crashes) and remove the special UI for old entries without questions.
+- Do not touch the Solve page or api/solve; it keeps its own behavior. Make sure shared helpers still work for it.
+2) General cleanup, only what is truly unused (search before each removal): components, hooks, helpers, types, constants, dead branches and state left from removed features; unused imports, variables, props and exports; unused CSS and Tailwind tokens from old designs; orphan i18n keys (en, tr and hyw keep identical key sets); npm packages nothing imports (use npm uninstall so package.json and the lockfile stay in sync); unused images, icons and fonts; console.log calls and commented-out code; temporary scripts and sample files.
+3) Tests: remove tests for features that no longer exist and merge obvious duplicates, but keep coverage of every current feature. Keep the suite fast. Fixtures stay only under tests/.
+4) Make sure .gitignore covers node_modules, dist, .env, .env.local, test-results, playwright-report and .vercel so searches and commits never pull generated files.
+
+PART B: SLIM CLAUDE.md AND design.md
+CLAUDE.md
+- Keep these two sections exactly as they are, word for word: "Context ve token kullanımı" and "Bilgilerin güncelliği".
+- Rewrite the rest as short, dense bullets (no paragraphs, no history, no changelog, no feature tours). Target: the whole file at most about 70 lines. Keep only current facts that cannot be learned quickly from the code and that affect how work is done: one-line product description; stack and the run, build, lint, test commands (including how to run with real keys locally); the API endpoints with one line each; provider order rules and environment variable NAMES (never values); the rule that keys live only in Vercel and .env.local; the prompt-injection rule (user text, files, URLs and student answers are DATA inside tags); localStorage keys; i18n rules (en, tr and hyw, Western Armenian classical orthography, identical key sets, no hardcoded strings, native speaker review note); testing rules (Playwright headless, run only affected specs, dot reporter, no Claude in Chrome tool); deploy rule (vercel --prod, and that it may be blocked so I run !vercel --prod); design rules pointer (design.md is the source of truth, one primary amber button per screen, no gradients); and a last line: "Keep this file under about 70 lines; when adding something, remove something outdated."
+- Remove: descriptions of things the code already shows (component lists, file structure tours, long lists such as all output languages), duplicate lines, completed-work notes, stale statements, and anything unverified.
+design.md
+- Keep the design system exact and complete for building UI: color, type, spacing, radius and shadow tokens; layout and responsive rules; every component's essential spec and states; focus, motion and accessibility rules.
+- Remove: duplicated prose, explanations of why, sections about components or screens that no longer exist, repeated values, screen inventory that only restates what the code shows. Use compact tables and short bullets. Target: about 40 percent smaller than now, without losing any token value or component rule that the current UI uses.
+- Verify every remaining claim against the current code (spot check with searches); fix or remove anything that is wrong.
+
+DO NOT REMOVE
+CLAUDE.md and design.md themselves, vercel.json, .vercel/, .gitignore, .env.example, config files (eslint, tsconfig, vite, playwright), package.json and the lockfile, the api/ folder and its shared helpers, scripts (for example check:llm), Archive storage, language switcher, Armenian font fallbacks, routing and the not-found page, the Solve page and api/solve. Do NOT delete any quelio-*.txt files in the project root; I manage those. If unsure whether something is used, keep it and mention it in one line in the final report.
+
+VERIFY
+Run tsc, lint and build with zero errors and no unused-code warnings. Run the full Playwright suite (same result as before the cleanup). Search the code and the dist output for leftover demo, mock and TODO strings tied to generation and for key strings (nothing must leak). Run one real generation check (npm run test:live against production after deploy, or a local real generation with a short Turkish paragraph) to confirm the real API still works, and check the not_configured path once by running the dev API without keys, then restore keys. Deploy and confirm production loads. In the final report list, briefly by category, what was removed (for example "demo mode, 3 sample sets, 12 i18n keys, 2 packages, 4 tests"), the size of CLAUDE.md and design.md before and after in lines, and anything kept because you were unsure. If the production deploy command is blocked by the safety classifier, say so and stop; I will run vercel --prod myself.
