@@ -1,4 +1,5 @@
 import { callAnthropicMessagesDetailed, resolveModel } from './anthropic.js'
+import type { AnthropicContentBlock } from './anthropic.js'
 import { callOpenAiResponses } from './openai.js'
 
 export type LlmProvider = 'anthropic' | 'openai'
@@ -10,10 +11,17 @@ export type LlmErrorCode = 'upstream' | 'parse' | 'model'
  */
 type LogTag = 'auth' | 'quota' | 'rate' | 'model' | 'bad_request' | 'upstream' | 'forced_fail'
 
+export interface LlmImageInput {
+  mimeType: string
+  base64Data: string
+}
+
 export interface LlmCallParams {
   system: string
   user: string
   maxTokens: number
+  /** Optional image to attach alongside `user` as vision input (e.g. Solve). Omitted entirely for text-only callers. */
+  image?: LlmImageInput
 }
 
 export type LlmResult =
@@ -102,12 +110,18 @@ async function callAnthropic(params: LlmCallParams): Promise<ProviderOutcome> {
 
   const model = resolveModel(DEFAULT_ANTHROPIC_MODEL)
   const effort = resolveAnthropicEffortConfig()
+  const content: AnthropicContentBlock[] = params.image
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: params.image.mimeType, data: params.image.base64Data } },
+        { type: 'text', text: params.user },
+      ]
+    : [{ type: 'text', text: params.user }]
   const result = await callAnthropicMessagesDetailed({
     apiKey,
     model,
     maxTokens: params.maxTokens,
     system: params.system,
-    content: [{ type: 'text', text: params.user }],
+    content,
     outputConfig: effort.outputConfig,
     thinking: effort.thinking,
   })
@@ -134,6 +148,7 @@ async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
     system: params.system,
     user: params.user,
     maxOutputTokens: params.maxTokens,
+    image: params.image,
   })
 
   if (!result.ok || result.text === null) {

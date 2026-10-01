@@ -12,7 +12,7 @@ Yapay zekâ ile metin, dosya, URL ve YouTube içeriğinden quiz üreten web uygu
 
 ## API uç noktaları
 
-- `/api/solve` (`api/_lib/solve.ts`): fotoğraftaki matematik sorusunu yalnızca Anthropic ile çözer, sağlayıcı fallback'i yok — dokunma.
+- `/api/solve` (`api/_lib/solve.ts`): fotoğraftaki matematik sorusunu ortak sağlayıcı katmanı (`generateJson()`) üzerinden çözer, aynı sağlayıcı sırası ve fallback mantığı generate/grade ile aynıdır. Fotoğraf ve öğrenci notu DATA olarak işlenir (`<student_note>`, bkz. Prompt-injection koruması); istemci her formatı tek bir JPEG'e normalize ettikten sonra gönderir (`src/lib/imageNormalize.ts`), sunucu yalnızca `image/jpeg` kabul eder. Per-IP saatlik hız sınırı (`api/_lib/solve-rate-limit.ts`).
 - `/api/generate` (`api/_lib/generate.ts`): quiz üretir; `mode: "regenerate_one"` tek soru yeniler, `mode: "top_up"` eksik soruyu tamamlar. >10 soru paralel batch'lere bölünür, yakın-yinelenenler ayıklanır, eksik kalan otomatik top-up ile tamamlanmaya çalışılır; yine eksikse `incomplete`/`requestedCount` döner. `includeHints` açıkken her soru için ilerleyen 2 ipucu üretilir ve sunucuda (`src/lib/hints.ts`) sızıntı kontrolünden geçer — asla cevabı ele vermez; başarısız olursa bir kez yeniden yazılır, yine olmazsa o sorunun ipuçları silinir.
 - `/api/extract-url` (`api/_lib/extract-url.ts`, yalnızca POST): URL'den makale metni çıkarır (Readability + linkedom); SSRF korumaları zorunlu (bkz. `api/_lib/ssrf.ts`).
 - `/api/grade` (`api/_lib/grade.ts`, yalnızca POST): `short-answer`/`open-ended` cevabını AI ile serbest metin olarak değerlendirir.
@@ -22,7 +22,7 @@ Yapay zekâ ile metin, dosya, URL ve YouTube içeriğinden quiz üreten web uygu
 
 ## Sağlayıcı sırası ve env değişkenleri
 
-- `generate` ve `grade` ortak `api/_lib/llm.ts`'teki `generateJson()` üzerinden gider: birincil Anthropic Claude Sonnet 5.5, yedek OpenAI (Responses API).
+- `generate`, `grade` ve `solve` ortak `api/_lib/llm.ts`'teki `generateJson()` üzerinden gider: birincil Anthropic Claude Sonnet 5.5, yedek OpenAI (Responses API); `solve` görsel girdiyi (`image`) aynı çağrıya ekler.
 - Sıra: production'da anthropic→openai, preview/development/local'de openai→anthropic; `LLM_PROVIDER_ORDER` her ortamda ezer. Anahtarı olmayan sağlayıcı atlanır; hiçbirinde anahtar yoksa `not_configured` hatası döner (örnek/demo içerik yok).
 - Env değişkeni isimleri (değerleri değil): `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_EFFORT`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `LLM_PROVIDER_ORDER`, `LLM_FORCE_FAIL` (production'da yok sayılır), `MUSIC_ENABLED`, `MUSIC_PROVIDER`, `MUSIC_ACCESS_CODE`, `GEMINI_API_KEY`, `GEMINI_MUSIC_MODEL`, `GEMINI_MUSIC_MODEL_LONG`.
 - Anahtarlar yalnızca Vercel proje ortam değişkenlerinde ve `.env.local`'de yaşar — asla kodda, commit'te ya da sohbette paylaşılmaz.

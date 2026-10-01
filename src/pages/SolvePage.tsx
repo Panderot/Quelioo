@@ -5,14 +5,15 @@ import { useTranslation } from 'react-i18next'
 
 import { SolveApiError, solveMathPhoto } from '../api/solve'
 import type { SolveErrorCode, SolveResult } from '../api/solve'
-import { compressImageForSolve } from '../lib/imageCompression'
-import type { CompressedImage } from '../lib/imageCompression'
-import DemoBanner from '../components/DemoBanner'
+import { ImageNormalizeError, normalizeImageForSolve } from '../lib/imageNormalize'
+import type { NormalizedImage } from '../lib/imageNormalize'
 import MathText from '../components/MathText'
 import { FileTabIcon, SpinnerIcon, SunIcon } from '../components/icons'
 
-const ACCEPTED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024
+const ACCEPT_ATTR = 'image/*,.heic,.heif,.avif,.tiff,.tif,.bmp,.ico,.svg,.dng'
+const MAX_NOTE_CHARS = 500
+
+type DisplayErrorCode = SolveErrorCode | 'unsupported' | 'decode_failed' | 'too_small'
 
 function buildQuizPrefillText(
   result: SolveResult,
@@ -35,36 +36,35 @@ export default function SolvePage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const conversionRef = useRef(0)
 
-  const [compressed, setCompressed] = useState<CompressedImage | null>(null)
+  const [normalized, setNormalized] = useState<NormalizedImage | null>(null)
+  const [note, setNote] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+  const [isConverting, setIsConverting] = useState(false)
   const [isSolving, setIsSolving] = useState(false)
   const [result, setResult] = useState<SolveResult | null>(null)
-  const [errorCode, setErrorCode] = useState<SolveErrorCode | null>(null)
+  const [errorCode, setErrorCode] = useState<DisplayErrorCode | null>(null)
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return
 
+    const generation = ++conversionRef.current
     setResult(null)
-
-    if (!ACCEPTED_TYPES.has(file.type)) {
-      setErrorCode('bad_type')
-      setCompressed(null)
-      return
-    }
+    setErrorCode(null)
+    setNormalized(null)
+    setIsConverting(true)
 
     try {
-      const image = await compressImageForSolve(file)
-      if (image.byteLength > MAX_IMAGE_BYTES) {
-        setErrorCode('too_large')
-        setCompressed(null)
-        return
-      }
-      setErrorCode(null)
-      setCompressed(image)
-    } catch {
-      setErrorCode('upstream')
-      setCompressed(null)
+      const image = await normalizeImageForSolve(file)
+      if (conversionRef.current !== generation) return
+      setNormalized(image)
+    } catch (error) {
+      if (conversionRef.current !== generation) return
+      setErrorCode(error instanceof ImageNormalizeError ? error.reason : 'decode_failed')
+    } finally {
+      if (conversionRef.current === generation) setIsConverting(false)
     }
   }
 
@@ -90,26 +90,48 @@ export default function SolvePage() {
   }
 
   const handleReset = () => {
-    setCompressed(null)
+    conversionRef.current += 1
+    abortRef.current?.abort()
+    setNormalized(null)
     setResult(null)
     setErrorCode(null)
+    setNote('')
+    setIsConverting(false)
+  }
+
+  const handleCancelConvert = () => {
+    conversionRef.current += 1
+    setIsConverting(false)
+  }
+
+  const handleCancelSolve = () => {
+    abortRef.current?.abort()
   }
 
   const handleSolve = async () => {
-    if (!compressed) return
+    if (!normalized || isSolving) return
     setIsSolving(true)
     setErrorCode(null)
+    const controller = new AbortController()
+    abortRef.current = controller
     try {
-      const solved = await solveMathPhoto({
-        imageBase64: compressed.dataUrl,
-        mimeType: compressed.mimeType,
-        language: i18n.language,
-      })
+      const solved = await solveMathPhoto(
+        {
+          imageBase64: normalized.dataUrl,
+          mimeType: normalized.mimeType,
+          language: i18n.language,
+          note: note.trim(),
+        },
+        controller.signal,
+      )
       setResult(solved)
     } catch (error) {
-      setErrorCode(error instanceof SolveApiError ? error.code : 'upstream')
+      if (!controller.signal.aborted) {
+        setErrorCode(error instanceof SolveApiError ? error.code : 'upstream')
+      }
     } finally {
       setIsSolving(false)
+      abortRef.current = null
     }
   }
 
@@ -137,13 +159,13 @@ export default function SolvePage() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept={ACCEPT_ATTR}
           capture="environment"
           onChange={handleInputChange}
           className="sr-only"
         />
 
-        {!compressed ? (
+        {!normalized && !isConverting ? (
           <div
             role="button"
             tabIndex={0}
@@ -181,10 +203,25 @@ export default function SolvePage() {
             </button>
             <p className="text-xs text-muted">{t('solve.upload.hint')}</p>
           </div>
-        ) : (
+        ) : isConverting ? (
+          <div
+            data-purpose="solve-converting"
+            className="flex min-h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-warm-border px-4 py-8 text-center md:min-h-[260px]"
+          >
+            <SpinnerIcon className="h-8 w-8 text-amber-text" />
+            <p className="text-sm font-semibold text-ink">{t('solve.upload.converting')}</p>
+            <button
+              type="button"
+              onClick={handleCancelConvert}
+              className="text-xs font-semibold text-amber-text hover:underline"
+            >
+              {t('solve.cta.cancel')}
+            </button>
+          </div>
+        ) : normalized ? (
           <div className="space-y-3">
             <img
-              src={compressed.dataUrl}
+              src={normalized.dataUrl}
               alt={t('solve.title')}
               className="max-h-[360px] w-full rounded-2xl border border-warm-border object-contain"
             />
@@ -196,20 +233,46 @@ export default function SolvePage() {
               {t('solve.upload.changePhoto')}
             </button>
           </div>
+        ) : null}
+
+        {normalized && (
+          <div className="space-y-1.5">
+            <label htmlFor="solve-note" className="text-xs font-semibold text-ink">
+              {t('solve.note.label')}
+            </label>
+            <textarea
+              id="solve-note"
+              rows={2}
+              value={note}
+              maxLength={MAX_NOTE_CHARS}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder={t('solve.note.placeholder')}
+              className="w-full resize-none rounded-xl border border-warm-border bg-card px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-solid"
+            />
+          </div>
         )}
       </section>
 
-      <section data-purpose="primary-action-cta" className="pt-2 pb-6">
+      <section data-purpose="primary-action-cta" className="space-y-2 pt-2 pb-6">
         <button
           type="button"
           onClick={() => void handleSolve()}
-          disabled={!compressed || isSolving}
+          disabled={!normalized || isSolving}
           aria-busy={isSolving}
           className="group flex h-14 w-full items-center justify-center gap-3 rounded-[14px] bg-amber text-base font-bold text-navy shadow-sm transition-all hover:-translate-y-px hover:bg-amber-hover hover:shadow-lg hover:shadow-amber/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
         >
           {isSolving ? <SpinnerIcon className="h-5 w-5 text-navy" /> : <SunIcon className="h-5 w-5 text-navy" />}
           <span className="tracking-wide">{isSolving ? t('solve.cta.solving') : t('solve.cta.solve')}</span>
         </button>
+        {isSolving && (
+          <button
+            type="button"
+            onClick={handleCancelSolve}
+            className="w-full text-center text-xs font-semibold text-amber-text hover:underline"
+          >
+            {t('solve.cta.cancel')}
+          </button>
+        )}
       </section>
 
       {errorCode && (
@@ -231,8 +294,6 @@ export default function SolvePage() {
 
       {result && (
         <div data-purpose="solve-result" className="-mt-4 space-y-4 pb-6">
-          {result.demo && <DemoBanner message={t('solve.demoNotice')} />}
-
           <section className="space-y-4 rounded-[14px] border border-warm-border bg-card p-5 md:p-6">
             <p className="text-xs font-bold tracking-wide text-amber-text uppercase">{result.topic}</p>
             <p className="text-sm font-semibold text-ink">

@@ -146,11 +146,10 @@ One custom listbox component for every choice field (parameter selects, Output L
 
 ### 7.11 Solve page
 Same shell as Create. Page title "Solve a math question" + subtitle.
-- **Upload area:** input-card surface; empty state is the same dashed dropzone as 7.5 (click, drag-drop, paste, mobile camera capture). Once chosen: preview image (rounded, bordered, `object-contain`, max height ~360px) + "Change photo" link.
-- **Primary CTA:** same style as 7.9, label "Solve", disabled until a photo is chosen; loading swaps icon for spinner and label for "Solving...".
+- **Upload area:** input-card surface; empty state is the same dashed dropzone as 7.5 (click, drag-drop, paste, mobile camera capture), accepting any common photo format (client normalizes every format to JPEG before upload). Converting state (HEIC/RAW decode can take a few seconds): spinner + status text + a text "Cancel" link, same spot as the dropzone. Once chosen: preview image (rounded, bordered, `object-contain`, max height ~360px) + "Change photo" link, plus an optional two-row note textarea (same style as 7.5) below the preview.
+- **Primary CTA:** same style as 7.9, label "Solve", disabled until a photo is chosen; loading swaps icon for spinner and label for "Solving...", with a text "Cancel" link beneath it that aborts the request with no error.
 - **Result card:** amber-text uppercase topic label, question, then numbered steps (amber circular badge + navy text). Final answer as an inline amber-tinted chip (`bg-amber/15`) with an amber-text "Answer" label; tip below in a muted paper box. All model text renders through the math-aware text component (7.12).
-- **Demo notice:** shown above the result when the response is a fallback sample (no API key configured) — muted amber banner (`border-amber/30`, `bg-amber/10`, amber-text bold text). Solve keeps its own always-available demo fallback; this does not apply to Create (7.14).
-- **Error state:** error-tinted card, localized message per error code, "Try another photo" button.
+- **Error state:** error-tinted card, localized message per error code (server: unreadable/not_math/too_large/bad_type/upstream/parse/model/not_configured/rate_limited/network; client-side format handling: too_small/unsupported/decode_failed), "Try another photo" button.
 - **Secondary action:** outline "Create a quiz on this topic" button (never solid amber) navigating to Create with topic/question/steps/answer prefilled (MCQ, Medium).
 - **Footer note:** small centered muted line framing Quelio as a learning tool, not an answer-copying shortcut.
 

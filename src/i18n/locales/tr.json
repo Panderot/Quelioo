@@ -283,25 +283,37 @@
       "dragSubtitle": "ya da dosya seçmek, yapıştırmak veya fotoğraf çekmek için tıklayın",
       "browse": "Fotoğraf seç",
       "changePhoto": "Fotoğrafı değiştir",
-      "hint": "JPEG, PNG veya WEBP, 4MB'a kadar"
+      "hint": "Her fotoğraf formatı, 25MB'a kadar",
+      "converting": "Fotoğrafın hazırlanıyor..."
+    },
+    "note": {
+      "label": "Not ekle (isteğe bağlı)",
+      "placeholder": "Örneğin: \"2. adımı anlamadım\""
     },
     "cta": {
       "solve": "Çöz",
       "solving": "Çözülüyor...",
+      "cancel": "İptal et",
       "createQuiz": "Bu konudan quiz oluştur"
     },
     "result": {
       "answerLabel": "Cevap",
       "tipLabel": "İpucu"
     },
-    "demoNotice": "Demo mod: bu örnek bir çözüm.",
     "footerNote": "Quelio cevabı kopyalaman için değil, yöntemi öğrenmen için anlatır.",
     "errors": {
+      "unreadable": "Bu fotoğrafı net okuyamadık. Sorunun daha net ve iyi aydınlatılmış bir fotoğrafını dene.",
       "not_math": "Bu fotoğrafta bir matematik sorusu bulamadık. Sorunun daha net bir fotoğrafını dene.",
-      "too_large": "Bu fotoğraf çok büyük. Daha küçük ya da daha sıkıştırılmış bir fotoğraf dene.",
-      "bad_type": "Lütfen JPEG, PNG veya WEBP formatında bir fotoğraf yükle.",
+      "too_large": "Bu fotoğraf çok büyük. Lütfen 25MB'ın altında bir fotoğraf kullan.",
+      "too_small": "Bu fotoğraf net okunamayacak kadar küçük. Lütfen daha büyük bir fotoğraf kullan.",
+      "unsupported": "Bu dosya formatı desteklenmiyor. JPEG, PNG, WEBP, HEIC, TIFF, BMP, GIF, AVIF, ICO, SVG veya DNG dene.",
+      "decode_failed": "Bu fotoğrafı açamadık. Dosya bozuk olabilir — başka bir dosya dene.",
+      "bad_type": "Lütfen sorunun bir fotoğrafını yükle.",
       "upstream": "Quelio'nun çözücüsüne ulaşırken bir şeyler ters gitti. Lütfen tekrar dene.",
       "parse": "Quelio bu sefer net bir cevap okuyamadı. Lütfen tekrar dene.",
+      "model": "Quelio'nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen kısa süre sonra tekrar dene.",
+      "not_configured": "Fotoğraf çözme şu anda geçici olarak kullanılamıyor. Lütfen kısa süre sonra tekrar dene.",
+      "rate_limited": "Bu saat için fotoğraf çözme sınırına ulaştın. Lütfen daha sonra tekrar dene.",
       "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
       "tryAnother": "Başka bir fotoğraf dene"
     },

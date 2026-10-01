@@ -18,6 +18,7 @@ interface QuelioFixtures {
   mockGenerate: (response: unknown, options?: { status?: number }) => Promise<MockHandle>
   mockExtractUrl: (response: unknown, options?: { status?: number }) => Promise<MockHandle>
   mockGrade: (response: unknown, options?: { status?: number }) => Promise<MockHandle>
+  mockSolve: (response: unknown, options?: { status?: number; delayMs?: number }) => Promise<MockHandle>
   seedArchive: (entries: ArchiveEntry[]) => Promise<void>
   seedLanguage: (lang: 'en' | 'tr' | 'hyw') => Promise<void>
 }
@@ -67,6 +68,18 @@ export const test = base.extend<QuelioFixtures>({
       const requests: unknown[] = []
       await page.route('**/api/grade', async (route) => {
         requests.push(route.request().postDataJSON())
+        await route.fulfill({ status: options.status ?? 200, contentType: 'application/json', body: JSON.stringify(response) })
+      })
+      return { requests: () => requests }
+    })
+  },
+
+  mockSolve: async ({ page }, use) => {
+    await use(async (response, options = {}) => {
+      const requests: unknown[] = []
+      await page.route('**/api/solve', async (route) => {
+        requests.push(route.request().postDataJSON())
+        if (options.delayMs) await new Promise((resolve) => setTimeout(resolve, options.delayMs))
         await route.fulfill({ status: options.status ?? 200, contentType: 'application/json', body: JSON.stringify(response) })
       })
       return { requests: () => requests }

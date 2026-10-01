@@ -283,25 +283,37 @@
       "dragSubtitle": "or click to choose a file, paste, or take a photo",
       "browse": "Choose a photo",
       "changePhoto": "Change photo",
-      "hint": "JPEG, PNG or WEBP, up to 4MB"
+      "hint": "Any photo format, up to 25MB",
+      "converting": "Preparing your photo..."
+    },
+    "note": {
+      "label": "Add a note (optional)",
+      "placeholder": "For example: \"I don't understand step 2\""
     },
     "cta": {
       "solve": "Solve",
       "solving": "Solving...",
+      "cancel": "Cancel",
       "createQuiz": "Create a quiz on this topic"
     },
     "result": {
       "answerLabel": "Answer",
       "tipLabel": "Tip"
     },
-    "demoNotice": "Demo mode: this is a sample solution.",
     "footerNote": "Quelio explains the method so you can learn it, not just copy the answer.",
     "errors": {
+      "unreadable": "We couldn't read this photo clearly. Try a clearer, well-lit photo of just the question.",
       "not_math": "We couldn't find a math question in this photo. Try a clearer photo of just the question.",
-      "too_large": "This photo is too large. Try a smaller or more compressed photo.",
-      "bad_type": "Please upload a JPEG, PNG or WEBP photo.",
+      "too_large": "This photo is too large. Please use a photo under 25MB.",
+      "too_small": "This photo is too small to read clearly. Please use a larger photo.",
+      "unsupported": "This file format isn't supported. Try JPEG, PNG, WEBP, HEIC, TIFF, BMP, GIF, AVIF, ICO, SVG or DNG.",
+      "decode_failed": "We couldn't open this photo. It may be corrupted — try a different file.",
+      "bad_type": "Please upload a photo of the question.",
       "upstream": "Something went wrong reaching Quelio's solver. Please try again.",
       "parse": "Quelio couldn't read a clear answer this time. Please try again.",
+      "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+      "not_configured": "Solving photos is temporarily unavailable. Please try again shortly.",
+      "rate_limited": "You've reached the hourly limit for solving photos. Please try again later.",
       "network": "Couldn't connect. Check your connection and try again.",
       "tryAnother": "Try another photo"
     },

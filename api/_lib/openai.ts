@@ -13,6 +13,8 @@ export interface CallOpenAiResponsesParams {
   system: string
   user: string
   maxOutputTokens: number
+  /** Optional image to attach as vision input, alongside `user` as text. */
+  image?: { mimeType: string; base64Data: string }
 }
 
 export interface OpenAiCallResult {
@@ -33,6 +35,18 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
   const timeoutController = new AbortController()
   const timeout = setTimeout(() => timeoutController.abort(), UPSTREAM_TIMEOUT_MS)
 
+  const input = params.image
+    ? [
+        {
+          role: 'user',
+          content: [
+            { type: 'input_text', text: params.user },
+            { type: 'input_image', image_url: `data:${params.image.mimeType};base64,${params.image.base64Data}` },
+          ],
+        },
+      ]
+    : params.user
+
   let response: Response
   try {
     response = await fetch('https://api.openai.com/v1/responses', {
@@ -44,7 +58,7 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
       body: JSON.stringify({
         model: params.model,
         instructions: params.system,
-        input: params.user,
+        input,
         max_output_tokens: params.maxOutputTokens,
       }),
       signal: timeoutController.signal,
