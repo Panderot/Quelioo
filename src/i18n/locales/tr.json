@@ -7,6 +7,7 @@
     "create": "Oluştur",
     "solve": "Çöz",
     "archive": "Arşiv",
+    "songs": "Şarkılar",
     "openMenu": "Gezinme menüsünü aç",
     "closeMenu": "Gezinme menüsünü kapat"
   },
@@ -347,6 +348,13 @@
     },
     "costGuardReached": "Bu quiz için bugünkü {{max}} şarkı sınırına ulaştın. Lütfen yarın tekrar dene.",
     "secondsGuardReached": "Bugünkü {{max}} saniyelik şarkı sınırına ulaştın. Lütfen yarın tekrar dene.",
+    "seeAllSongs": "Tüm şarkılar",
+    "access": {
+      "title": "Erişim kodunu gir",
+      "unlock": "Kilidi aç",
+      "wrongCode": "Bu kod doğru değil. Lütfen tekrar dene.",
+      "lock": "Kilitle"
+    },
     "archive": {
       "listenTitle": "Dinle",
       "hasSongLabel": "Bu quizin bir şarkısı var"
@@ -354,6 +362,7 @@
     "errors": {
       "not_configured": "Şarkı oluşturma şu anda geçici olarak kullanılamıyor. Lütfen kısa süre sonra tekrar dene.",
       "disabled": "Quizleri şarkıya çevirme şu anda kullanılamıyor.",
+      "locked": "Erişim kodu olmadan şarkı oluşturulamaz.",
       "too_long": "Bu sözler çok uzun. Lütfen biraz kısaltıp tekrar dene.",
       "blocked": "Quelio bu istekten müzik oluşturamadı. Lütfen sözleri veya tarzı değiştirip tekrar dene.",
       "upstream": "Şarkını oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
@@ -363,5 +372,35 @@
       "storage_full": "Bu şarkı bu cihazda kaydedilemedi ama bu oturum boyunca çalmaya devam edecek.",
       "retry": "Tekrar dene"
     }
+  },
+  "songsPage": {
+    "title": "Şarkılar",
+    "subtitle": "Quizlerini unutulmaz şarkılara dönüştür",
+    "songsLeftToday": "Bugün {{count}} şarkı hakkın kaldı",
+    "newSong": "Yeni şarkı",
+    "pickerTitle": "Bir quiz seç",
+    "pickerSearchPlaceholder": "Quiz ara...",
+    "pickerEmpty": "Henüz hiç quizin yok.",
+    "pickerQuestionCount": "{{count}} soru",
+    "filters": {
+      "all": "Tümü",
+      "normal": "Normal",
+      "funny": "Komik"
+    },
+    "searchPlaceholder": "Quiz başlığına göre ara...",
+    "generatingRow": "Şarkın oluşturuluyor...",
+    "empty": {
+      "title": "Henüz şarkı yok",
+      "subtitle": "Burada görmek için quizlerinden birini şarkıya çevir."
+    },
+    "row": {
+      "viewLyrics": "Sözleri göster",
+      "hideLyrics": "Sözleri gizle",
+      "openQuiz": "Quizi aç",
+      "quizDeleted": "Quiz silindi",
+      "delete": "Sil",
+      "confirmDelete": "Bu şarkı silinsin mi?"
+    },
+    "deletedUndo": "Şarkı silindi."
   }
 }

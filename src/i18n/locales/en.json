@@ -7,6 +7,7 @@
     "create": "Create",
     "solve": "Solve",
     "archive": "Archive",
+    "songs": "Songs",
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu"
   },
@@ -347,6 +348,13 @@
     },
     "costGuardReached": "You've reached today's limit of {{max}} songs for this quiz. Please try again tomorrow.",
     "secondsGuardReached": "You've reached today's limit of {{max}} seconds of songs. Please try again tomorrow.",
+    "seeAllSongs": "See all songs",
+    "access": {
+      "title": "Enter access code",
+      "unlock": "Unlock",
+      "wrongCode": "That code isn't correct. Please try again.",
+      "lock": "Lock"
+    },
     "archive": {
       "listenTitle": "Listen",
       "hasSongLabel": "This quiz has a song"
@@ -354,6 +362,7 @@
     "errors": {
       "not_configured": "Song generation is temporarily unavailable. Please try again shortly.",
       "disabled": "Turning quizzes into songs isn't available right now.",
+      "locked": "Making songs isn't available without an access code.",
       "too_long": "These lyrics are too long. Please shorten them a bit and try again.",
       "blocked": "Quelio couldn't create music from this request. Please adjust the lyrics or style and try again.",
       "upstream": "Something went wrong creating your song. Please try again.",
@@ -363,5 +372,35 @@
       "storage_full": "This song couldn't be saved on this device, but it will keep playing for this session.",
       "retry": "Try again"
     }
+  },
+  "songsPage": {
+    "title": "Songs",
+    "subtitle": "Turn your quizzes into songs you can't forget",
+    "songsLeftToday": "{{count}} songs left today",
+    "newSong": "New song",
+    "pickerTitle": "Choose a quiz",
+    "pickerSearchPlaceholder": "Search quizzes...",
+    "pickerEmpty": "You don't have any quizzes yet.",
+    "pickerQuestionCount": "{{count}} questions",
+    "filters": {
+      "all": "All",
+      "normal": "Normal",
+      "funny": "Funny"
+    },
+    "searchPlaceholder": "Search by quiz title...",
+    "generatingRow": "Creating your song...",
+    "empty": {
+      "title": "No songs yet",
+      "subtitle": "Turn one of your quizzes into a song to see it here."
+    },
+    "row": {
+      "viewLyrics": "View lyrics",
+      "hideLyrics": "Hide lyrics",
+      "openQuiz": "Open quiz",
+      "quizDeleted": "Quiz deleted",
+      "delete": "Delete",
+      "confirmDelete": "Delete this song?"
+    },
+    "deletedUndo": "Song deleted."
   }
 }

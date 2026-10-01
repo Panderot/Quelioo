@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { extractJson, readRequestBody } from './anthropic.js'
 import { generateJson } from './llm.js'
-import { isMusicEnabled, resolveMusicProvider, resolveProviderMaxSeconds } from './song-config.js'
+import { isMusicEnabled, isProductionAccessGateActive, resolveMusicProvider, resolveProviderMaxSeconds, verifyMusicAccessCode } from './song-config.js'
 import {
   isRecord,
   isSongStyle,
@@ -389,8 +389,20 @@ async function handleCheckMode(payload: Record<string, unknown>): Promise<{ stat
   return { status: 200, body: { factCheckPassed, flaggedLines: check?.wrongLines ?? [] } }
 }
 
+export interface SongLyricsRequestContext {
+  accessCodeHeader?: string
+}
+
 /** Pure request-handling core, independent of the HTTP transport — mirrors handleGenerateRequest. */
-export async function handleSongLyricsRequest(payload: unknown): Promise<{ status: number; body: SongLyricsResponseBodyOrError }> {
+export async function handleSongLyricsRequest(
+  payload: unknown,
+  context: SongLyricsRequestContext = {},
+): Promise<{ status: number; body: SongLyricsResponseBodyOrError }> {
+  // Checked first — see the matching comment in api/_lib/song.ts's handleSongCreateRequest.
+  if (isProductionAccessGateActive() && !verifyMusicAccessCode(context.accessCodeHeader)) {
+    return { status: 403, body: { error: 'locked' } }
+  }
+
   if (!isRecord(payload)) {
     return { status: 400, body: { error: 'parse' } }
   }
@@ -429,6 +441,8 @@ export async function songLyricsRequestHandler(req: IncomingMessage, res: Server
     return
   }
 
-  const { status, body } = await handleSongLyricsRequest(payload)
+  const accessHeader = req.headers['x-music-access']
+  const context: SongLyricsRequestContext = { accessCodeHeader: Array.isArray(accessHeader) ? accessHeader[0] : accessHeader }
+  const { status, body } = await handleSongLyricsRequest(payload, context)
   respond(status, body)
 }

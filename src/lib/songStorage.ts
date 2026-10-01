@@ -1,8 +1,8 @@
-import type { SongProvider, SongStyle } from './song'
+import type { SongProvider, SongStyle, SongTone } from './song'
 
 /** Songs can be large (raw PCM/MP3 bytes), so they're kept in IndexedDB rather than localStorage —
- * see CLAUDE.md. Keyed by quiz id: the archived quiz view's "Listen" section and the Archive row's
- * music icon both read from here, never from the archive entry itself. */
+ * see CLAUDE.md. Keyed by quiz id: the archived quiz view's "Listen" section, the Archive row's
+ * music icon, and the Songs page (/songs) all read from here, never from the archive entry itself. */
 
 const DB_NAME = 'quelio-songs'
 const DB_VERSION = 1
@@ -18,15 +18,33 @@ const MAX_TOTAL = 30
 export interface StoredSong {
   id: string
   quizId: string
+  /** The quiz's own title at save time — kept separately from `title` (the song's title) so the
+   * Songs page can still show it after the quiz itself is deleted from the Archive. */
+  quizTitle: string
   title: string
   lyrics: string
   style: SongStyle
+  tone: SongTone
   provider: SongProvider
   demo: boolean
   mimeType: string
   durationSeconds: number
+  /** Whether the fact-check pass was fully satisfied when this song was made — songs saved before
+   * this field existed default to true (the feature already blocked known-bad lyrics then too). */
+  factCheckPassed: boolean
   createdAt: string
   audio: Blob
+}
+
+/** Fills in defaults for fields added after some records were already saved — every read goes
+ * through this so older songs render instead of breaking. */
+function withDefaults(raw: Omit<StoredSong, 'quizTitle' | 'tone' | 'factCheckPassed'> & Partial<StoredSong>): StoredSong {
+  return {
+    ...raw,
+    quizTitle: raw.quizTitle ?? raw.title,
+    tone: raw.tone ?? 'normal',
+    factCheckPassed: raw.factCheckPassed ?? true,
+  }
 }
 
 export class SongStorageError extends Error {}
@@ -66,7 +84,7 @@ async function getAllForQuiz(db: IDBDatabase, quizId: string): Promise<StoredSon
   const tx = db.transaction(STORE, 'readonly')
   const index = tx.objectStore(STORE).index(QUIZ_ID_INDEX)
   const all = await promisifyRequest(index.getAll(IDBKeyRange.only(quizId)))
-  return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return all.map(withDefaults).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 function deleteById(db: IDBDatabase, id: string): Promise<void> {
@@ -115,6 +133,27 @@ export async function getSongsForQuiz(quizId: string): Promise<StoredSong[]> {
     return await getAllForQuiz(db, quizId)
   } catch {
     return []
+  }
+}
+
+/** Every song in the store, newest first — backs the Songs page (/songs). */
+export async function getAllSongs(): Promise<StoredSong[]> {
+  try {
+    const db = await openDb()
+    const tx = db.transaction(STORE, 'readonly')
+    const all = await promisifyRequest(tx.objectStore(STORE).getAll())
+    return all.map(withDefaults).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  } catch {
+    return []
+  }
+}
+
+export async function deleteSong(id: string): Promise<void> {
+  try {
+    const db = await openDb()
+    await deleteById(db, id)
+  } catch {
+    // Best-effort — if IndexedDB is unavailable there's nothing stored to delete anyway.
   }
 }
 

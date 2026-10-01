@@ -300,6 +300,24 @@ export function VolumeIcon(props: IconProps) {
   )
 }
 
+export function SearchIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="11" cy="11" r="7" strokeWidth="2" />
+      <path d="M21 21l-4.35-4.35" strokeLinecap="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
+export function LockIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <rect x="5" y="11" width="14" height="9" rx="2" strokeWidth="2" />
+      <path d="M8 11V8a4 4 0 018 0v3" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
 export function CheckIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

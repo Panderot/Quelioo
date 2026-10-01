@@ -37,6 +37,7 @@ export type SongProvider = 'demo' | 'gemini'
 export type SongErrorCode =
   | 'not_configured'
   | 'disabled'
+  | 'locked'
   | 'too_long'
   | 'blocked'
   | 'upstream'
@@ -48,6 +49,7 @@ export type SongErrorCode =
 const SONG_ERROR_CODES: ReadonlySet<string> = new Set<SongErrorCode>([
   'not_configured',
   'disabled',
+  'locked',
   'too_long',
   'blocked',
   'upstream',
@@ -170,6 +172,9 @@ export interface SongStatusResponseBody {
   /** The longest song this provider can currently produce — the panel clamps its length estimate
    * (and the lyrics-writing step clamps which facts it covers) to this. */
   maxSeconds: number
+  /** True in production — /api/song-lyrics and /api/song then require a matching `x-music-access`
+   * header (see api/_lib/song-config.ts). Always false outside production. */
+  requiresAccessCode: boolean
 }
 
 export interface SongCreateResponseBody {

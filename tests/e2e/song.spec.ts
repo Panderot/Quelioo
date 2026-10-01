@@ -45,14 +45,18 @@ function buildQuizWithQuestionCount(count: number) {
   }
 }
 
-async function mockSongStatus(page: Page, enabled: boolean, options: { provider?: 'demo' | 'gemini'; maxSeconds?: number } = {}) {
-  const { provider = 'demo', maxSeconds = 120 } = options
+async function mockSongStatus(
+  page: Page,
+  enabled: boolean,
+  options: { provider?: 'demo' | 'gemini'; maxSeconds?: number; requiresAccessCode?: boolean } = {},
+) {
+  const { provider = 'demo', maxSeconds = 120, requiresAccessCode = false } = options
   await page.route('**/api/song', async (route) => {
     if (route.request().method() !== 'GET') {
       await route.fallback()
       return
     }
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ enabled, provider, maxSeconds }) })
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ enabled, provider, maxSeconds, requiresAccessCode }) })
   })
 }
 

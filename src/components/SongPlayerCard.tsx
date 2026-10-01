@@ -30,7 +30,9 @@ export default function SongPlayerCard({ audioUrl, lyrics, demo, downloadName }:
   const togglePlay = () => {
     const audio = audioRef.current
     if (!audio) return
-    if (audio.paused) void audio.play()
+    // play() rejects with AbortError if the source changes before playback starts — expected in
+    // rare races, not a real failure, so swallow it rather than leaving an unhandled rejection.
+    if (audio.paused) audio.play().catch(() => {})
     else audio.pause()
   }
 

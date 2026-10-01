@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
 import { LogoMark } from './Logo'
-import { ArchiveIcon, CalculatorIcon, HomeIcon } from './icons'
+import { ArchiveIcon, CalculatorIcon, HomeIcon, MusicNoteIcon } from './icons'
 import type { ComponentType, SVGProps } from 'react'
 
 type NavIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -19,7 +20,8 @@ const mainNavItems: NavItem[] = [
   { key: 'solve', labelKey: 'nav.solve', Icon: CalculatorIcon, to: '/solve' },
 ]
 
-const footerNavItems: NavItem[] = [{ key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' }]
+const archiveNavItem: NavItem = { key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' }
+const songsNavItem: NavItem = { key: 'songs', labelKey: 'nav.songs', Icon: MusicNoteIcon, to: '/songs' }
 
 interface SidebarProps {
   isMobileOpen: boolean
@@ -28,6 +30,8 @@ interface SidebarProps {
 
 export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
   const { t } = useTranslation()
+  const songStatus = useSongFeatureStatus()
+  const footerNavItems: NavItem[] = songStatus?.enabled ? [archiveNavItem, songsNavItem] : [archiveNavItem]
 
   const itemClasses = (isActive: boolean) =>
     `group relative flex items-center justify-between gap-3 rounded-lg py-2.5 pr-3 pl-4 text-sm transition-colors ${

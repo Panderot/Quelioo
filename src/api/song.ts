@@ -8,6 +8,7 @@ import type {
   SongStyle,
   SongTone,
 } from '../lib/song'
+import { clearStoredMusicAccessCode, getStoredMusicAccessCode, setStoredMusicAccessCode } from '../lib/songAccessCode'
 
 export class SongApiError extends Error {
   code: SongErrorCode
@@ -23,7 +24,8 @@ function isStatusBody(value: unknown): value is SongStatusResponseBody {
     isRecord(value) &&
     typeof value.enabled === 'boolean' &&
     (value.provider === 'demo' || value.provider === 'gemini') &&
-    typeof value.maxSeconds === 'number'
+    typeof value.maxSeconds === 'number' &&
+    typeof value.requiresAccessCode === 'boolean'
   )
 }
 
@@ -31,7 +33,7 @@ function isStatusBody(value: unknown): value is SongStatusResponseBody {
  * this on mount; the flag can't change without a redeploy, so one fetch per page load is enough. */
 let statusPromise: Promise<SongStatusResponseBody> | null = null
 
-const FALLBACK_STATUS: SongStatusResponseBody = { enabled: false, provider: 'demo', maxSeconds: 30 }
+const FALLBACK_STATUS: SongStatusResponseBody = { enabled: false, provider: 'demo', maxSeconds: 30, requiresAccessCode: false }
 
 export function getSongStatus(): Promise<SongStatusResponseBody> {
   if (!statusPromise) {
@@ -69,12 +71,19 @@ export interface CreateSongPayload {
   targetSeconds: number
 }
 
+function songRequestHeaders(): HeadersInit {
+  const headers: Record<string, string> = { 'content-type': 'application/json' }
+  const code = getStoredMusicAccessCode()
+  if (code) headers['x-music-access'] = code
+  return headers
+}
+
 async function postSongJson(url: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
   let response: Response
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: songRequestHeaders(),
       body: JSON.stringify(body),
       signal,
     })
@@ -115,4 +124,28 @@ export async function createSong(payload: CreateSongPayload, signal?: AbortSigna
   const json = await postSongJson('/api/song', payload, signal)
   if (!isSongCreateResponseBody(json)) throw new SongApiError('parse')
   return json
+}
+
+/** Tests a candidate production access code with a deliberately-invalid, zero-cost request (missing
+ * lyrics short-circuits on the server before any LLM/Gemini call, right after the access-code check)
+ * — true/false tells the caller whether the code was accepted; a true result also persists it. */
+export async function verifyAndStoreMusicAccessCode(code: string): Promise<boolean> {
+  try {
+    const response = await fetch('/api/song', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-music-access': code },
+      body: JSON.stringify({}),
+    })
+    if (response.status === 403) {
+      const json: unknown = await response.json().catch(() => null)
+      if (isRecord(json) && json.error === 'locked') {
+        clearStoredMusicAccessCode()
+        return false
+      }
+    }
+    setStoredMusicAccessCode(code)
+    return true
+  } catch {
+    return false
+  }
 }

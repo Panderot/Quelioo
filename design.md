@@ -98,7 +98,7 @@ App root (flex, bg-paper)
 ## 7. Components
 
 ### 7.1 Sidebar
-Width 256px (72px icon rail at md, drawer below 768px), `--color-navy` background, `--color-paper` text. Header: logo + Fraunces wordmark + amber tagline. Main nav: Create, then Solve. Nav item: no filled active pill — default `paper/60`, hover `paper`; active = 3px amber left bar + full-opacity paper text + amber icon. Footer group (Archive) pinned to bottom, top border `paper/10`, routes to `/archive`.
+Width 256px (72px icon rail at md, drawer below 768px), `--color-navy` background, `--color-paper` text. Header: logo + Fraunces wordmark + amber tagline. Main nav: Create, then Solve. Nav item: no filled active pill — default `paper/60`, hover `paper`; active = 3px amber left bar + full-opacity paper text + amber icon. Footer group pinned to bottom, top border `paper/10`: Archive (`/archive`), then Songs (music-note icon, `/songs`) — same item/active/hover/focus styling, shown only once `GET /api/song` reports the feature enabled (hidden entirely otherwise, mobile drawer included).
 
 ### 7.2 Top bar
 Height 80px, flat, flex, content right-aligned (mobile menu button is the only left-side element, < 768px only). Holds the language switcher only.
@@ -194,6 +194,16 @@ Entry point: a secondary button (music-note icon, card surface, warm border, nev
 - **Step D — Player** (`SongPlayerCard`, shared with the Archive "Listen" section, 7.13/7.17): optional "Demo sound" badge (amber-tinted pill) when the response used the demo provider; custom play/pause, seek and volume controls plus a Download link around a native (visually hidden) `<audio>` element; the final lyrics below the player; the fact-check warning again if still unresolved; a muted AI-disclosure line; an outline "Make another" button resets to Step A.
 - **Storage:** songs are saved client-side to IndexedDB, keyed by quiz id (see CLAUDE.md); a save failure shows a muted note but the song still plays for the session.
 - **Errors:** every step shows a localized message + outline "Try again" for its own error codes (`not_configured`, `disabled`, `too_long`, `blocked`, `upstream`, `timeout`, `parse`, `network`, `storage_full`), plus a daily per-quiz generation-limit note and a separate daily total-seconds-of-songs limit note.
+- **Access gate** (production only, `MusicAccessGate`): replaces Step A until a valid owner code is stored — centered card, one password input, solid-amber "Unlock" button, localized wrong-code error; a code revoked server-side mid-flow bounces back here with the same card. The song list itself (Songs page, 7.19) is never gated, only the creation flow.
+
+### 7.19 Songs page
+Same shell as other pages. Header: title + muted subtitle, with today's remaining-songs meta and (when a code is stored) an outline "Lock" button on the right; sidebar item and route both follow the same enabled switch as 7.18 (redirects to Create when disabled).
+- **New song:** full-width solid-amber button opens an inline quiz picker (card surface): a search input over the user's Archive quizzes (newest first, title + question count per row); choosing one embeds the existing song panel (7.18) directly on the page, access gate included; an empty Archive shows a message + "Go to Create" link instead of the list.
+- **Filters:** All/Normal/Funny pill chips (same selected treatment as 7.18's chips) plus a search-by-quiz-title input, right-aligned on desktop.
+- **Generating row:** while the embedded panel is on Step C, a pulsing music-note row appears above the list with the quiz title; closing the tab mid-generation prompts the browser's native leave-confirmation.
+- **Song list:** one card per song (divided list, Archive-width on desktop, single column at 390px): quiz title, style • tone • length • date meta line, a solid-amber play/pause circle (only one song plays at a time, page-wide); action row — outline "View/Hide lyrics" (expands a lyrics block with section tags shown as small amber-tinted pill labels), outline "Download", outline "Open quiz" link (or a muted "Quiz deleted" label when the quiz no longer exists in the Archive — the song itself is never removed), and a trash icon button (`hover:bg-error/10 hover:text-error`) that turns into an inline "Delete this song? [Delete] [Cancel]" confirmation before actually deleting.
+- **Delete undo:** same fixed bottom-centered navy pill + amber "Undo" pattern as the question-delete snackbar (7.14).
+- **Empty state:** archive icon, "No songs yet" message, solid-amber "New song" button.
 
 ## 8. Iconography
 Outline line icons, stroke ~1.75–2px, rounded caps/joins. 16px in nav/tabs/buttons, 20px for the CTA sun icon. Color inherits context (navy on amber, paper/amber on navy sidebar). The sun icon (circle + 8 rays) is the only "AI moment" motif, used on the CTA only.

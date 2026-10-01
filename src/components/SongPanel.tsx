@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 
 import { checkSongLyrics, createSong, writeSongLyrics, SongApiError } from '../api/song'
 import type { SongLyricsResponseBody } from '../lib/song'
@@ -13,12 +14,14 @@ import {
   MAX_SONG_GENERATIONS_PER_DAY,
   MAX_SONG_SECONDS_PER_DAY,
 } from '../lib/songCostGuard'
+import { getStoredMusicAccessCode, clearStoredMusicAccessCode } from '../lib/songAccessCode'
 import { saveSong } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import SongPlayerCard from './SongPlayerCard'
+import MusicAccessGate from './MusicAccessGate'
 import { CloseIcon, MusicNoteIcon } from './icons'
 
-type SongStep = 'options' | 'lyrics' | 'creating' | 'player'
+type SongStep = 'locked' | 'options' | 'lyrics' | 'creating' | 'player'
 
 interface SongPanelProps {
   open: boolean
@@ -31,9 +34,17 @@ interface SongPanelProps {
   /** The active provider's longest supported song — clamps the length estimate shown before
    * generation (see lib/song.ts's targetSecondsForFactCount / maxFactsForTargetSeconds). */
   maxSeconds: number
+  /** True in production — gates the flow behind MusicAccessGate until a valid code is stored. */
+  requiresAccessCode?: boolean
+  /** Shown next to "Make another" after a song is created — true from the quiz result view's entry
+   * point, false/omitted when the panel is already embedded in the Songs page itself. */
+  showSeeAllSongsLink?: boolean
   /** Called once a song is successfully created and saved, so the Archive row's music icon can
    * reflect it without a full refetch. */
   onSongSaved?: () => void
+  /** Fires true on entering the "creating" step and false on leaving it — the Songs page uses this
+   * to show a progress row and warn before the tab is closed/reloaded mid-generation. */
+  onGeneratingChange?: (isGenerating: boolean) => void
 }
 
 function extensionForMime(mimeType: string): string {
@@ -55,13 +66,26 @@ function focusableElements(container: HTMLElement): HTMLElement[] {
   )
 }
 
-export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, sourceExcerpt, language, maxSeconds, onSongSaved }: SongPanelProps) {
+export default function SongPanel({
+  open,
+  onClose,
+  quizId,
+  quizTitle,
+  keyFacts,
+  sourceExcerpt,
+  language,
+  maxSeconds,
+  requiresAccessCode = false,
+  showSeeAllSongsLink = false,
+  onSongSaved,
+  onGeneratingChange,
+}: SongPanelProps) {
   const { t } = useTranslation()
   const panelRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const objectUrlRef = useRef<string | null>(null)
 
-  const [step, setStep] = useState<SongStep>('options')
+  const [step, setStep] = useState<SongStep>(() => (requiresAccessCode && !getStoredMusicAccessCode() ? 'locked' : 'options'))
   const [style, setStyle] = useState<SongStyle>('pop')
   const [tone, setTone] = useState<SongTone>('normal')
   const [isWritingLyrics, setIsWritingLyrics] = useState(false)
@@ -129,6 +153,10 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
     [],
   )
 
+  useEffect(() => {
+    onGeneratingChange?.(step === 'creating')
+  }, [step, onGeneratingChange])
+
   const resetToOptions = () => {
     setStep('options')
     setLyricsResult(null)
@@ -162,6 +190,11 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
       setFactCheckPassed(result.factCheckPassed)
       setStep('lyrics')
     } catch (error) {
+      if (error instanceof SongApiError && error.code === 'locked') {
+        clearStoredMusicAccessCode()
+        setStep('locked')
+        return
+      }
       setErrorCode(error instanceof SongApiError ? error.code : 'network')
     } finally {
       setIsWritingLyrics(false)
@@ -215,13 +248,16 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
 
       const entry: Omit<StoredSong, 'id' | 'createdAt'> = {
         quizId,
+        quizTitle,
         title: lyricsResult.title,
         lyrics: result.lyrics,
         style,
+        tone,
         provider: result.provider,
         demo: result.demo,
         mimeType: result.mimeType,
         durationSeconds: result.durationSeconds,
+        factCheckPassed,
         audio: blob,
       }
       try {
@@ -233,6 +269,11 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         setStep('lyrics')
+        return
+      }
+      if (error instanceof SongApiError && error.code === 'locked') {
+        clearStoredMusicAccessCode()
+        setStep('locked')
         return
       }
       setErrorCode(error instanceof SongApiError ? error.code : 'network')
@@ -294,6 +335,8 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
+          {step === 'locked' && <MusicAccessGate onUnlocked={() => setStep('options')} />}
+
           {step === 'options' && (
             <>
               <div className="space-y-2">
@@ -465,6 +508,12 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
               >
                 {t('song.player.makeAnother')}
               </button>
+
+              {showSeeAllSongsLink && (
+                <Link to="/songs" className="block text-center text-xs font-semibold text-amber-hover hover:underline">
+                  {t('song.seeAllSongs')}
+                </Link>
+              )}
             </>
           )}
         </div>

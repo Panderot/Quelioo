@@ -17,13 +17,14 @@ Yapay zekâ ile metin, dosya, URL ve YouTube içeriğinden quiz üreten web uygu
 - `/api/extract-url` (`api/_lib/extract-url.ts`, yalnızca POST): URL'den makale metni çıkarır (Readability + linkedom); SSRF korumaları zorunlu (bkz. `api/_lib/ssrf.ts`).
 - `/api/grade` (`api/_lib/grade.ts`, yalnızca POST): `short-answer`/`open-ended` cevabını AI ile serbest metin olarak değerlendirir.
 - `/api/song-lyrics` (`api/_lib/song-lyrics.ts`, yalnızca POST): quiz başlığı/doğru cevaplar/kaynak metinden kısa mnemonic şarkı sözleri + müzik stili açıklaması üretir; şarkı sözleri sunucu tarafında ayrı bir LLM çağrısıyla quiz ve kaynak metne karşı fact-check edilir, sorunlu satırlar en fazla 2 turda yeniden yazılır — hiçbir şarkı kontrolsüz "doğru" gösterilmez.
-- `/api/song` (`api/_lib/song.ts`): GET özelliğin açık olup olmadığını döner; POST sözlerden kısa şarkı üretir. `MUSIC_PROVIDER=demo` sinüs dalgasından sentezlenen yer tutucu sestir, yalnızca development/preview'da — production'da asla. `MUSIC_PROVIDER=gemini` (`api/_lib/gemini-music.ts`) yalnızca yerel testtir ("song test"), hiçbir ortamda production'da kullanılmaz/kullanılmayacak.
+- `/api/song` (`api/_lib/song.ts`): GET özelliğin açık olup olmadığını döner; POST sözlerden kısa şarkı üretir. `MUSIC_PROVIDER=demo` sinüs dalgasından sentezlenen yer tutucu sestir, yalnızca development/preview'da — production'da asla. `MUSIC_PROVIDER=gemini` (`api/_lib/gemini-music.ts`) production'da yalnızca geçerli `MUSIC_ACCESS_CODE` (owner erişim kodu, `x-music-access` header, sabit-zamanlı karşılaştırma) ile çalışır; kod ayarlı değilse production'da her iki uç nokta da kapalı kalır (fail closed) — bkz. `api/_lib/song-config.ts`.
+- `/songs` (`src/pages/SongsPage.tsx`): tüm şarkıları listeler/yönetir; sidebar öğesi ve rota, `/api/song`'ın `enabled` durumuyla aynı anahtarı izler — kapalıyken sidebar'da görünmez, `/songs` Create'e yönlendirir.
 
 ## Sağlayıcı sırası ve env değişkenleri
 
 - `generate` ve `grade` ortak `api/_lib/llm.ts`'teki `generateJson()` üzerinden gider: birincil Anthropic Claude Sonnet 5.5, yedek OpenAI (Responses API).
 - Sıra: production'da anthropic→openai, preview/development/local'de openai→anthropic; `LLM_PROVIDER_ORDER` her ortamda ezer. Anahtarı olmayan sağlayıcı atlanır; hiçbirinde anahtar yoksa `not_configured` hatası döner (örnek/demo içerik yok).
-- Env değişkeni isimleri (değerleri değil): `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_EFFORT`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `LLM_PROVIDER_ORDER`, `LLM_FORCE_FAIL` (production'da yok sayılır), `MUSIC_ENABLED`, `MUSIC_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MUSIC_MODEL`.
+- Env değişkeni isimleri (değerleri değil): `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`, `ANTHROPIC_EFFORT`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `LLM_PROVIDER_ORDER`, `LLM_FORCE_FAIL` (production'da yok sayılır), `MUSIC_ENABLED`, `MUSIC_PROVIDER`, `MUSIC_ACCESS_CODE`, `GEMINI_API_KEY`, `GEMINI_MUSIC_MODEL`, `GEMINI_MUSIC_MODEL_LONG`.
 - Anahtarlar yalnızca Vercel proje ortam değişkenlerinde ve `.env.local`'de yaşar — asla kodda, commit'te ya da sohbette paylaşılmaz.
 
 ## Prompt-injection koruması
@@ -34,7 +35,8 @@ Kullanıcı metni, dosya/URL içeriği ve öğrenci cevabı her zaman DATA olara
 
 - `quelio.archive.v1`: Archive (`/archive`, `/archive/:id`) quiz kayıtlarını backend gelene kadar burada saklar.
 - `quelio.draft.v1`: Create sayfasında metin/sekme/URL/parametre/odak taslağını debounce'lu otomatik kaydeder; dosya/URL çıkarılan metni veya dosya içeriğini saklamaz.
-- `quelio-songs` (IndexedDB, `src/lib/songStorage.ts`): quiz şarkıları (ses blob'u + sözler), quiz id'sine göre; quiz başına en fazla 2, toplamda en fazla 30 kayıt (en eskiler silinir).
+- `quelio-songs` (IndexedDB, `src/lib/songStorage.ts`): quiz şarkıları (ses blob'u, sözler, quizTitle, tone, factCheckPassed), quiz id'sine göre; quiz başına en fazla 2, toplamda en fazla 30 kayıt (en eskiler silinir); eksik alanlı eski kayıtlar varsayılanla okunur. `/songs` sayfası tüm kayıtları listeler.
+- `quelio.musicAccessCode.v1`: production owner erişim kodu, doğrulandıktan sonra tarayıcıda saklanır; "Lock" aksiyonu siler.
 
 ## i18n
 

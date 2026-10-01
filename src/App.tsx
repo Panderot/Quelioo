@@ -8,6 +8,7 @@ import ArchiveQuizPage from './pages/ArchiveQuizPage'
 import CreatePage from './pages/CreatePage'
 import NotFoundPage from './pages/NotFoundPage'
 import SolvePage from './pages/SolvePage'
+import SongsPage from './pages/SongsPage'
 
 export default function App() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/solve" element={<SolvePage />} />
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/:id" element={<ArchiveQuizPage />} />
+            <Route path="/songs" element={<SongsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>

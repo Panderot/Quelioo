@@ -3,7 +3,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { readRequestBody } from './anthropic.js'
 import { synthesizeDemoSong } from './song-demo-audio.js'
 import { callGeminiMusic } from './gemini-music.js'
-import { isMusicEnabled, resolveGeminiModel, resolveMusicProvider, resolveProviderMaxSeconds } from './song-config.js'
+import {
+  isMusicEnabled,
+  isProductionAccessGateActive,
+  resolveGeminiModel,
+  resolveMusicProvider,
+  resolveProviderMaxSeconds,
+  verifyMusicAccessCode,
+} from './song-config.js'
+import { canRecordSongForIp, recordSongForIp, requestIp } from './song-rate-limit.js'
 import {
   isRecord,
   isSongStyle,
@@ -45,6 +53,7 @@ function errorStatus(code: SongErrorCode): number {
     case 'not_configured':
       return 503
     case 'disabled':
+    case 'locked':
       return 403
     case 'too_long':
       return 400
@@ -61,16 +70,29 @@ function errorStatus(code: SongErrorCode): number {
 
 export function handleSongStatusRequest(): SongStatusResponseBody {
   const provider = resolveMusicProvider()
-  return { enabled: isMusicEnabled(), provider, maxSeconds: resolveProviderMaxSeconds(provider) }
+  return { enabled: isMusicEnabled(), provider, maxSeconds: resolveProviderMaxSeconds(provider), requiresAccessCode: isProductionAccessGateActive() }
+}
+
+export interface SongRequestContext {
+  accessCodeHeader?: string
+  ip: string
 }
 
 /** Pure request-handling core for POST, independent of the HTTP transport — mirrors handleGradeRequest. */
-export async function handleSongCreateRequest(payload: unknown): Promise<{ status: number; body: SongCreateResponseBodyOrError }> {
+export async function handleSongCreateRequest(
+  payload: unknown,
+  context: SongRequestContext,
+): Promise<{ status: number; body: SongCreateResponseBodyOrError }> {
   const start = Date.now()
   const fail = (error: SongErrorCode) => {
     console.log(`song: provider=none duration=${Date.now() - start}ms error=${error}`)
     return { status: errorStatus(error), body: { error } as SongApiErrorBody }
   }
+
+  // Checked first, before any other validation, so the client's "Unlock" flow (a deliberately
+  // minimal/invalid body + a candidate code) can tell a wrong code apart from any other failure
+  // without ever reaching the paid Gemini call.
+  if (isProductionAccessGateActive() && !verifyMusicAccessCode(context.accessCodeHeader)) return fail('locked')
 
   if (!isRecord(payload)) return fail('parse')
 
@@ -86,6 +108,13 @@ export async function handleSongCreateRequest(payload: unknown): Promise<{ statu
 
   if (lyrics.length > lyricsLimitsForTargetSeconds(targetSeconds).maxChars) return fail('too_long')
 
+  // Per-IP backstop on top of the client's own daily guards (lib/songCostGuard.ts) — see
+  // song-rate-limit.ts for why this is best-effort, not a strict distributed limiter.
+  if (!canRecordSongForIp(context.ip, targetSeconds)) {
+    console.log(`song: provider=none duration=${Date.now() - start}ms error=rate_limited ip=${context.ip}`)
+    return { status: 429, body: { error: 'disabled' } }
+  }
+
   const musicPrompt = clampString(payload.musicPrompt, MAX_MUSIC_PROMPT_CHARS)
   const style = isSongStyle(payload.style) ? payload.style : 'pop'
 
@@ -94,15 +123,15 @@ export async function handleSongCreateRequest(payload: unknown): Promise<{ statu
     if (process.env.VERCEL_ENV === 'production') return fail('not_configured')
     const demo = synthesizeDemoSong(style, targetSeconds)
     console.log(`song: provider=demo duration=${Date.now() - start}ms error=none`)
+    recordSongForIp(context.ip, demo.durationSeconds)
     return {
       status: 200,
       body: { audio: demo.audioBase64, mimeType: demo.mimeType, lyrics, provider: 'demo', demo: true, durationSeconds: demo.durationSeconds },
     }
   }
 
-  // provider === 'gemini' — local-test only, see CLAUDE.md; never reachable in production (song-config
-  // resolves "demo" as the production-safe default regardless of MUSIC_PROVIDER's value there, and
-  // this path is additionally never exercised against Vercel per the Phase 3 "song test" workflow).
+  // provider === 'gemini' — in production this point is only reachable with a verified access code
+  // (checked above); see CLAUDE.md.
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return fail('not_configured')
 
@@ -121,6 +150,7 @@ export async function handleSongCreateRequest(payload: unknown): Promise<{ statu
   if (!result.ok || !result.audioBase64) return fail(result.blocked ? 'blocked' : 'upstream')
 
   console.log(`song: provider=gemini model=${model} duration=${Date.now() - start}ms error=none`)
+  recordSongForIp(context.ip, targetSeconds)
   return {
     status: 200,
     body: {
@@ -167,6 +197,8 @@ export async function songRequestHandler(req: IncomingMessage, res: ServerRespon
     return
   }
 
-  const { status, body } = await handleSongCreateRequest(payload)
+  const accessHeader = req.headers['x-music-access']
+  const context = { accessCodeHeader: Array.isArray(accessHeader) ? accessHeader[0] : accessHeader, ip: requestIp(req) }
+  const { status, body } = await handleSongCreateRequest(payload, context)
   respond(status, body)
 }

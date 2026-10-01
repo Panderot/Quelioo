@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from 'node:crypto'
+
 import type { SongProvider } from '../../src/lib/song.js'
 
 /** Shared provider/length resolution for both api/_lib/song-lyrics.ts and api/_lib/song.ts, so the
@@ -32,12 +34,30 @@ export function resolveProviderMaxSeconds(provider: SongProvider): number {
   return provider === 'gemini' ? GEMINI_LONG_MAX_SECONDS : DEMO_MAX_SECONDS
 }
 
-/** The clip model only ever produces fixed 30s clips — anything longer needs the long-form model.
- * Gemini is local-test only (see CLAUDE.md): never selected in production, since api/_lib/song.ts
- * refuses the "gemini" provider path there independently of this helper. */
+/** The clip model only ever produces fixed 30s clips — anything longer needs the long-form model. */
 export function resolveGeminiModel(targetSeconds: number): string {
   if (targetSeconds <= GEMINI_CLIP_MAX_SECONDS) {
     return process.env.GEMINI_MUSIC_MODEL ?? DEFAULT_GEMINI_CLIP_MODEL
   }
   return process.env.GEMINI_MUSIC_MODEL_LONG ?? DEFAULT_GEMINI_LONG_MODEL
+}
+
+/** True in production — /api/song-lyrics and /api/song then require a matching `x-music-access`
+ * header (see verifyMusicAccessCode). Never gated outside production, so the existing local "song
+ * test" workflow (CLAUDE.md) keeps working unchanged. */
+export function isProductionAccessGateActive(): boolean {
+  return process.env.VERCEL_ENV === 'production'
+}
+
+function digest(value: string): Buffer {
+  return createHash('sha256').update(value, 'utf8').digest()
+}
+
+/** Constant-time compare against MUSIC_ACCESS_CODE (via equal-length SHA-256 digests, so comparing
+ * values of different lengths doesn't short-circuit). Fails closed — a missing/empty
+ * MUSIC_ACCESS_CODE means no header value can ever pass, per CLAUDE.md. */
+export function verifyMusicAccessCode(provided: string | undefined | null): boolean {
+  const expected = process.env.MUSIC_ACCESS_CODE
+  if (!expected || !provided) return false
+  return timingSafeEqual(digest(provided), digest(expected))
 }
