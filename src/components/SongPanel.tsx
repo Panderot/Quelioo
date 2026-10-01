@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { createSong, writeSongLyrics, SongApiError } from '../api/song'
+import { checkSongLyrics, createSong, writeSongLyrics, SongApiError } from '../api/song'
 import type { SongLyricsResponseBody } from '../lib/song'
-import { MAX_LYRICS_CHARS, SONG_STYLES } from '../lib/song'
-import type { SongErrorCode, SongStyle } from '../lib/song'
-import { canGenerateSong, recordSongGeneration, MAX_SONG_GENERATIONS_PER_DAY } from '../lib/songCostGuard'
+import { SONG_STYLES, SONG_TONES, targetSecondsForFactCount } from '../lib/song'
+import type { SongErrorCode, SongStyle, SongTone } from '../lib/song'
+import {
+  canGenerateSong,
+  canGenerateSongSeconds,
+  recordSongGeneration,
+  recordSongSecondsUsed,
+  MAX_SONG_GENERATIONS_PER_DAY,
+  MAX_SONG_SECONDS_PER_DAY,
+} from '../lib/songCostGuard'
 import { saveSong } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import SongPlayerCard from './SongPlayerCard'
@@ -18,9 +25,12 @@ interface SongPanelProps {
   onClose: () => void
   quizId: string
   quizTitle: string
-  keyFacts: string
+  keyFacts: string[]
   sourceExcerpt: string
   language: string
+  /** The active provider's longest supported song — clamps the length estimate shown before
+   * generation (see lib/song.ts's targetSecondsForFactCount / maxFactsForTargetSeconds). */
+  maxSeconds: number
   /** Called once a song is successfully created and saved, so the Archive row's music icon can
    * reflect it without a full refetch. */
   onSongSaved?: () => void
@@ -45,7 +55,7 @@ function focusableElements(container: HTMLElement): HTMLElement[] {
   )
 }
 
-export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, sourceExcerpt, language, onSongSaved }: SongPanelProps) {
+export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, sourceExcerpt, language, maxSeconds, onSongSaved }: SongPanelProps) {
   const { t } = useTranslation()
   const panelRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -53,16 +63,21 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
 
   const [step, setStep] = useState<SongStep>('options')
   const [style, setStyle] = useState<SongStyle>('pop')
+  const [tone, setTone] = useState<SongTone>('normal')
   const [isWritingLyrics, setIsWritingLyrics] = useState(false)
   const [lyricsResult, setLyricsResult] = useState<SongLyricsResponseBody | null>(null)
   const [draftLyrics, setDraftLyrics] = useState('')
+  const [flaggedLines, setFlaggedLines] = useState<number[]>([])
+  const [factCheckPassed, setFactCheckPassed] = useState(true)
   const [errorCode, setErrorCode] = useState<SongErrorCode | null>(null)
   const [costGuardReached, setCostGuardReached] = useState(false)
+  const [secondsGuardReached, setSecondsGuardReached] = useState(false)
   const [messageIndex, setMessageIndex] = useState(0)
   const [song, setSong] = useState<{ blob: Blob; url: string; lyrics: string; demo: boolean } | null>(null)
   const [storageNote, setStorageNote] = useState(false)
 
   const loadingMessages = t('song.loading.messages', { returnObjects: true }) as string[]
+  const estimatedSeconds = Math.min(targetSecondsForFactCount(keyFacts.length), maxSeconds)
 
   // Focus the first control when the panel opens.
   useEffect(() => {
@@ -118,8 +133,11 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
     setStep('options')
     setLyricsResult(null)
     setDraftLyrics('')
+    setFlaggedLines([])
+    setFactCheckPassed(true)
     setErrorCode(null)
     setCostGuardReached(false)
+    setSecondsGuardReached(false)
     setStorageNote(false)
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current)
@@ -137,9 +155,11 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
     setErrorCode(null)
     setIsWritingLyrics(true)
     try {
-      const result = await writeSongLyrics({ quizTitle, keyFacts, sourceExcerpt, style, language })
+      const result = await writeSongLyrics({ quizTitle, keyFacts, sourceExcerpt, style, tone, language })
       setLyricsResult(result)
       setDraftLyrics(result.lyrics)
+      setFlaggedLines(result.flaggedLines)
+      setFactCheckPassed(result.factCheckPassed)
       setStep('lyrics')
     } catch (error) {
       setErrorCode(error instanceof SongApiError ? error.code : 'network')
@@ -149,12 +169,28 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
   }
 
   const handleMakeSong = async () => {
+    if (!lyricsResult) return
     if (!canGenerateSong(quizId)) {
       setCostGuardReached(true)
       return
     }
+    if (!canGenerateSongSeconds(lyricsResult.targetSeconds)) {
+      setSecondsGuardReached(true)
+      return
+    }
     setCostGuardReached(false)
+    setSecondsGuardReached(false)
     setErrorCode(null)
+
+    // Re-check the student's current (possibly edited) lyrics — informational only, never blocking.
+    try {
+      const recheck = await checkSongLyrics({ mode: 'check', lyrics: draftLyrics, keyFacts, sourceExcerpt, language })
+      setFlaggedLines(recheck.flaggedLines)
+      setFactCheckPassed(recheck.factCheckPassed)
+    } catch {
+      // A failed re-check never blocks song creation — keep whatever warning state we already had.
+    }
+
     setStep('creating')
     setMessageIndex(0)
 
@@ -163,10 +199,11 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
 
     try {
       const result = await createSong(
-        { lyrics: draftLyrics, musicPrompt: lyricsResult?.musicPrompt ?? '', style, language },
+        { lyrics: draftLyrics, musicPrompt: lyricsResult.musicPrompt, style, language, targetSeconds: lyricsResult.targetSeconds },
         controller.signal,
       )
       recordSongGeneration(quizId)
+      recordSongSecondsUsed(result.durationSeconds)
 
       const blob = base64ToBlob(result.audio, result.mimeType)
       const url = URL.createObjectURL(blob)
@@ -178,7 +215,7 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
 
       const entry: Omit<StoredSong, 'id' | 'createdAt'> = {
         quizId,
-        title: lyricsResult?.title ?? quizTitle,
+        title: lyricsResult.title,
         lyrics: result.lyrics,
         style,
         provider: result.provider,
@@ -211,10 +248,26 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
 
   if (!open) return null
 
-  const lyricsTooLong = draftLyrics.length > MAX_LYRICS_CHARS
+  const lyricsTooLong = Boolean(lyricsResult) && draftLyrics.length > lyricsResult!.maxLyricsChars
   const downloadName = `${(quizTitle || 'song').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'song'}.${
     song ? extensionForMime(song.blob.type) : 'audio'
   }`
+  const draftLyricsLines = draftLyrics.split('\n')
+
+  const factCheckWarning = !factCheckPassed && (
+    <div role="status" className="space-y-1.5 rounded-xl border border-amber/30 bg-amber/10 p-3">
+      <p className="text-xs font-bold text-amber-hover">{t('song.factCheck.warningTitle')}</p>
+      {flaggedLines.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-4 text-xs text-ink">
+          {flaggedLines.map((lineIndex) => (
+            <li key={lineIndex}>{draftLyricsLines[lineIndex] ?? ''}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-ink">{t('song.factCheck.genericWarning')}</p>
+      )}
+    </div>
+  )
 
   return (
     <>
@@ -265,9 +318,31 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('song.tone.label')}</p>
+                <div role="radiogroup" aria-label={t('song.tone.label')} className="flex flex-wrap gap-2">
+                  {SONG_TONES.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      role="radio"
+                      aria-checked={tone === option}
+                      onClick={() => setTone(option)}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        tone === option
+                          ? 'border-amber bg-amber/15 text-amber-hover'
+                          : 'border-warm-border bg-card text-ink hover:border-focus-neutral'
+                      }`}
+                    >
+                      {t(`song.tone.${option}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('song.lengthLabel')}</p>
-                <p className="text-sm font-medium text-ink">{t('song.length30s')}</p>
+                <p className="text-sm font-medium text-ink">{t('song.lengthNote', { seconds: estimatedSeconds })}</p>
               </div>
 
               {errorCode && (
@@ -297,6 +372,14 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
 
           {step === 'lyrics' && lyricsResult && (
             <>
+              <p className="text-xs text-muted">{t('song.lengthNote', { seconds: lyricsResult.targetSeconds })}</p>
+
+              {lyricsResult.includedFactsCount < lyricsResult.totalFactsCount && (
+                <p className="rounded-xl border border-warm-border bg-paper p-3 text-xs text-muted">
+                  {t('song.partialCoverageNote', { included: lyricsResult.includedFactsCount, total: lyricsResult.totalFactsCount })}
+                </p>
+              )}
+
               <div className="space-y-1.5">
                 <label htmlFor="song-lyrics-textarea" className="text-[11px] font-bold tracking-wide text-muted uppercase">
                   {t('song.lyricsLabel')}
@@ -309,13 +392,21 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
                   className="w-full rounded-xl border border-warm-border bg-card p-3 font-mono text-sm text-ink"
                 />
                 <p className={`text-right text-xs ${lyricsTooLong ? 'font-semibold text-error' : 'text-muted'}`}>
-                  {t('song.lyricsCounter', { count: draftLyrics.length, max: MAX_LYRICS_CHARS })}
+                  {t('song.lyricsCounter', { count: draftLyrics.length, max: lyricsResult.maxLyricsChars })}
                 </p>
               </div>
+
+              {factCheckWarning}
 
               {costGuardReached && (
                 <p role="alert" className="rounded-xl border border-error/40 bg-error/5 p-3 text-xs font-semibold text-error">
                   {t('song.costGuardReached', { max: MAX_SONG_GENERATIONS_PER_DAY })}
+                </p>
+              )}
+
+              {secondsGuardReached && (
+                <p role="alert" className="rounded-xl border border-error/40 bg-error/5 p-3 text-xs font-semibold text-error">
+                  {t('song.secondsGuardReached', { max: MAX_SONG_SECONDS_PER_DAY })}
                 </p>
               )}
 
@@ -362,6 +453,8 @@ export default function SongPanel({ open, onClose, quizId, quizTitle, keyFacts, 
           {step === 'player' && song && (
             <>
               <SongPlayerCard audioUrl={song.url} lyrics={song.lyrics} demo={song.demo} downloadName={downloadName} />
+
+              {factCheckWarning}
 
               {storageNote && <p className="text-xs text-muted">{t('song.errors.storage_full')}</p>}
 

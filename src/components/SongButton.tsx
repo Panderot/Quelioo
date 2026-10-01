@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { getSongStatus } from '../api/song'
+import type { SongStatusResponseBody } from '../lib/song'
 import SongPanel from './SongPanel'
 import { MusicNoteIcon } from './icons'
 
 interface SongButtonProps {
   quizId: string
   quizTitle: string
-  keyFacts: string
+  keyFacts: string[]
   sourceExcerpt: string
   language: string
   onSongSaved?: () => void
@@ -19,21 +20,21 @@ interface SongButtonProps {
  * production. See CLAUDE.md. */
 export default function SongButton({ quizId, quizTitle, keyFacts, sourceExcerpt, language, onSongSaved }: SongButtonProps) {
   const { t } = useTranslation()
-  const [enabled, setEnabled] = useState(false)
+  const [status, setStatus] = useState<SongStatusResponseBody | null>(null)
   const [open, setOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     let cancelled = false
-    void getSongStatus().then((status) => {
-      if (!cancelled) setEnabled(status.enabled)
+    void getSongStatus().then((result) => {
+      if (!cancelled) setStatus(result)
     })
     return () => {
       cancelled = true
     }
   }, [])
 
-  if (!enabled) return null
+  if (!status?.enabled) return null
 
   const handleClose = () => {
     setOpen(false)
@@ -60,6 +61,7 @@ export default function SongButton({ quizId, quizTitle, keyFacts, sourceExcerpt,
         keyFacts={keyFacts}
         sourceExcerpt={sourceExcerpt}
         language={language}
+        maxSeconds={status.maxSeconds}
         onSongSaved={onSongSaved}
       />
     </>

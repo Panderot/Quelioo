@@ -306,8 +306,9 @@
     "close": "Close",
     "demoBadge": "Demo sound",
     "aiDisclosure": "This song was made with AI.",
-    "length30s": "30-second song",
+    "lengthNote": "About {{seconds}} seconds",
     "lengthLabel": "Length",
+    "partialCoverageNote": "{{included}} of {{total}} facts are in this song.",
     "style": {
       "label": "Style",
       "pop": "Pop",
@@ -316,6 +317,15 @@
       "rock": "Rock",
       "acoustic": "Acoustic",
       "lofi": "Lo-fi"
+    },
+    "tone": {
+      "label": "Tone",
+      "normal": "Normal",
+      "funny": "Funny"
+    },
+    "factCheck": {
+      "warningTitle": "Please check these lines:",
+      "genericWarning": "Some facts in this song may need a check."
     },
     "writeLyrics": "Write lyrics",
     "writingLyrics": "Writing lyrics...",
@@ -336,6 +346,7 @@
       "makeAnother": "Make another"
     },
     "costGuardReached": "You've reached today's limit of {{max}} songs for this quiz. Please try again tomorrow.",
+    "secondsGuardReached": "You've reached today's limit of {{max}} seconds of songs. Please try again tomorrow.",
     "archive": {
       "listenTitle": "Listen",
       "hasSongLabel": "This quiz has a song"

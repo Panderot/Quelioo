@@ -3,33 +3,23 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { readRequestBody } from './anthropic.js'
 import { synthesizeDemoSong } from './song-demo-audio.js'
 import { callGeminiMusic } from './gemini-music.js'
+import { isMusicEnabled, resolveGeminiModel, resolveMusicProvider, resolveProviderMaxSeconds } from './song-config.js'
 import {
   isRecord,
   isSongStyle,
   SONG_STYLE_ENGLISH_NAMES,
-  MAX_LYRICS_CHARS,
   MAX_MUSIC_PROMPT_CHARS,
-  SONG_DURATION_SECONDS,
+  lyricsLimitsForTargetSeconds,
+  targetSecondsForFactCount,
 } from '../../src/lib/song.js'
-import type { SongApiErrorBody, SongCreateResponseBody, SongErrorCode, SongProvider, SongStatusResponseBody, SongStyle } from '../../src/lib/song.js'
+import type { SongApiErrorBody, SongCreateResponseBody, SongErrorCode, SongStatusResponseBody, SongStyle } from '../../src/lib/song.js'
 
 export type SongCreateResponseBodyOrError = SongCreateResponseBody | SongApiErrorBody
 
 const MAX_REQUEST_BYTES = 16 * 1024
-const DEFAULT_GEMINI_MODEL = 'lyria-3-clip-preview'
-
-/** Explicit MUSIC_ENABLED always wins; unset defaults to on outside production (matches the LLM
- * provider-order default-by-environment pattern in api/_lib/llm.ts). */
-function isMusicEnabled(): boolean {
-  const flag = process.env.MUSIC_ENABLED
-  if (flag === 'true') return true
-  if (flag === 'false') return false
-  return process.env.VERCEL_ENV !== 'production'
-}
-
-function resolveMusicProvider(): SongProvider {
-  return process.env.MUSIC_PROVIDER === 'gemini' ? 'gemini' : 'demo'
-}
+/** Falls back to the shortest band when the client doesn't send a targetSeconds (older clients, or
+ * tests posting directly) — never longer than what was actually requested. */
+const DEFAULT_TARGET_SECONDS = targetSecondsForFactCount(1)
 
 function clampString(value: unknown, maxChars: number): string {
   return typeof value === 'string' ? value.trim().slice(0, maxChars) : ''
@@ -38,11 +28,11 @@ function clampString(value: unknown, maxChars: number): string {
 /** Fixed template the server controls end to end — the style name and the AI-written musicPrompt
  * are inserted as the song's creative brief, and the (possibly student-edited) lyrics are clearly
  * introduced as the lyrics to use, never concatenated in a way that could read as an instruction. */
-function buildGeminiMusicInput(params: { style: SongStyle; musicPrompt: string; lyrics: string }): string {
+function buildGeminiMusicInput(params: { style: SongStyle; musicPrompt: string; lyrics: string; targetSeconds: number }): string {
   const styleName = SONG_STYLE_ENGLISH_NAMES[params.style]
   const brief = params.musicPrompt || `A ${styleName} song.`
   return [
-    `Create a short ${styleName} song for a study/mnemonic app, about ${SONG_DURATION_SECONDS} seconds long.`,
+    `Create a short ${styleName} song for a study/mnemonic app, about ${params.targetSeconds} seconds long.`,
     brief,
     '',
     'Use exactly these lyrics, with the section tags:',
@@ -70,7 +60,8 @@ function errorStatus(code: SongErrorCode): number {
 }
 
 export function handleSongStatusRequest(): SongStatusResponseBody {
-  return { enabled: isMusicEnabled(), provider: resolveMusicProvider() }
+  const provider = resolveMusicProvider()
+  return { enabled: isMusicEnabled(), provider, maxSeconds: resolveProviderMaxSeconds(provider) }
 }
 
 /** Pure request-handling core for POST, independent of the HTTP transport — mirrors handleGradeRequest. */
@@ -85,19 +76,23 @@ export async function handleSongCreateRequest(payload: unknown): Promise<{ statu
 
   const lyrics = typeof payload.lyrics === 'string' ? payload.lyrics.trim() : ''
   if (!lyrics) return fail('parse')
-  if (lyrics.length > MAX_LYRICS_CHARS) return fail('too_long')
-
-  const musicPrompt = clampString(payload.musicPrompt, MAX_MUSIC_PROMPT_CHARS)
-  const style = isSongStyle(payload.style) ? payload.style : 'pop'
 
   if (!isMusicEnabled()) return fail('disabled')
 
   const provider = resolveMusicProvider()
+  const providerMaxSeconds = resolveProviderMaxSeconds(provider)
+  const requestedTarget = typeof payload.targetSeconds === 'number' && Number.isFinite(payload.targetSeconds) ? payload.targetSeconds : DEFAULT_TARGET_SECONDS
+  const targetSeconds = Math.min(Math.max(requestedTarget, 1), providerMaxSeconds)
+
+  if (lyrics.length > lyricsLimitsForTargetSeconds(targetSeconds).maxChars) return fail('too_long')
+
+  const musicPrompt = clampString(payload.musicPrompt, MAX_MUSIC_PROMPT_CHARS)
+  const style = isSongStyle(payload.style) ? payload.style : 'pop'
 
   if (provider === 'demo') {
     // Never served in production, even if MUSIC_PROVIDER says demo — it's a placeholder only.
     if (process.env.VERCEL_ENV === 'production') return fail('not_configured')
-    const demo = synthesizeDemoSong(style)
+    const demo = synthesizeDemoSong(style, targetSeconds)
     console.log(`song: provider=demo duration=${Date.now() - start}ms error=none`)
     return {
       status: 200,
@@ -105,12 +100,14 @@ export async function handleSongCreateRequest(payload: unknown): Promise<{ statu
     }
   }
 
-  // provider === 'gemini'
+  // provider === 'gemini' — local-test only, see CLAUDE.md; never reachable in production (song-config
+  // resolves "demo" as the production-safe default regardless of MUSIC_PROVIDER's value there, and
+  // this path is additionally never exercised against Vercel per the Phase 3 "song test" workflow).
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) return fail('not_configured')
 
-  const model = process.env.GEMINI_MUSIC_MODEL ?? DEFAULT_GEMINI_MODEL
-  const input = buildGeminiMusicInput({ style, musicPrompt, lyrics })
+  const model = resolveGeminiModel(targetSeconds)
+  const input = buildGeminiMusicInput({ style, musicPrompt, lyrics, targetSeconds })
 
   let result: Awaited<ReturnType<typeof callGeminiMusic>>
   try {
@@ -123,7 +120,7 @@ export async function handleSongCreateRequest(payload: unknown): Promise<{ statu
   if (result.timedOut) return fail('timeout')
   if (!result.ok || !result.audioBase64) return fail(result.blocked ? 'blocked' : 'upstream')
 
-  console.log(`song: provider=gemini duration=${Date.now() - start}ms error=none`)
+  console.log(`song: provider=gemini model=${model} duration=${Date.now() - start}ms error=none`)
   return {
     status: 200,
     body: {
@@ -132,13 +129,13 @@ export async function handleSongCreateRequest(payload: unknown): Promise<{ statu
       lyrics,
       provider: 'gemini',
       demo: false,
-      durationSeconds: SONG_DURATION_SECONDS,
+      durationSeconds: targetSeconds,
     },
   }
 }
 
 export async function songRequestHandler(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const respond = (status: number, body: SongStatusResponseBody | SongCreateResponseBodyOrError) => {
+  const respond = (status: number, body: unknown) => {
     res.statusCode = status
     res.setHeader('content-type', 'application/json')
     res.end(JSON.stringify(body))

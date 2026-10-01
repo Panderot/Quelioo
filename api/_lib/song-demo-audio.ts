@@ -1,11 +1,15 @@
 import type { SongStyle } from '../../src/lib/song.js'
 
-/** Demo provider: a short placeholder melody synthesized from sine waves at request time — no
- * network call, no third-party audio, nothing to ship as a binary asset. Must never be reachable in
+/** Demo provider: a placeholder melody synthesized from sine waves at request time — no network
+ * call, no third-party audio, nothing to ship as a binary asset. Must never be reachable in
  * production (see api/_lib/song.ts) — development/preview only, until a real provider is verified. */
 
-const SAMPLE_RATE = 16000
-const DEMO_DURATION_SECONDS = 10
+// 8kHz keeps even the longest (120s) clip comfortably under Vercel's 4.5MB response body limit once
+// base64-encoded (120s * 8000Hz * 2 bytes ≈ 1.8MB raw, ≈2.5MB base64) — plenty for plain sine tones,
+// whose energy stays well below the ~4kHz Nyquist limit this implies.
+const SAMPLE_RATE = 8000
+const MIN_DURATION_SECONDS = 5
+const MAX_DURATION_SECONDS = 180
 
 // A simple two-octave major-pentatonic-ish scale (Hz), low to high — sounds pleasant with plain sine tones.
 const SCALE_HZ = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33, 659.25]
@@ -31,9 +35,14 @@ const STYLE_PROFILES: Record<SongStyle, StyleProfile> = {
   lofi: { notesPerSecond: 1.2, pattern: [0, 3, 2, 5], octaveShift: 0, amplitude: 0.3, vibrato: true },
 }
 
-function synthesizeSamples(style: SongStyle): Int16Array {
+function clampDuration(durationSeconds: number): number {
+  if (!Number.isFinite(durationSeconds)) return MIN_DURATION_SECONDS
+  return Math.min(MAX_DURATION_SECONDS, Math.max(MIN_DURATION_SECONDS, Math.round(durationSeconds)))
+}
+
+function synthesizeSamples(style: SongStyle, durationSeconds: number): Int16Array {
   const profile = STYLE_PROFILES[style]
-  const totalSamples = Math.round(SAMPLE_RATE * DEMO_DURATION_SECONDS)
+  const totalSamples = Math.round(SAMPLE_RATE * durationSeconds)
   const samples = new Int16Array(totalSamples)
   const samplesPerNote = Math.max(1, Math.round(SAMPLE_RATE / profile.notesPerSecond))
   const octaveMultiplier = 2 ** profile.octaveShift
@@ -87,7 +96,8 @@ export interface DemoSongResult {
   durationSeconds: number
 }
 
-export function synthesizeDemoSong(style: SongStyle): DemoSongResult {
-  const wav = encodeWav(synthesizeSamples(style), SAMPLE_RATE)
-  return { audioBase64: wav.toString('base64'), mimeType: 'audio/wav', durationSeconds: DEMO_DURATION_SECONDS }
+export function synthesizeDemoSong(style: SongStyle, targetDurationSeconds: number): DemoSongResult {
+  const durationSeconds = clampDuration(targetDurationSeconds)
+  const wav = encodeWav(synthesizeSamples(style, durationSeconds), SAMPLE_RATE)
+  return { audioBase64: wav.toString('base64'), mimeType: 'audio/wav', durationSeconds }
 }

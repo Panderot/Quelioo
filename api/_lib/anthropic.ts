@@ -119,9 +119,53 @@ function extractUsage(payload: unknown): AnthropicUsage | null {
   return { inputTokens, outputTokens }
 }
 
-/** Parses a JSON object out of a model reply, tolerating a wrapping ```json code fence. */
+/**
+ * Best-effort repair for a common LLM quirk: a literal (unescaped) newline, carriage return or tab
+ * inside an otherwise well-formed JSON string literal — multi-line content (song lyrics, long
+ * explanations) occasionally comes back this way even when explicitly asked for "\n", and a bare
+ * control character inside a JSON string is strictly invalid, so JSON.parse throws on an otherwise
+ * obviously-intended document. Walks the text tracking whether it's inside a double-quoted string
+ * (respecting backslash escapes) and only touches control characters found strictly inside one.
+ */
+function repairUnescapedControlCharsInStrings(text: string): string {
+  let result = ''
+  let inString = false
+  let escaped = false
+  for (const char of text) {
+    if (!inString) {
+      result += char
+      if (char === '"') inString = true
+      continue
+    }
+    if (escaped) {
+      result += char
+      escaped = false
+      continue
+    }
+    if (char === '\\') {
+      result += char
+      escaped = true
+      continue
+    }
+    if (char === '"') {
+      inString = false
+      result += char
+      continue
+    }
+    if (char === '\n') result += '\\n'
+    else if (char === '\r') result += '\\r'
+    else if (char === '\t') result += '\\t'
+    else result += char
+  }
+  return result
+}
+
+/** Parses a JSON object out of a model reply, tolerating a wrapping ```json code fence and (as a
+ * last resort) unescaped control characters inside string values — see repairUnescapedControlCharsInStrings. */
 export function extractJson(text: string): unknown {
-  const attempts = [text.trim(), text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()]
+  const trimmed = text.trim()
+  const unfenced = trimmed.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
+  const attempts = [trimmed, unfenced, repairUnescapedControlCharsInStrings(unfenced)]
   for (const attempt of attempts) {
     try {
       return JSON.parse(attempt)
