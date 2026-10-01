@@ -381,6 +381,7 @@
       }
     },
     "actions": {
+      "checkWork": "Çözümümü kontrol et",
       "similar": "Benzer soru",
       "more": "Daha fazla",
       "anotherWay": "Başka yolla çöz"
@@ -430,6 +431,67 @@
         "rate_limited": "Bunun için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
         "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene.",
         "mismatch": "Quelio aynı cevaba ulaşan başka bir yöntem bulamadı. Lütfen tekrar dene."
+      }
+    },
+    "check": {
+      "title": "Çözümümü kontrol et",
+      "subtitle": "Kendi el yazısı çözümünün fotoğrafını yükle. Quelio onu okur ve ilk hatalı adımı gösterir.",
+      "dropTitle": "Çözümünün fotoğrafını buraya sürükleyip bırak",
+      "previewAlt": "Çözümünün kırpılmış fotoğrafı",
+      "submit": "Kontrol et",
+      "checking": "Çözümün kontrol ediliyor...",
+      "uploadAgain": "Yeni fotoğraf kontrol et",
+      "reading": "Çözümün okunuyor...",
+      "stepsHeading": "Senin adımların",
+      "correctedLabel": "Düzeltilmiş adım",
+      "referenceHeading": "Karşılaştırma için çözüm",
+      "confirm": {
+        "title": "Çözümünü doğru okudum mu?",
+        "hint": "Kontrol etmeden önce her satırı kâğıdınla karşılaştır.",
+        "lowLine": "Okunması zor — lütfen bu satırı kontrol et",
+        "manyLow": "Birkaç satırı okumak zordu. Onları düzelt ya da daha net bir fotoğraf çek.",
+        "yes": "Evet, kontrol et",
+        "fix": "Düzelt ve kontrol et",
+        "checkEdited": "Düzelttiğim çözümü kontrol et",
+        "addLine": "Satır ekle",
+        "removeLine": "{{n}}. satırı sil",
+        "lineLabel": "{{n}}. satır",
+        "retake": "Fotoğrafı yeniden çek"
+      },
+      "levels": {
+        "ok": "Doğru",
+        "mistake": "Hata",
+        "unsure": "Bu adımı bir daha kontrol et"
+      },
+      "verdict": {
+        "correct": "Bütün adımların doğru — harika iş!",
+        "correctWithUnsure": "Son cevabın doğru! Emin olmak için {{step}}. adıma bir daha bak.",
+        "has_error": "Az kaldı — {{step}}. adımda bir hata var.",
+        "hasErrorNoStep": "Son cevabın beklenen cevapla uyuşmuyor, ama hatalı adımı kesin olarak bulamadım. Aşağıdaki çözümle karşılaştır.",
+        "unsure": "Son cevabın henüz tutmuyor. {{step}}. adımı bir daha kontrol et.",
+        "uncertain": "Çözümünü doğru okuduğumdan ya da bu soruya ait olduğundan emin değilim, bu yüzden tahmin yürütmeyeceğim. Çözümünü aşağıdaki çözümle karşılaştır.",
+        "finalRightStepWrong": "Son cevabın doğru, ama {{step}}. adımda bir hata var.",
+        "incomplete": "İyi başlangıç — buraya kadarki adımların doğru, ama çözüm son cevaba varmadan bitiyor.",
+        "incompleteWithError": "Çözümün henüz bitmemiş ve {{step}}. adımda bir hata var.",
+        "different_problem": "Bu çözüm başka bir soruya ait gibi görünüyor. Bu sorunun çözümünü yükle.",
+        "unreadable": "Çözümünü net okuyamadık. Yalnızca çözümünün olduğu, daha net ve iyi aydınlatılmış bir fotoğraf dene."
+      },
+      "errorTypes": {
+        "arithmetic": "İşlem hatası",
+        "sign": "İşaret hatası",
+        "concept": "Kural ya da kavram hatası",
+        "copying": "Yanlış yazma hatası",
+        "missing_step": "Eksik adım"
+      },
+      "errors": {
+        "bad_type": "Lütfen çözümünün fotoğrafını yükle.",
+        "too_large": "Bu fotoğraf ya da çözüm kontrol için çok büyük.",
+        "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
+        "parse": "Quelio bu sefer net bir cevap okuyamadı. Lütfen tekrar dene.",
+        "model": "Quelio'nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen birazdan tekrar dene.",
+        "not_configured": "Çözüm kontrolü geçici olarak kullanılamıyor. Lütfen birazdan tekrar dene.",
+        "rate_limited": "Çözüm kontrolü için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
+        "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene."
       }
     }
   },

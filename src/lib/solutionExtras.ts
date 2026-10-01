@@ -1,4 +1,6 @@
 import type { AnotherWayResult } from '../api/anotherWay'
+import { toCheckWorkResult } from '../api/checkWork'
+import type { CheckWorkResult } from '../api/checkWork'
 import type { SimilarProblem } from '../api/similar'
 import { readStepExplanations } from './stepExplanations'
 import type { StepExplanationCache } from './stepExplanations'
@@ -67,4 +69,11 @@ export function readAnotherWay(extras: Record<string, unknown> | undefined): Sto
     answer: raw.answer,
     explanations: readStepExplanations({ stepExplanations: raw.explanations }, steps.length),
   }
+}
+
+export const CHECK_WORK_KEY = 'checkMyWork'
+
+/** The latest "Check my solution" result saved in the record, or null. */
+export function readCheckWork(extras: Record<string, unknown> | undefined): CheckWorkResult | null {
+  return toCheckWorkResult(extras?.[CHECK_WORK_KEY])
 }

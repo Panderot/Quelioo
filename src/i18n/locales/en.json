@@ -381,6 +381,7 @@
       }
     },
     "actions": {
+      "checkWork": "Check my solution",
       "similar": "Similar problem",
       "more": "More",
       "anotherWay": "Solve another way"
@@ -430,6 +431,67 @@
         "rate_limited": "You've reached the hourly limit for this. Please try again later.",
         "network": "Couldn't connect. Check your connection and try again.",
         "mismatch": "Quelio couldn't find another method that reaches the same answer. Please try again."
+      }
+    },
+    "check": {
+      "title": "Check my solution",
+      "subtitle": "Upload a photo of your own handwritten work. Quelio reads it and points out the first step that went wrong.",
+      "dropTitle": "Drag and drop a photo of your work here",
+      "previewAlt": "Cropped photo of your work",
+      "submit": "Check my work",
+      "checking": "Checking your work...",
+      "uploadAgain": "Check a new photo",
+      "reading": "Reading your work...",
+      "stepsHeading": "Your steps",
+      "correctedLabel": "Corrected step",
+      "referenceHeading": "Solution to compare with",
+      "confirm": {
+        "title": "Did I read your work correctly?",
+        "hint": "Compare each line with your paper before checking.",
+        "lowLine": "Hard to read — please check this line",
+        "manyLow": "Several lines were hard to read. Fix them, or retake a sharper photo.",
+        "yes": "Yes, check it",
+        "fix": "Fix and check",
+        "checkEdited": "Check my fixed work",
+        "addLine": "Add a line",
+        "removeLine": "Remove line {{n}}",
+        "lineLabel": "Line {{n}}",
+        "retake": "Retake photo"
+      },
+      "levels": {
+        "ok": "Correct",
+        "mistake": "Mistake",
+        "unsure": "Check this step again"
+      },
+      "verdict": {
+        "correct": "Every step checks out — great work!",
+        "correctWithUnsure": "Your final answer is right! Have another look at step {{step}} to be sure.",
+        "has_error": "Almost there — there's a mistake in step {{step}}.",
+        "hasErrorNoStep": "Your final answer doesn't match the expected answer, but I couldn't pin down the step. Compare with the solution below.",
+        "unsure": "Your final answer doesn't match yet. Check step {{step}} again.",
+        "uncertain": "I'm not sure I read your work correctly or that it's for this problem, so I won't guess. Compare your work with the solution below.",
+        "finalRightStepWrong": "Your final answer is right, but step {{step}} has a mistake.",
+        "incomplete": "Good start — your steps are right so far, but the work stops before the final answer.",
+        "incompleteWithError": "Your work isn't finished yet, and there's a mistake in step {{step}}.",
+        "different_problem": "This work seems to be for a different problem. Upload your work for this problem.",
+        "unreadable": "We couldn't read your work clearly. Try a sharper, well-lit photo of just your work."
+      },
+      "errorTypes": {
+        "arithmetic": "Arithmetic error",
+        "sign": "Sign error",
+        "concept": "Rule or concept error",
+        "copying": "Copying error",
+        "missing_step": "Missing step"
+      },
+      "errors": {
+        "bad_type": "Please upload a photo of your work.",
+        "too_large": "This photo or solution is too large to check.",
+        "upstream": "Something went wrong reaching Quelio. Please try again.",
+        "parse": "Quelio couldn't read a clear answer this time. Please try again.",
+        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "not_configured": "Checking work is temporarily unavailable. Please try again shortly.",
+        "rate_limited": "You've reached the hourly limit for checking work. Please try again later.",
+        "network": "Couldn't connect. Check your connection and try again."
       }
     }
   },

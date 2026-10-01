@@ -22,6 +22,8 @@ export interface LlmCallParams {
   maxTokens: number
   /** Optional image to attach alongside `user` as vision input (e.g. Solve). Omitted entirely for text-only callers. */
   image?: LlmImageInput
+  /** Try this provider first (e.g. an independent second opinion from the other provider). */
+  preferProvider?: LlmProvider
 }
 
 export type LlmResult =
@@ -174,7 +176,9 @@ const CALLERS: Record<LlmProvider, (params: LlmCallParams) => Promise<ProviderOu
  */
 export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
   const start = Date.now()
-  const order = resolveProviderOrder().slice(0, 2)
+  const resolved = resolveProviderOrder()
+  const preferred = params.preferProvider
+  const order = (preferred && resolved.includes(preferred) ? [preferred, ...resolved.filter((p) => p !== preferred)] : resolved).slice(0, 2)
 
   let attempts = 0
   let lastProvider: LlmProvider | null = null

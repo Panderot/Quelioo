@@ -7,6 +7,7 @@ import { solveRequestHandler } from './api/_lib/solve.js'
 import { explainStepRequestHandler } from './api/_lib/explain-step.js'
 import { similarRequestHandler } from './api/_lib/similar.js'
 import { anotherWayRequestHandler } from './api/_lib/another-way.js'
+import { checkWorkRequestHandler } from './api/_lib/check-work.js'
 import { generateRequestHandler } from './api/_lib/generate.js'
 import { extractUrlRequestHandler } from './api/_lib/extract-url.js'
 import { gradeRequestHandler } from './api/_lib/grade.js'
@@ -25,6 +26,9 @@ function apiDevMiddleware(): Plugin {
       })
       server.middlewares.use('/api/another-way', (req, res) => {
         void anotherWayRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/check-work', (req, res) => {
+        void checkWorkRequestHandler(req, res)
       })
       server.middlewares.use('/api/explain-step', (req, res) => {
         void explainStepRequestHandler(req, res)

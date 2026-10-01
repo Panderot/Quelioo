@@ -365,6 +365,16 @@ export function CropIcon(props: IconProps) {
   )
 }
 
+/** A question mark in a circle: "check this again", never "wrong". */
+export function QuestionIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="12" cy="12" r="9" strokeWidth="2" />
+      <path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17h.01" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
 export function WarningIcon(props: IconProps) {
   return (
     <svg {...base(props)}>

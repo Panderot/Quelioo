@@ -22,8 +22,11 @@ type Prepared = { kind: 'number'; value: number } | { kind: 'expression'; node: 
 const UNIT_SUFFIX =
   /(?<=[\d)\s])\s*(?:cm|mm|km|kg|mg|ml|tl|₺|lira|derece|degrees?|deg|°|saat|dakika|dk|saniye|sn|birim|units?|metre|meters?|metres|santimetre|gram|grams?|m|g|l|s|h|%)(?:\^?[23]|[²³])?\.?$/iu
 
-/** Turns LaTeX / unicode / Turkish-style answer text into plain mathjs syntax, or null. */
-export function normalizeAnswerText(raw: string): string | null {
+/**
+ * Turns LaTeX / unicode / Turkish-style math text into plain mathjs-like syntax (relations such as
+ * "=" are kept as written), or null when it contains LaTeX we don't understand.
+ */
+export function latexToPlainMath(raw: string): string | null {
   let text = raw.trim()
   if (!text || text.length > MAX_INPUT_CHARS * 2) return null
 
@@ -61,6 +64,13 @@ export function normalizeAnswerText(raw: string): string | null {
     .replace(/['’]\p{L}*\s*$/u, '')
     .replace(/[.。]\s*$/, '')
     .trim()
+  return text
+}
+
+/** Turns LaTeX / unicode / Turkish-style answer text into plain mathjs syntax, or null. */
+export function normalizeAnswerText(raw: string): string | null {
+  let text = latexToPlainMath(raw)
+  if (text === null) return null
 
   // "x = 8" → "8"; "8 = x" → "8". Anything with more structure is an equation we don't grade locally.
   const sides = text.split('=')
@@ -80,7 +90,7 @@ export function normalizeAnswerText(raw: string): string | null {
   return text
 }
 
-function isSafeNode(node: MathNode, symbols: Set<string>): boolean {
+export function isSafeNode(node: MathNode, symbols: Set<string>): boolean {
   switch (node.type) {
     case 'ConstantNode':
       return typeof (node as unknown as { value: unknown }).value === 'number'

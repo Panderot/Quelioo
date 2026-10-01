@@ -4,18 +4,20 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import type { SolveResult } from '../api/solve'
-import { ANOTHER_WAY_KEY, readAnotherWay, readSimilarItems, SIMILAR_PROBLEMS_KEY } from '../lib/solutionExtras'
+import type { CheckWorkResult } from '../api/checkWork'
+import { ANOTHER_WAY_KEY, CHECK_WORK_KEY, readAnotherWay, readCheckWork, readSimilarItems, SIMILAR_PROBLEMS_KEY } from '../lib/solutionExtras'
 import type { SimilarItem, StoredAnotherWay } from '../lib/solutionExtras'
 import { updateSolutionExtras } from '../lib/solutionStorage'
 import { readStepExplanations, STEP_EXPLANATIONS_KEY, withExplanation } from '../lib/stepExplanations'
 import type { StepExplanationCache } from '../lib/stepExplanations'
 import AnotherWayPanel from './AnotherWayPanel'
+import CheckWorkPanel from './CheckWorkPanel'
 import ExplainableSteps from './ExplainableSteps'
 import MathText from './MathText'
 import MoreMenu from './MoreMenu'
 import SimilarProblems from './SimilarProblems'
 import type { PanelHandle } from './SimilarProblems'
-import { RefreshIcon, WarningIcon } from './icons'
+import { CheckIcon, RefreshIcon, WarningIcon } from './icons'
 
 const TRY_FIRST_STORAGE_KEY = 'quelio.solveTryFirst.v1'
 
@@ -53,7 +55,7 @@ function buildQuizPrefillText(
   return lines.join('\n')
 }
 
-type ExtraKey = typeof STEP_EXPLANATIONS_KEY | typeof SIMILAR_PROBLEMS_KEY | typeof ANOTHER_WAY_KEY
+type ExtraKey = typeof STEP_EXPLANATIONS_KEY | typeof SIMILAR_PROBLEMS_KEY | typeof ANOTHER_WAY_KEY | typeof CHECK_WORK_KEY
 
 interface SolutionViewProps {
   result: SolveResult
@@ -113,6 +115,7 @@ export default function SolutionView({ result, solutionId = null, initialExtras,
   const [explanations, setExplanations] = useState<StepExplanationCache>(() => readStepExplanations(initialExtras, stepCount))
   const [similarItems, setSimilarItems] = useState<SimilarItem[]>(() => readSimilarItems(initialExtras))
   const [anotherWay, setAnotherWay] = useState<StoredAnotherWay | null>(() => readAnotherWay(initialExtras))
+  const [checkWork, setCheckWork] = useState<CheckWorkResult | null>(() => readCheckWork(initialExtras))
   // Only keys changed in this view are written back — not what was just loaded.
   const dirtyRef = useRef(new Set<ExtraKey>())
 
@@ -125,17 +128,19 @@ export default function SolutionView({ result, solutionId = null, initialExtras,
       [STEP_EXPLANATIONS_KEY]: explanations,
       [SIMILAR_PROBLEMS_KEY]: similarItems,
       [ANOTHER_WAY_KEY]: anotherWay,
+      [CHECK_WORK_KEY]: checkWork,
     }
     for (const key of dirtyRef.current) {
       void updateSolutionExtras(solutionId, key, values[key]).catch(() => {
         // Storage full/unavailable — everything still works for this view from memory.
       })
     }
-  }, [solutionId, explanations, similarItems, anotherWay])
+  }, [solutionId, explanations, similarItems, anotherWay, checkWork])
 
   // ---- Actions ----
   const similarRef = useRef<PanelHandle>(null)
   const anotherWayRef = useRef<PanelHandle>(null)
+  const checkWorkRef = useRef<PanelHandle>(null)
 
   const handleCreateQuiz = () => {
     const prefillText = buildQuizPrefillText(result, {
@@ -265,14 +270,15 @@ export default function SolutionView({ result, solutionId = null, initialExtras,
 
       {children}
 
-      {/* At most three actions in a row; "Solve another way" lives in the More menu. Stacks below 640px. */}
+      {/* At most three actions in a row; the rest live in the More menu. Stacks below 640px. */}
       <div data-purpose="solution-actions" className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
+        <button type="button" onClick={() => checkWorkRef.current?.open()} className={outlineAction}>
+          <CheckIcon className="h-4 w-4" />
+          {t('solve.actions.checkWork')}
+        </button>
         <button type="button" onClick={() => similarRef.current?.open()} className={outlineAction}>
           <RefreshIcon className="h-4 w-4" />
           {t('solve.actions.similar')}
-        </button>
-        <button type="button" onClick={handleCreateQuiz} className={outlineAction}>
-          {t('solve.cta.createQuiz')}
         </button>
         <MoreMenu
           items={[
@@ -281,9 +287,24 @@ export default function SolutionView({ result, solutionId = null, initialExtras,
               label: t('solve.actions.anotherWay'),
               onSelect: () => anotherWayRef.current?.open(),
             },
+            {
+              key: 'create-quiz',
+              label: t('solve.cta.createQuiz'),
+              onSelect: handleCreateQuiz,
+            },
           ]}
         />
       </div>
+
+      <CheckWorkPanel
+        ref={checkWorkRef}
+        source={result}
+        value={checkWork}
+        onChange={(value) => {
+          markDirty(CHECK_WORK_KEY)
+          setCheckWork(value)
+        }}
+      />
 
       <SimilarProblems
         ref={similarRef}

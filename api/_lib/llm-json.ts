@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { extractJson, isRecord, readRequestBody } from './anthropic.js'
 import { generateJson } from './llm.js'
-import type { LlmProvider } from './llm.js'
+import type { LlmImageInput, LlmProvider } from './llm.js'
 import { requestIp } from './song-rate-limit.js'
 
 export type LlmJsonErrorCode = 'upstream' | 'parse' | 'model' | 'not_configured'
@@ -21,9 +21,18 @@ export async function callLlmJson<T>(params: {
   initialTokens: number
   retryTokens: number
   validate: (parsed: unknown) => T | null
+  /** Optional vision input sent with `user` (e.g. a photo of the student's work). */
+  image?: LlmImageInput
+  preferProvider?: LlmProvider
 }): Promise<LlmJsonResult<T>> {
   for (const maxTokens of [params.initialTokens, params.retryTokens]) {
-    const result = await generateJson({ system: params.system, user: params.user, maxTokens })
+    const result = await generateJson({
+      system: params.system,
+      user: params.user,
+      maxTokens,
+      ...(params.image ? { image: params.image } : {}),
+      ...(params.preferProvider ? { preferProvider: params.preferProvider } : {}),
+    })
     if (result.status === 'not_configured') return { ok: false, error: 'not_configured' }
     if (result.status === 'error') return { ok: false, error: result.error === 'model' ? 'model' : 'upstream' }
     const value = params.validate(extractJson(result.text))

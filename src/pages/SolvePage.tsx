@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import type { ChangeEvent, DragEvent } from 'react'
+import type { ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SolveApiError, solveMathPhoto } from '../api/solve'
@@ -10,7 +10,8 @@ import type { DecodedImage, NormalizedImage } from '../lib/imageNormalize'
 import MathText from '../components/MathText'
 import SolutionView from '../components/SolutionView'
 import { saveSolution } from '../lib/solutionStorage'
-import { CropIcon, FileTabIcon, SpinnerIcon, SunIcon } from '../components/icons'
+import PhotoDropZone from '../components/PhotoDropZone'
+import { CropIcon, SpinnerIcon, SunIcon } from '../components/icons'
 
 // The crop step is only needed once a photo is chosen — keep it out of the initial bundle.
 const ImageCropStep = lazy(() => import('../components/ImageCropStep'))
@@ -36,7 +37,6 @@ export default function SolvePage() {
   const [cropSpec, setCropSpec] = useState<CropSpec | undefined>(undefined)
   const [normalized, setNormalized] = useState<NormalizedImage | null>(null)
   const [note, setNote] = useState('')
-  const [isDragging, setIsDragging] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [isSolving, setIsSolving] = useState(false)
   const [result, setResult] = useState<SolveResult | null>(null)
@@ -126,12 +126,6 @@ export default function SolvePage() {
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     void handleFile(event.target.files?.[0])
     event.target.value = ''
-  }
-
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault()
-    setIsDragging(false)
-    void handleFile(event.dataTransfer.files?.[0])
   }
 
   const handleReset = () => {
@@ -226,43 +220,7 @@ export default function SolvePage() {
         />
 
         {!decoded && !isConverting ? (
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                fileInputRef.current?.click()
-              }
-            }}
-            onDragOver={(event) => {
-              event.preventDefault()
-              setIsDragging(true)
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            className={`flex min-h-[220px] cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed bg-card px-4 py-8 text-center transition-colors md:min-h-[260px] ${
-              isDragging ? 'border-amber' : 'border-warm-border'
-            }`}
-          >
-            <FileTabIcon className="h-8 w-8 text-muted" />
-            <div>
-              <p className="text-sm font-semibold text-ink">{t('solve.upload.dragTitle')}</p>
-              <p className="mt-1 text-xs text-muted">{t('solve.upload.dragSubtitle')}</p>
-            </div>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation()
-                fileInputRef.current?.click()
-              }}
-              className="rounded-xl border border-warm-border bg-paper px-3.5 py-2 text-xs font-semibold text-ink transition-colors hover:border-amber"
-            >
-              {t('solve.upload.browse')}
-            </button>
-            <p className="text-xs text-muted">{t('solve.upload.hint')}</p>
-          </div>
+          <PhotoDropZone onBrowse={() => fileInputRef.current?.click()} onFile={(file) => void handleFile(file)} />
         ) : isConverting ? (
           <div
             data-purpose="solve-converting"
