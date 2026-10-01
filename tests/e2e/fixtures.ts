@@ -8,6 +8,8 @@ const IGNORED_CONSOLE_PATTERNS: RegExp[] = [
   // including deliberately-mocked error responses in tests (e.g. a mocked 400/blocked_address) —
   // it's not something the app logged, and the app handles the error correctly regardless.
   /Failed to load resource: the server responded with a status of \d+/,
+  // Firefox logs this when the Vite dev server's HMR websocket (test harness only, never shipped) drops under load.
+  /can.t establish a connection to the server at ws:\/\/localhost:\d+\/\?token=.*@vite\/client/,
 ]
 
 interface MockHandle {

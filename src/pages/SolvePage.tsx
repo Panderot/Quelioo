@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, DragEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { SolveApiError, solveMathPhoto } from '../api/solve'
 import type { SolveErrorCode, SolveResult } from '../api/solve'
-import { ImageNormalizeError, normalizeImageForSolve } from '../lib/imageNormalize'
-import type { NormalizedImage } from '../lib/imageNormalize'
+import type { CropSpec } from '../lib/imageCrop'
+import { decodeImageForSolve, encodeCroppedImage, ImageNormalizeError } from '../lib/imageNormalize'
+import type { DecodedImage, NormalizedImage } from '../lib/imageNormalize'
 import MathText from '../components/MathText'
-import { FileTabIcon, SpinnerIcon, SunIcon } from '../components/icons'
+import { CropIcon, FileTabIcon, SpinnerIcon, SunIcon, WarningIcon } from '../components/icons'
+
+// The crop step is only needed once a photo is chosen — keep it out of the initial bundle.
+const ImageCropStep = lazy(() => import('../components/ImageCropStep'))
 
 const ACCEPT_ATTR = 'image/*,.heic,.heif,.avif,.tiff,.tif,.bmp,.ico,.svg,.dng'
 const MAX_NOTE_CHARS = 500
@@ -24,6 +28,7 @@ function buildQuizPrefillText(
     '',
     `${labels.question}: ${result.question}`,
     '',
+    ...(result.intro ? [result.intro, ''] : []),
     `${labels.steps}:`,
     ...result.steps.map((step, index) => `${index + 1}. ${step}`),
     '',
@@ -38,28 +43,55 @@ export default function SolvePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const conversionRef = useRef(0)
+  // The full-resolution decoded photo; crops are always cut from it, never from the upload JPEG.
+  const decodedRef = useRef<DecodedImage | null>(null)
 
+  const [decoded, setDecoded] = useState<DecodedImage | null>(null)
+  const [isCropping, setIsCropping] = useState(false)
+  const [cropSpec, setCropSpec] = useState<CropSpec | undefined>(undefined)
   const [normalized, setNormalized] = useState<NormalizedImage | null>(null)
   const [note, setNote] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [isSolving, setIsSolving] = useState(false)
   const [result, setResult] = useState<SolveResult | null>(null)
+  const [choices, setChoices] = useState<string[] | null>(null)
   const [errorCode, setErrorCode] = useState<DisplayErrorCode | null>(null)
+
+  const replaceDecoded = (next: DecodedImage | null) => {
+    decodedRef.current?.release()
+    decodedRef.current = next
+    setDecoded(next)
+  }
+
+  useEffect(() => () => decodedRef.current?.release(), [])
+
+  const clearOutcome = () => {
+    abortRef.current?.abort()
+    setResult(null)
+    setChoices(null)
+    setErrorCode(null)
+  }
 
   const handleFile = async (file: File | undefined) => {
     if (!file) return
 
     const generation = ++conversionRef.current
-    setResult(null)
-    setErrorCode(null)
+    clearOutcome()
     setNormalized(null)
+    setIsCropping(false)
+    setCropSpec(undefined)
+    replaceDecoded(null)
     setIsConverting(true)
 
     try {
-      const image = await normalizeImageForSolve(file)
-      if (conversionRef.current !== generation) return
-      setNormalized(image)
+      const image = await decodeImageForSolve(file)
+      if (conversionRef.current !== generation) {
+        image.release()
+        return
+      }
+      replaceDecoded(image)
+      setIsCropping(true)
     } catch (error) {
       if (conversionRef.current !== generation) return
       setErrorCode(error instanceof ImageNormalizeError ? error.reason : 'decode_failed')
@@ -68,11 +100,35 @@ export default function SolvePage() {
     }
   }
 
+  const handleCropDone = (crop: CropSpec) => {
+    if (!decoded) return
+    clearOutcome()
+    try {
+      setNormalized(encodeCroppedImage(decoded, crop))
+      setCropSpec(crop)
+      setIsCropping(false)
+    } catch {
+      setErrorCode('decode_failed')
+    }
+  }
+
+  const handleChangeCrop = () => {
+    if (!decoded) return
+    clearOutcome()
+    setIsCropping(true)
+  }
+
+  // The document-level paste listener is registered once; route it to the latest handleFile.
+  const handleFileRef = useRef(handleFile)
+  useEffect(() => {
+    handleFileRef.current = handleFile
+  })
+
   useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
       const item = Array.from(event.clipboardData?.items ?? []).find((entry) => entry.type.startsWith('image/'))
       const file = item?.getAsFile()
-      if (file) void handleFile(file)
+      if (file) void handleFileRef.current(file)
     }
     document.addEventListener('paste', handlePaste)
     return () => document.removeEventListener('paste', handlePaste)
@@ -91,10 +147,11 @@ export default function SolvePage() {
 
   const handleReset = () => {
     conversionRef.current += 1
-    abortRef.current?.abort()
+    clearOutcome()
     setNormalized(null)
-    setResult(null)
-    setErrorCode(null)
+    setIsCropping(false)
+    setCropSpec(undefined)
+    replaceDecoded(null)
     setNote('')
     setIsConverting(false)
   }
@@ -108,30 +165,38 @@ export default function SolvePage() {
     abortRef.current?.abort()
   }
 
-  const handleSolve = async () => {
-    if (!normalized || isSolving) return
+  const handleSolve = async (problem?: string) => {
+    if (!normalized || isSolving || isCropping) return
     setIsSolving(true)
     setErrorCode(null)
+    setResult(null)
     const controller = new AbortController()
     abortRef.current = controller
     try {
-      const solved = await solveMathPhoto(
+      const outcome = await solveMathPhoto(
         {
           imageBase64: normalized.dataUrl,
           mimeType: normalized.mimeType,
           language: i18n.language,
           note: note.trim(),
+          ...(problem ? { problem } : {}),
         },
         controller.signal,
       )
-      setResult(solved)
+      if (controller.signal.aborted) return
+      if (outcome.kind === 'choices') {
+        setChoices(outcome.problems)
+      } else {
+        setChoices(null)
+        setResult(outcome.result)
+      }
     } catch (error) {
       if (!controller.signal.aborted) {
         setErrorCode(error instanceof SolveApiError ? error.code : 'upstream')
       }
     } finally {
+      if (abortRef.current === controller) abortRef.current = null
       setIsSolving(false)
-      abortRef.current = null
     }
   }
 
@@ -165,7 +230,7 @@ export default function SolvePage() {
           className="sr-only"
         />
 
-        {!normalized && !isConverting ? (
+        {!decoded && !isConverting ? (
           <div
             role="button"
             tabIndex={0}
@@ -218,24 +283,46 @@ export default function SolvePage() {
               {t('solve.cta.cancel')}
             </button>
           </div>
+        ) : decoded && isCropping ? (
+          <Suspense
+            fallback={
+              <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center">
+                <SpinnerIcon className="h-8 w-8 text-amber-text" />
+                <p className="text-sm font-semibold text-ink">{t('crop.preparing')}</p>
+              </div>
+            }
+          >
+            <ImageCropStep image={decoded} initialCrop={cropSpec} onApply={handleCropDone} onSkip={handleCropDone} />
+          </Suspense>
         ) : normalized ? (
           <div className="space-y-3">
             <img
+              data-purpose="solve-cropped-preview"
               src={normalized.dataUrl}
-              alt={t('solve.title')}
-              className="max-h-[360px] w-full rounded-2xl border border-warm-border object-contain"
+              alt={t('solve.upload.croppedAlt')}
+              className="mx-auto block max-h-[60vh] max-w-full rounded-2xl border border-warm-border object-contain md:max-h-[70vh]"
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="text-xs font-semibold text-amber-text hover:underline"
-            >
-              {t('solve.upload.changePhoto')}
-            </button>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <button
+                type="button"
+                onClick={handleChangeCrop}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-text hover:underline"
+              >
+                <CropIcon className="h-3.5 w-3.5" />
+                {t('solve.upload.changeCrop')}
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs font-semibold text-amber-text hover:underline"
+              >
+                {t('solve.upload.replacePhoto')}
+              </button>
+            </div>
           </div>
         ) : null}
 
-        {normalized && (
+        {normalized && !isCropping && (
           <div className="space-y-1.5">
             <label htmlFor="solve-note" className="text-xs font-semibold text-ink">
               {t('solve.note.label')}
@@ -257,7 +344,7 @@ export default function SolvePage() {
         <button
           type="button"
           onClick={() => void handleSolve()}
-          disabled={!normalized || isSolving}
+          disabled={!normalized || isSolving || isCropping}
           aria-busy={isSolving}
           className="group flex h-14 w-full items-center justify-center gap-3 rounded-[14px] bg-amber text-base font-bold text-navy shadow-sm transition-all hover:-translate-y-px hover:bg-amber-hover hover:shadow-lg hover:shadow-amber/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
         >
@@ -292,6 +379,47 @@ export default function SolvePage() {
         </div>
       )}
 
+      {choices && !result && (
+        <section
+          data-purpose="solve-choices"
+          aria-labelledby="solve-choices-title"
+          className="-mt-4 mb-6 space-y-4 rounded-[14px] border border-warm-border bg-card p-5 md:p-6"
+        >
+          <div className="space-y-1">
+            <h2 id="solve-choices-title" className="font-serif text-lg font-semibold text-navy">
+              {t('solve.choices.title')}
+            </h2>
+            <p className="text-xs text-muted">{t('solve.choices.subtitle')}</p>
+          </div>
+          <ul className="space-y-2">
+            {choices.map((problem, index) => (
+              <li key={`${index}-${problem}`}>
+                <button
+                  type="button"
+                  onClick={() => void handleSolve(problem)}
+                  disabled={isSolving}
+                  className="flex w-full rounded-xl border border-warm-border bg-paper px-4 py-3 text-left text-sm text-ink transition-colors hover:border-amber disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {/* The model's own description already carries the problem's visible number/label. */}
+                  <span className="min-w-0 flex-1 break-words">
+                    <MathText text={problem} />
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            onClick={handleChangeCrop}
+            disabled={isSolving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-warm-border bg-card px-4 py-2.5 text-sm font-bold text-navy transition-colors hover:border-amber disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          >
+            <CropIcon className="h-4 w-4" />
+            {t('solve.choices.cropAction')}
+          </button>
+        </section>
+      )}
+
       {result && (
         <div data-purpose="solve-result" className="-mt-4 space-y-4 pb-6">
           <section className="space-y-4 rounded-[14px] border border-warm-border bg-card p-5 md:p-6">
@@ -299,6 +427,12 @@ export default function SolvePage() {
             <p className="text-sm font-semibold text-ink">
               <MathText text={result.question} />
             </p>
+
+            {result.intro && (
+              <p data-purpose="solve-intro" className="text-sm leading-relaxed text-ink">
+                <MathText text={result.intro} />
+              </p>
+            )}
 
             <ol className="space-y-3">
               {result.steps.map((step, index) => (
@@ -313,17 +447,47 @@ export default function SolvePage() {
               ))}
             </ol>
 
-            <div className="inline-flex flex-wrap items-center gap-2 rounded-xl bg-amber/15 px-4 py-2.5 text-sm font-bold text-navy">
+            <div
+              data-purpose="solve-answer"
+              className="ml-9 flex w-fit max-w-[calc(100%-2.25rem)] flex-wrap items-baseline gap-x-2 gap-y-1 rounded-xl bg-amber/15 px-3.5 py-2 text-sm leading-snug font-bold text-navy"
+            >
               <span className="text-xs font-semibold tracking-wide text-amber-text uppercase">
                 {t('solve.result.answerLabel')}
               </span>
-              <MathText text={result.answer} />
+              <MathText text={result.answer} className="min-w-0 break-words" />
             </div>
 
-            <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-xs text-muted">
-              <span className="font-semibold text-ink">{t('solve.result.tipLabel')}: </span>
-              <MathText text={result.tip} />
-            </div>
+            {result.tip && (
+              <div className="rounded-xl border border-warm-border bg-paper p-3.5 text-xs text-muted">
+                <span className="font-semibold text-ink">{t('solve.result.tipLabel')}: </span>
+                <MathText text={result.tip} />
+              </div>
+            )}
+
+            {result.mistakes.length > 0 && (
+              <div
+                data-purpose="solve-mistakes"
+                className="flex gap-2.5 rounded-xl border border-amber/40 bg-amber/10 p-3.5 text-xs text-ink"
+              >
+                <WarningIcon className="mt-px h-4 w-4 shrink-0 text-amber-text" />
+                <div className="min-w-0 space-y-1">
+                  <p className="font-semibold text-amber-text">{t('solve.result.mistakeLabel')}</p>
+                  {result.mistakes.length === 1 ? (
+                    <p>
+                      <MathText text={result.mistakes[0]} />
+                    </p>
+                  ) : (
+                    <ul className="list-disc space-y-1 pl-4">
+                      {result.mistakes.map((mistake, index) => (
+                        <li key={index}>
+                          <MathText text={mistake} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           <button

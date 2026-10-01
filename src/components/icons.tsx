@@ -338,3 +338,42 @@ export function CheckIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function RotateLeftIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 4v5h5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+      <path d="M4.6 9A8 8 0 1112 20" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
+export function RotateRightIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M20 4v5h-5" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+      <path d="M19.4 9A8 8 0 1012 20" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
+export function CropIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M6 2v14a2 2 0 002 2h14M2 6h14a2 2 0 012 2v14" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
+export function WarningIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0zM12 9v4M12 17h.01"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}

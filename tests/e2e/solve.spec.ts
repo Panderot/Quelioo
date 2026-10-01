@@ -54,6 +54,12 @@ async function pasteFile(page: Page, buffer: Buffer, name: string, mimeType: str
   )
 }
 
+/** Every chosen photo opens the crop step first; skip it with "Use whole photo". */
+async function useWholePhoto(page: Page, label: string = en.crop.useWhole) {
+  await page.getByRole('button', { name: label }).click({ timeout: 20_000 })
+  await expect(page.locator('[data-purpose="solve-cropped-preview"]')).toBeVisible()
+}
+
 test.describe('Solve — file picker, real formats', () => {
   const validFixtures: { file: string; mimeType: string }[] = [
     { file: 'plain.jpg', mimeType: 'image/jpeg' },
@@ -80,8 +86,9 @@ test.describe('Solve — file picker, real formats', () => {
         buffer: fixtureBuffer(file),
       })
 
-      const previewImg = page.locator('[data-purpose="solve-upload-card"] img')
-      await expect(previewImg).toBeVisible({ timeout: 10_000 })
+      await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
+      await useWholePhoto(page)
+      const previewImg = page.locator('[data-purpose="solve-cropped-preview"]')
       await expect(previewImg).toHaveAttribute('src', /^data:image\/jpeg/)
 
       await page.getByRole('button', { name: en.solve.cta.solve }).click()
@@ -155,7 +162,7 @@ test.describe('Solve — file picker, real formats', () => {
       mimeType: 'image/jpeg',
       buffer: fixtureBuffer('plain.jpg'),
     })
-    await expect(page.locator('[data-purpose="solve-upload-card"] img')).toBeVisible()
+    await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
   })
 
   test('a HEIC file with an empty MIME type (Windows-style) is still detected from magic bytes', async ({ page }) => {
@@ -198,7 +205,7 @@ test.describe('Solve — file picker, real formats', () => {
       mimeType: 'image/jpeg',
       buffer: padded,
     })
-    await expect(page.locator('[data-purpose="solve-upload-card"] img')).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 20_000 })
   })
 })
 
@@ -206,7 +213,7 @@ test.describe('Solve — drag-and-drop and paste', () => {
   test('drag-and-drop a valid JPEG shows a preview', async ({ page }) => {
     await page.goto('/solve?lng=en')
     await dropFile(page, fixtureBuffer('plain.jpg'), 'plain.jpg', 'image/jpeg')
-    await expect(page.locator('[data-purpose="solve-upload-card"] img')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
   })
 
   test('drag-and-drop an unsupported file shows the unsupported error', async ({ page }) => {
@@ -220,7 +227,7 @@ test.describe('Solve — drag-and-drop and paste', () => {
   test('paste a valid PNG from the clipboard shows a preview', async ({ page }) => {
     await page.goto('/solve?lng=en')
     await pasteFile(page, fixtureBuffer('transparent.png'), 'transparent.png', 'image/png')
-    await expect(page.locator('[data-purpose="solve-upload-card"] img')).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
   })
 })
 
@@ -233,7 +240,8 @@ test.describe('Solve — mocked API flows', () => {
       mimeType: 'image/jpeg',
       buffer: fixtureBuffer('plain.jpg'),
     })
-    await expect(page.locator('[data-purpose="solve-upload-card"] img')).toBeVisible()
+    await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
+    await useWholePhoto(page)
 
     // A stable structural selector, not one bound to button text — the accessible name flips from
     // "Solve" to "Solving..." (not a substring match of each other) once the click lands.
@@ -254,6 +262,7 @@ test.describe('Solve — mocked API flows', () => {
       mimeType: 'image/jpeg',
       buffer: fixtureBuffer('plain.jpg'),
     })
+    await useWholePhoto(page)
     await page.getByRole('button', { name: en.solve.cta.solve }).click()
     await page.getByRole('button', { name: en.solve.cta.cancel }).click()
 
@@ -270,6 +279,7 @@ test.describe('Solve — mocked API flows', () => {
       mimeType: 'image/jpeg',
       buffer: fixtureBuffer('plain.jpg'),
     })
+    await useWholePhoto(page)
     await page.getByLabel(en.solve.note.label).fill("I don't understand step 2")
     await page.getByRole('button', { name: en.solve.cta.solve }).click()
     await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()
@@ -295,6 +305,7 @@ test.describe('Solve — mocked API flows', () => {
         mimeType: 'image/jpeg',
         buffer: fixtureBuffer('plain.jpg'),
       })
+      await useWholePhoto(page)
       await page.getByRole('button', { name: en.solve.cta.solve }).click()
       const error = page.locator('[data-purpose="solve-error"]')
       await expect(error).toBeVisible()
@@ -310,6 +321,7 @@ test.describe('Solve — mocked API flows', () => {
       mimeType: 'image/jpeg',
       buffer: fixtureBuffer('plain.jpg'),
     })
+    await useWholePhoto(page)
     const solveButton = page.getByRole('button', { name: en.solve.cta.solve })
     await solveButton.click()
     await expect(page.getByRole('button', { name: en.solve.cta.solving })).toBeDisabled()
@@ -334,6 +346,7 @@ test.describe('Solve — languages', () => {
         mimeType: 'image/jpeg',
         buffer: fixtureBuffer('plain.jpg'),
       })
+      await useWholePhoto(page, strings.crop.useWhole)
       await page.getByRole('button', { name: strings.solve.cta.solve }).click()
       await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()
     })
@@ -350,7 +363,9 @@ test('@mobile full solve flow works at 390px with no horizontal overflow', async
     mimeType: 'image/jpeg',
     buffer: fixtureBuffer('plain.jpg'),
   })
-  await expect(page.locator('[data-purpose="solve-upload-card"] img')).toBeVisible()
+  await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+  await useWholePhoto(page)
 
   await page.getByRole('button', { name: en.solve.cta.solve }).click()
   await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()

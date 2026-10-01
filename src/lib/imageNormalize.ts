@@ -4,6 +4,8 @@ import type { DetectedImageFormat } from './imageFormat'
 import { decodeHeicToJpegBlob } from './heicDecode'
 import { extractLargestEmbeddedJpeg } from './rawPreviewExtract'
 import { decodeTiffFirstPage } from './tiffDecode'
+import { FULL_CROP, toSourceRegion } from './imageCrop'
+import type { CropRotation, CropSpec } from './imageCrop'
 
 export type NormalizeFailureReason = 'too_large' | 'unsupported' | 'decode_failed' | 'too_small'
 
@@ -22,6 +24,15 @@ export interface NormalizedImage {
   byteLength: number
 }
 
+/** A photo decoded at full resolution (EXIF orientation applied), kept around so crops can be
+ * re-encoded from the original pixels instead of an already-downscaled JPEG. */
+export interface DecodedImage {
+  source: CanvasImageSource
+  width: number
+  height: number
+  release: () => void
+}
+
 interface DrawableSource {
   source: CanvasImageSource
   width: number
@@ -37,6 +48,8 @@ const DIMENSION_STEPS = [1600, 1200, 900]
 const QUALITY_STEPS = [0.85, 0.7, 0.55, 0.4]
 // Stays comfortably under the server's own cap (api/_lib/solve.ts) once base64-encoded.
 const TARGET_MAX_BYTES = 2.2 * 1024 * 1024
+// On-screen crop preview: sharp enough for high-DPI phones without holding a full-size copy.
+const PREVIEW_MAX_SIDE = 2048
 
 function scaledDimensions(width: number, height: number, maxDimension: number): { width: number; height: number } {
   const longestSide = Math.max(width, height)
@@ -135,12 +148,18 @@ async function decodeByFormat(file: File, format: DetectedImageFormat): Promise<
 }
 
 /** Flattens onto white (so transparent PNG/WebP/GIF/SVG/ICO photos don't turn black for the model),
- * resizes, and re-encodes as JPEG, backing off quality then dimension until the result is small enough. */
-function encodeNormalized(drawable: DrawableSource): NormalizedImage {
+ * crops/rotates straight from the full-resolution source, resizes, and re-encodes as JPEG, backing
+ * off quality then dimension until the result is small enough. Never allocates a full-size
+ * intermediate canvas, so huge photos stay within mobile canvas limits. */
+function encodeNormalized(decoded: DecodedImage, crop: CropSpec): NormalizedImage {
+  const region = toSourceRegion(crop, decoded.width, decoded.height)
+  const quarterTurn = crop.rotation === 90 || crop.rotation === 270
+  const outW = quarterTurn ? region.height : region.width
+  const outH = quarterTurn ? region.width : region.height
   let last: { dataUrl: string; byteLength: number } | null = null
 
   for (const maxDimension of DIMENSION_STEPS) {
-    const scaled = scaledDimensions(drawable.width, drawable.height, maxDimension)
+    const scaled = scaledDimensions(outW, outH, maxDimension)
     const canvas = document.createElement('canvas')
     canvas.width = scaled.width
     canvas.height = scaled.height
@@ -148,7 +167,13 @@ function encodeNormalized(drawable: DrawableSource): NormalizedImage {
     if (!ctx) throw new ImageNormalizeError('decode_failed')
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, scaled.width, scaled.height)
-    ctx.drawImage(drawable.source, 0, 0, scaled.width, scaled.height)
+    ctx.imageSmoothingQuality = 'high'
+    // Draw the source region unrotated around the canvas center, then rotate into place.
+    const drawW = quarterTurn ? scaled.height : scaled.width
+    const drawH = quarterTurn ? scaled.width : scaled.height
+    ctx.translate(scaled.width / 2, scaled.height / 2)
+    ctx.rotate((crop.rotation * Math.PI) / 180)
+    ctx.drawImage(decoded.source, region.x, region.y, region.width, region.height, -drawW / 2, -drawH / 2, drawW, drawH)
 
     for (const quality of QUALITY_STEPS) {
       const dataUrl = canvas.toDataURL('image/jpeg', quality)
@@ -166,11 +191,11 @@ function encodeNormalized(drawable: DrawableSource): NormalizedImage {
 }
 
 /**
- * Turns any supported photo format into a single normalized JPEG the server always knows how to
- * read: EXIF-oriented, flattened onto white, resized to a sane max dimension. Throws
- * ImageNormalizeError with a reason the caller can map to a localized message.
+ * Decodes any supported photo format at full resolution with EXIF orientation applied. The caller
+ * owns the result and must call release() once it no longer needs it. Throws ImageNormalizeError
+ * with a reason the caller can map to a localized message.
  */
-export async function normalizeImageForSolve(file: File): Promise<NormalizedImage> {
+export async function decodeImageForSolve(file: File): Promise<DecodedImage> {
   if (file.size > MAX_ORIGINAL_BYTES) throw new ImageNormalizeError('too_large')
 
   const format = await detectImageFormat(file)
@@ -183,12 +208,45 @@ export async function normalizeImageForSolve(file: File): Promise<NormalizedImag
     throw new ImageNormalizeError('decode_failed')
   }
 
-  try {
-    if (Math.min(drawable.width, drawable.height) < MIN_DIMENSION) {
-      throw new ImageNormalizeError('too_small')
-    }
-    return encodeNormalized(drawable)
-  } finally {
+  if (Math.min(drawable.width, drawable.height) < MIN_DIMENSION) {
     drawable.cleanup()
+    throw new ImageNormalizeError('too_small')
+  }
+  return { source: drawable.source, width: drawable.width, height: drawable.height, release: drawable.cleanup }
+}
+
+/** Encodes a crop (normalized to the rotated image) of an already-decoded photo into the upload JPEG. */
+export function encodeCroppedImage(decoded: DecodedImage, crop: CropSpec = FULL_CROP): NormalizedImage {
+  return encodeNormalized(decoded, crop)
+}
+
+/** Renders a downscaled, rotated copy of the decoded photo for on-screen display (crop step). */
+export function renderPreviewCanvas(decoded: DecodedImage, rotation: CropRotation, maxSide = PREVIEW_MAX_SIDE): HTMLCanvasElement {
+  const base = scaledDimensions(decoded.width, decoded.height, maxSide)
+  const quarterTurn = rotation === 90 || rotation === 270
+  const canvas = document.createElement('canvas')
+  canvas.width = quarterTurn ? base.height : base.width
+  canvas.height = quarterTurn ? base.width : base.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new ImageNormalizeError('decode_failed')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.translate(canvas.width / 2, canvas.height / 2)
+  ctx.rotate((rotation * Math.PI) / 180)
+  ctx.drawImage(decoded.source, -base.width / 2, -base.height / 2, base.width, base.height)
+  return canvas
+}
+
+/**
+ * Turns any supported photo format into a single normalized JPEG the server always knows how to
+ * read: EXIF-oriented, flattened onto white, resized to a sane max dimension. Throws
+ * ImageNormalizeError with a reason the caller can map to a localized message.
+ */
+export async function normalizeImageForSolve(file: File): Promise<NormalizedImage> {
+  const decoded = await decodeImageForSolve(file)
+  try {
+    return encodeNormalized(decoded, FULL_CROP)
+  } finally {
+    decoded.release()
   }
 }

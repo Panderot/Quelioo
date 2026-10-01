@@ -282,9 +282,11 @@
       "dragTitle": "Fotoğrafı buraya sürükleyip bırakın",
       "dragSubtitle": "ya da dosya seçmek, yapıştırmak veya fotoğraf çekmek için tıklayın",
       "browse": "Fotoğraf seç",
-      "changePhoto": "Fotoğrafı değiştir",
       "hint": "Her fotoğraf formatı, 25MB'a kadar",
-      "converting": "Fotoğrafın hazırlanıyor..."
+      "converting": "Fotoğrafın hazırlanıyor...",
+      "changeCrop": "Kırpmayı değiştir",
+      "replacePhoto": "Fotoğrafı değiştir",
+      "croppedAlt": "Sorunun kırpılmış fotoğrafı"
     },
     "note": {
       "label": "Not ekle (isteğe bağlı)",
@@ -298,7 +300,8 @@
     },
     "result": {
       "answerLabel": "Cevap",
-      "tipLabel": "İpucu"
+      "tipLabel": "İpucu",
+      "mistakeLabel": "Sık yapılan hata"
     },
     "footerNote": "Quelio cevabı kopyalaman için değil, yöntemi öğrenmen için anlatır.",
     "errors": {
@@ -322,6 +325,11 @@
       "questionLabel": "Soru",
       "stepsLabel": "Adımlar",
       "answerLabel": "Cevap"
+    },
+    "choices": {
+      "title": "Hangi soruyu çözeyim?",
+      "subtitle": "Bu fotoğrafta birden fazla soru var. Birini seçin ya da fotoğrafı tek bir soruya kırpın.",
+      "cropAction": "Fotoğrafı kırp"
     }
   },
   "song": {
@@ -359,7 +367,12 @@
     "makeTheSong": "Şarkıyı oluştur",
     "cancel": "Vazgeç",
     "loading": {
-      "messages": ["Enstrümanlar ısınıyor...", "Melodi besteleniyor...", "Parça mikslenıyor...", "Neredeyse bitti..."]
+      "messages": [
+        "Enstrümanlar ısınıyor...",
+        "Melodi besteleniyor...",
+        "Parça mikslenıyor...",
+        "Neredeyse bitti..."
+      ]
     },
     "player": {
       "play": "Oynat",
@@ -425,5 +438,16 @@
       "confirmDelete": "Bu şarkı silinsin mi?"
     },
     "deletedUndo": "Şarkı silindi."
+  },
+  "crop": {
+    "imageAlt": "Kırpılacak fotoğraf",
+    "boxLabel": "Kırpma alanı",
+    "instructions": "Kutuyu taşımak için sürükleyin; boyutlandırmak için köşelerini veya kenarlarını sürükleyin. Telefonda iki parmakla büyütüp küçültün. Klavye: ok tuşları taşır, Shift + ok tuşları boyutlandırır.",
+    "rotateLeft": "Sola döndür",
+    "rotateRight": "Sağa döndür",
+    "reset": "Sıfırla",
+    "useArea": "Bu alanı kullan",
+    "useWhole": "Fotoğrafın tamamı",
+    "preparing": "Kırpma hazırlanıyor..."
   }
 }

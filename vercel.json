@@ -17,7 +17,7 @@
       "maxDuration": 60
     },
     "api/solve.ts": {
-      "maxDuration": 60
+      "maxDuration": 90
     }
   }
 }

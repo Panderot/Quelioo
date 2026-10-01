@@ -282,9 +282,11 @@
       "dragTitle": "Drag and drop a photo here",
       "dragSubtitle": "or click to choose a file, paste, or take a photo",
       "browse": "Choose a photo",
-      "changePhoto": "Change photo",
       "hint": "Any photo format, up to 25MB",
-      "converting": "Preparing your photo..."
+      "converting": "Preparing your photo...",
+      "changeCrop": "Change crop",
+      "replacePhoto": "Replace photo",
+      "croppedAlt": "Cropped photo of the question"
     },
     "note": {
       "label": "Add a note (optional)",
@@ -298,7 +300,8 @@
     },
     "result": {
       "answerLabel": "Answer",
-      "tipLabel": "Tip"
+      "tipLabel": "Tip",
+      "mistakeLabel": "Common mistake"
     },
     "footerNote": "Quelio explains the method so you can learn it, not just copy the answer.",
     "errors": {
@@ -322,6 +325,11 @@
       "questionLabel": "Question",
       "stepsLabel": "Steps",
       "answerLabel": "Answer"
+    },
+    "choices": {
+      "title": "Which problem should I solve?",
+      "subtitle": "This photo has more than one problem. Pick one, or crop the photo to just one problem.",
+      "cropAction": "Crop the photo"
     }
   },
   "song": {
@@ -359,7 +367,12 @@
     "makeTheSong": "Make the song",
     "cancel": "Cancel",
     "loading": {
-      "messages": ["Warming up the instruments...", "Composing the melody...", "Mixing the track...", "Almost there..."]
+      "messages": [
+        "Warming up the instruments...",
+        "Composing the melody...",
+        "Mixing the track...",
+        "Almost there..."
+      ]
     },
     "player": {
       "play": "Play",
@@ -425,5 +438,16 @@
       "confirmDelete": "Delete this song?"
     },
     "deletedUndo": "Song deleted."
+  },
+  "crop": {
+    "imageAlt": "Photo to crop",
+    "boxLabel": "Crop area",
+    "instructions": "Drag the box to move it; drag its corners or edges to resize. On a phone, pinch to resize. Keyboard: arrow keys move, Shift + arrow keys resize.",
+    "rotateLeft": "Rotate left",
+    "rotateRight": "Rotate right",
+    "reset": "Reset",
+    "useArea": "Use this area",
+    "useWhole": "Use whole photo",
+    "preparing": "Preparing the crop..."
   }
 }

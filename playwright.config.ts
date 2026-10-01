@@ -33,5 +33,16 @@ export default defineConfig({
       grep: /@mobile/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
     },
+    // Cross-engine coverage for the Solve crop/choice/result specs.
+    {
+      name: 'firefox',
+      testMatch: /solve-crop\.spec\.ts/,
+      use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 } },
+    },
+    {
+      name: 'webkit',
+      testMatch: /solve-crop\.spec\.ts/,
+      use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } },
+    },
   ],
 })

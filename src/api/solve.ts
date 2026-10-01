@@ -13,16 +13,24 @@ export type SolveErrorCode =
 export interface SolveResult {
   topic: string
   question: string
+  /** Short goal sentence shown above the steps; "" when none (older responses omit it). */
+  intro: string
   steps: string[]
   answer: string
   tip: string
+  /** 0–2 common mistakes; [] when none (older responses omit it). */
+  mistakes: string[]
 }
+
+export type SolveOutcome = { kind: 'solution'; result: SolveResult } | { kind: 'choices'; problems: string[] }
 
 export interface SolveRequestPayload {
   imageBase64: string
   mimeType: string
   language: string
   note: string
+  /** The chosen problem from an earlier multiple-problem reply, echoed back verbatim. */
+  problem?: string
 }
 
 export class SolveApiError extends Error {
@@ -50,20 +58,40 @@ function isSolveErrorCode(value: unknown): value is SolveErrorCode {
   return typeof value === 'string' && ERROR_CODES.has(value)
 }
 
-function isSolveResult(value: unknown): value is SolveResult {
-  if (typeof value !== 'object' || value === null) return false
-  const record = value as Record<string, unknown>
-  return (
-    typeof record.topic === 'string' &&
-    typeof record.question === 'string' &&
-    Array.isArray(record.steps) &&
-    record.steps.every((step) => typeof step === 'string') &&
-    typeof record.answer === 'string' &&
-    typeof record.tip === 'string'
-  )
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
 }
 
-export async function solveMathPhoto(payload: SolveRequestPayload, signal?: AbortSignal): Promise<SolveResult> {
+function toSolveOutcome(value: unknown): SolveOutcome | null {
+  if (typeof value !== 'object' || value === null) return null
+  const record = value as Record<string, unknown>
+  if (isStringArray(record.problems) && record.problems.length > 0 && !('steps' in record)) {
+    return { kind: 'choices', problems: record.problems }
+  }
+  if (
+    typeof record.topic !== 'string' ||
+    typeof record.question !== 'string' ||
+    !isStringArray(record.steps) ||
+    typeof record.answer !== 'string' ||
+    typeof record.tip !== 'string'
+  ) {
+    return null
+  }
+  return {
+    kind: 'solution',
+    result: {
+      topic: record.topic,
+      question: record.question,
+      intro: typeof record.intro === 'string' ? record.intro : '',
+      steps: record.steps,
+      answer: record.answer,
+      tip: record.tip,
+      mistakes: isStringArray(record.mistakes) ? record.mistakes.filter((entry) => entry.trim()).slice(0, 2) : [],
+    },
+  }
+}
+
+export async function solveMathPhoto(payload: SolveRequestPayload, signal?: AbortSignal): Promise<SolveOutcome> {
   let response: Response
   try {
     response = await fetch('/api/solve', {
@@ -89,9 +117,10 @@ export async function solveMathPhoto(payload: SolveRequestPayload, signal?: Abor
     throw new SolveApiError(isSolveErrorCode(code) ? code : 'upstream')
   }
 
-  if (!isSolveResult(body)) {
+  const outcome = toSolveOutcome(body)
+  if (!outcome) {
     throw new SolveApiError('parse')
   }
 
-  return body
+  return outcome
 }
