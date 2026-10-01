@@ -30,6 +30,8 @@ dist-ssr
 # Playwright
 test-results/
 playwright-report/
+blob-report/
+coverage/
 
 # Local-only Phase 3 'song test' output (real Gemini audio, never committed)
 test-songs/
