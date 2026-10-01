@@ -172,7 +172,7 @@ test.describe('Archive Solutions tab', () => {
     await mockSolve(MOCK_RESULT)
     await page.goto('/solve?lng=en')
     await solveOnce(page)
-    const solvedHtml = await page.locator('[data-purpose="solve-result"] section').innerHTML()
+    const solvedText = await page.locator('[data-purpose="solve-result"] section').innerText()
     await expect.poll(() => storedIds(page).then((ids) => ids.length)).toBe(1)
 
     await page.goto('/archive?tab=solutions&lng=en')
@@ -193,7 +193,7 @@ test.describe('Archive Solutions tab', () => {
     await expect(page.locator('[data-purpose="solution-thumbnail"]')).toBeVisible()
     await expect(page.locator('[data-purpose="solve-intro"]')).toContainText('The goal is to isolate')
     await expect(page.locator('[data-purpose="solve-mistakes"]')).toBeVisible()
-    expect(await page.locator('[data-purpose="solve-result"] section').innerHTML()).toBe(solvedHtml)
+    expect(await page.locator('[data-purpose="solve-result"] section').innerText()).toBe(solvedText)
 
     await page.reload()
     await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()

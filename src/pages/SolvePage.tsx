@@ -40,6 +40,9 @@ export default function SolvePage() {
   const [isConverting, setIsConverting] = useState(false)
   const [isSolving, setIsSolving] = useState(false)
   const [result, setResult] = useState<SolveResult | null>(null)
+  // Each new result gets a fresh view (reveal/explain state) and, once saved, its Solutions record id.
+  const [resultVersion, setResultVersion] = useState(0)
+  const [savedSolution, setSavedSolution] = useState<{ version: number; id: string } | null>(null)
   const [choices, setChoices] = useState<string[] | null>(null)
   const [errorCode, setErrorCode] = useState<DisplayErrorCode | null>(null)
   const [saveUnavailable, setSaveUnavailable] = useState(false)
@@ -151,9 +154,10 @@ export default function SolvePage() {
     abortRef.current?.abort()
   }
 
-  const persistSolution = async (solved: SolveResult, imageDataUrl: string) => {
+  const persistSolution = async (solved: SolveResult, imageDataUrl: string, version: number) => {
     try {
-      await saveSolution({ result: solved, imageDataUrl, language: i18n.language })
+      const record = await saveSolution({ result: solved, imageDataUrl, language: i18n.language })
+      setSavedSolution({ version, id: record.id })
     } catch {
       // Solve keeps working without storage; tell the student once that it won't be saved.
       if (!saveNoteShown) {
@@ -187,8 +191,10 @@ export default function SolvePage() {
         setChoices(outcome.problems)
       } else {
         setChoices(null)
+        const version = resultVersion + 1
+        setResultVersion(version)
         setResult(outcome.result)
-        void persistSolution(outcome.result, normalized.dataUrl)
+        void persistSolution(outcome.result, normalized.dataUrl, version)
       }
     } catch (error) {
       if (!controller.signal.aborted) {
@@ -410,7 +416,12 @@ export default function SolvePage() {
       )}
 
       {result && (
-        <SolutionView result={result} className="-mt-4">
+        <SolutionView
+          key={resultVersion}
+          result={result}
+          solutionId={savedSolution?.version === resultVersion ? savedSolution.id : null}
+          className="-mt-4"
+        >
           {saveUnavailable && (
             <p data-purpose="solve-save-note" role="status" className="text-xs text-muted">
               {t('solve.saveUnavailable')}

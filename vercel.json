@@ -16,6 +16,9 @@
     "api/song.ts": {
       "maxDuration": 60
     },
+    "api/explain-step.ts": {
+      "maxDuration": 45
+    },
     "api/solve.ts": {
       "maxDuration": 90
     }

@@ -355,7 +355,31 @@
       "subtitle": "This photo has more than one problem. Pick one, or crop the photo to just one problem.",
       "cropAction": "Crop the photo"
     },
-    "saveUnavailable": "This solution couldn't be saved to your Archive on this device, but you can still read it here."
+    "saveUnavailable": "This solution couldn't be saved to your Archive on this device, but you can still read it here.",
+    "reveal": {
+      "toggle": "Let me try first",
+      "next": "Next step",
+      "showAll": "Show all",
+      "progress": "Step {{shown}} of {{total}} shown — try the next one yourself first."
+    },
+    "explain": {
+      "button": "Explain this step",
+      "simpler": "Even simpler",
+      "simplerLabel": "Even simpler",
+      "exampleLabel": "Example",
+      "loading": "Explaining this step...",
+      "retry": "Try again",
+      "errors": {
+        "bad_type": "This step couldn't be explained. Please try again.",
+        "too_large": "This solution is too long to explain step by step.",
+        "upstream": "Something went wrong reaching Quelio. Please try again.",
+        "parse": "Quelio couldn't write a clear explanation this time. Please try again.",
+        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "not_configured": "Explanations are temporarily unavailable. Please try again shortly.",
+        "rate_limited": "You've reached the hourly limit for explanations. Please try again later.",
+        "network": "Couldn't connect. Check your connection and try again."
+      }
+    }
   },
   "song": {
     "button": "Turn into a song",

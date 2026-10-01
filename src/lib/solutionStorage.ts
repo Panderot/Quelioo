@@ -247,3 +247,38 @@ export async function deleteSolution(id: string): Promise<void> {
     // Best-effort — if IndexedDB is unavailable there's nothing stored to delete anyway.
   }
 }
+
+/** Merges one feature's data into a saved solution's `extras[key]` (read-modify-write in a single
+ * transaction). Throws SolutionStorageError when storage is unavailable; a missing record is a no-op. */
+export async function updateSolutionExtras(id: string, key: string, value: unknown): Promise<void> {
+  const db = await openDb()
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let tx: IDBTransaction
+      try {
+        tx = db.transaction(STORE, 'readwrite')
+      } catch (error) {
+        reject(new SolutionStorageError(error instanceof Error ? error.message : 'transaction failed'))
+        return
+      }
+      const store = tx.objectStore(STORE)
+      const request = store.get(id)
+      request.onsuccess = () => {
+        const raw: unknown = request.result
+        if (!isRecord(raw)) return
+        const extras = isRecord(raw.extras) ? raw.extras : {}
+        try {
+          store.put({ ...raw, extras: { ...extras, [key]: value } })
+        } catch (error) {
+          tx.abort()
+          reject(new SolutionStorageError(error instanceof Error ? error.message : 'update failed'))
+        }
+      }
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(new SolutionStorageError(tx.error?.message ?? 'update failed'))
+      tx.onabort = () => reject(new SolutionStorageError(tx.error?.message ?? 'update aborted'))
+    })
+  } finally {
+    db.close()
+  }
+}

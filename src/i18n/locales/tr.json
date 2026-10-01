@@ -355,7 +355,31 @@
       "subtitle": "Bu fotoğrafta birden fazla soru var. Birini seçin ya da fotoğrafı tek bir soruya kırpın.",
       "cropAction": "Fotoğrafı kırp"
     },
-    "saveUnavailable": "Bu çözüm bu cihazda Arşivine kaydedilemedi, ama burada okumaya devam edebilirsin."
+    "saveUnavailable": "Bu çözüm bu cihazda Arşivine kaydedilemedi, ama burada okumaya devam edebilirsin.",
+    "reveal": {
+      "toggle": "Önce kendim deneyeyim",
+      "next": "Sonraki adım",
+      "showAll": "Hepsini göster",
+      "progress": "{{total}} adımdan {{shown}} tanesi gösterildi — sıradakini önce kendin dene."
+    },
+    "explain": {
+      "button": "Bu adımı anlamadım",
+      "simpler": "Daha da basit",
+      "simplerLabel": "Daha da basit",
+      "exampleLabel": "Örnek",
+      "loading": "Bu adım açıklanıyor...",
+      "retry": "Tekrar dene",
+      "errors": {
+        "bad_type": "Bu adım açıklanamadı. Lütfen tekrar dene.",
+        "too_large": "Bu çözüm adım adım açıklamak için çok uzun.",
+        "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
+        "parse": "Quelio bu sefer net bir açıklama yazamadı. Lütfen tekrar dene.",
+        "model": "Quelio’nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
+        "not_configured": "Açıklamalar geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar dene.",
+        "rate_limited": "Açıklamalar için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
+        "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene."
+      }
+    }
   },
   "song": {
     "button": "Şarkıya çevir",
