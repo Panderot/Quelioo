@@ -41,7 +41,7 @@ export function HintBox({ hints, revealedCount }: { hints: string[]; revealedCou
   if (revealedCount === 0) return null
   return (
     <div aria-live="polite" data-print-hide className="rounded-xl border border-amber/30 bg-amber/10 p-3">
-      <ol className="list-decimal space-y-1 pl-4 text-xs font-medium text-amber-hover">
+      <ol className="list-decimal space-y-1 pl-4 text-xs font-medium text-amber-text">
         {hints.slice(0, revealedCount).map((hint, index) => (
           <li key={index}>
             <MathText text={hint} />

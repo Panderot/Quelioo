@@ -15,7 +15,7 @@ export interface CheckResultState {
 
 const STATUS_TEXT_CLASS: Record<CheckStatus, string> = {
   correct: 'text-success',
-  partial: 'text-amber-hover',
+  partial: 'text-amber-text',
   incorrect: 'text-error',
 }
 

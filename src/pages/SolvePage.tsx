@@ -191,7 +191,7 @@ export default function SolvePage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="text-xs font-semibold text-amber-hover hover:underline"
+              className="text-xs font-semibold text-amber-text hover:underline"
             >
               {t('solve.upload.changePhoto')}
             </button>
@@ -234,7 +234,7 @@ export default function SolvePage() {
           {result.demo && <DemoBanner message={t('solve.demoNotice')} />}
 
           <section className="space-y-4 rounded-[14px] border border-warm-border bg-card p-5 md:p-6">
-            <p className="text-xs font-bold tracking-wide text-amber-hover uppercase">{result.topic}</p>
+            <p className="text-xs font-bold tracking-wide text-amber-text uppercase">{result.topic}</p>
             <p className="text-sm font-semibold text-ink">
               <MathText text={result.question} />
             </p>
@@ -253,7 +253,7 @@ export default function SolvePage() {
             </ol>
 
             <div className="inline-flex flex-wrap items-center gap-2 rounded-xl bg-amber/15 px-4 py-2.5 text-sm font-bold text-navy">
-              <span className="text-xs font-semibold tracking-wide text-amber-hover uppercase">
+              <span className="text-xs font-semibold tracking-wide text-amber-text uppercase">
                 {t('solve.result.answerLabel')}
               </span>
               <MathText text={result.answer} />

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import { getKeyPoints } from '../lib/quiz'
 import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { getOutputLanguage } from '../data/outputLanguages'
@@ -13,7 +14,7 @@ import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
 import SongButton from './SongButton'
-import { CheckIcon, PencilIcon } from './icons'
+import { BookIcon, CheckIcon, CloseIcon, PencilIcon } from './icons'
 
 export interface QuizResultMeta {
   questionCount: number
@@ -48,16 +49,37 @@ interface QuizResultViewProps {
   onSongSaved?: () => void
 }
 
-/** Ruled writing lines for the print/PDF layout — a blank line for fill-blanks, a couple for
- * short-answer, more for open-ended, so the printed page is actually usable on paper. */
-function PrintWritingLines({ count }: { count: number }) {
+/** Ruled writing lines for the print/PDF layout — one line for fill-blanks, two for
+ * short-answer, about six for open-ended, so the printed page is actually usable on paper. */
+function PrintWritingLines({ count, width = '100%' }: { count: number; width?: string }) {
   return (
-    <div style={{ marginTop: '0.4rem' }}>
+    <div style={{ marginTop: '0.35rem' }}>
       {Array.from({ length: count }, (_, index) => (
-        <div key={index} style={{ borderBottom: '1px solid #000', height: '1.4rem' }} />
+        <div key={index} style={{ borderBottom: '1px solid #000', height: '1.3rem', width }} />
       ))}
     </div>
   )
+}
+
+/** A short inline underline for a true/false style empty checkbox mark. */
+function PrintCheckbox() {
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        width: '0.75rem',
+        height: '0.75rem',
+        border: '1px solid #000',
+        marginRight: '0.4rem',
+        verticalAlign: 'middle',
+      }}
+    />
+  )
+}
+
+/** True when every MCQ option is short enough that a two-column layout still reads cleanly on paper. */
+function fitsTwoColumns(options: string[]): boolean {
+  return options.length >= 4 && options.every((option) => option.length <= 40)
 }
 
 /** Joins an answer-key prefix with its explanation, omitting the "— explanation" suffix entirely
@@ -134,6 +156,8 @@ export default function QuizResultView({
   const [practiceResults, setPracticeResults] = useState<Record<string, boolean>>({})
   const [hintsUsed, setHintsUsed] = useState(0)
   const [resetSignal, setResetSignal] = useState(0)
+  const [printMenuOpen, setPrintMenuOpen] = useState(false)
+  const [printVariant, setPrintVariant] = useState<'questions' | 'with-answers'>('questions')
 
   const timeEstimateLabel = useMemo(() => {
     const totalSeconds = computeQuizTotalSeconds(quiz.questions, (meta.difficulty as EstimateDifficulty) ?? 'medium')
@@ -149,6 +173,12 @@ export default function QuizResultView({
         ? t('inputCard.outputLanguage.auto')
         : (getOutputLanguage(meta.outputLanguage)?.nativeName ?? meta.outputLanguage)
     return [t('params.questionCount.value', { count: meta.questionCount }), typeLabel, difficultyLabel, languageLabel, timeEstimateLabel].join(' • ')
+  }, [meta, t, timeEstimateLabel])
+
+  const printMetaLine = useMemo(() => {
+    const typeLabel = t(QUESTION_TYPE_LABEL_KEYS[meta.questionType] ?? meta.questionType)
+    const difficultyLabel = t(`params.difficulty.${meta.difficulty}`)
+    return [t('params.questionCount.value', { count: meta.questionCount }), typeLabel, difficultyLabel, timeEstimateLabel].join(' • ')
   }, [meta, t, timeEstimateLabel])
 
   const songKeyFacts = useMemo(() => buildSongKeyFacts(quiz), [quiz])
@@ -182,6 +212,24 @@ export default function QuizResultView({
     setPracticeResults({})
     setHintsUsed(0)
     setResetSignal((value) => value + 1)
+  }
+
+  const handleOpenPrintMenu = () => {
+    setPrintVariant('questions')
+    setPrintMenuOpen(true)
+  }
+
+  const handleConfirmPrint = () => {
+    setPrintMenuOpen(false)
+    const previousTitle = document.title
+    document.title = quiz.title
+    const restoreTitle = () => {
+      document.title = previousTitle
+      window.removeEventListener('afterprint', restoreTitle)
+    }
+    window.addEventListener('afterprint', restoreTitle)
+    // Let the dialog-close/variant render commit before the (synchronous) print call.
+    window.setTimeout(() => window.print(), 50)
   }
 
   const correctCount = Object.values(practiceResults).filter(Boolean).length
@@ -241,7 +289,7 @@ export default function QuizResultView({
           </div>
 
           {archiveLink && (
-            <Link to={archiveLink.href} className="shrink-0 text-xs font-semibold text-amber-hover hover:underline" data-print-hide>
+            <Link to={archiveLink.href} className="shrink-0 text-xs font-semibold text-amber-text hover:underline" data-print-hide>
               {archiveLink.label}
             </Link>
           )}
@@ -251,22 +299,13 @@ export default function QuizResultView({
           {onToggleStudyMode && (
             <button
               type="button"
-              role="switch"
-              aria-checked={studyMode}
-              aria-label={t('archive.studyMode')}
               onClick={onToggleStudyMode}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                studyMode ? 'bg-amber' : 'bg-warm-border'
-              }`}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-amber"
             >
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full border border-warm-border bg-card transition-transform ${
-                  studyMode ? 'translate-x-5 border-white' : 'translate-x-0.5'
-                }`}
-              />
+              <BookIcon className="h-3.5 w-3.5" />
+              {studyMode ? t('archive.backToEdit') : t('archive.study')}
             </button>
           )}
-          {onToggleStudyMode && <span className="text-xs font-semibold text-ink">{t('archive.studyMode')}</span>}
 
           {!studyMode && (
             <>
@@ -306,7 +345,7 @@ export default function QuizResultView({
               </button>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={handleOpenPrintMenu}
                 className="rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-focus-neutral"
               >
                 {t('create.result.print')}
@@ -324,6 +363,83 @@ export default function QuizResultView({
           />
         </div>
       </div>
+
+      {printMenuOpen && (
+        <div data-print-hide>
+          <button
+            type="button"
+            aria-label={t('song.close')}
+            onClick={() => setPrintMenuOpen(false)}
+            className="fixed inset-0 z-40 bg-ink/40"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="print-dialog-title"
+            className="fixed inset-x-4 top-1/2 z-50 mx-auto max-w-sm -translate-y-1/2 rounded-2xl border border-warm-border bg-card p-5 shadow-lg sm:inset-x-0"
+          >
+            <div className="flex items-center justify-between">
+              <h2 id="print-dialog-title" className="font-serif text-base font-semibold text-navy">
+                {t('create.result.printChooseTitle')}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPrintMenuOpen(false)}
+                aria-label={t('song.close')}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-warm-border/50 hover:text-ink"
+              >
+                <CloseIcon className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            <div role="radiogroup" aria-label={t('create.result.printChooseTitle')} className="mt-3 flex flex-col gap-2">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={printVariant === 'questions'}
+                onClick={() => setPrintVariant('questions')}
+                className={`rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                  printVariant === 'questions'
+                    ? 'border-amber bg-amber/15 text-amber-text'
+                    : 'border-warm-border text-ink hover:border-focus-neutral'
+                }`}
+              >
+                {t('create.result.printQuestionSheet')}
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={printVariant === 'with-answers'}
+                onClick={() => setPrintVariant('with-answers')}
+                className={`rounded-xl border px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                  printVariant === 'with-answers'
+                    ? 'border-amber bg-amber/15 text-amber-text'
+                    : 'border-warm-border text-ink hover:border-focus-neutral'
+                }`}
+              >
+                {t('create.result.printWithAnswers')}
+              </button>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPrintMenuOpen(false)}
+                className="rounded-lg border border-warm-border px-3 py-1.5 text-xs font-bold text-ink"
+              >
+                {t('create.question.cancelAction')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmPrint}
+                className="rounded-lg bg-amber px-3 py-1.5 text-xs font-bold text-navy hover:bg-amber-hover"
+              >
+                {t('create.result.printConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {studyMode ? (
         <>
@@ -412,57 +528,100 @@ export default function QuizResultView({
       )}
 
       {!studyMode && (
-        <div className="hidden" data-print-only>
-          <h1>{quiz.title}</h1>
-          <ol>
+        <div className="hidden" data-print-only data-print-variant={printVariant}>
+          <div className="print-header">
+            <div className="print-header-row">
+              <h1>{quiz.title}</h1>
+              <span className="print-wordmark">{t('app.name')}</span>
+            </div>
+            <p className="print-meta">{printMetaLine}</p>
+            <div className="print-rule" />
+            {printVariant === 'questions' && (
+              <div className="print-fields">
+                <span className="print-field-line">{t('create.result.printNameLabel')}</span>
+                <span className="print-field-line">{t('create.result.printClassLabel')}</span>
+                <span className="print-field-line">{t('create.result.printDateLabel')}</span>
+              </div>
+            )}
+          </div>
+
+          <ol className="print-questions">
             {quiz.questions.map((question) => (
-              <li key={question.id}>
-                <p>{question.question}</p>
+              <li key={question.id} className="print-question">
+                <p className="print-q-text">{question.question}</p>
+
                 {question.type === 'mcq' && (
-                  <ul>
+                  <ul className={`print-options${fitsTwoColumns(question.options) ? ' print-options-2col' : ''}`}>
                     {question.options.map((option, optionIndex) => (
                       <li key={optionIndex}>
-                        {String.fromCharCode(65 + optionIndex)}) {option}
+                        {letterFor(optionIndex)}) {option}
                       </li>
                     ))}
                   </ul>
                 )}
+
+                {question.type === 'true-false' && (
+                  <div className="print-truefalse">
+                    <span>
+                      <PrintCheckbox />
+                      {t('create.result.trueLabel')}
+                    </span>
+                    <span>
+                      <PrintCheckbox />
+                      {t('create.result.falseLabel')}
+                    </span>
+                  </div>
+                )}
+
+                {question.type === 'fill-blanks' && <PrintWritingLines count={1} width="45%" />}
+                {question.type === 'short-answer' && <PrintWritingLines count={2} />}
+                {question.type === 'open-ended' && <PrintWritingLines count={6} />}
+
                 {question.type === 'matching' && (
-                  <div style={{ display: 'flex', gap: '2rem' }}>
+                  <div className="print-matching">
                     <ol>
                       {question.pairs.map((pair, pairIndex) => (
-                        <li key={pairIndex}>{pair.left}</li>
+                        <li key={pairIndex}>
+                          <span className="print-matching-row">
+                            <span>{pair.left}</span>
+                            <span className="print-matching-line" />
+                          </span>
+                        </li>
                       ))}
                     </ol>
-                    <ol style={{ listStyleType: 'upper-alpha' }}>
+                    <ol className="print-matching-right">
                       {getRightOrder(question).map((pairIndex, position) => (
                         <li key={position}>{question.pairs[pairIndex].right}</li>
                       ))}
                     </ol>
                   </div>
                 )}
-                {question.type === 'fill-blanks' && <PrintWritingLines count={1} />}
-                {question.type === 'short-answer' && <PrintWritingLines count={2} />}
-                {question.type === 'open-ended' && <PrintWritingLines count={4} />}
               </li>
             ))}
           </ol>
-          <div data-print-answer-key>
-            <h2>{t('create.result.answerKeyTitle')}</h2>
-            <ol>
-              {quiz.questions.map((question) => (
-                <li key={question.id}>
-                  {question.type === 'mcq' && withExplanation(String.fromCharCode(65 + question.answerIndex), question.explanation)}
-                  {question.type === 'true-false' &&
-                    withExplanation(question.answerBool ? t('create.result.trueLabel') : t('create.result.falseLabel'), question.explanation)}
-                  {question.type === 'matching' &&
-                    `${buildAnswerKeyLine(getRightOrder(question))} — ${question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')}`}
-                  {(question.type === 'fill-blanks' || question.type === 'short-answer' || question.type === 'open-ended') &&
-                    withExplanation(question.answer, question.explanation)}
-                </li>
-              ))}
-            </ol>
-          </div>
+
+          {printVariant === 'with-answers' && (
+            <div data-print-answer-key>
+              <h2>{t('create.result.answerKeyTitle')}</h2>
+              <ol>
+                {quiz.questions.map((question) => (
+                  <li key={question.id}>
+                    {question.type === 'mcq' && withExplanation(letterFor(question.answerIndex), question.explanation)}
+                    {question.type === 'true-false' &&
+                      withExplanation(question.answerBool ? t('create.result.trueLabel') : t('create.result.falseLabel'), question.explanation)}
+                    {question.type === 'matching' &&
+                      withExplanation(
+                        `${buildAnswerKeyLine(getRightOrder(question))} — ${question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')}`,
+                        question.explanation,
+                      )}
+                    {(question.type === 'fill-blanks' || question.type === 'short-answer') &&
+                      withExplanation(question.answer, question.explanation)}
+                    {question.type === 'open-ended' && withExplanation(getKeyPoints(question).join('; '), question.explanation)}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
         </div>
       )}
     </section>

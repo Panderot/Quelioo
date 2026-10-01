@@ -27,8 +27,11 @@
     "cta": "Երթալ դէպի Ստեղծել"
   },
   "inputCard": {
-    "wordLimit": "Կ՚ապահովէ քուիզի մը համար 30-էն 5,000 բառ։",
-    "wordCount": "Բառերու թիւ. {{count}}",
+    "wordLimit": "Իւրաքանչիւր քուիզի համար 30-էն 5,000 բառ գործածէ։",
+    "wordCount": {
+      "label": "Բառերու թիւ.",
+      "max": "/ 5,000"
+    },
     "outputLanguageLabel": "Ելքի լեզու.",
     "outputLanguage": {
       "auto": "Ինքնաշխատ",
@@ -153,7 +156,8 @@
     "title": "Արխիւ",
     "subtitle": "Ստեղծած ամէն քուիզդ հոս կը պահուի։",
     "untitled": "Անանուն քուիզ",
-    "studyMode": "Ուսումնառութեան կերպ",
+    "study": "Սերտել",
+    "backToEdit": "Վերադառնալ խմբագրման",
     "empty": {
       "title": "Դեռ քուիզ չկայ",
       "subtitle": "Ստեղծել բաժնին մէջ պատրաստած քուիզերդ հոս պիտի երեւին։",
@@ -200,6 +204,13 @@
       "copied": "Պատճենուեցաւ!",
       "copyFailed": "Չկրցանք պատճենել — ընտրէ գրութիւնը ձեռքով։",
       "print": "Տպել / PDF",
+      "printChooseTitle": "Ի՞նչ կուզէք տպել։",
+      "printQuestionSheet": "Հարցումներու թերթիկ",
+      "printWithAnswers": "Պատասխաններու բանալիով",
+      "printConfirm": "Տպել",
+      "printNameLabel": "Անուն",
+      "printClassLabel": "Դասարան",
+      "printDateLabel": "Թուական",
       "answerKeyTitle": "Պատասխաններու բանալի",
       "trueLabel": "Ճիշդ",
       "falseLabel": "Սխալ",

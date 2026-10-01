@@ -20,22 +20,22 @@ test('word counting across scripts and word-limit validation', async ({ page, mo
 
   await test.step('Turkish sample counts 3 words', async () => {
     await fillText(page, 'Merhaba dünya, nasılsın?')
-    await expect(page.getByText('Word Count: 3')).toBeVisible()
+    await expect(page.getByText('Word count: 3 / 5,000')).toBeVisible()
   })
 
   await test.step('Western Armenian sample counts 4 words', async () => {
     await fillText(page, 'Ես կուզեմ գնալ տուն')
-    await expect(page.getByText('Word Count: 4')).toBeVisible()
+    await expect(page.getByText('Word count: 4 / 5,000')).toBeVisible()
   })
 
   await test.step('Arabic sample counts 2 words', async () => {
     await fillText(page, 'مرحبا بالعالم')
-    await expect(page.getByText('Word Count: 2')).toBeVisible()
+    await expect(page.getByText('Word count: 2 / 5,000')).toBeVisible()
   })
 
   await test.step('Chinese sample counts words via dictionary segmentation', async () => {
     await fillText(page, '你好世界')
-    await expect(page.getByText('Word Count: 2')).toBeVisible()
+    await expect(page.getByText('Word count: 2 / 5,000')).toBeVisible()
   })
 
   await test.step('under 30 words shows too_short and sends no request', async () => {

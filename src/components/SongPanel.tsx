@@ -297,7 +297,7 @@ export default function SongPanel({
 
   const factCheckWarning = !factCheckPassed && (
     <div role="status" className="space-y-1.5 rounded-xl border border-amber/30 bg-amber/10 p-3">
-      <p className="text-xs font-bold text-amber-hover">{t('song.factCheck.warningTitle')}</p>
+      <p className="text-xs font-bold text-amber-text">{t('song.factCheck.warningTitle')}</p>
       {flaggedLines.length > 0 ? (
         <ul className="list-disc space-y-1 pl-4 text-xs text-ink">
           {flaggedLines.map((lineIndex) => (
@@ -351,7 +351,7 @@ export default function SongPanel({
                       onClick={() => setStyle(option)}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         style === option
-                          ? 'border-amber bg-amber/15 text-amber-hover'
+                          ? 'border-amber bg-amber/15 text-amber-text'
                           : 'border-warm-border bg-card text-ink hover:border-focus-neutral'
                       }`}
                     >
@@ -373,7 +373,7 @@ export default function SongPanel({
                       onClick={() => setTone(option)}
                       className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                         tone === option
-                          ? 'border-amber bg-amber/15 text-amber-hover'
+                          ? 'border-amber bg-amber/15 text-amber-text'
                           : 'border-warm-border bg-card text-ink hover:border-focus-neutral'
                       }`}
                     >
@@ -510,7 +510,7 @@ export default function SongPanel({
               </button>
 
               {showSeeAllSongsLink && (
-                <Link to="/songs" className="block text-center text-xs font-semibold text-amber-hover hover:underline">
+                <Link to="/songs" className="block text-center text-xs font-semibold text-amber-text hover:underline">
                   {t('song.seeAllSongs')}
                 </Link>
               )}

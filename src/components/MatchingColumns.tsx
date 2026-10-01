@@ -109,7 +109,7 @@ export default function MatchingColumns({ pairs, rightOrder, showAnswers, hints 
               <span className="min-w-0 flex-1">
                 <MathText text={pairs[pairIndex].right} />
               </span>
-              {showAnswers && <span className="shrink-0 text-xs font-bold text-amber-hover">&rarr; {pairIndex + 1}</span>}
+              {showAnswers && <span className="shrink-0 text-xs font-bold text-amber-text">&rarr; {pairIndex + 1}</span>}
             </li>
           ))}
         </ol>
@@ -171,7 +171,7 @@ export default function MatchingColumns({ pairs, rightOrder, showAnswers, hints 
 
       {showAnswers && (
         <div className="space-y-1.5 pt-1">
-          <p className="text-xs font-bold tracking-wide text-amber-hover">{buildAnswerKeyLine(rightOrder)}</p>
+          <p className="text-xs font-bold tracking-wide text-amber-text">{buildAnswerKeyLine(rightOrder)}</p>
           <ul className="space-y-1 text-sm break-words text-ink">
             {pairs.map((pair, index) => (
               <li key={index} className="flex items-start gap-2">

@@ -11,7 +11,6 @@ const SEEDED_ENTRY = {
   difficulty: 'medium',
   questionCount: '6',
   optionsCount: null,
-  studyMode: false,
   outputLanguage: 'auto',
   sourceText: 'Seeded source text for the archived quiz.',
   quiz: { title: SAMPLE_QUIZ.title, questions: SAMPLE_QUIZ.questions },
@@ -136,7 +135,7 @@ test('study mode: matching uses the check field directly (no Reveal answer) and 
   await page.goto(`/archive/${SEEDED_ENTRY.id}?lng=en`)
   await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
 
-  await page.getByRole('switch', { name: 'Study Mode' }).click()
+  await page.getByRole('button', { name: 'Study' }).click()
   const card = page.locator('[data-purpose="practice-question-card"]', { hasText: 'Match each planet' })
   await expect(card.getByRole('button', { name: 'Reveal answer' })).toHaveCount(0)
 

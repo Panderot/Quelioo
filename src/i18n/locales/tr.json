@@ -27,8 +27,11 @@
     "cta": "Oluştur'a git"
   },
   "inputCard": {
-    "wordLimit": "Quiz başına 30 ile 5.000 kelime arası destekler.",
-    "wordCount": "Kelime Sayısı: {{count}}",
+    "wordLimit": "Her quiz için 30 ile 5.000 kelime arası metin kullanabilirsin.",
+    "wordCount": {
+      "label": "Kelime sayısı:",
+      "max": "/ 5.000"
+    },
     "outputLanguageLabel": "Çıktı Dili:",
     "outputLanguage": {
       "auto": "Otomatik",
@@ -153,7 +156,8 @@
     "title": "Arşiv",
     "subtitle": "Oluşturduğun her quiz burada saklanır.",
     "untitled": "Adsız quiz",
-    "studyMode": "Çalışma Modu",
+    "study": "Çalış",
+    "backToEdit": "Düzenlemeye dön",
     "empty": {
       "title": "Henüz quiz yok",
       "subtitle": "Oluştur bölümünde hazırladığın quizler burada görünecek.",
@@ -200,6 +204,13 @@
       "copied": "Kopyalandı!",
       "copyFailed": "Kopyalanamadı — metni elle seçebilirsin.",
       "print": "Yazdır / PDF",
+      "printChooseTitle": "Ne yazdırmak istersiniz?",
+      "printQuestionSheet": "Soru kağıdı",
+      "printWithAnswers": "Cevap anahtarıyla",
+      "printConfirm": "Yazdır",
+      "printNameLabel": "Ad Soyad",
+      "printClassLabel": "Sınıf",
+      "printDateLabel": "Tarih",
       "answerKeyTitle": "Cevap Anahtarı",
       "trueLabel": "Doğru",
       "falseLabel": "Yanlış",

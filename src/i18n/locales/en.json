@@ -27,8 +27,11 @@
     "cta": "Go to Create"
   },
   "inputCard": {
-    "wordLimit": "Supports between 30 and 5,000 words per quiz.",
-    "wordCount": "Word Count: {{count}}",
+    "wordLimit": "Use 30 to 5,000 words per quiz.",
+    "wordCount": {
+      "label": "Word count:",
+      "max": "/ 5,000"
+    },
     "outputLanguageLabel": "Output Language:",
     "outputLanguage": {
       "auto": "Auto",
@@ -153,7 +156,8 @@
     "title": "Archive",
     "subtitle": "Every quiz you create is saved here.",
     "untitled": "Untitled quiz",
-    "studyMode": "Study Mode",
+    "study": "Study",
+    "backToEdit": "Back to editing",
     "empty": {
       "title": "No quizzes yet",
       "subtitle": "Quizzes you create in the Create section will appear here.",
@@ -200,6 +204,13 @@
       "copied": "Copied!",
       "copyFailed": "Couldn't copy — select the text manually.",
       "print": "Print / PDF",
+      "printChooseTitle": "What would you like to print?",
+      "printQuestionSheet": "Question sheet",
+      "printWithAnswers": "With answer key",
+      "printConfirm": "Print",
+      "printNameLabel": "Name",
+      "printClassLabel": "Class",
+      "printDateLabel": "Date",
       "answerKeyTitle": "Answer Key",
       "trueLabel": "True",
       "falseLabel": "False",

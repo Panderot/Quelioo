@@ -8,6 +8,7 @@ import type { FocusPart } from '../lib/focusSnippets'
 import { CheckIcon, ChevronDownIcon, FileTabIcon, LanguagesIcon, PencilIcon, SpinnerIcon, TextTabIcon, TrashIcon, UrlTabIcon } from './icons'
 import OutputLanguageSelect from './OutputLanguageSelect'
 import FocusTextArea from './FocusTextArea'
+import { MAX_QUIZ_WORDS } from '../lib/textStats'
 
 export type InputTab = 'text' | 'file' | 'url'
 
@@ -93,11 +94,12 @@ export default function InputCard({
   focusParts,
   onFocusPartsChange,
 }: InputCardProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const tabRefs = useRef<Partial<Record<InputTab, HTMLButtonElement | null>>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const isOverWordLimit = wordCount > MAX_QUIZ_WORDS
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     const currentIndex = TAB_ORDER.indexOf(activeTab)
@@ -140,12 +142,16 @@ export default function InputCard({
       className="space-y-4 rounded-[14px] border border-warm-border bg-card p-5 md:p-6"
     >
       {/* Info row */}
-      <div className="flex flex-col items-start justify-between gap-3 border-b border-warm-border pb-2 text-xs sm:flex-row sm:items-center">
-        <div className="space-y-0.5">
+      <div data-purpose="info-row" className="flex flex-col items-start gap-3 border-b border-warm-border pb-4 text-xs sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1 leading-normal">
           <p className="font-medium text-muted">{t('inputCard.wordLimit')}</p>
-          <p className="font-bold text-amber-hover">{t('inputCard.wordCount', { count: wordCount })}</p>
+          <p data-purpose="word-counter" className={isOverWordLimit ? 'text-error' : 'text-muted'}>
+            <span className="font-normal">{t('inputCard.wordCount.label')}</span>{' '}
+            <span className="font-medium">{wordCount.toLocaleString(i18n.language)}</span>{' '}
+            <span className="font-normal">{t('inputCard.wordCount.max')}</span>
+          </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div data-purpose="output-language-row" className="flex w-full shrink-0 flex-col items-start gap-1 sm:w-auto sm:flex-row sm:items-center sm:gap-2">
           <label
             id="output-lang-label"
             htmlFor="output-lang"
@@ -154,7 +160,7 @@ export default function InputCard({
             <LanguagesIcon className="h-3.5 w-3.5 shrink-0 text-muted" />
             {t('inputCard.outputLanguageLabel')}
           </label>
-          <div className="w-[168px]">
+          <div className="w-full sm:w-[168px]">
             <OutputLanguageSelect
               id="output-lang"
               labelledBy="output-lang-label"
@@ -166,7 +172,7 @@ export default function InputCard({
       </div>
 
       {/* Tabs */}
-      <div role="tablist" aria-label="Input source" className="flex items-center gap-2 border-b border-warm-border">
+      <div role="tablist" aria-label="Input source" className="-mt-1 flex items-center gap-2 border-b border-warm-border">
         {TAB_ORDER.map((tab) => {
           const Icon = TAB_ICONS[tab]
           const isActive = tab === activeTab
@@ -298,13 +304,13 @@ export default function InputCard({
                   </button>
                 </div>
 
-                {fileState.truncated && <p className="text-xs font-medium text-amber-hover">{t('inputCard.truncatedNote')}</p>}
+                {fileState.truncated && <p className="text-xs font-medium text-amber-text">{t('inputCard.truncatedNote')}</p>}
 
                 <div className="flex flex-wrap items-center gap-2 border-t border-warm-border pt-3">
                   <button
                     type="button"
                     onClick={() => setIsPreviewOpen((open) => !open)}
-                    className="flex items-center gap-1 text-xs font-semibold text-amber-hover hover:underline"
+                    className="flex items-center gap-1 text-xs font-semibold text-amber-text hover:underline"
                   >
                     {isPreviewOpen ? t('inputCard.file.hidePreview') : t('inputCard.file.showPreview')}
                     <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${isPreviewOpen ? 'rotate-180' : ''}`} />
@@ -384,13 +390,13 @@ export default function InputCard({
                   </div>
                 </div>
 
-                {urlState.truncated && <p className="text-xs font-medium text-amber-hover">{t('inputCard.truncatedNote')}</p>}
+                {urlState.truncated && <p className="text-xs font-medium text-amber-text">{t('inputCard.truncatedNote')}</p>}
 
                 <div className="flex flex-wrap items-center gap-2 border-t border-warm-border pt-3">
                   <button
                     type="button"
                     onClick={() => setIsPreviewOpen((open) => !open)}
-                    className="flex items-center gap-1 text-xs font-semibold text-amber-hover hover:underline"
+                    className="flex items-center gap-1 text-xs font-semibold text-amber-text hover:underline"
                   >
                     {isPreviewOpen ? t('inputCard.file.hidePreview') : t('inputCard.file.showPreview')}
                     <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${isPreviewOpen ? 'rotate-180' : ''}`} />
@@ -416,7 +422,7 @@ export default function InputCard({
           </div>
         )}
 
-        {activeTab === 'text' && truncated && <p className="mt-2 text-xs font-medium text-amber-hover">{t('inputCard.truncatedNote')}</p>}
+        {activeTab === 'text' && truncated && <p className="mt-2 text-xs font-medium text-amber-text">{t('inputCard.truncatedNote')}</p>}
         {hasError && <p className="mt-2 text-xs font-medium text-error">{t('inputCard.errorEmpty')}</p>}
       </div>
 

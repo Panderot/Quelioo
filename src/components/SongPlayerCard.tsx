@@ -39,7 +39,7 @@ export default function SongPlayerCard({ audioUrl, lyrics, demo, downloadName }:
   return (
     <div className="space-y-4">
       {demo && (
-        <span className="inline-block rounded-full border border-amber/30 bg-amber/10 px-2.5 py-1 text-[11px] font-bold text-amber-hover">
+        <span className="inline-block rounded-full border border-amber/30 bg-amber/10 px-2.5 py-1 text-[11px] font-bold text-amber-text">
           {t('song.demoBadge')}
         </span>
       )}

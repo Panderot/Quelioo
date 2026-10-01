@@ -91,12 +91,12 @@ export default function QuizWorkspace({
         onSongSaved={onSongSaved}
       />
       {editor.regenerateError && (
-        <p role="alert" className="-mt-2 text-xs font-medium text-error">
+        <p role="alert" data-print-hide className="-mt-2 text-xs font-medium text-error">
           {t(`create.errors.${editor.regenerateError}`)}
         </p>
       )}
       {editor.topUpError && (
-        <p role="alert" className="-mt-2 text-xs font-medium text-error">
+        <p role="alert" data-print-hide className="-mt-2 text-xs font-medium text-error">
           {t(`create.errors.${editor.topUpError}`)}
         </p>
       )}

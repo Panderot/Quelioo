@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { getArchiveEntry, setArchiveEntryStudyMode, updateArchiveEntry } from '../lib/archive'
+import { getArchiveEntry, updateArchiveEntry } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import type { GeneratedQuiz } from '../lib/quiz'
 import QuizWorkspace from '../components/QuizWorkspace'
@@ -12,8 +12,10 @@ import { ArchiveIcon } from '../components/icons'
 export default function ArchiveQuizPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
+  const [searchParams] = useSearchParams()
   const [entry, setEntry] = useState<ArchiveEntry | undefined>(() => (id ? getArchiveEntry(id) : undefined))
   const [songRefreshKey, setSongRefreshKey] = useState(0)
+  const [studyMode, setStudyMode] = useState(() => searchParams.get('mode') === 'study')
 
   if (!entry) {
     return (
@@ -41,11 +43,7 @@ export default function ArchiveQuizPage() {
     if (updated) setEntry(updated)
   }
 
-  const handleToggleStudyMode = () => {
-    const next = !entry.studyMode
-    setArchiveEntryStudyMode(entry.id, next)
-    setEntry((current) => (current ? { ...current, studyMode: next } : current))
-  }
+  const handleToggleStudyMode = () => setStudyMode((current) => !current)
 
   return (
     <>
@@ -67,14 +65,16 @@ export default function ArchiveQuizPage() {
         incomplete={false}
         onPersist={handlePersist}
         archiveLink={{ href: '/archive', label: t('archive.detail.backToArchive') }}
-        studyMode={entry.studyMode}
+        studyMode={studyMode}
         onToggleStudyMode={handleToggleStudyMode}
         includeExplanations={entry.includeExplanations ?? true}
         shuffleOptions={entry.shuffleOptions ?? false}
         includeHints={entry.includeHints ?? true}
         onSongSaved={() => setSongRefreshKey((key) => key + 1)}
       />
-      <SongListenSection key={songRefreshKey} quizId={entry.id} quizTitle={entry.quiz.title} />
+      <div data-print-hide>
+        <SongListenSection key={songRefreshKey} quizId={entry.id} quizTitle={entry.quiz.title} />
+      </div>
     </>
   )
 }

@@ -9,7 +9,6 @@ export interface ArchiveEntry {
   difficulty: string
   questionCount: string
   optionsCount: string | null
-  studyMode: boolean
   outputLanguage?: string
   sourceText?: string
   quiz: GeneratedQuiz
@@ -82,14 +81,6 @@ export function updateArchiveEntry(id: string, updater: (entry: ArchiveEntry) =>
   entries[index] = updated
   writeEntries(entries)
   return updated
-}
-
-export function setArchiveEntryStudyMode(id: string, studyMode: boolean): void {
-  const entries = readEntries()
-  const index = entries.findIndex((entry) => entry.id === id)
-  if (index === -1) return
-  entries[index] = { ...entries[index], studyMode }
-  writeEntries(entries)
 }
 
 export function createArchiveEntryId(): string {

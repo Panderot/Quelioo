@@ -362,18 +362,19 @@ test.describe('Time estimate', () => {
     await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
 
     // Sum of SAMPLE_QUIZ's estimatedSeconds (30+15+20+45+60+90=260s) rounds to 4 minutes.
-    await expect(page.getByText('About 4 min')).toBeVisible()
+    // .first() picks the on-screen meta line — the same text also sits in the hidden print layout.
+    await expect(page.getByText('About 4 min').first()).toBeVisible()
 
     const mcqCard = page.locator('[data-purpose="question-card"]', { hasText: 'photosynthesis' })
     await mcqCard.getByRole('button', { name: 'Delete' }).click()
     // 260 - 30 = 230s -> rounds to 4 min still; delete the 90s open-ended question instead.
     const openEndedCard = page.locator('[data-purpose="question-card"]', { hasText: 'sky appears blue' })
     await openEndedCard.getByRole('button', { name: 'Delete' }).click()
-    await expect(page.getByText('About 2 min')).toBeVisible()
+    await expect(page.getByText('About 2 min').first()).toBeVisible()
 
     // Undo restores only the most recently deleted question (open-ended, 90s): 140 + 90 = 230s.
     await page.getByRole('button', { name: 'Undo' }).click()
-    await expect(page.getByText('About 4 min')).toBeVisible()
+    await expect(page.getByText('About 4 min').first()).toBeVisible()
   })
 
   test('the Archive row shows the time estimate', async ({ page, mockGenerate }) => {

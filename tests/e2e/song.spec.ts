@@ -284,7 +284,7 @@ test('full success flow: player controls, download, IndexedDB save, reload, and 
   await expect(page.getByRole('heading', { name: 'Listen' })).toBeVisible()
 
   await page.goto('/archive?lng=en')
-  const row = page.getByRole('link', { name: new RegExp(SAMPLE_QUIZ.title) })
+  const row = page.getByRole('link', { name: new RegExp(SAMPLE_QUIZ.title) }).first()
   await expect(row).toBeVisible()
   await expect(row.locator('svg[role="img"]')).toBeVisible()
 })
@@ -313,7 +313,6 @@ test('the cost guard blocks a 4th song generation for the same quiz on the same 
       difficulty: 'medium',
       questionCount: '6',
       optionsCount: null,
-      studyMode: false,
       outputLanguage: 'auto',
       sourceText: 'Seeded source text.',
       quiz: { title: SAMPLE_QUIZ.title, questions: SAMPLE_QUIZ.questions },

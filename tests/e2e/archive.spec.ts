@@ -10,7 +10,6 @@ const SEEDED_ENTRY = {
   difficulty: 'medium',
   questionCount: '6',
   optionsCount: null,
-  studyMode: false,
   outputLanguage: 'auto',
   sourceText: 'Seeded source text for the archived quiz.',
   quiz: { title: SAMPLE_QUIZ.title, questions: SAMPLE_QUIZ.questions },
@@ -20,8 +19,8 @@ test('seeded archive list renders and opening a quiz shows its content; direct l
   await seedArchive([SEEDED_ENTRY])
   await page.goto('/archive?lng=en')
 
-  await expect(page.getByRole('link', { name: SAMPLE_QUIZ.title })).toBeVisible()
-  await page.getByRole('link', { name: SAMPLE_QUIZ.title }).click()
+  await expect(page.getByRole('link', { name: SAMPLE_QUIZ.title }).first()).toBeVisible()
+  await page.getByRole('link', { name: SAMPLE_QUIZ.title }).first().click()
   await expect(page).toHaveURL(`/archive/${SEEDED_ENTRY.id}`)
   await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
   await expect(page.getByText('Name the largest planet in our solar system.').first()).toBeVisible()
@@ -32,6 +31,45 @@ test('seeded archive list renders and opening a quiz shows its content; direct l
 
   await page.reload()
   await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
+})
+
+test('the Study button opens the quiz directly in Study Mode, is keyboard accessible, and no switch remains', async ({ page, seedArchive }) => {
+  await seedArchive([SEEDED_ENTRY])
+  await page.goto('/archive?lng=en')
+
+  const studyButton = page.getByRole('link', { name: `Study — ${SAMPLE_QUIZ.title}` })
+  await expect(studyButton).toBeVisible()
+  await expect(page.getByRole('switch')).toHaveCount(0)
+
+  await studyButton.focus()
+  await expect(studyButton).toBeFocused()
+  await page.keyboard.press('Enter')
+
+  await expect(page).toHaveURL(`/archive/${SEEDED_ENTRY.id}?mode=study`)
+  await expect(page.locator('[data-purpose="practice-question-card"]').first()).toBeVisible()
+  await expect(page.getByRole('switch')).toHaveCount(0)
+})
+
+test('@mobile archive rows stay aligned at 390px with a long title and localized Study labels', async ({ page, seedArchive }, testInfo) => {
+  test.skip(testInfo.project.name === 'desktop', 'mobile-only: asserts against the 390px viewport')
+  const longTitleEntry = {
+    ...SEEDED_ENTRY,
+    id: 'seeded-entry-long-title',
+    title: 'A Very Long Quiz Title That Should Truncate Cleanly Instead Of Wrapping Or Overflowing The Row',
+  }
+  await seedArchive([longTitleEntry])
+
+  for (const lng of ['en', 'tr', 'hyw']) {
+    await page.goto(`/archive?lng=${lng}`)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
+    const row = page.locator('[data-purpose="archive-list"] li').first()
+    await expect(row).toBeVisible()
+    const studyLink = row.getByRole('link').last()
+    await expect(studyLink).toBeVisible()
+    const box = await studyLink.boundingBox()
+    expect(box).not.toBeNull()
+    expect(box!.x + box!.width).toBeLessThanOrEqual(390)
+  }
 })
 
 test('unknown archive id and unknown route both show a not-found state', async ({ page, seedArchive }) => {

@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { getArchiveEntries, setArchiveEntryStudyMode } from '../lib/archive'
+import { getArchiveEntries } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
 import type { EstimateDifficulty } from '../lib/estimateTime'
 import { getQuizIdsWithSongs } from '../lib/songStorage'
-import { ArchiveIcon, MusicNoteIcon } from '../components/icons'
+import { ArchiveIcon, BookIcon, MusicNoteIcon } from '../components/icons'
 
 function formatCreatedAt(iso: string, locale: string): string {
   const date = new Date(iso)
@@ -22,18 +22,12 @@ function formatCreatedAt(iso: string, locale: string): string {
 
 export default function ArchivePage() {
   const { t, i18n } = useTranslation()
-  const [entries, setEntries] = useState<ArchiveEntry[]>(() => getArchiveEntries())
+  const [entries] = useState<ArchiveEntry[]>(() => getArchiveEntries())
   const [songQuizIds, setSongQuizIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     void getQuizIdsWithSongs().then(setSongQuizIds)
   }, [])
-
-  const handleToggleStudyMode = (entry: ArchiveEntry) => {
-    const nextValue = !entry.studyMode
-    setArchiveEntryStudyMode(entry.id, nextValue)
-    setEntries((current) => current.map((item) => (item.id === entry.id ? { ...item, studyMode: nextValue } : item)))
-  }
 
   return (
     <>
@@ -80,7 +74,7 @@ export default function ArchivePage() {
             return (
               <li key={entry.id} className="flex items-center justify-between gap-4 p-4 md:p-5">
                 <Link to={`/archive/${entry.id}`} className="min-w-0 flex-1 space-y-1">
-                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink hover:text-amber-hover">
+                  <p className="flex items-center gap-1.5 truncate text-sm font-semibold text-ink hover:text-amber-text">
                     <span className="truncate">{entry.title}</span>
                     {songQuizIds.has(entry.id) && (
                       <MusicNoteIcon
@@ -96,23 +90,14 @@ export default function ArchivePage() {
                 </Link>
 
                 <div className="flex shrink-0 items-center gap-2.5">
-                  <span className="hidden text-xs font-semibold text-ink sm:inline">{t('archive.studyMode')}</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={entry.studyMode}
-                    aria-label={`${t('archive.studyMode')} — ${entry.title}`}
-                    onClick={() => handleToggleStudyMode(entry)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                      entry.studyMode ? 'bg-amber' : 'bg-warm-border'
-                    }`}
+                  <Link
+                    to={`/archive/${entry.id}?mode=study`}
+                    aria-label={`${t('archive.study')} — ${entry.title}`}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-amber"
                   >
-                    <span
-                      className={`inline-block h-5 w-5 transform rounded-full border border-warm-border bg-card transition-transform ${
-                        entry.studyMode ? 'translate-x-5 border-white' : 'translate-x-0.5'
-                      }`}
-                    />
-                  </button>
+                    <BookIcon className="h-3.5 w-3.5" />
+                    {t('archive.study')}
+                  </Link>
                 </div>
               </li>
             )

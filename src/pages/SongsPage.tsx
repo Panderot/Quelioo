@@ -253,7 +253,7 @@ export default function SongsPage() {
           {archiveEntries.length === 0 ? (
             <div className="space-y-2 text-center">
               <p className="text-sm text-muted">{t('songsPage.pickerEmpty')}</p>
-              <Link to="/" className="text-xs font-semibold text-amber-hover hover:underline">
+              <Link to="/" className="text-xs font-semibold text-amber-text hover:underline">
                 {t('archive.empty.cta')}
               </Link>
             </div>
@@ -313,7 +313,7 @@ export default function SongsPage() {
             type="button"
             onClick={() => setToneFilter(option)}
             className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-              toneFilter === option ? 'border-amber bg-amber/15 text-amber-hover' : 'border-warm-border bg-card text-ink hover:border-focus-neutral'
+              toneFilter === option ? 'border-amber bg-amber/15 text-amber-text' : 'border-warm-border bg-card text-ink hover:border-focus-neutral'
             }`}
           >
             {t(`songsPage.filters.${option}`)}
@@ -446,7 +446,7 @@ export default function SongsPage() {
                     {song.lyrics.split('\n').map((line, index) => {
                       const isTag = /^\[[a-zA-Z]+\]$/.test(line.trim())
                       return isTag ? (
-                        <span key={index} className="mb-1 mt-2 inline-block rounded-full bg-amber/15 px-2 py-0.5 text-[11px] font-bold text-amber-hover first:mt-0">
+                        <span key={index} className="mb-1 mt-2 inline-block rounded-full bg-amber/15 px-2 py-0.5 text-[11px] font-bold text-amber-text first:mt-0">
                           {line.trim()}
                         </span>
                       ) : (

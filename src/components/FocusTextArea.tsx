@@ -144,7 +144,7 @@ export default function FocusTextArea({ id, value, onChange, placeholder, hasErr
             onClick={markSelectionAsFocus}
             disabled={atLimit}
             style={{ top: buttonPosition.top, left: buttonPosition.left }}
-            className="absolute z-10 -translate-y-full rounded-lg border border-amber bg-card px-2.5 py-1.5 text-xs font-semibold text-amber-hover shadow-sm transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute z-10 -translate-y-full rounded-lg border border-amber bg-card px-2.5 py-1.5 text-xs font-semibold text-amber-text shadow-sm transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {t('inputCard.focus.markSelection')}
           </button>
@@ -157,14 +157,14 @@ export default function FocusTextArea({ id, value, onChange, placeholder, hasErr
           data-purpose="focus-mark-secondary"
           onClick={markSelectionAsFocus}
           disabled={!selection || atLimit}
-          className="rounded-lg border border-amber px-3 py-1.5 text-xs font-semibold text-amber-hover transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:border-warm-border disabled:text-muted disabled:hover:bg-transparent"
+          className="rounded-lg border border-amber px-3 py-1.5 text-xs font-semibold text-amber-text transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:border-warm-border disabled:text-muted disabled:hover:bg-transparent"
         >
           {t('inputCard.focus.markSelection')}
         </button>
         {atLimit && <span className="text-[11px] text-muted">{t('inputCard.focus.limitReached', { max: MAX_FOCUS_PARTS })}</span>}
       </div>
 
-      {prunedNoticeVisible && <p className="text-[11px] font-medium text-amber-hover">{t('inputCard.focus.removedByEdit')}</p>}
+      {prunedNoticeVisible && <p className="text-[11px] font-medium text-amber-text">{t('inputCard.focus.removedByEdit')}</p>}
 
       {focusParts.length > 0 && (
         <ul className="flex flex-wrap gap-2" aria-label={t('inputCard.focus.chipsLabel')}>

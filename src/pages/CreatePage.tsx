@@ -399,7 +399,6 @@ export default function CreatePage() {
         outputLanguage,
         sourceText: activeContent,
         quiz: { title: finalTitle, questions },
-        studyMode: false,
         includeExplanations,
         shuffleOptions: shuffleApplies,
         includeHints,
@@ -439,79 +438,84 @@ export default function CreatePage() {
       </section>
 
       {draftRestoredNoticeVisible && (
-        <div className="-mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warm-border bg-card px-4 py-2.5 text-xs">
+        <div
+          data-print-hide
+          className="-mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-warm-border bg-card px-4 py-2.5 text-xs"
+        >
           <span className="font-medium text-muted">{t('create.draft.restored')}</span>
-          <button type="button" onClick={handleStartFresh} className="font-bold text-amber-hover hover:underline">
+          <button type="button" onClick={handleStartFresh} className="font-bold text-amber-text hover:underline">
             {t('create.draft.startFresh')}
           </button>
         </div>
       )}
 
-      <InputCard
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        textValue={textValue}
-        onTextChange={handleTextChange}
-        urlValue={urlValue}
-        onUrlChange={handleUrlChange}
-        fileState={fileState}
-        onFileSelected={(file) => void handleFileSelected(file)}
-        onFileRemove={handleFileRemove}
-        onEditFileAsText={handleEditFileAsText}
-        urlState={urlState}
-        onUrlFetch={() => void handleUrlFetch()}
-        onEditUrlAsText={handleEditUrlAsText}
-        wordCount={activeWordCount}
-        truncated={activeTruncated}
-        outputLanguage={outputLanguage}
-        onOutputLanguageChange={setOutputLanguage}
-        onClear={handleClear}
-        hasError={hasError}
-        focusParts={focusParts}
-        onFocusPartsChange={setFocusParts}
-      />
+      <div data-print-hide className="space-y-7">
+        <InputCard
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          textValue={textValue}
+          onTextChange={handleTextChange}
+          urlValue={urlValue}
+          onUrlChange={handleUrlChange}
+          fileState={fileState}
+          onFileSelected={(file) => void handleFileSelected(file)}
+          onFileRemove={handleFileRemove}
+          onEditFileAsText={handleEditFileAsText}
+          urlState={urlState}
+          onUrlFetch={() => void handleUrlFetch()}
+          onEditUrlAsText={handleEditUrlAsText}
+          wordCount={activeWordCount}
+          truncated={activeTruncated}
+          outputLanguage={outputLanguage}
+          onOutputLanguageChange={setOutputLanguage}
+          onClear={handleClear}
+          hasError={hasError}
+          focusParts={focusParts}
+          onFocusPartsChange={setFocusParts}
+        />
 
-      <ParameterGrid
-        title={title}
-        onTitleChange={setTitle}
-        questionType={questionType}
-        onQuestionTypeChange={setQuestionType}
-        questionCount={questionCount}
-        onQuestionCountChange={setQuestionCount}
-        difficulty={difficulty}
-        onDifficultyChange={setDifficulty}
-        optionsCount={optionsCount}
-        onOptionsCountChange={setOptionsCount}
-        includeExplanations={includeExplanations}
-        onIncludeExplanationsChange={setIncludeExplanations}
-        shuffleOptions={shuffleOptions}
-        onShuffleOptionsChange={setShuffleOptions}
-        includeHints={includeHints}
-        onIncludeHintsChange={setIncludeHints}
-      />
+        <ParameterGrid
+          title={title}
+          onTitleChange={setTitle}
+          questionType={questionType}
+          onQuestionTypeChange={setQuestionType}
+          questionCount={questionCount}
+          onQuestionCountChange={setQuestionCount}
+          difficulty={difficulty}
+          onDifficultyChange={setDifficulty}
+          optionsCount={optionsCount}
+          onOptionsCountChange={setOptionsCount}
+          includeExplanations={includeExplanations}
+          onIncludeExplanationsChange={setIncludeExplanations}
+          shuffleOptions={shuffleOptions}
+          onShuffleOptionsChange={setShuffleOptions}
+          includeHints={includeHints}
+          onIncludeHintsChange={setIncludeHints}
+        />
 
-      <GenerateButton isLoading={isGenerating} onClick={() => void handleGenerate()} timeEstimateLabel={timeEstimateLabel} />
+        <GenerateButton isLoading={isGenerating} onClick={() => void handleGenerate()} timeEstimateLabel={timeEstimateLabel} />
 
-      {generateError && (
-        <div role="alert" className="-mt-4 space-y-3 rounded-[14px] border border-error/40 bg-error/5 p-5 text-center">
-          <p className="text-sm font-semibold text-error">{t(`create.errors.${generateError}`)}</p>
-          <button
-            type="button"
-            onClick={() => void handleGenerate()}
-            className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
-          >
-            {t('create.errors.retry')}
-          </button>
-        </div>
-      )}
+        {generateError && (
+          <div role="alert" className="-mt-4 space-y-3 rounded-[14px] border border-error/40 bg-error/5 p-5 text-center">
+            <p className="text-sm font-semibold text-error">{t(`create.errors.${generateError}`)}</p>
+            <button
+              type="button"
+              onClick={() => void handleGenerate()}
+              className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
+            >
+              {t('create.errors.retry')}
+            </button>
+          </div>
+        )}
 
-      {isGenerating && (
-        <ul className="-mt-4 animate-pulse space-y-4" aria-hidden>
-          {[0, 1, 2].map((index) => (
-            <li key={index} className="h-32 rounded-[14px] border border-warm-border bg-card" />
-          ))}
-        </ul>
-      )}
+        {isGenerating && (
+          <ul className="-mt-4 animate-pulse space-y-4" aria-hidden>
+            {[0, 1, 2].map((index) => (
+              <li key={index} className="h-32 rounded-[14px] border border-warm-border bg-card" />
+            ))}
+          </ul>
+        )}
+      </div>
 
       {result && (
         <div ref={resultRef} className="-mt-4">

@@ -156,7 +156,7 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-bold text-navy">
             {index + 1}
           </span>
-          <span className="mt-1 shrink-0 rounded-full bg-amber/12 px-2.5 py-1 text-[11px] font-bold tracking-wide text-amber-hover uppercase">
+          <span className="mt-1 shrink-0 rounded-full bg-amber/12 px-2.5 py-1 text-[11px] font-bold tracking-wide text-amber-text uppercase">
             {t(TYPE_LABEL_KEYS[question.type])}
           </span>
         </div>
@@ -215,7 +215,7 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
           <button
             type="button"
             onClick={() => setIsExplanationOpen((open) => !open)}
-            className="text-xs font-semibold text-amber-hover hover:underline"
+            className="text-xs font-semibold text-amber-text hover:underline"
           >
             {isExplanationOpen ? t('create.result.hideExplanation') : t('create.result.showExplanation')}
           </button>
@@ -316,7 +316,7 @@ function QuestionView({
       {question.type === 'fill-blanks' && (
         <div className="space-y-1.5">
           {showAnswers && (
-            <p className="text-sm font-semibold break-words text-amber-hover" data-print-hide>
+            <p className="text-sm font-semibold break-words text-amber-text" data-print-hide>
               <MathText text={question.answer} />
             </p>
           )}
@@ -454,7 +454,7 @@ function QuestionEditForm({
               </button>
             </div>
           ))}
-          <button type="button" onClick={addOption} className="text-xs font-semibold text-amber-hover hover:underline">
+          <button type="button" onClick={addOption} className="text-xs font-semibold text-amber-text hover:underline">
             + {t('create.question.addOption')}
           </button>
         </div>
@@ -544,7 +544,7 @@ function QuestionEditForm({
             type="button"
             onClick={addPair}
             disabled={draft.pairs.length >= MAX_MATCHING_PAIRS}
-            className="text-xs font-semibold text-amber-hover hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
+            className="text-xs font-semibold text-amber-text hover:underline disabled:cursor-not-allowed disabled:text-muted disabled:no-underline"
           >
             + {t('create.question.addPair')}
           </button>

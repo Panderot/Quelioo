@@ -137,7 +137,6 @@ const SEEDED_ENTRY = {
   difficulty: 'medium',
   questionCount: '6',
   optionsCount: null,
-  studyMode: false,
   outputLanguage: 'auto',
   sourceText: 'Seeded source text about photosynthesis.',
   quiz: { title: SAMPLE_QUIZ.title, questions: SAMPLE_QUIZ.questions },
