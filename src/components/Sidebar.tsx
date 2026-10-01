@@ -15,13 +15,10 @@ interface NavItem {
   to: string
 }
 
-const mainNavItems: NavItem[] = [
-  { key: 'create', labelKey: 'nav.create', Icon: HomeIcon, to: '/' },
-  { key: 'solve', labelKey: 'nav.solve', Icon: CalculatorIcon, to: '/solve' },
-]
-
-const archiveNavItem: NavItem = { key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' }
+const createNavItem: NavItem = { key: 'create', labelKey: 'nav.create', Icon: HomeIcon, to: '/' }
+const solveNavItem: NavItem = { key: 'solve', labelKey: 'nav.solve', Icon: CalculatorIcon, to: '/solve' }
 const songsNavItem: NavItem = { key: 'songs', labelKey: 'nav.songs', Icon: MusicNoteIcon, to: '/songs' }
+const archiveNavItem: NavItem = { key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' }
 
 interface SidebarProps {
   isMobileOpen: boolean
@@ -31,7 +28,8 @@ interface SidebarProps {
 export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
   const { t } = useTranslation()
   const songStatus = useSongFeatureStatus()
-  const footerNavItems: NavItem[] = songStatus?.enabled ? [archiveNavItem, songsNavItem] : [archiveNavItem]
+  const mainNavItems: NavItem[] = songStatus?.enabled ? [createNavItem, solveNavItem, songsNavItem] : [createNavItem, solveNavItem]
+  const footerNavItems: NavItem[] = [archiveNavItem]
 
   const itemClasses = (isActive: boolean) =>
     `group relative flex items-center justify-between gap-3 rounded-lg py-2.5 pr-3 pl-4 text-sm transition-colors ${

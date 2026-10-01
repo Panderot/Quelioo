@@ -98,7 +98,7 @@ App root (flex, bg-paper)
 ## 7. Components
 
 ### 7.1 Sidebar
-Width 256px (72px icon rail at md, drawer below 768px), `--color-navy` background, `--color-paper` text. Header: logo + Fraunces wordmark + amber tagline. Main nav: Create, then Solve. Nav item: no filled active pill — default `paper/60`, hover `paper`; active = 3px amber left bar + full-opacity paper text + amber icon. Footer group pinned to bottom, top border `paper/10`: Archive (`/archive`), then Songs (music-note icon, `/songs`) — same item/active/hover/focus styling, shown only once `GET /api/song` reports the feature enabled (hidden entirely otherwise, mobile drawer included).
+Width 256px (72px icon rail at md, drawer below 768px), `--color-navy` background, `--color-paper` text. Header: logo + Fraunces wordmark + amber tagline. Main nav: Create, Solve, then Songs (music-note icon, `/songs`) — Songs uses the same item/active/hover/focus styling and is shown only once `GET /api/song` reports the feature enabled (hidden entirely otherwise, mobile drawer included). Nav item: no filled active pill — default `paper/60`, hover `paper`; active = 3px amber left bar + full-opacity paper text + amber icon. Footer group (Archive, `/archive`) pinned to bottom, top border `paper/10`.
 
 ### 7.2 Top bar
 Height 80px, flat, flex, content right-aligned (mobile menu button is the only left-side element, < 768px only). Holds the language switcher only.
