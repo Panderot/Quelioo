@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
+import { savedSolutionExtras } from './helpers'
 import en from '../../src/i18n/locales/en.json' with { type: 'json' }
 import tr from '../../src/i18n/locales/tr.json' with { type: 'json' }
 import hyw from '../../src/i18n/locales/hyw.json' with { type: 'json' }
@@ -216,6 +217,8 @@ test.describe('Solve — explain this step', () => {
     await steps(page).nth(0).getByRole('button', { name: en.solve.explain.button }).click()
     await expect(steps(page).nth(0).locator('[data-purpose="step-explanation-simple"]')).toBeVisible()
     expect(requests).toHaveLength(1)
+    // The write lands asynchronously (after the solution's own save); wait for it before navigating away.
+    await expect.poll(() => savedSolutionExtras(page).then((all) => all.some((extras) => 'stepExplanations' in extras))).toBe(true)
 
     await page.goto('/archive?tab=solutions&lng=en')
     await page.locator('[data-purpose="solution-row"] a').first().click()
@@ -229,7 +232,9 @@ test.describe('Solve — explain this step', () => {
     await steps(page).nth(2).getByRole('button', { name: en.solve.explain.simpler }).click()
     await expect(steps(page).nth(2).locator('[data-purpose="step-explanation-simpler"]')).toBeVisible()
     expect(requests).toHaveLength(3)
-    await page.waitForTimeout(300)
+    await expect
+      .poll(() => savedSolutionExtras(page).then((all) => JSON.stringify(all[0]?.stepExplanations ?? {}).includes('Simpler explanation of step 3.')))
+      .toBe(true)
     await page.reload()
     const step3 = steps(page).nth(2)
     await step3.getByRole('button', { name: en.solve.explain.button }).click()

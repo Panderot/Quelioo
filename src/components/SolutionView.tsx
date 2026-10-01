@@ -3,14 +3,19 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { ExplainApiError, explainStep } from '../api/explainStep'
-import type { ExplainErrorCode, ExplainLevel, StepExplanation } from '../api/explainStep'
 import type { SolveResult } from '../api/solve'
+import { ANOTHER_WAY_KEY, readAnotherWay, readSimilarItems, SIMILAR_PROBLEMS_KEY } from '../lib/solutionExtras'
+import type { SimilarItem, StoredAnotherWay } from '../lib/solutionExtras'
 import { updateSolutionExtras } from '../lib/solutionStorage'
-import { STEP_EXPLANATIONS_KEY } from '../lib/stepExplanations'
+import { readStepExplanations, STEP_EXPLANATIONS_KEY, withExplanation } from '../lib/stepExplanations'
 import type { StepExplanationCache } from '../lib/stepExplanations'
+import AnotherWayPanel from './AnotherWayPanel'
+import ExplainableSteps from './ExplainableSteps'
 import MathText from './MathText'
-import { LightbulbIcon, SpinnerIcon, WarningIcon } from './icons'
+import MoreMenu from './MoreMenu'
+import SimilarProblems from './SimilarProblems'
+import type { PanelHandle } from './SimilarProblems'
+import { RefreshIcon, WarningIcon } from './icons'
 
 const TRY_FIRST_STORAGE_KEY = 'quelio.solveTryFirst.v1'
 
@@ -48,23 +53,23 @@ function buildQuizPrefillText(
   return lines.join('\n')
 }
 
-const pendingKey = (stepIndex: number, level: ExplainLevel) => `${stepIndex}:${level}`
+type ExtraKey = typeof STEP_EXPLANATIONS_KEY | typeof SIMILAR_PROBLEMS_KEY | typeof ANOTHER_WAY_KEY
 
 interface SolutionViewProps {
   result: SolveResult
-  /** Id of the saved Solutions record, once known — explanations are cached into it. */
+  /** Id of the saved Solutions record, once known — explanations, similar problems and the other method are saved into it. */
   solutionId?: string | null
-  /** Explanations already cached in the saved record (reopened from the Archive). */
-  initialExplanations?: StepExplanationCache
+  /** The saved record's extras (reopened from the Archive). */
+  initialExtras?: Record<string, unknown>
   className?: string
-  /** Extra content between the solution card and its actions (e.g. a storage note, future tools). */
+  /** Extra content between the solution card and its actions (e.g. a storage note). */
   children?: ReactNode
 }
 
 /** The one rendering of a solved problem — used right after solving and when reopening a saved
- * solution from the Archive, so actions added here (step reveal, explain) work in both places. */
-export default function SolutionView({ result, solutionId = null, initialExplanations, className = '', children }: SolutionViewProps) {
-  const { t, i18n } = useTranslation()
+ * solution from the Archive, so every action here works in both places. */
+export default function SolutionView({ result, solutionId = null, initialExtras, className = '', children }: SolutionViewProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const switchLabelId = useId()
   const stepCount = result.steps.length
@@ -104,89 +109,33 @@ export default function SolutionView({ result, solutionId = null, initialExplana
     setRevealed(stepCount + 1)
   }
 
-  // ---- "Explain this step" ----
-  const [explanations, setExplanations] = useState<StepExplanationCache>(() => initialExplanations ?? {})
-  const [openSteps, setOpenSteps] = useState<Set<number>>(() => new Set())
-  const [simplerShown, setSimplerShown] = useState<Set<number>>(() => new Set())
-  const [pending, setPending] = useState<Set<string>>(() => new Set())
-  const [errors, setErrors] = useState<Record<string, ExplainErrorCode>>({})
-  const controllersRef = useRef(new Set<AbortController>())
-  // Only write back once something new was fetched — not when just showing what was loaded.
-  const dirtyRef = useRef(false)
+  // ---- Data saved into the Solutions record ----
+  const [explanations, setExplanations] = useState<StepExplanationCache>(() => readStepExplanations(initialExtras, stepCount))
+  const [similarItems, setSimilarItems] = useState<SimilarItem[]>(() => readSimilarItems(initialExtras))
+  const [anotherWay, setAnotherWay] = useState<StoredAnotherWay | null>(() => readAnotherWay(initialExtras))
+  // Only keys changed in this view are written back — not what was just loaded.
+  const dirtyRef = useRef(new Set<ExtraKey>())
 
+  const markDirty = (key: ExtraKey) => dirtyRef.current.add(key)
+
+  // Persist into the Solutions record; also catches up on changes made before the save finished.
   useEffect(() => {
-    const controllers = controllersRef.current
-    return () => controllers.forEach((controller) => controller.abort())
-  }, [])
-
-  // Persist into the Solutions record; also catches up explanations fetched before the save finished.
-  useEffect(() => {
-    if (!solutionId || !dirtyRef.current) return
-    void updateSolutionExtras(solutionId, STEP_EXPLANATIONS_KEY, explanations).catch(() => {
-      // Storage full/unavailable — the in-memory cache still makes repeats free for this view.
-    })
-  }, [solutionId, explanations])
-
-  const fetchExplanation = async (stepIndex: number, level: ExplainLevel) => {
-    const key = pendingKey(stepIndex, level)
-    if (pending.has(key)) return
-    const previous = level === 'simpler' ? explanations[stepIndex]?.simple : undefined
-    if (level === 'simpler' && !previous) return
-
-    setPending((current) => new Set(current).add(key))
-    setErrors((current) => {
-      const next = { ...current }
-      delete next[key]
-      return next
-    })
-    const controller = new AbortController()
-    controllersRef.current.add(controller)
-    try {
-      const explanation = await explainStep(
-        {
-          question: result.question,
-          steps: result.steps,
-          answer: result.answer,
-          stepIndex,
-          level,
-          ...(previous ? { previousExplanation: [previous.explanation, previous.example].filter(Boolean).join('\n') } : {}),
-          language: i18n.language,
-        },
-        controller.signal,
-      )
-      dirtyRef.current = true
-      setExplanations((current) => ({ ...current, [stepIndex]: { ...current[stepIndex], [level]: explanation } }))
-    } catch (error) {
-      if (controller.signal.aborted) return
-      setErrors((current) => ({ ...current, [key]: error instanceof ExplainApiError ? error.code : 'upstream' }))
-    } finally {
-      controllersRef.current.delete(controller)
-      if (!controller.signal.aborted) {
-        setPending((current) => {
-          const next = new Set(current)
-          next.delete(key)
-          return next
-        })
-      }
+    if (!solutionId) return
+    const values: Record<ExtraKey, unknown> = {
+      [STEP_EXPLANATIONS_KEY]: explanations,
+      [SIMILAR_PROBLEMS_KEY]: similarItems,
+      [ANOTHER_WAY_KEY]: anotherWay,
     }
-  }
+    for (const key of dirtyRef.current) {
+      void updateSolutionExtras(solutionId, key, values[key]).catch(() => {
+        // Storage full/unavailable — everything still works for this view from memory.
+      })
+    }
+  }, [solutionId, explanations, similarItems, anotherWay])
 
-  const toggleExplain = (stepIndex: number) => {
-    const isOpen = openSteps.has(stepIndex)
-    setOpenSteps((current) => {
-      const next = new Set(current)
-      if (isOpen) next.delete(stepIndex)
-      else next.add(stepIndex)
-      return next
-    })
-    // Cached explanations are shown for free; only fetch the first time.
-    if (!isOpen && !explanations[stepIndex]?.simple) void fetchExplanation(stepIndex, 'simple')
-  }
-
-  const showSimpler = (stepIndex: number) => {
-    setSimplerShown((current) => new Set(current).add(stepIndex))
-    if (!explanations[stepIndex]?.simpler) void fetchExplanation(stepIndex, 'simpler')
-  }
+  // ---- Actions ----
+  const similarRef = useRef<PanelHandle>(null)
+  const anotherWayRef = useRef<PanelHandle>(null)
 
   const handleCreateQuiz = () => {
     const prefillText = buildQuizPrefillText(result, {
@@ -198,51 +147,8 @@ export default function SolutionView({ result, solutionId = null, initialExplana
     navigate('/', { state: { prefillText } })
   }
 
-  const renderExplanationBox = (explanation: StepExplanation, level: ExplainLevel) => (
-    <div
-      data-purpose={`step-explanation-${level}`}
-      className={`space-y-1.5 rounded-xl border p-3 text-xs leading-relaxed text-ink ${
-        level === 'simple' ? 'border-warm-border bg-paper' : 'border-amber/40 bg-amber/10'
-      }`}
-    >
-      {level === 'simpler' && <p className="font-semibold text-amber-text">{t('solve.explain.simplerLabel')}</p>}
-      <p>
-        <MathText text={explanation.explanation} />
-      </p>
-      {explanation.example && (
-        <p>
-          <span className="font-semibold text-ink">{t('solve.explain.exampleLabel')}: </span>
-          <MathText text={explanation.example} />
-        </p>
-      )}
-    </div>
-  )
-
-  const renderStatus = (stepIndex: number, level: ExplainLevel) => {
-    const key = pendingKey(stepIndex, level)
-    if (pending.has(key)) {
-      return (
-        <p className="flex items-center gap-2 text-xs text-muted">
-          <SpinnerIcon className="h-4 w-4 text-amber-text" />
-          {t('solve.explain.loading')}
-        </p>
-      )
-    }
-    const error = errors[key]
-    if (error) {
-      return (
-        <p data-purpose="step-explanation-error" role="alert" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-error">
-          <span>{t(`solve.explain.errors.${error}`)}</span>
-          {error !== 'rate_limited' && (
-            <button type="button" onClick={() => void fetchExplanation(stepIndex, level)} className="font-semibold underline">
-              {t('solve.explain.retry')}
-            </button>
-          )}
-        </p>
-      )
-    }
-    return null
-  }
+  const outlineAction =
+    'inline-flex w-full items-center justify-center gap-2 rounded-xl border border-warm-border bg-card px-4 py-2.5 text-sm font-bold text-navy transition-colors hover:border-amber sm:w-auto'
 
   return (
     <div data-purpose="solve-result" className={`space-y-4 pb-6 ${className}`}>
@@ -278,63 +184,20 @@ export default function SolutionView({ result, solutionId = null, initialExplana
           </p>
         )}
 
-        {visibleSteps > 0 && (
-          <ol className="space-y-3">
-            {result.steps.slice(0, visibleSteps).map((step, index) => {
-              const isOpen = openSteps.has(index)
-              const cached = explanations[index]
-              const panelId = `step-explain-${switchLabelId}-${index}`
-              return (
-                <li
-                  key={index}
-                  ref={(element) => {
-                    stepRefs.current[index] = element
-                  }}
-                  tabIndex={-1}
-                  data-purpose="solve-step"
-                  className="space-y-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-amber focus-visible:ring-offset-2"
-                >
-                  <div className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-bold text-navy">
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 text-sm leading-relaxed break-words text-ink">
-                      <MathText text={step} />
-                    </span>
-                  </div>
-                  <div className="ml-9 space-y-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleExplain(index)}
-                      aria-expanded={isOpen}
-                      aria-controls={panelId}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-text hover:underline"
-                    >
-                      <LightbulbIcon className="h-3.5 w-3.5" />
-                      {t('solve.explain.button')}
-                    </button>
-                    {isOpen && (
-                      <div id={panelId} className="space-y-2">
-                        {cached?.simple ? renderExplanationBox(cached.simple, 'simple') : renderStatus(index, 'simple')}
-                        {cached?.simple && !simplerShown.has(index) && (
-                          <button
-                            type="button"
-                            onClick={() => showSimpler(index)}
-                            className="text-xs font-semibold text-amber-text hover:underline"
-                          >
-                            {t('solve.explain.simpler')}
-                          </button>
-                        )}
-                        {simplerShown.has(index) &&
-                          (cached?.simpler ? renderExplanationBox(cached.simpler, 'simpler') : renderStatus(index, 'simpler'))}
-                      </div>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ol>
-        )}
+        <ExplainableSteps
+          question={result.question}
+          steps={result.steps}
+          answer={result.answer}
+          visibleCount={visibleSteps}
+          explanations={explanations}
+          onExplained={(stepIndex, level, explanation) => {
+            markDirty(STEP_EXPLANATIONS_KEY)
+            setExplanations((current) => withExplanation(current, stepIndex, level, explanation))
+          }}
+          registerStep={(index, element) => {
+            stepRefs.current[index] = element
+          }}
+        />
 
         {answerVisible && result.answer && (
           <div
@@ -402,13 +265,45 @@ export default function SolutionView({ result, solutionId = null, initialExplana
 
       {children}
 
-      <button
-        type="button"
-        onClick={handleCreateQuiz}
-        className="inline-flex w-full items-center justify-center rounded-xl border border-warm-border bg-card px-4 py-2.5 text-sm font-bold text-navy transition-colors hover:border-amber sm:w-auto"
-      >
-        {t('solve.cta.createQuiz')}
-      </button>
+      {/* At most three actions in a row; "Solve another way" lives in the More menu. Stacks below 640px. */}
+      <div data-purpose="solution-actions" className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
+        <button type="button" onClick={() => similarRef.current?.open()} className={outlineAction}>
+          <RefreshIcon className="h-4 w-4" />
+          {t('solve.actions.similar')}
+        </button>
+        <button type="button" onClick={handleCreateQuiz} className={outlineAction}>
+          {t('solve.cta.createQuiz')}
+        </button>
+        <MoreMenu
+          items={[
+            {
+              key: 'another-way',
+              label: t('solve.actions.anotherWay'),
+              onSelect: () => anotherWayRef.current?.open(),
+            },
+          ]}
+        />
+      </div>
+
+      <SimilarProblems
+        ref={similarRef}
+        source={result}
+        items={similarItems}
+        onItemsChange={(update) => {
+          markDirty(SIMILAR_PROBLEMS_KEY)
+          setSimilarItems(update)
+        }}
+      />
+
+      <AnotherWayPanel
+        ref={anotherWayRef}
+        source={result}
+        value={anotherWay}
+        onChange={(value) => {
+          markDirty(ANOTHER_WAY_KEY)
+          setAnotherWay(value)
+        }}
+      />
 
       <p className="text-center text-xs text-muted">{t('solve.footerNote')}</p>
     </div>

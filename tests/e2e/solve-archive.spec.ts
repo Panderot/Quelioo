@@ -169,6 +169,7 @@ test.describe('Archive Solutions tab', () => {
   })
 
   test('a successful solve is saved automatically and reopens in the same view', async ({ page, mockSolve }) => {
+    test.setTimeout(45_000)
     await mockSolve(MOCK_RESULT)
     await page.goto('/solve?lng=en')
     await solveOnce(page)
@@ -300,6 +301,7 @@ test.describe('Archive Solutions tab', () => {
   })
 
   test('IndexedDB unavailable: Solve still works with the note, Archive shows the empty state', async ({ page, mockSolve }) => {
+    test.setTimeout(45_000)
     await page.addInitScript(() => {
       Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true })
     })

@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 import SolutionView from '../components/SolutionView'
 import { CalculatorIcon } from '../components/icons'
 import { getSolution } from '../lib/solutionStorage'
-import { readStepExplanations } from '../lib/stepExplanations'
 import type { StoredSolution } from '../lib/solutionStorage'
 
 const BACK_HREF = '/archive?tab=solutions'
@@ -91,7 +90,7 @@ export default function ArchiveSolutionPage() {
         key={solution.id}
         result={solution.result}
         solutionId={solution.id}
-        initialExplanations={readStepExplanations(solution.extras, solution.result.steps.length)}
+        initialExtras={solution.extras}
       />
     </>
   )

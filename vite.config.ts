@@ -5,6 +5,8 @@ import type { Plugin } from 'vite'
 
 import { solveRequestHandler } from './api/_lib/solve.js'
 import { explainStepRequestHandler } from './api/_lib/explain-step.js'
+import { similarRequestHandler } from './api/_lib/similar.js'
+import { anotherWayRequestHandler } from './api/_lib/another-way.js'
 import { generateRequestHandler } from './api/_lib/generate.js'
 import { extractUrlRequestHandler } from './api/_lib/extract-url.js'
 import { gradeRequestHandler } from './api/_lib/grade.js'
@@ -17,6 +19,12 @@ function apiDevMiddleware(): Plugin {
     configureServer(server) {
       server.middlewares.use('/api/solve', (req, res) => {
         void solveRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/similar', (req, res) => {
+        void similarRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/another-way', (req, res) => {
+        void anotherWayRequestHandler(req, res)
       })
       server.middlewares.use('/api/explain-step', (req, res) => {
         void explainStepRequestHandler(req, res)
@@ -43,4 +51,7 @@ function apiDevMiddleware(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss(), apiDevMiddleware()],
+  // Only reached via a lazy import (the similar-problem answer check); pre-bundle it so the dev
+  // server doesn't discover it mid-session and reload the page.
+  optimizeDeps: { include: ['mathjs/number'] },
 })

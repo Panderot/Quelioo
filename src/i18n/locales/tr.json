@@ -379,6 +379,58 @@
         "rate_limited": "Açıklamalar için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
         "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene."
       }
+    },
+    "actions": {
+      "similar": "Benzer soru",
+      "more": "Daha fazla",
+      "anotherWay": "Başka yolla çöz"
+    },
+    "similar": {
+      "title": "Benzer sorular",
+      "itemTitle": "Benzer soru {{number}}",
+      "answerLabel": "Cevabın",
+      "answerPlaceholder": "Örneğin: 8, 2,5, 3/4 ya da x = 8",
+      "check": "Kontrol et",
+      "verdict": {
+        "correct": "Doğru!",
+        "partial": "Kısmen doğru",
+        "incorrect": "Henüz değil. Tekrar dene."
+      },
+      "showSolution": "Çözümü göster",
+      "another": "Bir tane daha",
+      "loading": "Benzer bir soru hazırlanıyor ve cevabı kontrol ediliyor...",
+      "errors": {
+        "bad_type": "Bu oluşturulamadı. Lütfen tekrar dene.",
+        "too_large": "Bu çözüm bu işlem için çok uzun.",
+        "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
+        "parse": "Quelio bu sefer net bir yanıt yazamadı. Lütfen tekrar dene.",
+        "model": "Quelio’nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
+        "not_configured": "Bu özellik geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar dene.",
+        "rate_limited": "Bunun için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
+        "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene.",
+        "unverified": "Quelio cevabı güvenilir şekilde doğrulanmış bir soru oluşturamadı. Lütfen tekrar dene."
+      },
+      "checkErrors": {
+        "grade_failed": "Cevabın şu anda kontrol edilemedi. Lütfen tekrar dene.",
+        "empty": "Önce bir cevap yaz."
+      }
+    },
+    "anotherWay": {
+      "title": "Başka bir yol",
+      "titleWithMethod": "Başka bir yol: {{method}}",
+      "loading": "Farklı bir yöntem aranıyor...",
+      "noOtherFallback": "Bu soruyu çözmenin anlamlı ölçüde farklı bir yolu yok — yukarıdaki yöntem en doğal olanı.",
+      "errors": {
+        "bad_type": "Bu oluşturulamadı. Lütfen tekrar dene.",
+        "too_large": "Bu çözüm bu işlem için çok uzun.",
+        "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
+        "parse": "Quelio bu sefer net bir yanıt yazamadı. Lütfen tekrar dene.",
+        "model": "Quelio’nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
+        "not_configured": "Bu özellik geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar dene.",
+        "rate_limited": "Bunun için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
+        "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene.",
+        "mismatch": "Quelio aynı cevaba ulaşan başka bir yöntem bulamadı. Lütfen tekrar dene."
+      }
     }
   },
   "song": {

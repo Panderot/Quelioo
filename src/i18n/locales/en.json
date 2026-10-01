@@ -379,6 +379,58 @@
         "rate_limited": "You've reached the hourly limit for explanations. Please try again later.",
         "network": "Couldn't connect. Check your connection and try again."
       }
+    },
+    "actions": {
+      "similar": "Similar problem",
+      "more": "More",
+      "anotherWay": "Solve another way"
+    },
+    "similar": {
+      "title": "Similar problems",
+      "itemTitle": "Similar problem {{number}}",
+      "answerLabel": "Your answer",
+      "answerPlaceholder": "For example: 8, 2.5, 3/4 or x = 8",
+      "check": "Check",
+      "verdict": {
+        "correct": "Correct!",
+        "partial": "Partly correct",
+        "incorrect": "Not yet. Try again."
+      },
+      "showSolution": "Show solution",
+      "another": "Another one",
+      "loading": "Creating a similar problem and checking its answer...",
+      "errors": {
+        "bad_type": "This couldn't be created. Please try again.",
+        "too_large": "This solution is too long for this action.",
+        "upstream": "Something went wrong reaching Quelio. Please try again.",
+        "parse": "Quelio couldn't write a clear answer this time. Please try again.",
+        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "not_configured": "This is temporarily unavailable. Please try again shortly.",
+        "rate_limited": "You've reached the hourly limit for this. Please try again later.",
+        "network": "Couldn't connect. Check your connection and try again.",
+        "unverified": "Quelio couldn't make a problem with a reliably checked answer. Please try again."
+      },
+      "checkErrors": {
+        "grade_failed": "Your answer couldn't be checked right now. Please try again.",
+        "empty": "Type an answer first."
+      }
+    },
+    "anotherWay": {
+      "title": "Another way",
+      "titleWithMethod": "Another way: {{method}}",
+      "loading": "Finding a different method...",
+      "noOtherFallback": "There's no meaningfully different way to solve this one — the method above is the natural one.",
+      "errors": {
+        "bad_type": "This couldn't be created. Please try again.",
+        "too_large": "This solution is too long for this action.",
+        "upstream": "Something went wrong reaching Quelio. Please try again.",
+        "parse": "Quelio couldn't write a clear answer this time. Please try again.",
+        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "not_configured": "This is temporarily unavailable. Please try again shortly.",
+        "rate_limited": "You've reached the hourly limit for this. Please try again later.",
+        "network": "Couldn't connect. Check your connection and try again.",
+        "mismatch": "Quelio couldn't find another method that reaches the same answer. Please try again."
+      }
     }
   },
   "song": {

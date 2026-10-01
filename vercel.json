@@ -16,6 +16,12 @@
     "api/song.ts": {
       "maxDuration": 60
     },
+    "api/similar.ts": {
+      "maxDuration": 90
+    },
+    "api/another-way.ts": {
+      "maxDuration": 90
+    },
     "api/explain-step.ts": {
       "maxDuration": 45
     },

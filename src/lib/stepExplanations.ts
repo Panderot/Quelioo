@@ -28,3 +28,8 @@ export function readStepExplanations(extras: Record<string, unknown> | undefined
   }
   return cache
 }
+
+/** Immutable cache update shared by every ExplainableSteps owner. */
+export function withExplanation(cache: StepExplanationCache, stepIndex: number, level: ExplainLevel, explanation: StepExplanation): StepExplanationCache {
+  return { ...cache, [stepIndex]: { ...cache[stepIndex], [level]: explanation } }
+}
