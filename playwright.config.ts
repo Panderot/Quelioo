@@ -36,12 +36,12 @@ export default defineConfig({
     // Cross-engine coverage for the Solve crop/choice/result specs.
     {
       name: 'firefox',
-      testMatch: /solve-crop\.spec\.ts/,
+      testMatch: /solve-(crop|archive)\.spec\.ts/,
       use: { ...devices['Desktop Firefox'], viewport: { width: 1280, height: 800 } },
     },
     {
       name: 'webkit',
-      testMatch: /solve-crop\.spec\.ts/,
+      testMatch: /solve-(crop|archive)\.spec\.ts/,
       use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } },
     },
   ],

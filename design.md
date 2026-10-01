@@ -165,10 +165,14 @@ Model output mixes plain text with LaTeX (`$...$` inline, `$$...$$` block). A sh
 
 ### 7.13 Archive page
 Same shell as Create. Title "Archive" + subtitle.
-- **List:** single column, newest first, one card container with hairline dividers between rows (not separate cards).
+- **Tabs:** "Quizzes" / "Solutions" under the title, same underline tab style as the Create input tabs (7.5: 2px amber underline + bold ink when active, muted otherwise, icon left — archive / calculator). WAI-ARIA tablist, arrow/Home/End keys. The active tab lives in the URL (`/archive?tab=solutions`; Quizzes has no param) so reload and back/forward keep it. Sidebar unchanged.
+- **Quizzes tab — List:** single column, newest first, one card container with hairline dividers between rows (not separate cards).
 - **Row:** title links to `/archive/:id` (ink, semibold, truncates, amber-text on hover); meta line (question count • type • difficulty, + "• N Options" for MCQ/Mixed only, + time estimate); created date/time for the active locale; a secondary outline "Study" button (book icon, never solid amber) pinned right, outside the link, linking straight to `/archive/:id?mode=study` (7.17).
 - **Empty state:** centered card (archive icon, "No quizzes yet" title, subtitle) + one outline "Go to Create" button (never solid amber).
 - Entries with no valid `quiz.questions` array are dropped silently on load (migrated once) — there is no separate "legacy entry" UI state.
+- **Solutions tab:** a search field (card surface, search icon, matches topic/question/intro/steps/answer/tip/mistakes) above the same single card list with hairline dividers, newest first. Row: 56px rounded thumbnail (object-cover, warm border; calculator icon placeholder when a record has none) · topic (ink semibold, amber-text on hover) · one-line problem preview (math-aware, truncates) · date/time; a muted trash icon button pinned right. Rows keep identical thumbnail/trash columns at desktop and 390px. Delete asks inline ("Delete this solution?" + red-tinted Delete + outline Cancel), then a navy undo toast ("Solution deleted." + amber Undo, 6s) restores it in place. No matches: a muted centered card line. Empty state: centered card (calculator icon, "No solutions yet", subtitle) + outline "Go to Solve" link.
+- **Solution detail (`/archive/solutions/:id`):** topic as the Fraunces title + date, "Back to Solutions" text link (→ `?tab=solutions`), the saved thumbnail (rounded, bordered, contain, max 50vh), then the shared Solve result view (`SolutionView`, 7.11 — same card, Create-a-quiz action and footer note). Unknown id: centered not-found card with the back link.
+- **Storage note (Solve):** if a solution can't be saved (IndexedDB full/unavailable), one muted line under that result says so; Solve keeps working and the note isn't repeated.
 
 ### 7.14 Quiz result view (Create page, and Archive detail when Study Mode is off)
 Shown below Generate on Create after success (auto-scrolled into view), reused unchanged at `/archive/:id`. Same shell column, not a modal.

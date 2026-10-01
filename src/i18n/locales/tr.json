@@ -154,7 +154,7 @@
   },
   "archive": {
     "title": "Arşiv",
-    "subtitle": "Oluşturduğun her quiz burada saklanır.",
+    "subtitle": "Oluşturduğun her quiz ve çözdüğün her soru burada saklanır.",
     "untitled": "Adsız quiz",
     "study": "Çalış",
     "backToEdit": "Düzenlemeye dön",
@@ -172,6 +172,30 @@
       "score": "{{correct}} / {{total}} doğru",
       "hintsUsed": "Kullanılan ipucu: {{count}}",
       "tryAgain": "Tekrar dene"
+    },
+    "tabs": {
+      "label": "Arşiv bölümleri",
+      "quizzes": "Quizler",
+      "solutions": "Çözümler"
+    },
+    "solutions": {
+      "searchPlaceholder": "Çözümlerde ara",
+      "thumbnailAlt": "Sorunun fotoğrafı",
+      "noMatches": "Aramanla eşleşen çözüm yok.",
+      "confirmDelete": "Bu çözüm silinsin mi?",
+      "delete": "Sil",
+      "deleteLabel": "Çözümü sil: {{topic}}",
+      "deletedUndo": "Çözüm silindi.",
+      "empty": {
+        "title": "Henüz çözüm yok",
+        "subtitle": "Çöz bölümünde çözdüğün sorular burada görünür.",
+        "cta": "Çöz bölümüne git"
+      },
+      "detail": {
+        "backToSolutions": "Çözümlere dön",
+        "notFoundTitle": "Çözüm bulunamadı",
+        "notFoundBody": "Bu çözüm silinmiş olabilir."
+      }
     }
   },
   "create": {
@@ -330,7 +354,8 @@
       "title": "Hangi soruyu çözeyim?",
       "subtitle": "Bu fotoğrafta birden fazla soru var. Birini seçin ya da fotoğrafı tek bir soruya kırpın.",
       "cropAction": "Fotoğrafı kırp"
-    }
+    },
+    "saveUnavailable": "Bu çözüm bu cihazda Arşivine kaydedilemedi, ama burada okumaya devam edebilirsin."
   },
   "song": {
     "button": "Şarkıya çevir",

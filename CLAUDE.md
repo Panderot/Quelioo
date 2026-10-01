@@ -36,6 +36,7 @@ Kullanıcı metni, dosya/URL içeriği ve öğrenci cevabı her zaman DATA olara
 - `quelio.archive.v1`: Archive (`/archive`, `/archive/:id`) quiz kayıtlarını backend gelene kadar burada saklar.
 - `quelio.draft.v1`: Create sayfasında metin/sekme/URL/parametre/odak taslağını debounce'lu otomatik kaydeder; dosya/URL çıkarılan metni veya dosya içeriğini saklamaz.
 - `quelio-songs` (IndexedDB, `src/lib/songStorage.ts`): quiz şarkıları (ses blob'u, sözler, quizTitle, tone, factCheckPassed), quiz id'sine göre; quiz başına en fazla 2, toplamda en fazla 30 kayıt (en eskiler silinir); eksik alanlı eski kayıtlar varsayılanla okunur. `/songs` sayfası tüm kayıtları listeler.
+- `quelio-solutions` (IndexedDB, `src/lib/solutionStorage.ts`): her başarılı Solve otomatik kaydedilir (≤800px JPEG küçük resim bayt olarak, tam boy görsel asla, SolveResult, dil, tarih, gelecekteki özellikler için `extras` + `schemaVersion`; eski kayıtlar `withDefaults` ile okunur); en yeni 300 kayıt tutulur, eskiler silinir. Archive "Çözümler" sekmesi (`?tab=solutions`) ve `/archive/solutions/:id` buradan okur.
 - `quelio.musicAccessCode.v1`: production owner erişim kodu, doğrulandıktan sonra tarayıcıda saklanır; "Lock" aksiyonu siler.
 
 ## i18n

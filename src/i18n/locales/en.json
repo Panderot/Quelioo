@@ -154,7 +154,7 @@
   },
   "archive": {
     "title": "Archive",
-    "subtitle": "Every quiz you create is saved here.",
+    "subtitle": "Every quiz you create and every problem you solve is saved here.",
     "untitled": "Untitled quiz",
     "study": "Study",
     "backToEdit": "Back to editing",
@@ -172,6 +172,30 @@
       "score": "{{correct}} / {{total}} correct",
       "hintsUsed": "Hints used: {{count}}",
       "tryAgain": "Try again"
+    },
+    "tabs": {
+      "label": "Archive sections",
+      "quizzes": "Quizzes",
+      "solutions": "Solutions"
+    },
+    "solutions": {
+      "searchPlaceholder": "Search solutions",
+      "thumbnailAlt": "Photo of the problem",
+      "noMatches": "No solutions match your search.",
+      "confirmDelete": "Delete this solution?",
+      "delete": "Delete",
+      "deleteLabel": "Delete solution: {{topic}}",
+      "deletedUndo": "Solution deleted.",
+      "empty": {
+        "title": "No solutions yet",
+        "subtitle": "Problems you solve in the Solve section will appear here.",
+        "cta": "Go to Solve"
+      },
+      "detail": {
+        "backToSolutions": "Back to Solutions",
+        "notFoundTitle": "Solution not found",
+        "notFoundBody": "This solution may have been deleted."
+      }
     }
   },
   "create": {
@@ -330,7 +354,8 @@
       "title": "Which problem should I solve?",
       "subtitle": "This photo has more than one problem. Pick one, or crop the photo to just one problem.",
       "cropAction": "Crop the photo"
-    }
+    },
+    "saveUnavailable": "This solution couldn't be saved to your Archive on this device, but you can still read it here."
   },
   "song": {
     "button": "Turn into a song",
