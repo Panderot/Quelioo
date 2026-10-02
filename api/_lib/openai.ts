@@ -5,6 +5,10 @@ const UPSTREAM_TIMEOUT_MS = 25000
 export interface OpenAiUsage {
   inputTokens: number
   outputTokens: number
+  /** usage.input_tokens_details.cached_tokens — input served from the prompt cache. */
+  cachedTokens: number
+  /** usage.input_tokens_details.cache_write_tokens — input written to the prompt cache. */
+  cacheWriteTokens: number
 }
 
 export interface CallOpenAiResponsesParams {
@@ -15,6 +19,13 @@ export interface CallOpenAiResponsesParams {
   maxOutputTokens: number
   /** Optional image to attach as vision input, alongside `user` as text. */
   image?: { mimeType: string; base64Data: string }
+  /** Long static instructions sent first, as a developer message with an explicit prompt-cache
+   * breakpoint, so repeated calls reuse the cached prefix; `system` then follows as a second
+   * developer message (the variable part). */
+  cacheablePrefix?: string
+  timeoutMs?: number
+  /** Responses API reasoning.effort (e.g. "low"); omitted means the model default. */
+  reasoningEffort?: string
 }
 
 export interface OpenAiCallResult {
@@ -33,9 +44,9 @@ export interface OpenAiCallResult {
 /** POSTs a single-turn request to the OpenAI Responses API and returns the model's text reply, or a failure with enough detail for the fallback layer to decide what to do next. */
 export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Promise<OpenAiCallResult> {
   const timeoutController = new AbortController()
-  const timeout = setTimeout(() => timeoutController.abort(), UPSTREAM_TIMEOUT_MS)
+  const timeout = setTimeout(() => timeoutController.abort(), params.timeoutMs ?? UPSTREAM_TIMEOUT_MS)
 
-  const input = params.image
+  const userInput = params.image
     ? [
         {
           role: 'user',
@@ -47,6 +58,22 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
       ]
     : params.user
 
+  const prompt = params.cacheablePrefix
+    ? {
+        // Only the static prefix is written to the cache; the implicit end-of-prompt breakpoint would
+        // bill the whole variable prompt as a cache write (1.25x) on every call.
+        prompt_cache_options: { mode: 'explicit' },
+        input: [
+          {
+            role: 'developer',
+            content: [{ type: 'input_text', text: params.cacheablePrefix, prompt_cache_breakpoint: { mode: 'explicit' } }],
+          },
+          { role: 'developer', content: [{ type: 'input_text', text: params.system }] },
+          ...(typeof userInput === 'string' ? [{ role: 'user', content: [{ type: 'input_text', text: userInput }] }] : userInput),
+        ],
+      }
+    : { instructions: params.system, input: userInput }
+
   let response: Response
   try {
     response = await fetch('https://api.openai.com/v1/responses', {
@@ -57,8 +84,8 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
       },
       body: JSON.stringify({
         model: params.model,
-        instructions: params.system,
-        input,
+        ...prompt,
+        ...(params.reasoningEffort ? { reasoning: { effort: params.reasoningEffort } } : {}),
         max_output_tokens: params.maxOutputTokens,
       }),
       signal: timeoutController.signal,
@@ -85,7 +112,9 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
   return {
     ok: true,
     status: response.status,
-    text: extractOutputText(payload),
+    // A reply cut off by max_output_tokens (e.g. all spent on reasoning) reads as empty text, so the
+    // JSON layer retries it with a higher limit instead of treating it as a provider failure.
+    text: extractOutputText(payload) ?? (isRecord(payload) && payload.status === 'incomplete' ? '' : null),
     usage: extractUsage(payload),
     modelRejected: false,
     errorType: null,
@@ -125,7 +154,9 @@ function extractOutputText(payload: unknown): string | null {
 
 function extractUsage(payload: unknown): OpenAiUsage | null {
   if (!isRecord(payload) || !isRecord(payload.usage)) return null
-  const { input_tokens: inputTokens, output_tokens: outputTokens } = payload.usage
+  const { input_tokens: inputTokens, output_tokens: outputTokens, input_tokens_details: details } = payload.usage
   if (typeof inputTokens !== 'number' || typeof outputTokens !== 'number') return null
-  return { inputTokens, outputTokens }
+  const cachedTokens = isRecord(details) && typeof details.cached_tokens === 'number' ? details.cached_tokens : 0
+  const cacheWriteTokens = isRecord(details) && typeof details.cache_write_tokens === 'number' ? details.cache_write_tokens : 0
+  return { inputTokens, outputTokens, cachedTokens, cacheWriteTokens }
 }

@@ -49,9 +49,11 @@ interface FocusTextAreaProps {
   hasError: boolean
   focusParts: FocusPart[]
   onFocusPartsChange: (parts: FocusPart[]) => void
+  /** False hides "Mark as focus" (features that don't use focus parts, e.g. Audio Lesson). */
+  focusEnabled?: boolean
 }
 
-export default function FocusTextArea({ id, value, onChange, placeholder, hasError, focusParts, onFocusPartsChange }: FocusTextAreaProps) {
+export default function FocusTextArea({ id, value, onChange, placeholder, hasError, focusParts, onFocusPartsChange, focusEnabled = true }: FocusTextAreaProps) {
   const { t } = useTranslation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -136,7 +138,7 @@ export default function FocusTextArea({ id, value, onChange, placeholder, hasErr
             hasError ? 'border-error' : 'border-warm-border'
           }`}
         />
-        {buttonPosition && selection && (
+        {focusEnabled && buttonPosition && selection && (
           <button
             type="button"
             data-purpose="focus-mark-floating"
@@ -151,18 +153,20 @@ export default function FocusTextArea({ id, value, onChange, placeholder, hasErr
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          data-purpose="focus-mark-secondary"
-          onClick={markSelectionAsFocus}
-          disabled={!selection || atLimit}
-          className="rounded-lg border border-amber px-3 py-1.5 text-xs font-semibold text-amber-text transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:border-warm-border disabled:text-muted disabled:hover:bg-transparent"
-        >
-          {t('inputCard.focus.markSelection')}
-        </button>
-        {atLimit && <span className="text-[11px] text-muted">{t('inputCard.focus.limitReached', { max: MAX_FOCUS_PARTS })}</span>}
-      </div>
+      {focusEnabled && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-purpose="focus-mark-secondary"
+            onClick={markSelectionAsFocus}
+            disabled={!selection || atLimit}
+            className="rounded-lg border border-amber px-3 py-1.5 text-xs font-semibold text-amber-text transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:border-warm-border disabled:text-muted disabled:hover:bg-transparent"
+          >
+            {t('inputCard.focus.markSelection')}
+          </button>
+          {atLimit && <span className="text-[11px] text-muted">{t('inputCard.focus.limitReached', { max: MAX_FOCUS_PARTS })}</span>}
+        </div>
+      )}
 
       {prunedNoticeVisible && <p className="text-[11px] font-medium text-amber-text">{t('inputCard.focus.removedByEdit')}</p>}
 

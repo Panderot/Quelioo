@@ -69,6 +69,9 @@ interface InputCardProps {
   hasError: boolean
   focusParts: FocusPart[]
   onFocusPartsChange: (parts: FocusPart[]) => void
+  focusEnabled?: boolean
+  /** i18n key of the word-limit sentence (Create says "per quiz"). */
+  wordLimitKey?: string
 }
 
 export default function InputCard({
@@ -93,6 +96,8 @@ export default function InputCard({
   hasError,
   focusParts,
   onFocusPartsChange,
+  focusEnabled = true,
+  wordLimitKey = 'inputCard.wordLimit',
 }: InputCardProps) {
   const { t, i18n } = useTranslation()
   const tabRefs = useRef<Partial<Record<InputTab, HTMLButtonElement | null>>>({})
@@ -144,7 +149,7 @@ export default function InputCard({
       {/* Info row */}
       <div data-purpose="info-row" className="flex flex-col items-start gap-3 border-b border-warm-border pb-4 text-xs sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1 leading-normal">
-          <p className="font-medium text-muted">{t('inputCard.wordLimit')}</p>
+          <p className="font-medium text-muted">{t(wordLimitKey)}</p>
           <p data-purpose="word-counter" className={isOverWordLimit ? 'text-error' : 'text-muted'}>
             <span className="font-normal">{t('inputCard.wordCount.label')}</span>{' '}
             <span className="font-medium">{wordCount.toLocaleString(i18n.language)}</span>{' '}
@@ -212,6 +217,7 @@ export default function InputCard({
             hasError={hasError}
             focusParts={focusParts}
             onFocusPartsChange={onFocusPartsChange}
+            focusEnabled={focusEnabled}
           />
         )}
 

@@ -10,7 +10,8 @@
     "songs": "Songs",
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu",
-    "flashcards": "Flashcards"
+    "flashcards": "Flashcards",
+    "lessons": "Audio Lesson"
   },
   "topbar": {
     "language": {
@@ -548,12 +549,6 @@
     "costGuardReached": "You've reached today's limit of {{max}} songs for this quiz. Please try again tomorrow.",
     "secondsGuardReached": "You've reached today's limit of {{max}} seconds of songs. Please try again tomorrow.",
     "seeAllSongs": "See all songs",
-    "access": {
-      "title": "Enter access code",
-      "unlock": "Unlock",
-      "wrongCode": "That code isn't correct. Please try again.",
-      "lock": "Lock"
-    },
     "archive": {
       "listenTitle": "Listen",
       "hasSongLabel": "This quiz has a song"
@@ -571,6 +566,12 @@
       "storage_full": "This song couldn't be saved on this device, but it will keep playing for this session.",
       "retry": "Try again"
     }
+  },
+  "ownerAccess": {
+    "title": "Enter access code",
+    "unlock": "Unlock",
+    "wrongCode": "That code isn't correct. Please try again.",
+    "lock": "Lock"
   },
   "songsPage": {
     "title": "Songs",
@@ -826,6 +827,176 @@
       "text_one": "{{count}} flashcard is waiting for you today",
       "text_other": "{{count}} flashcards are waiting for you today",
       "dismiss": "Hide until tomorrow"
+    }
+  },
+  "lessons": {
+    "title": "Audio Lesson",
+    "subtitle": "Turn any text into a short lesson you can listen to",
+    "newLesson": "New lesson",
+    "untitled": "Untitled lesson",
+    "searchPlaceholder": "Search lessons...",
+    "noResults": "No lessons match your search.",
+    "storageNote": "Lessons can't be saved in this browser, so they last until you close this tab.",
+    "deletedUndo": "Lesson deleted.",
+    "empty": {
+      "title": "No lessons yet",
+      "subtitle": "Turn a text, a quiz or a solution into a 6-minute lesson."
+    },
+    "row": {
+      "episodes_one": "1 episode · about 6 min",
+      "episodes_other": "{{count}} episodes · about 6 min each",
+      "open": "Open",
+      "delete": "Delete",
+      "confirmDelete": "Delete this lesson?"
+    },
+    "status": {
+      "none": "Planned",
+      "script": "Script ready",
+      "audio": "Audio ready"
+    },
+    "sourceKinds": {
+      "text": "Text",
+      "file": "File",
+      "url": "Web page",
+      "quiz": "Archive quiz",
+      "solution": "Saved solution"
+    },
+    "styles": {
+      "two_hosts": "Two hosts talking",
+      "teacher_student": "Teacher and student",
+      "narrator": "Single narrator"
+    },
+    "levels": {
+      "general": "General",
+      "lgs": "LGS",
+      "yks": "YKS",
+      "kpss": "KPSS",
+      "university": "University"
+    },
+    "tones": {
+      "normal": "Normal",
+      "fun": "Fun"
+    },
+    "speakers": {
+      "hostA": "Host A",
+      "hostB": "Host B",
+      "teacher": "Teacher",
+      "student": "Student",
+      "narrator": "Narrator"
+    },
+    "roles": {
+      "recall": "Quick recall",
+      "opening": "Opening",
+      "teach": "Lesson",
+      "feynman": "In simple words",
+      "recap": "Recap",
+      "selfcheck": "Self-check",
+      "tip": "Study tip"
+    },
+    "new": {
+      "heading": "New lesson",
+      "wordLimit": "Use 30 to 5,000 words per lesson.",
+      "close": "Close",
+      "otherSources": "Or start from:",
+      "fromQuiz": "From an Archive quiz",
+      "fromSolution": "From a saved solution",
+      "pickQuiz": "Choose a quiz",
+      "pickSolution": "Choose a solution",
+      "pickerSearch": "Search...",
+      "noQuizzes": "There are no quizzes in your Archive yet.",
+      "noSolutions": "There are no saved solutions yet.",
+      "usingSource": "Using: {{label}}",
+      "clearSource": "Use my own text",
+      "optionsEyebrow": "Lesson options",
+      "lengthLabel": "Length",
+      "lengthValue": "About 6 minutes per episode",
+      "styleLabel": "Style",
+      "levelLabel": "Level",
+      "toneLabel": "Tone",
+      "toneFunHelp": "Playful, but every fact stays correct and age-appropriate.",
+      "plan": "Plan the lesson",
+      "planning": "Finding the key points...",
+      "cancel": "Cancel"
+    },
+    "plan": {
+      "heading": "Lesson plan",
+      "single": "This text will be one 6-minute episode",
+      "series": "This text will be a {{count}}-episode series",
+      "keyPoints_one": "{{count}} key point",
+      "keyPoints_other": "{{count}} key points",
+      "costSingle": "Estimated cost: about {{part}}",
+      "costSeries": "Estimated cost: about {{part}} per episode, {{total}} for the whole series",
+      "onDemand": "Each later part is written only when you ask for it.",
+      "reusedKeyPoints": "Key points reused from earlier, at no extra cost.",
+      "existing": "You already made a lesson from this text with these options.",
+      "openExisting": "Open it",
+      "createAnyway": "Write a new one anyway",
+      "writeSingle": "Write the lesson",
+      "writeFirst": "Write part 1",
+      "writing": "Writing and fact-checking the script. This takes about a minute.",
+      "back": "Change options"
+    },
+    "errors": {
+      "empty": "Add a text, a file or a web page first.",
+      "too_short": "This text is too short for a lesson. Use at least 30 words.",
+      "too_long": "This text is too long. Use at most 5,000 words.",
+      "too_long_chars": "This text is too long to use.",
+      "bad_type": "Something about this request isn't right. Please try again.",
+      "too_large": "This request is too large.",
+      "upstream": "The AI service didn't answer. Please try again.",
+      "parse": "The answer couldn't be read. Please try again.",
+      "model": "The AI model isn't available right now.",
+      "not_configured": "Audio lessons aren't set up on this server yet.",
+      "rate_limited": "You've reached the hourly limit for lessons. Please try again later.",
+      "locked": "The access code is needed to create lessons.",
+      "timeout": "This took too long. Please try again.",
+      "network": "There's no connection. Check your internet and try again.",
+      "retry": "Try again"
+    },
+    "detail": {
+      "back": "Back to lessons",
+      "notFound": "This lesson doesn't exist anymore.",
+      "partsLabel": "Lesson parts",
+      "partTab": "Part {{n}}",
+      "partOf": "Part {{n}} of {{total}}",
+      "notWrittenShort": "not written",
+      "notWrittenYet": "Part {{n}} isn't written yet. Each part is written only when you ask, so you never pay for parts you don't listen to.",
+      "preparePart": "Prepare part {{n}}",
+      "prepareNext": "Prepare next part ({{n}})",
+      "goToPart": "Go to part {{n}}",
+      "preparing": "Writing part {{n}} and checking every line...",
+      "duration": "About {{time}} · {{words}} words",
+      "cost": "Script cost: {{cost}} · {{share}}% of input from cache",
+      "totalCost": "Real cost so far: {{cost}}",
+      "coverage": "{{n}}/{{m}} key points covered",
+      "taughtIn": "Taught in: {{where}}",
+      "notTaught": "not covered yet",
+      "notWritten": "part {{n}} (not written yet)",
+      "checkPassed": "Every line was fact-checked against your text.",
+      "checkFailed_one": "{{count}} line needs checking before you rely on it.",
+      "checkFailed_other": "{{count}} lines need checking before you rely on them.",
+      "checkNotRun": "The fact check couldn't run. Check this script yourself before you rely on it.",
+      "missingPoints": "Key points still missing: {{list}}",
+      "rewritten_one": "The fact-checker rewrote {{count}} line.",
+      "rewritten_other": "The fact-checker rewrote {{count}} lines.",
+      "editedNote_one": "You changed the script ({{count}} edited line). It is checked against your text before the next step.",
+      "editedNote_other": "You changed the script ({{count}} edited lines). It is checked against your text before the next step.",
+      "checkEdits": "Check my edits",
+      "checking": "Checking your edits...",
+      "needsCheck": "Check this line:",
+      "issueSymbols": "Numbers and symbols should be written as words so they can be read aloud.",
+      "issueLong": "This line is too long to say in one breath.",
+      "issueCalc": "The calculation is wrong ({{detail}}).",
+      "speakerLabel": "Speaker",
+      "lineText": "Line text",
+      "saveLine": "Save",
+      "editLine": "Edit line",
+      "deleteLine": "Delete line",
+      "addLine": "Add a line after this one",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "pauseTag": "pause",
+      "editedTag": "edited"
     }
   }
 }

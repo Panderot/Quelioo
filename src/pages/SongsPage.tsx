@@ -7,7 +7,7 @@ import type { ArchiveEntry } from '../lib/archive'
 import { buildSongKeyFacts } from '../lib/songFacts'
 import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
 import type { SongTone } from '../lib/song'
-import { getStoredMusicAccessCode, clearStoredMusicAccessCode } from '../lib/songAccessCode'
+import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { deleteSong, getAllSongs, saveSong } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import { remainingSongSecondsToday } from '../lib/songCostGuard'
@@ -57,7 +57,7 @@ export default function SongsPage() {
   // Archive entries aren't needed live — just once per page mount, to know which quizzes still
   // exist (for "open quiz" vs "Quiz deleted") and to populate the "New song" quiz picker.
   const archiveEntries = useMemo<ArchiveEntry[]>(() => getArchiveEntries(), [])
-  const [hasAccessCode, setHasAccessCode] = useState(() => Boolean(getStoredMusicAccessCode()))
+  const [hasAccessCode, setHasAccessCode] = useState(() => Boolean(getStoredOwnerAccessCode()))
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerSearch, setPickerSearch] = useState('')
@@ -206,7 +206,7 @@ export default function SongsPage() {
   }
 
   const handleLock = () => {
-    clearStoredMusicAccessCode()
+    clearStoredOwnerAccessCode()
     setHasAccessCode(false)
   }
 
@@ -225,7 +225,7 @@ export default function SongsPage() {
               className="flex items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-error/40 hover:text-error"
             >
               <LockIcon className="h-3.5 w-3.5" />
-              {t('song.access.lock')}
+              {t('ownerAccess.lock')}
             </button>
           )}
           <p className="text-xs font-medium text-muted">{t('songsPage.songsLeftToday', { count: songsLeftToday })}</p>

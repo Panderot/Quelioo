@@ -408,3 +408,32 @@ export function PlusIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function HeadphonesIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M4 16v-4a8 8 0 0116 0v4M4 16a2 2 0 012-2h1a1 1 0 011 1v4a1 1 0 01-1 1H6a2 2 0 01-2-2v-2zM20 16a2 2 0 00-2-2h-1a1 1 0 00-1 1v4a1 1 0 001 1h1a2 2 0 002-2v-2z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}
+
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 19V5M6 11l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}
+
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 5v14M6 13l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}

@@ -15,6 +15,7 @@ import { songLyricsRequestHandler } from './api/_lib/song-lyrics.js'
 import { songRequestHandler } from './api/_lib/song.js'
 import { cardsRequestHandler } from './api/_lib/cards.js'
 import { solveToolsRequestHandler } from './api/_lib/solve-tools.js'
+import { lessonRequestHandler } from './api/_lib/lesson.js'
 
 function apiDevMiddleware(): Plugin {
   return {
@@ -23,6 +24,9 @@ function apiDevMiddleware(): Plugin {
       // Production routes these four through /api/solve-tools (vercel.json rewrites); same handlers.
       server.middlewares.use('/api/solve-tools', (req, res) => {
         void solveToolsRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/lesson', (req, res) => {
+        void lessonRequestHandler(req, res)
       })
       server.middlewares.use('/api/cards', (req, res) => {
         void cardsRequestHandler(req, res)

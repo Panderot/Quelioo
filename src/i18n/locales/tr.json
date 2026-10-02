@@ -10,7 +10,8 @@
     "songs": "Şarkılar",
     "openMenu": "Gezinme menüsünü aç",
     "closeMenu": "Gezinme menüsünü kapat",
-    "flashcards": "Kartlar"
+    "flashcards": "Kartlar",
+    "lessons": "Sesli Ders"
   },
   "topbar": {
     "language": {
@@ -548,12 +549,6 @@
     "costGuardReached": "Bu quiz için bugünkü {{max}} şarkı sınırına ulaştın. Lütfen yarın tekrar dene.",
     "secondsGuardReached": "Bugünkü {{max}} saniyelik şarkı sınırına ulaştın. Lütfen yarın tekrar dene.",
     "seeAllSongs": "Tüm şarkılar",
-    "access": {
-      "title": "Erişim kodunu gir",
-      "unlock": "Kilidi aç",
-      "wrongCode": "Bu kod doğru değil. Lütfen tekrar dene.",
-      "lock": "Kilitle"
-    },
     "archive": {
       "listenTitle": "Dinle",
       "hasSongLabel": "Bu quizin bir şarkısı var"
@@ -571,6 +566,12 @@
       "storage_full": "Bu şarkı bu cihazda kaydedilemedi ama bu oturum boyunca çalmaya devam edecek.",
       "retry": "Tekrar dene"
     }
+  },
+  "ownerAccess": {
+    "title": "Erişim kodunu gir",
+    "unlock": "Kilidi aç",
+    "wrongCode": "Bu kod doğru değil. Lütfen tekrar dene.",
+    "lock": "Kilitle"
   },
   "songsPage": {
     "title": "Şarkılar",
@@ -826,6 +827,176 @@
       "text_one": "Bugün seni bekleyen {{count}} kart var",
       "text_other": "Bugün seni bekleyen {{count}} kart var",
       "dismiss": "Yarına kadar gizle"
+    }
+  },
+  "lessons": {
+    "title": "Sesli Ders",
+    "subtitle": "Her metni dinleyebileceğin kısa bir derse dönüştür",
+    "newLesson": "Yeni ders",
+    "untitled": "Adsız ders",
+    "searchPlaceholder": "Derslerde ara...",
+    "noResults": "Aramana uyan ders yok.",
+    "storageNote": "Dersler bu tarayıcıda kaydedilemiyor; bu sekmeyi kapatana kadar durur.",
+    "deletedUndo": "Ders silindi.",
+    "empty": {
+      "title": "Henüz ders yok",
+      "subtitle": "Bir metni, testi ya da çözümü 6 dakikalık bir derse dönüştür."
+    },
+    "row": {
+      "episodes_one": "1 bölüm · yaklaşık 6 dk",
+      "episodes_other": "{{count}} bölüm · her biri yaklaşık 6 dk",
+      "open": "Aç",
+      "delete": "Sil",
+      "confirmDelete": "Bu ders silinsin mi?"
+    },
+    "status": {
+      "none": "Planlandı",
+      "script": "Metin hazır",
+      "audio": "Ses hazır"
+    },
+    "sourceKinds": {
+      "text": "Metin",
+      "file": "Dosya",
+      "url": "Web sayfası",
+      "quiz": "Arşivdeki test",
+      "solution": "Kayıtlı çözüm"
+    },
+    "styles": {
+      "two_hosts": "İki sunucu sohbeti",
+      "teacher_student": "Öğretmen ve öğrenci",
+      "narrator": "Tek anlatıcı"
+    },
+    "levels": {
+      "general": "Genel",
+      "lgs": "LGS",
+      "yks": "YKS",
+      "kpss": "KPSS",
+      "university": "Üniversite"
+    },
+    "tones": {
+      "normal": "Normal",
+      "fun": "Eğlenceli"
+    },
+    "speakers": {
+      "hostA": "Sunucu A",
+      "hostB": "Sunucu B",
+      "teacher": "Öğretmen",
+      "student": "Öğrenci",
+      "narrator": "Anlatıcı"
+    },
+    "roles": {
+      "recall": "Hızlı hatırlatma",
+      "opening": "Giriş",
+      "teach": "Konu",
+      "feynman": "Basitçe anlat",
+      "recap": "Özet",
+      "selfcheck": "Kendini yokla",
+      "tip": "Çalışma önerisi"
+    },
+    "new": {
+      "heading": "Yeni ders",
+      "wordLimit": "Her ders için 30 ile 5.000 kelime arası metin kullanabilirsin.",
+      "close": "Kapat",
+      "otherSources": "Ya da şuradan başla:",
+      "fromQuiz": "Arşivdeki bir testten",
+      "fromSolution": "Kayıtlı bir çözümden",
+      "pickQuiz": "Bir test seç",
+      "pickSolution": "Bir çözüm seç",
+      "pickerSearch": "Ara...",
+      "noQuizzes": "Arşivinde henüz test yok.",
+      "noSolutions": "Henüz kayıtlı çözüm yok.",
+      "usingSource": "Kaynak: {{label}}",
+      "clearSource": "Kendi metnimi kullan",
+      "optionsEyebrow": "Ders seçenekleri",
+      "lengthLabel": "Uzunluk",
+      "lengthValue": "Bölüm başına yaklaşık 6 dakika",
+      "styleLabel": "Biçim",
+      "levelLabel": "Seviye",
+      "toneLabel": "Ton",
+      "toneFunHelp": "Eğlenceli ama her bilgi doğru ve yaşa uygun kalır.",
+      "plan": "Dersi planla",
+      "planning": "Ana bilgiler bulunuyor...",
+      "cancel": "Vazgeç"
+    },
+    "plan": {
+      "heading": "Ders planı",
+      "single": "Bu metin 6 dakikalık tek bir bölüm olacak",
+      "series": "Bu metin {{count}} bölümlük bir seri olacak",
+      "keyPoints_one": "{{count}} ana bilgi",
+      "keyPoints_other": "{{count}} ana bilgi",
+      "costSingle": "Tahmini maliyet: yaklaşık {{part}}",
+      "costSeries": "Tahmini maliyet: bölüm başına yaklaşık {{part}}, serinin tamamı için {{total}}",
+      "onDemand": "Sonraki her bölüm yalnızca sen istediğinde yazılır.",
+      "reusedKeyPoints": "Ana bilgiler daha önce çıkarılmıştı; ek maliyet yok.",
+      "existing": "Bu metinden bu seçeneklerle zaten bir ders yaptın.",
+      "openExisting": "Onu aç",
+      "createAnyway": "Yine de yenisini yaz",
+      "writeSingle": "Dersi yaz",
+      "writeFirst": "1. bölümü yaz",
+      "writing": "Metin yazılıyor ve doğruluğu kontrol ediliyor. Yaklaşık bir dakika sürer.",
+      "back": "Seçenekleri değiştir"
+    },
+    "errors": {
+      "empty": "Önce bir metin, dosya ya da web sayfası ekle.",
+      "too_short": "Bu metin ders için çok kısa. En az 30 kelime kullan.",
+      "too_long": "Bu metin çok uzun. En fazla 5.000 kelime kullan.",
+      "too_long_chars": "Bu metin kullanılamayacak kadar uzun.",
+      "bad_type": "Bu istekte bir sorun var. Lütfen tekrar dene.",
+      "too_large": "Bu istek çok büyük.",
+      "upstream": "Yapay zekâ hizmeti yanıt vermedi. Lütfen tekrar dene.",
+      "parse": "Yanıt okunamadı. Lütfen tekrar dene.",
+      "model": "Yapay zekâ modeli şu anda kullanılamıyor.",
+      "not_configured": "Sesli dersler bu sunucuda henüz ayarlanmadı.",
+      "rate_limited": "Dersler için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
+      "locked": "Ders oluşturmak için erişim kodu gerekiyor.",
+      "timeout": "Bu çok uzun sürdü. Lütfen tekrar dene.",
+      "network": "Bağlantı yok. İnternetini kontrol edip tekrar dene.",
+      "retry": "Tekrar dene"
+    },
+    "detail": {
+      "back": "Derslere dön",
+      "notFound": "Bu ders artık yok.",
+      "partsLabel": "Ders bölümleri",
+      "partTab": "{{n}}. bölüm",
+      "partOf": "{{n}}. bölüm / {{total}}",
+      "notWrittenShort": "yazılmadı",
+      "notWrittenYet": "{{n}}. bölüm henüz yazılmadı. Her bölüm yalnızca sen istediğinde yazılır; böylece dinlemeyeceğin bölümlere hiç ödeme yapmazsın.",
+      "preparePart": "{{n}}. bölümü hazırla",
+      "prepareNext": "Sonraki bölümü hazırla ({{n}})",
+      "goToPart": "{{n}}. bölüme geç",
+      "preparing": "{{n}}. bölüm yazılıyor ve her satır kontrol ediliyor...",
+      "duration": "Yaklaşık {{time}} · {{words}} kelime",
+      "cost": "Metin maliyeti: {{cost}} · girdinin %{{share}} kadarı önbellekten",
+      "totalCost": "Şimdiye kadarki gerçek maliyet: {{cost}}",
+      "coverage": "{{n}}/{{m}} ana bilgi anlatıldı",
+      "taughtIn": "Anlatıldığı yer: {{where}}",
+      "notTaught": "henüz anlatılmadı",
+      "notWritten": "{{n}}. bölüm (henüz yazılmadı)",
+      "checkPassed": "Her satır metnine göre kontrol edildi.",
+      "checkFailed_one": "{{count}} satıra güvenmeden önce kontrol edilmesi gerekiyor.",
+      "checkFailed_other": "{{count}} satıra güvenmeden önce kontrol edilmesi gerekiyor.",
+      "checkNotRun": "Doğruluk kontrolü çalışmadı. Bu metne güvenmeden önce kendin kontrol et.",
+      "missingPoints": "Hâlâ eksik ana bilgiler: {{list}}",
+      "rewritten_one": "Doğruluk kontrolü {{count}} satırı yeniden yazdı.",
+      "rewritten_other": "Doğruluk kontrolü {{count}} satırı yeniden yazdı.",
+      "editedNote_one": "Metni değiştirdin ({{count}} satır düzenlendi). Sonraki adımdan önce metnine göre kontrol edilir.",
+      "editedNote_other": "Metni değiştirdin ({{count}} satır düzenlendi). Sonraki adımdan önce metnine göre kontrol edilir.",
+      "checkEdits": "Düzenlemelerimi kontrol et",
+      "checking": "Düzenlemelerin kontrol ediliyor...",
+      "needsCheck": "Bu satırı kontrol et:",
+      "issueSymbols": "Sesli okunabilmesi için sayılar ve semboller yazıyla yazılmalı.",
+      "issueLong": "Bu satır tek nefeste söylenemeyecek kadar uzun.",
+      "issueCalc": "Hesaplama yanlış ({{detail}}).",
+      "speakerLabel": "Konuşan",
+      "lineText": "Satır metni",
+      "saveLine": "Kaydet",
+      "editLine": "Satırı düzenle",
+      "deleteLine": "Satırı sil",
+      "addLine": "Bundan sonra satır ekle",
+      "moveUp": "Yukarı taşı",
+      "moveDown": "Aşağı taşı",
+      "pauseTag": "duraklama",
+      "editedTag": "düzenlendi"
     }
   }
 }

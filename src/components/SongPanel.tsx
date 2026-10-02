@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
-import { checkSongLyrics, createSong, writeSongLyrics, SongApiError } from '../api/song'
+import { checkSongLyrics, createSong, writeSongLyrics, SongApiError, verifyAndStoreMusicAccessCode } from '../api/song'
 import type { SongLyricsResponseBody } from '../lib/song'
 import { SONG_STYLES, SONG_TONES, targetSecondsForFactCount } from '../lib/song'
 import type { SongErrorCode, SongStyle, SongTone } from '../lib/song'
@@ -14,11 +14,11 @@ import {
   MAX_SONG_GENERATIONS_PER_DAY,
   MAX_SONG_SECONDS_PER_DAY,
 } from '../lib/songCostGuard'
-import { getStoredMusicAccessCode, clearStoredMusicAccessCode } from '../lib/songAccessCode'
+import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { saveSong } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import SongPlayerCard from './SongPlayerCard'
-import MusicAccessGate from './MusicAccessGate'
+import OwnerAccessGate from './OwnerAccessGate'
 import { CloseIcon, MusicNoteIcon } from './icons'
 
 type SongStep = 'locked' | 'options' | 'lyrics' | 'creating' | 'player'
@@ -34,7 +34,7 @@ interface SongPanelProps {
   /** The active provider's longest supported song — clamps the length estimate shown before
    * generation (see lib/song.ts's targetSecondsForFactCount / maxFactsForTargetSeconds). */
   maxSeconds: number
-  /** True in production — gates the flow behind MusicAccessGate until a valid code is stored. */
+  /** True in production — gates the flow behind OwnerAccessGate until a valid code is stored. */
   requiresAccessCode?: boolean
   /** Shown next to "Make another" after a song is created — true from the quiz result view's entry
    * point, false/omitted when the panel is already embedded in the Songs page itself. */
@@ -85,7 +85,7 @@ export default function SongPanel({
   const abortRef = useRef<AbortController | null>(null)
   const objectUrlRef = useRef<string | null>(null)
 
-  const [step, setStep] = useState<SongStep>(() => (requiresAccessCode && !getStoredMusicAccessCode() ? 'locked' : 'options'))
+  const [step, setStep] = useState<SongStep>(() => (requiresAccessCode && !getStoredOwnerAccessCode() ? 'locked' : 'options'))
   const [style, setStyle] = useState<SongStyle>('pop')
   const [tone, setTone] = useState<SongTone>('normal')
   const [isWritingLyrics, setIsWritingLyrics] = useState(false)
@@ -191,7 +191,7 @@ export default function SongPanel({
       setStep('lyrics')
     } catch (error) {
       if (error instanceof SongApiError && error.code === 'locked') {
-        clearStoredMusicAccessCode()
+        clearStoredOwnerAccessCode()
         setStep('locked')
         return
       }
@@ -272,7 +272,7 @@ export default function SongPanel({
         return
       }
       if (error instanceof SongApiError && error.code === 'locked') {
-        clearStoredMusicAccessCode()
+        clearStoredOwnerAccessCode()
         setStep('locked')
         return
       }
@@ -335,7 +335,7 @@ export default function SongPanel({
         </div>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4">
-          {step === 'locked' && <MusicAccessGate onUnlocked={() => setStep('options')} />}
+          {step === 'locked' && <OwnerAccessGate onUnlocked={() => setStep('options')} verify={verifyAndStoreMusicAccessCode} />}
 
           {step === 'options' && (
             <>

@@ -30,6 +30,9 @@
     },
     "api/solve.ts": {
       "maxDuration": 90
+    },
+    "api/lesson.ts": {
+      "maxDuration": 300
     }
   }
 }

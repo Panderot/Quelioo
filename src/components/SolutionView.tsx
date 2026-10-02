@@ -8,6 +8,7 @@ import type { CheckWorkResult } from '../api/checkWork'
 import { ANOTHER_WAY_KEY, CHECK_WORK_KEY, readAnotherWay, readCheckWork, readSimilarItems, SIMILAR_PROBLEMS_KEY } from '../lib/solutionExtras'
 import type { SimilarItem, StoredAnotherWay } from '../lib/solutionExtras'
 import { updateSolutionExtras } from '../lib/solutionStorage'
+import { solutionSourceText } from '../lib/sourceText'
 import { readStepExplanations, STEP_EXPLANATIONS_KEY, withExplanation } from '../lib/stepExplanations'
 import type { StepExplanationCache } from '../lib/stepExplanations'
 import { generateCards } from '../api/cards'
@@ -58,21 +59,6 @@ function buildQuizPrefillText(
 }
 
 type ExtraKey = typeof STEP_EXPLANATIONS_KEY | typeof SIMILAR_PROBLEMS_KEY | typeof ANOTHER_WAY_KEY | typeof CHECK_WORK_KEY
-
-/** Plain-text version of a solution, used as the source for "Make flashcards". */
-function solutionSourceText(result: SolveResult): string {
-  return [
-    result.topic,
-    result.question,
-    result.intro,
-    ...result.steps.map((step, index) => `${index + 1}. ${step}`),
-    result.answer && `Answer: ${result.answer}`,
-    result.tip && `Tip: ${result.tip}`,
-    ...result.mistakes.map((mistake) => `Common mistake: ${mistake}`),
-  ]
-    .filter(Boolean)
-    .join('\n')
-}
 
 interface SolutionViewProps {
   result: SolveResult

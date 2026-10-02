@@ -53,11 +53,20 @@ function digest(value: string): Buffer {
   return createHash('sha256').update(value, 'utf8').digest()
 }
 
-/** Constant-time compare against MUSIC_ACCESS_CODE (via equal-length SHA-256 digests, so comparing
- * values of different lengths doesn't short-circuit). Fails closed — a missing/empty
- * MUSIC_ACCESS_CODE means no header value can ever pass, per CLAUDE.md. */
-export function verifyMusicAccessCode(provided: string | undefined | null): boolean {
-  const expected = process.env.MUSIC_ACCESS_CODE
+/** The shared owner code for every paid owner-only feature (Songs, Audio Lesson): OWNER_ACCESS_CODE
+ * when set, otherwise MUSIC_ACCESS_CODE, so the existing code keeps working unchanged. */
+function ownerAccessCode(): string | undefined {
+  return process.env.OWNER_ACCESS_CODE || process.env.MUSIC_ACCESS_CODE || undefined
+}
+
+/** Constant-time compare against the owner code (via equal-length SHA-256 digests, so comparing
+ * values of different lengths doesn't short-circuit). Fails closed — with no code configured no
+ * header value can ever pass, per CLAUDE.md. */
+export function verifyOwnerAccessCode(provided: string | undefined | null): boolean {
+  const expected = ownerAccessCode()
   if (!expected || !provided) return false
   return timingSafeEqual(digest(provided), digest(expected))
 }
+
+/** Songs keep their own name for the same shared owner gate. */
+export const verifyMusicAccessCode = verifyOwnerAccessCode

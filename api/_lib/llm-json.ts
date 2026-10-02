@@ -2,14 +2,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { extractJson, isRecord, readRequestBody } from './anthropic.js'
 import { generateJson } from './llm.js'
-import type { LlmImageInput, LlmProvider } from './llm.js'
+import type { LlmImageInput, LlmProvider, LlmUsage } from './llm.js'
 import { requestIp } from './song-rate-limit.js'
 
 export type LlmJsonErrorCode = 'upstream' | 'parse' | 'model' | 'not_configured'
 
 export type LlmJsonResult<T> =
-  | { ok: true; value: T; provider: LlmProvider; fallbackUsed: boolean }
-  | { ok: false; error: LlmJsonErrorCode }
+  | { ok: true; value: T; provider: LlmProvider; fallbackUsed: boolean; usage: LlmUsage[] }
+  | { ok: false; error: LlmJsonErrorCode; usage: LlmUsage[] }
 
 /**
  * One JSON-returning call through the shared provider layer: parses + validates the reply with
@@ -24,7 +24,14 @@ export async function callLlmJson<T>(params: {
   /** Optional vision input sent with `user` (e.g. a photo of the student's work). */
   image?: LlmImageInput
   preferProvider?: LlmProvider
+  onlyProvider?: LlmProvider
+  openAiModel?: string
+  cacheablePrefix?: string
+  timeoutMs?: number
+  reasoningEffort?: string
 }): Promise<LlmJsonResult<T>> {
+  // Every attempt is billed, including an invalid/truncated first reply — all of them are reported.
+  const usage: LlmUsage[] = []
   for (const maxTokens of [params.initialTokens, params.retryTokens]) {
     const result = await generateJson({
       system: params.system,
@@ -32,13 +39,19 @@ export async function callLlmJson<T>(params: {
       maxTokens,
       ...(params.image ? { image: params.image } : {}),
       ...(params.preferProvider ? { preferProvider: params.preferProvider } : {}),
+      ...(params.onlyProvider ? { onlyProvider: params.onlyProvider } : {}),
+      ...(params.openAiModel ? { openAiModel: params.openAiModel } : {}),
+      ...(params.cacheablePrefix ? { cacheablePrefix: params.cacheablePrefix } : {}),
+      ...(params.timeoutMs ? { timeoutMs: params.timeoutMs } : {}),
+      ...(params.reasoningEffort ? { reasoningEffort: params.reasoningEffort } : {}),
     })
-    if (result.status === 'not_configured') return { ok: false, error: 'not_configured' }
-    if (result.status === 'error') return { ok: false, error: result.error === 'model' ? 'model' : 'upstream' }
+    if (result.status === 'not_configured') return { ok: false, error: 'not_configured', usage }
+    if (result.status === 'error') return { ok: false, error: result.error === 'model' ? 'model' : 'upstream', usage }
+    if (result.usage) usage.push(result.usage)
     const value = params.validate(extractJson(result.text))
-    if (value !== null) return { ok: true, value, provider: result.provider, fallbackUsed: result.fallbackUsed }
+    if (value !== null) return { ok: true, value, provider: result.provider, fallbackUsed: result.fallbackUsed, usage }
   }
-  return { ok: false, error: 'parse' }
+  return { ok: false, error: 'parse', usage }
 }
 
 export function cleanString(value: unknown, maxChars: number): string {

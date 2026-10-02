@@ -146,8 +146,8 @@ test('sidebar "Songs" item is hidden and /songs redirects to Create when the fea
   await mockSongStatus(page, false)
   await page.goto('/?lng=en')
   await expect(page.getByRole('link', { name: 'Songs' })).toHaveCount(0)
-  // Without Songs, Flashcards follows Archive.
-  await expect(page.locator('[data-purpose="sidebar-navigation"]').getByRole('link')).toHaveText(['Create', 'Solve', 'Archive', 'Flashcards'])
+  // Without Songs, Flashcards and Audio Lesson follow Archive.
+  await expect(page.locator('[data-purpose="sidebar-navigation"]').getByRole('link')).toHaveText(['Create', 'Solve', 'Archive', 'Flashcards', 'Audio Lesson'])
 
   await page.goto('/songs?lng=en')
   await expect(page).toHaveURL('/')
@@ -156,8 +156,8 @@ test('sidebar "Songs" item is hidden and /songs redirects to Create when the fea
 test('sidebar "Songs" item appears when enabled and navigates to /songs', async ({ page }) => {
   await mockSongStatus(page, true)
   await page.goto('/?lng=en')
-  // Flashcards sits directly after Songs.
-  await expect(page.locator('[data-purpose="sidebar-navigation"]').getByRole('link')).toHaveText(['Create', 'Solve', 'Songs', 'Flashcards', 'Archive'])
+  // Flashcards sits directly after Songs, then Audio Lesson.
+  await expect(page.locator('[data-purpose="sidebar-navigation"]').getByRole('link')).toHaveText(['Create', 'Solve', 'Songs', 'Flashcards', 'Audio Lesson', 'Archive'])
   await page.getByRole('link', { name: 'Songs' }).click()
   await expect(page).toHaveURL('/songs')
   await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible()
@@ -169,7 +169,7 @@ test('@mobile drawer at 390px keeps Flashcards right after Songs', async ({ page
   await page.goto('/?lng=en')
   await page.getByRole('button', { name: 'Open navigation menu' }).click()
   const nav = page.locator('[data-purpose="sidebar-navigation"]')
-  await expect(nav.getByRole('link')).toHaveText(['Create', 'Solve', 'Songs', 'Flashcards', 'Archive'])
+  await expect(nav.getByRole('link')).toHaveText(['Create', 'Solve', 'Songs', 'Flashcards', 'Audio Lesson', 'Archive'])
   await nav.getByRole('link', { name: 'Flashcards' }).click()
   await expect(page).toHaveURL('/flashcards')
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)

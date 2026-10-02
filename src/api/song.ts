@@ -8,7 +8,7 @@ import type {
   SongStyle,
   SongTone,
 } from '../lib/song'
-import { clearStoredMusicAccessCode, getStoredMusicAccessCode, setStoredMusicAccessCode } from '../lib/songAccessCode'
+import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode, setStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 
 export class SongApiError extends Error {
   code: SongErrorCode
@@ -73,7 +73,7 @@ export interface CreateSongPayload {
 
 function songRequestHeaders(): HeadersInit {
   const headers: Record<string, string> = { 'content-type': 'application/json' }
-  const code = getStoredMusicAccessCode()
+  const code = getStoredOwnerAccessCode()
   if (code) headers['x-music-access'] = code
   return headers
 }
@@ -139,11 +139,11 @@ export async function verifyAndStoreMusicAccessCode(code: string): Promise<boole
     if (response.status === 403) {
       const json: unknown = await response.json().catch(() => null)
       if (isRecord(json) && json.error === 'locked') {
-        clearStoredMusicAccessCode()
+        clearStoredOwnerAccessCode()
         return false
       }
     }
-    setStoredMusicAccessCode(code)
+    setStoredOwnerAccessCode(code)
     return true
   } catch {
     return false

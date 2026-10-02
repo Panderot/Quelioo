@@ -1,6 +1,7 @@
 import { callAnthropicMessagesDetailed, resolveModel } from './anthropic.js'
 import type { AnthropicContentBlock } from './anthropic.js'
 import { callOpenAiResponses } from './openai.js'
+import type { OpenAiUsage } from './openai.js'
 
 export type LlmProvider = 'anthropic' | 'openai'
 export type LlmErrorCode = 'upstream' | 'parse' | 'model'
@@ -24,10 +25,24 @@ export interface LlmCallParams {
   image?: LlmImageInput
   /** Try this provider first (e.g. an independent second opinion from the other provider). */
   preferProvider?: LlmProvider
+  /** Use only this provider, never fall back to the other one (e.g. Audio Lesson is OpenAI-only). */
+  onlyProvider?: LlmProvider
+  /** OpenAI model id for this call instead of OPENAI_MODEL / the default. */
+  openAiModel?: string
+  /** Static instructions placed first with an explicit prompt-cache breakpoint (OpenAI); `system` is the variable rest. */
+  cacheablePrefix?: string
+  timeoutMs?: number
+  /** OpenAI reasoning effort for this call. */
+  reasoningEffort?: string
+}
+
+/** Token usage of one successful call, for cost logging (OpenAI only for now). */
+export interface LlmUsage extends OpenAiUsage {
+  model: string
 }
 
 export type LlmResult =
-  | { status: 'ok'; text: string; provider: LlmProvider; fallbackUsed: boolean }
+  | { status: 'ok'; text: string; provider: LlmProvider; fallbackUsed: boolean; usage?: LlmUsage }
   | { status: 'error'; error: LlmErrorCode }
   | { status: 'not_configured' }
 
@@ -39,7 +54,7 @@ interface ProviderFailure {
   errorCode: string | null
 }
 
-type ProviderOutcome = ProviderFailure | { text: string } | null
+type ProviderOutcome = ProviderFailure | { text: string; usage?: LlmUsage } | null
 
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-5-5'
 const DEFAULT_OPENAI_MODEL = 'gpt-5.6-luna'
@@ -122,7 +137,9 @@ async function callAnthropic(params: LlmCallParams): Promise<ProviderOutcome> {
     apiKey,
     model,
     maxTokens: params.maxTokens,
-    system: params.system,
+    system: params.cacheablePrefix ? `${params.cacheablePrefix}
+
+${params.system}` : params.system,
     content,
     outputConfig: effort.outputConfig,
     thinking: effort.thinking,
@@ -143,7 +160,7 @@ async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
     return { error: 'upstream', logTag: 'forced_fail', status: null, errorType: null, errorCode: null }
   }
 
-  const model = process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL
+  const model = params.openAiModel ?? process.env.OPENAI_MODEL ?? DEFAULT_OPENAI_MODEL
   const result = await callOpenAiResponses({
     apiKey,
     model,
@@ -151,13 +168,16 @@ async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
     user: params.user,
     maxOutputTokens: params.maxTokens,
     image: params.image,
+    cacheablePrefix: params.cacheablePrefix,
+    timeoutMs: params.timeoutMs,
+    reasoningEffort: params.reasoningEffort,
   })
 
   if (!result.ok || result.text === null) {
     const logTag = classifyOpenAiFailure(result.status, result.errorCode, result.modelRejected)
     return { error: toClientErrorCode(logTag), logTag, status: result.status, errorType: result.errorType, errorCode: result.errorCode }
   }
-  return { text: result.text }
+  return { text: result.text, ...(result.usage ? { usage: { ...result.usage, model } } : {}) }
 }
 
 const CALLERS: Record<LlmProvider, (params: LlmCallParams) => Promise<ProviderOutcome>> = {
@@ -178,7 +198,9 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
   const start = Date.now()
   const resolved = resolveProviderOrder()
   const preferred = params.preferProvider
-  const order = (preferred && resolved.includes(preferred) ? [preferred, ...resolved.filter((p) => p !== preferred)] : resolved).slice(0, 2)
+  const order = params.onlyProvider
+    ? [params.onlyProvider]
+    : (preferred && resolved.includes(preferred) ? [preferred, ...resolved.filter((p) => p !== preferred)] : resolved).slice(0, 2)
 
   let attempts = 0
   let lastProvider: LlmProvider | null = null
@@ -204,7 +226,7 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
 
     const fallbackUsed = attempts > 1
     console.log(`llm: provider=${provider} fallbackUsed=${fallbackUsed} duration=${Date.now() - start}ms error=none`)
-    return { status: 'ok', text: outcome.text, provider, fallbackUsed }
+    return { status: 'ok', text: outcome.text, provider, fallbackUsed, ...(outcome.usage ? { usage: outcome.usage } : {}) }
   }
 
   const duration = Date.now() - start

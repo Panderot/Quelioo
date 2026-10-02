@@ -1,6 +1,6 @@
 # Quelio Design System
 
-> **Product:** Quelio, an AI quiz generator (text, file, URL to quiz) plus a photo math solver, quiz songs and flashcards. **Tagline:** Questions that shine.
+> **Product:** Quelio, an AI quiz generator (text, file, URL to quiz) plus a photo math solver, quiz songs, flashcards and audio lessons. **Tagline:** Questions that shine.
 > **Audience:** Teachers, students, HR/training teams. Turkey + global (EN/TR/HYW).
 > **Identity:** "Solar Paper": dark navy and amber sun on cream paper. No purple, no blue-violet gradients, no sparkle icon.
 
@@ -74,7 +74,7 @@ App root (flex, bg-paper)
 
 ## 5. Shared components
 
-- **Sidebar:** header logo + wordmark + tagline. Main nav: Create, Solve, Songs, Flashcards. Footer (pinned bottom, `border-paper/10`): Archive. Songs shows only when `GET /api/song` reports enabled (drawer included); while it is hidden, Flashcards moves to the footer after Archive. Flashcards shows a small muted count of cards due today right of the label (hidden at 0 and in the icon rail; sr-only "N cards due today"). Nav item: no filled pill; inactive `paper/60` (icon `paper/40`), hover paper; active = 3px amber left bar + paper text + amber icon.
+- **Sidebar:** header logo + wordmark + tagline. Main nav: Create, Solve, Songs, Flashcards, Audio Lesson (headphones icon). Footer (pinned bottom, `border-paper/10`): Archive. Songs shows only when `GET /api/song` reports enabled (drawer included); while it is hidden, Flashcards and Audio Lesson move to the footer after Archive. Flashcards shows a small muted count of cards due today right of the label (hidden at 0 and in the icon rail; sr-only "N cards due today"). Nav item: no filled pill; inactive `paper/60` (icon `paper/40`), hover paper; active = 3px amber left bar + paper text + amber icon.
 - **Top bar:** h-20, right-aligned; holds only the language switcher (plus the hamburger on the left below md).
 - **Language switcher (`LanguageSwitcher`):** ghost button, globe + short code (EN/TR/ՀԱՅ) + chevron; listbox menu (card, warm border, radius 12, 240px) with native language names. Enter/Space/ArrowDown open, arrows move, Escape closes.
 - **Tabs:** icon (16px) + label, bottom border; active 2px amber underline + bold ink (icon `amber-hover`); inactive muted, hover ink. WAI-ARIA tablist, Arrow/Home/End keys. Used on Create input and Archive.
@@ -172,7 +172,7 @@ Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 - **C, Creating:** pulsing music-note, rotating `aria-live` status, outline Cancel (back to B, no error).
 - **D, Player (`SongPlayerCard`, shared):** optional "Demo sound" pill, custom controls + Download over a hidden `<audio>`, lyrics, muted AI disclosure, outline "Make another".
 - Errors: localized message + "Try again"; daily limit notes. Save failure: muted note, song still plays.
-- **Access gate (`MusicAccessGate`, production):** replaces step A until a valid code is stored: card, password input, solid amber "Unlock", localized error. Only creation is gated.
+- **Access gate:** the shared `OwnerAccessGate` (see Audio Lesson) replaces step A until a valid code is stored.
 
 ### Songs (`/songs`)
 - Same enabled switch as the song feature (redirects to Create when off). Header: title + subtitle, songs-left-today meta, outline "Lock" when a code is stored.
@@ -196,6 +196,15 @@ Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 - Before flipping a muted hint ("Click the card or press Space" / touch: "Tap ... swipe right/left"); after flipping two 48px buttons: outline "Don't know" (error text) and solid amber "Know", each with a small `kbd` hint. Keyboard hints and the shortcut line are hidden on coarse pointers. Touch: swipe after flipping (>= 60px), the card follows the finger.
 - **All done:** card with "All done for today", "Next review: …", navy-outline "Practice anyway" and a muted note that practice never changes the schedule; practice sessions show an amber "Practice" pill.
 - **Summary:** 112px ring with known/total, "You knew X of Y", list of cards to repeat, next review line, solid amber "Study again" (only when something is due) and outline "Back to decks".
+
+### Audio Lesson (`/lessons`, `/lessons/:id`)
+- **Shared owner gate (`OwnerAccessGate`, production):** card (radius 12, paper), password input, solid amber "Unlock", localized error. Used by Songs and Audio Lesson; one stored code unlocks both, "Lock" (outline, lock icon, page header) clears it. Lists stay visible; only the step that leads to a paid call shows the gate.
+- **List page:** title + subtitle, full-width solid amber "New lesson" (headphones icon). Search box, then one divided card list, newest first. Row: title link, muted source ("Archive quiz: …"), muted "N episodes · about 6 min each • style • date", status pill (`bg-amber/15` amber-text "Script ready", green tint "Audio ready"), outline "Open", trash with inline confirm + undo toast. Empty: headphones icon, "No lessons yet", small solid amber "New lesson".
+- **New lesson (`NewLessonPanel`):** card (radius 14) replacing the button. "Or start from:" chips "From an Archive quiz" / "From a saved solution" open an inline picker (paper, search, rows); a picked source fills the Text tab with a "Using: …" note + "Use my own text". Then Create's `InputCard` (focus marking off, "per lesson" limit line) and "Lesson options": the parameters-panel look (11px uppercase labels, hairline cells): Length (fixed text "About 6 minutes per episode"), Style chips (Two hosts talking default, Teacher and student, Single narrator; song chip style, `role="radio"`), Level `Select` (General, LGS, YKS, KPSS, University), Tone chips (Normal, Fun + muted safety note). Output language lives in the input card. Primary CTA "Plan the lesson" (sun icon, spinner + "Finding the key points..." + Cancel link).
+- **Plan card:** paper box: eyebrow "Lesson plan", Fraunces "This text will be one 6-minute episode" / "…a N-episode series", amber-text toggle "N key points" (list grouped by part), muted estimated cost line, on-demand note, "Key points reused" note on a cache hit. Same source + options already made: amber-tinted row with solid amber "Open it" (the primary), then "Write a new one anyway" becomes a 2px navy outline. Otherwise solid amber "Write the lesson" / "Write part 1" + outline "Change options". Writing: spinner, "Writing and fact-checking…", Cancel; `beforeunload` warns.
+- **Lesson page:** "Back to lessons", Fraunces title, muted style • level • tone • episodes, owner-only "Real cost so far". Series: Create-style tabs "Part N" (unwritten: muted "· not written"). Unwritten part: card with the on-demand explanation + solid amber "Prepare part N".
+- **Summary card:** eyebrow "Part N of M", Fraunces episode title, muted "About 6:05 · 844 words" + owner-only script cost and cached share; amber-text toggle "n/m key points covered" opening every key point with "Taught in: part · section" (dim when it belongs to another part). Check status: green check line when passed; otherwise amber-tinted box with a warning icon (lines to check / check could not run / edits pending) and the missing key points. Muted "The fact-checker rewrote N lines." Pending edits: 2px navy outline "Check my edits".
+- **Script editor (`ScriptEditor`):** sections with an amber-text uppercase role label (Quick recall, Opening, Lesson, In simple words, Recap, Self-check, Study tip) + Fraunces section title. Line card (radius 12, warm border): 11px uppercase speaker label, small "pause" / "edited" pills, text; flagged line: 2px dashed amber border + warning icon + "Check this line:" reason. Icon buttons (32px): move up/down, edit, add after, delete; below 640px they sit in a row under the text. Edit: speaker `Select` (boxed, two-speaker styles), textarea, solid amber "Save" + outline "Cancel"; a new line exists only once saved with text. Below the script: 2px navy outline "Prepare next part (N)" or outline "Go to part N".
 
 ## 9. Interaction, motion, accessibility
 
