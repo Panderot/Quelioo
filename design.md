@@ -1,305 +1,206 @@
 # Quelio Design System
 
-> **Product:** Quelio, an AI quiz generator (text, file, URL, YouTube, image, PDF, video to quiz)
-> **Tagline:** Questions that shine.
-> **Audience:** Teachers, students, HR/training teams. Turkey + global (EN/TR).
-> **Identity:** "Solar Paper" — dark navy and amber sun on cream paper. No purple, no blue-violet gradients, no sparkle icon.
+> **Product:** Quelio, an AI quiz generator (text, file, URL to quiz) plus a photo math solver. **Tagline:** Questions that shine.
+> **Audience:** Teachers, students, HR/training teams. Turkey + global (EN/TR/HYW).
+> **Identity:** "Solar Paper": dark navy and amber sun on cream paper. No purple, no blue-violet gradients, no sparkle icon.
 
 ## 1. Design Principles
 
-1. Calm and trustworthy — warm cream paper, soft warm borders, no visual noise.
-2. One primary action per screen — the solid amber CTA is the hero; everything else is quieter.
-3. Editorial, not generic — Fraunces for headings, not the default AI-tool look.
-4. Consistent rhythm — 4px spacing base, a small set of radii, one shadow language.
-5. Bilingual-ready — layouts survive longer Turkish/Armenian labels (~30% longer than English); never set fixed pixel widths on text containers.
+1. Calm and trustworthy: warm cream paper, soft warm borders, no visual noise.
+2. One primary action per screen: the solid amber CTA is the hero; everything else is quieter (outline/ghost).
+3. Editorial, not generic: Fraunces for headings.
+4. Consistent rhythm: 4px spacing base, a small set of radii, one shadow language.
+5. Bilingual-ready: Turkish/Armenian labels run ~30% longer; never set fixed pixel widths on text containers.
 
 ## 2. Brand
 
-| Element | Spec |
-|---|---|
-| Logo mark | Bold "Q" ring; tail is a golden ray ending in a small sun disc with short rays. Bowl color adapts: cream on navy sidebar, navy on light/paper backgrounds. No container, no sparkle. |
-| Wordmark | "Quelio", Fraunces, weight 600, ~24px |
-| Tagline | "Questions that shine.", ~12px semibold amber, under the wordmark on the navy sidebar |
-| Meaning | Question + Helio (sun) — the rising-sun ray is the brand motif |
+- **Logo mark:** bold "Q" ring; tail is a golden ray ending in a small sun disc with short rays. Bowl is cream on the navy sidebar, navy on paper. No container, no sparkle.
+- **Wordmark:** "Quelio", Fraunces 600, 24px (`text-2xl`). **Tagline:** 12px semibold amber, under the wordmark on the sidebar.
+- **Meaning:** Question + Helio (sun); the rising-sun ray is the brand motif.
 
-## 3. Color
+## 3. Tokens
+
+The Tailwind v4 `@theme` block in `src/index.css` is the authoritative source for colors and font stacks; this table explains usage.
 
 | Token | Hex | Usage |
 |---|---|---|
-| `--color-navy` | `#0E1330` | Sidebar background, avatar background, headline text on paper |
-| `--color-ink` | `#14172B` | Body text |
-| `--color-muted` | `#6B6F85` | Subtitles, helper text, placeholders |
-| `--color-amber` | `#F5A524` | Primary CTA, active nav marker, focus accents, progress bar — never small text (~2:1 on paper/card) |
-| `--color-amber-hover` | `#E0931A` | Hover/pressed state for amber buttons, fills, borders and icons — never small text (~2.5:1 on paper/card) |
-| `--color-amber-text` | `#9C4A09` | The only amber allowed on small text: links, badges/pills (soft `bg-amber/10-15`), labels, counters — ≥4.5:1 on paper/card and once blended into a soft amber badge background |
-| `--color-ember` | `#FF7A2F` | Tiny highlights only — never large areas, never text |
-| `--color-paper` | `#FBF7EF` | Page/main background, sidebar text |
-| `--color-card` | `#FFFEFB` | Cards, input surfaces |
-| `--color-warm-border` | `#ECE5D6` | Card, input and divider borders |
-| `--color-focus-neutral` | `#D8CDB4` | Mouse/touch focus border on form controls and dropdown triggers (never amber) |
-| `--color-success` | `#1A7A4E` | Success states (darkened from an earlier shade that measured under 4.5:1 on paper) |
-| `--color-error` | `#C23A3A` | Error borders and helper text (darkened from an earlier shade that measured under 4.5:1 on paper) |
+| `navy` | `#0E1330` | Sidebar, headings on paper, text on amber, toasts |
+| `ink` | `#14172B` | Body text |
+| `muted` | `#6B6F85` | Subtitles, helper text, placeholders |
+| `amber` | `#F5A524` | Primary CTA, active nav bar, keyboard focus ring, fills, icons. Never small text (~2:1) |
+| `amber-hover` | `#E0931A` | Hover/pressed for amber fills, borders, icons. Never small text |
+| `amber-text` | `#9C4A09` | The only amber for small text: links, badges, labels, counters (>=4.5:1, also on `bg-amber/10-15`) |
+| `paper` | `#FBF7EF` | Page background, sidebar text |
+| `card` | `#FFFEFB` | Cards, input surfaces |
+| `warm-border` | `#ECE5D6` | Card, input, divider borders |
+| `focus-neutral` | `#D8CDB4` | Mouse/touch focus and hover border on controls (never amber) |
+| `success` | `#1A7A4E` | Success states |
+| `error` | `#C23A3A` | Error borders, text, tints (`bg-error/5`) |
 
-- Page/main background is flat `--color-paper`. No gradients on backgrounds or buttons except one soft accent: a radial glow, amber at ~8% opacity, top-right of the main content area:
-  ```css
-  background: radial-gradient(circle, rgba(245, 165, 36, 0.08) 0%, rgba(245, 165, 36, 0) 70%);
-  ```
-- All text keeps WCAG AA contrast (≥4.5:1 for small text). Navy text on amber is required for the CTA. Bright amber (`--color-amber`/`--color-amber-hover`) is for buttons, fills, underlines, focus rings and icons only — it fails small-text contrast on paper/card, so any amber-colored link, badge, label or counter uses `--color-amber-text` instead.
+- **Background:** flat `paper`. The only gradient is a 480px amber radial glow (8% opacity) at the top-right of the main column (`App.tsx`).
+- **Contrast:** all text WCAG AA (>=4.5:1). Navy text on amber.
+- **Fonts:** headings Fraunces Variable (soft optical, `@fontsource-variable/fraunces`), body/UI Plus Jakarta Sans (Google Fonts, 400-800). Both render Turkish glyphs. Noto Serif/Sans Armenian Variable are appended to `--font-serif`/`--font-sans` as hyw fallbacks.
+- **Spacing:** 4px base (Tailwind scale).
+- **Radius:** 8px (`boxed` select) · 10px (param selects, menu rows) · 12px `rounded-xl` (buttons, menus, chips-in-cards) · 14px (cards, panels, Generate) · 16px `rounded-2xl` (textarea, dropzones, file/URL cards, dialogs) · full (avatar, toggle, pills).
+- **Shadow:** borders do most separation. Cards: none. CTA: `shadow-sm`, hover `shadow-lg shadow-amber/30`. Select/language menus: `0 16px 32px -12px rgba(20,23,43,.18), 0 4px 10px -4px rgba(20,23,43,.08)`. Dialogs, More menu, toasts, song panel: `shadow-lg`.
 
-## 4. Typography
-
-- **Headings (H1, page-level):** `Fraunces Variable` (soft optical), weight 600, tight tracking. npm `@fontsource-variable/fraunces`, imported in `src/index.css`.
-- **Body/UI:** `Plus Jakarta Sans`, Google Fonts, weights 400–800.
-- Both must render Turkish glyphs correctly (İ ı ğ ş ç ö ü).
-- **Armenian fallback (hyw):** neither face has Armenian glyphs, so `Noto Serif Armenian Variable` / `Noto Sans Armenian Variable` (`@fontsource-variable/noto-serif-armenian` / `-noto-sans-armenian`) are appended to the `--font-serif` / `--font-sans` stacks. Latin text is unaffected.
-
-| Role | Size / Line height | Weight | Font | Color |
+| Role | Size / line height | Weight | Font | Color |
 |---|---|---|---|---|
-| Page title (H1) | 24–30px / 1.3 | 600 | Fraunces | navy |
-| Subtitle | 14px / 1.5 | 400 | Plus Jakarta Sans | muted |
-| Eyebrow / section label | 11–12px / 1 | 700 | Plus Jakarta Sans | muted, uppercase, tracking 0.05–0.08em |
-| Field label (parameters) | 11px / 1 | 700 | Plus Jakarta Sans | muted, uppercase |
-| Input / select value | 14–15px / 1.4 | 500–600 | Plus Jakarta Sans | ink |
-| Nav item | 14px / 1 | 500 (active 600) | Plus Jakarta Sans | paper/60% (active: full paper) |
-| Tab label | 14px / 1 | 500 (active bold) | Plus Jakarta Sans | muted (active: ink) |
-| Button (hero) | 16px / 1 | 700 | Plus Jakarta Sans | navy (on amber) |
+| Page title (H1) | 24px, 30px at lg / 1.375 | 600, tight tracking | Fraunces | navy |
+| Subtitle | 14px / 1.5 | 400 | Jakarta | muted |
+| Eyebrow | 12px | 700, uppercase, wide tracking | Jakarta | muted |
+| Field label | 11px | 700, uppercase | Jakarta | muted |
+| Select value | 14px (`boxed` 12px) | 600 | Jakarta | ink |
+| Nav item | 14px | 500 (active 600) | Jakarta | paper/60 (active paper) |
+| Tab label | 14px | 600 (active 700) | Jakarta | muted (active ink) |
+| CTA | 16px | 700 | Jakarta | navy on amber |
 
-## 5. Spacing, Radius, Shadow
+## 4. Layout
 
-- **Spacing (4px base):** `4, 8, 12, 16, 20, 24, 32, 40, 48` px.
-- **Radius:** small 10px (parameter selects) · medium 14px (input card, panels, Generate button) · large 16–24px (reserved) · full 9999px (avatar, toggle).
-- **Shadow:** borders (`--color-warm-border`) do most separation work; shadows stay soft.
-  ```css
-  --shadow-card: 0 1px 2px rgba(14, 19, 48, 0.04);
-  --shadow-cta-hover: 0 8px 20px rgba(245, 165, 36, 0.30);
-  ```
-
-## 6. Layout
-
-**App shell** (full-bleed, no floating window):
 ```
 App root (flex, bg-paper)
-├── Sidebar (navy, fixed width 256px / icon rail 72px / drawer below 768px)
-└── Main column (flex 1, bg-paper, subtle top-right amber radial glow)
-    ├── Top bar (flat, height 80px, no heavy border)
-    └── Content (padding 24–40px, max-width 5xl column, fade-in on mount)
+├── Sidebar (navy; 256px / 72px icon rail at md / drawer below md)
+└── Main column (flex 1, scrolls, amber radial glow top-right)
+    ├── Top bar (h-20, flat)
+    └── Content (max-w-5xl, padding 24 / 32 at lg / 40 at xl, space-y-7, 220ms fade-in)
 ```
-
-**Content column order (Create page):** H1 (Fraunces) + subtitle → Input card → eyebrow "QUIZ PARAMETERS" → single parameters panel (2 columns, hairline dividers) → full-width Generate Quiz button (height 56, radius 14, solid amber).
-
-**Responsive:**
 
 | Breakpoint | Behavior |
 |---|---|
-| ≥ 1280px | Full layout |
-| 1024–1279px | Sidebar stays; content padding 32px |
-| 768–1023px | Sidebar collapses to icon-only rail (72px), labels hidden |
-| < 768px | Sidebar becomes a slide-over drawer behind a hamburger; parameter grid becomes 1 column |
+| >= 1024px | Full 256px sidebar with labels |
+| 768-1023px | Sidebar becomes a 72px icon rail (labels, wordmark, tagline hidden) |
+| < 768px | Sidebar is a slide-over drawer (`bg-ink/40` scrim) behind a hamburger |
+| < 640px | Parameter grid and action rows stack to one column / full width |
 
-## 7. Components
+## 5. Shared components
 
-### 7.1 Sidebar
-Width 256px (72px icon rail at md, drawer below 768px), `--color-navy` background, `--color-paper` text. Header: logo + Fraunces wordmark + amber tagline. Main nav: Create, Solve, then Songs (music-note icon, `/songs`) — Songs uses the same item/active/hover/focus styling and is shown only once `GET /api/song` reports the feature enabled (hidden entirely otherwise, mobile drawer included). Nav item: no filled active pill — default `paper/60`, hover `paper`; active = 3px amber left bar + full-opacity paper text + amber icon. Footer group (Archive, `/archive`) pinned to bottom, top border `paper/10`.
+- **Sidebar:** header logo + wordmark + tagline. Main nav: Create, Solve, Songs (`/songs`, shown only when `GET /api/song` reports enabled, drawer included). Footer: Archive, pinned bottom, `border-paper/10`. Nav item: no filled pill; inactive `paper/60` (icon `paper/40`), hover paper; active = 3px amber left bar + paper text + amber icon.
+- **Top bar:** h-20, right-aligned; holds only the language switcher (plus the hamburger on the left below md).
+- **Language switcher (`LanguageSwitcher`):** ghost button, globe + short code (EN/TR/ՀԱՅ) + chevron; listbox menu (card, warm border, radius 12, 240px) with native language names. Enter/Space/ArrowDown open, arrows move, Escape closes.
+- **Tabs:** icon (16px) + label, bottom border; active 2px amber underline + bold ink (icon `amber-hover`); inactive muted, hover ink. WAI-ARIA tablist, Arrow/Home/End keys. Used on Create input and Archive.
+- **Toggle:** one switch style (`h-6 w-11`): off warm-border track, on amber track, knob right. `role="switch"`, `aria-checked`, descriptive label. Study Mode is a button, not a toggle.
+- **Ghost button (Clear Input):** card, 1px warm border, radius 12, muted text; hover `error/50` border + error text.
+- **Outline buttons:** secondary actions (Copy, Print, Study, Check, Next step, etc.) are outline (warm border, or 2px navy border for the local "primary" outline); never solid amber unless it is the screen's primary.
+- **Primary CTA (Generate / Solve):** full width, h-14, radius 14, solid amber, navy bold 16px, outline sun icon 20px (never sparkle). Hover `amber-hover` + 1px rise + glow. Loading: navy spinner + progress label. Generate has a muted time-estimate line above (`aria-describedby`), shown once input is valid.
+- **Select (`Select`):** custom listbox for every parameter field, no native `<select>`.
+  - Trigger always visible. `param`: h-11, radius 10, card, 16px side padding. `boxed`: radius 8, paper, 12px padding, 12px text. Value truncates; 14px chevron rotates 180° when open. Only border color changes between states.
+  - Menu: portal-rendered, card, warm border, radius 12, 6px padding, width = trigger, max-height 280px, flips above when no room, 120ms fade + 4px slide.
+  - Rows: min 40px, radius 10, 15px text; highlight `bg-amber/12`; selected semibold + amber check.
+  - Disabled: same box, muted, not-allowed, out of tab order, `aria-disabled`.
+  - WAI-ARIA listbox: arrows, Home/End, Enter/Space, Escape (returns focus), type-ahead; closes on outside click/Tab.
+- **Output Language (`OutputLanguageSelect`):** same tokens, `boxed` trigger, 260px menu right-aligned and viewport-clamped. Auto-focused search; native names; "Suggested" (Auto, TR, EN, Western Armenian) + "All languages" groups, flat list while searching. Rows `dir="auto"`.
+- **Menu (`MoreMenu`):** Select tokens as a WAI-ARIA menu (Enter/Space/ArrowDown open, arrows/Home/End, Escape returns focus); spans the button width below 640px.
+- **Math text (`MathText`):** all model text; `$...$`/`$$...$$` via KaTeX (`trust: false`, `throwOnError: false`). Never `dangerouslySetInnerHTML` on raw model text.
+- **Image crop step (`ImageCropStep`, lazy):** used for every photo upload; reports a normalized rect + rotation, the caller cuts from the full-res EXIF-oriented original (`imageNormalize.ts`, `imageCrop.ts`).
+  - Whole photo visible (contain, max 70vh/60vh, upscale <=2x); outside dimmed `navy/45`. Box: 2px amber + L corners, drag/resize/pinch, min 48px; arrows move, Shift+arrows resize.
+  - Rotate left/right, Reset; actions "Use this area" (2px navy outline) and "Use whole photo" (warm outline), stacked below 640px.
+- **Undo toast:** fixed bottom-center navy pill (radius 12), paper text, amber "Undo"; auto-dismisses. Used for question, solution and song deletes.
+- **Inline delete confirm:** "Delete this ...?" + red-tinted Delete + outline Cancel before deleting.
 
-### 7.2 Top bar
-Height 80px, flat, flex, content right-aligned (mobile menu button is the only left-side element, < 768px only). Holds the language switcher only.
-- **Language switcher:** ghost button — globe icon + short code (EN/TR/ՀԱՅ) + chevron — opens a listbox (card surface, warm border, radius 12) with each language in its native name. Full keyboard support (Enter/Space/ArrowDown opens, arrows move, Escape closes).
+## 6. Create page
 
-### 7.3 Input card
-Card surface, 1px warm border, radius 14, padding 20–24.
-- **Info row:** left block — word-limit sentence ("Use 30 to 5,000 words per quiz.") then, 4px below, the word counter ("Word count: N / 5,000"), line-height 1.5; right block — Output Language label + select, top-aligned with the sentence's first line. ≥640px: the two blocks share one row (`justify-between`). <640px: Output Language drops to its own full-width row below the counter, label above the select, 12–16px gaps throughout. 16px from the counter to the row's bottom divider, 12px from that divider to the tabs.
-- **Word counter:** calm by default — `--color-muted`, label at normal weight, the live count at medium weight; turns `--color-error` only once the count exceeds 5,000 (not for the 1–29 under-minimum range, which the sentence above already covers). Applies to whichever tab (Text/File/URL) is active.
-- Divider, then Text/File/URL tabs, then the active tab's input, then a footer row with a Clear Input ghost button (7.6).
+Column order: H1 + subtitle → draft-restore note → input card → eyebrow "Quiz Parameters" → parameters panel → Generate CTA → result.
 
-### 7.4 Tabs
-Row with 16px icon + label, bottom border. Active: ink bold text + 2px amber underline. Inactive: muted, hover ink.
+- **Draft restore note:** muted row "Your draft was restored" + "Start fresh"; auto-dismisses.
+- **Input card:** card, warm border, radius 14, padding 20/24.
+  - Info row: left, the word-limit sentence then the counter ("Word count: N / 5,000"); right, Output Language label + select. Side by side at >=640px, stacked below.
+  - Counter is muted (count medium weight); turns error only above 5,000, on any tab.
+  - Then divider, Text/File/URL tabs, active input, footer with Clear Input.
+- **Textarea:** card, radius 16, dashed warm border, solid on focus (focus color per §9); error border `error`. Over 5,000 words: "Only the first 5,000 words are used."
+- **Focus selection (Text tab):** selection shows a floating amber-outline "Mark as focus" button (plus a text button below for touch). Marks are `bg-amber/30` in a mirrored backdrop behind a transparent textarea (identical layout classes). Removable chips below (max 5); overlaps merge; editing a mark drops it with a note.
+- **File tab:** 2px dashed dropzone (radius 16; types + 10MB cap, "Browse files", privacy line). Extracting: spinner. Success: file card with trash, "Show/Hide preview", "Edit as text". Error: error-tinted dropzone + "Choose another file".
+- **URL tab:** dashed input + solid amber "Fetch" (Enter too); spinner; success card with the same preview/edit controls; error-tinted card + "Try again".
+- **Parameters panel:** one card (radius 14), per-cell hairline borders (never `divide-*`), 2 columns, 1 below 640px.
+  - Order: Quiz title (full width) · Question Type / Question Count · Difficulty / MCQ Options Count · Answer explanations / Shuffle options · Hints (alone).
+  - Field label 11px bold uppercase muted, 4px above the control.
+  - Question types: MCQ, True or False, Fill in the Blanks, Short Answer, Matching, Open-ended, Mixed.
+  - MCQ Options Count and Shuffle apply only to MCQ/Mixed; otherwise disabled in place with a muted helper, value kept.
+  - Quiz title: optional, max 80, counter from 60; falls back to the generated title.
+  - Answer explanations (default on): off skips explanations everywhere. Shuffle (default on): Fisher-Yates once after generation/regenerate, then stored. Hints (default on): off skips hints and hides the Hint button. None affect answer checking.
 
-### 7.5 Textarea / File / URL inputs
-- Background `--color-card`, **dashed** warm border by default, **solid amber** + soft amber ring on focus. Error: border/ring `--color-error`. Truncation note under the input when capped at 5,000 words: "Only the first 5,000 words are used."
-- **File tab:** empty state is a dashed dropzone (icon, drag/drop hint, accepted types + 10MB cap, "Browse files" button, privacy line — extraction is client-side: pdfjs-dist for PDF, mammoth for DOCX, plain read for TXT/MD, all lazy-loaded). Extracting: centered spinner + "Reading your file...". Success: file chip (card surface, radius 16) with name/meta, a trash icon, a "Show/Hide preview" toggle, an "Edit as text" link. Error: error-tinted dropzone with a localized message (unsupported type, too large, password-protected/scanned PDF, corrupt/empty, not enough text) + "Choose another file".
-- **URL tab:** idle — dashed input + solid-amber "Fetch" button (Enter also fetches). Fetching — spinner + "Fetching the page...". Success — result card (check icon, title/URL, word count, same truncation note, same preview/edit-as-text controls). Error — error-tinted card with a localized message (invalid/blocked/unreachable/timeout/not HTML/no article text/YouTube unsupported/too many redirects) + "Try again".
-- **Focus selection (Text tab only):** selecting text in the textarea shows a small floating amber-outline "Mark as focus" button above the selection, plus a same-action secondary text button under the textarea for touch. Marked parts render as a soft amber highlight (`bg-amber/30`) via a mirrored backdrop layer sitting behind a transparent textarea (identical box/font/padding classes on both layers so text lines up while typing/wrapping/scrolling, RTL and Armenian included). Below the textarea, marked parts list as removable chips (short preview + x), capped at 5 with a localized limit note; overlapping selections merge. Editing text away from a marked part drops that focus part with a short localized note. Draft restore, Clear Input and "Edit as text" (file/URL → Text tab) all carry focus parts along consistently.
-- **Draft restore note:** on opening Create with a saved draft, a muted card row above the input area reads "Your draft was restored" with a "Start fresh" action that clears the draft and resets the form; auto-dismisses after a few seconds.
+## 7. Quiz result and question cards
 
-### 7.6 Ghost button (Clear Input)
-Card surface, 1px warm border, radius 12, muted text; hover shifts border/text to error tone.
+Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 
-### 7.7 Toggle (Show answers, Answer explanations, Shuffle options, Hints)
-One switch style everywhere a binary control is needed. Off = warm-border track, card-colored knob; on = amber track, knob right. `role="switch"`, `aria-checked`, descriptive `aria-label`. Study Mode is a separate outline button, not a toggle (7.14/7.17).
+- **Header card:** editable Fraunces title; meta: count • type • difficulty • language • "About N min". Action row: Study/Back-to-editing (Archive only), Show answers toggle (default off), outline Copy, Print/PDF, "Turn into a song". "View in Archive" (Create) / "Back to Archive" (Archive) top-right. Show answers never hides a question's own answer field.
+- **Loading:** three pulsing skeleton cards (h-32, radius 14). **Error:** error-tinted card, localized message per code, "Try again". **Incomplete:** "X of Y questions were created." + "Create the rest".
+- **Question card:** card, radius 14. Header: amber number circle, amber-tinted type pill, Edit/Regenerate/Delete icon buttons with labels. Regenerating: spinner overlay.
+- **Answer bar (`AnswerBar`):** fill-blanks input, short-answer textarea (2 rows), open-ended textarea (4 rows + counter); amber-outline square check button.
+  - Result line `aria-live="polite"`, icon + text: "Correct!" (green), "Partly correct" (amber, short/open only), "Not yet. Try again." (red). AI feedback never reveals the answer.
+  - Fill-blanks local only; short-answer local then `/api/grade`; open-ended `/api/grade`. Enter checks (open-ended: Ctrl/Cmd+Enter). State resets on edit/regenerate.
+- **By type:** MCQ/true-false: native radio group + check (green/red tint + icon, correct option never revealed); Show answers adds a read-only amber-tinted correct answer. Fill-blanks: dashed-underline blank; answer in bold amber-text when shown. Short/open: "Model answer" paper box when shown. Matching (`MatchingColumns`): numbered left, lettered right shuffled via `getRightOrder()`, tolerant parsing (`1-A`, `1A`, `1=A`), per-item marks that never reveal letters.
+- **Explanation:** "Show/Hide explanation" toggle, rendered only after the first check or with Show answers on.
+- **Hint button (`HintControls`):** 36px square, warm border, muted, light bulb, left of the check button; only when the question has hints. "Hint" → "Another hint" → disabled "No more hints" (max 2). Hidden with Show answers or after a correct answer. Hints show numbered in an `amber/10` box (amber-text, `aria-live="polite"`).
+- **Edit mode:** inline type-specific form, Save (solid amber) / Cancel (outline). Matching 3-6 pairs, no empty/duplicates, recomputes `rightOrder`. Fill/short: "Accepted answers" (up to 4); open-ended: required "Key points". All types: optional "Hint 1"/"Hint 2" (max 140), blocked if the leak check says a hint reveals the answer.
+- **Print / PDF:** dialog "Question sheet" (default) / "With answer key"; sets `document.title` (restored on `afterprint`) and calls `window.print()`. One shared `[data-print-only]` layout: A4, 18mm margins, black on white, no fills/shadows, Jakarta 11pt / 1.45; header with meta + "Quelio" wordmark (sheet adds Name/Class/Date); `<ol>` with `break-inside: avoid` and ruled answer lines; answer key starts on a new page.
 
-### 7.8 Parameters panel
-One card (warm border, radius 14): quiz title (full width) · Question Type / Question Count · Difficulty / MCQ Options Count · Answer explanations switch / Shuffle options switch · Hints switch alone (2-plus-1 layout — its row's second column stays empty), hairline dividers between cells (single column below 640px, same order; borders are per-cell, never a `divide-*` utility, so a border only ever meets a real neighboring edge). Field label: 11px bold uppercase muted, 4px above the trigger. Question Type options, in order: MCQ, True or False, Fill in the Blanks, Short Answer, Matching, Open-ended, Mixed. MCQ Options Count and Shuffle options both only apply to MCQ/Mixed — otherwise stay in place but disabled (7.10/7.7) with a muted helper line; last chosen value is preserved. Quiz title is optional (max 80 chars, counter from 60), same field style as the dropdowns; falls back to the generator's own title when empty, stays editable in the result view. Answer explanations defaults on; off skips explanation generation/UI everywhere (result view, Archive, Study Mode, Copy, Print) without affecting answer checking. Shuffle options defaults on; shuffles MCQ option order (Fisher-Yates, correct answers spread across positions) once after generation/regenerate, then the order is stored and never re-shuffled on render. Hints defaults on; off skips hint generation and hides the Hint button everywhere for that quiz (7.15/7.17) without affecting answer checking.
+## 8. Other pages
 
-### 7.9 Primary CTA (Generate Quiz)
-Full width, height 56px, radius 14, solid amber, navy bold text, no gradient. Icon: outline sun (circle + short rays), never a sparkle. Hover: `amber-hover` + 1px rise + soft amber glow. Active: returns to rest. Loading: navy spinner replaces the icon, label "Generating your quiz...". A muted clock-icon line above the button shows a pre-generation time estimate ("about X-Y minutes", or a single value/"less than a minute"), tied to the button via `aria-describedby`; hidden until input is valid.
+### Solve (`/solve`)
+- Title "Solve a math question" + subtitle. Same shell as Create.
+- **Upload (`PhotoDropZone`):** dashed dropzone (click, drag-drop, paste, camera); any photo format, normalized to JPEG. Converting: spinner + status + "Cancel". Crop step always runs; then preview + "Change crop" / "Replace photo" + optional note.
+- **CTA:** primary CTA "Solve", disabled until a crop is applied; loading adds a "Cancel" link (aborts silently).
+- **Multiple problems:** card "Which problem should I solve?", one full-width outline row per problem (amber border on hover), outline "Crop the photo".
+- **Result card (`SolutionView`):** amber-text uppercase topic, question, optional unnumbered intro, numbered steps (amber circle + navy text). Answer: `bg-amber/15` `w-fit` box aligned with step text, amber-text "Answer" label. Tip in a muted paper box. 0-2 common mistakes: `bg-amber/10`, `border-amber/40`, warning icon, amber-text label; hidden when none.
+- **"Let me try first":** card row with switch above the result; stored in `quelio.solveTryFirst.v1` (try/catch). On: only topic/question/intro show, plus a progress line and "Next step" (2px navy outline) / "Show all" (warm outline). Answer comes last; focus moves to each newly revealed item (`tabIndex=-1`).
+- **Explain this step:** amber-text light-bulb button per step (`aria-expanded`); paper box explanation, then "Even simpler" in an amber-tinted box; cached. Errors: red line + "Try again" (none for the hourly limit).
+- **Error:** error-tinted card, localized message per code, "Try another photo".
+- **Actions row:** max three outline actions: "Check my solution" (first), "Similar problem", "More" (→ "Solve another way", "Create a quiz on this topic", which prefills Create with MCQ/Medium). Stacked full width below 640px.
+- **Check my solution (`CheckWorkPanel`):** card, Fraunces heading + muted line, same photo pipeline (paste goes to this panel while open), outline "Check my work" (2px navy, spinner + "Reading your work..." + Cancel).
+  - Read-confirm "Did I read your work correctly?": numbered line cards; low-confidence lines get a 2px dashed amber border + warning icon + "Hard to read". "Yes, check it" (navy outline), "Fix and check" (monospace textareas with live math preview, add/remove lines), "Retake photo". Only confirmed text is graded.
+  - Results never rely on color alone: **Mistake** (2px error border + tint, X icon, error-type pill, explanation, "Corrected step" paper box; later steps muted), **Check this step again** (2px dashed amber, question-mark icon, neutral hint, never "wrong"), **Correct** (green check + text).
+  - Summary box: green (correct), error (verified mistake), amber + question mark (check again / not sure), amber + warning (incomplete / different problem / unreadable); when unsure, a "Solution to compare with" box.
+- **Similar problems (`SimilarProblems`):** numbered practice cards (paper, warm border): "Your answer" + "Check" (2px navy), live result line as in the answer bar, "Show solution" link. Outline "Another one" adds a problem.
+- **Another way (`AnotherWayPanel`):** card, "Another way: {method}", steps + answer box, or a muted paper note when no different method exists. Cached.
+- Explanations, check result, similar problems and the other method persist in the Solutions record. Save failure: one muted note.
+- **Footer note:** small centered muted line framing Quelio as a learning tool.
 
-### 7.10 Select / dropdown
-One custom listbox component for every choice field (parameter selects, Output Language, language switcher) — no native `<select>`.
-- **Trigger:** always visible at rest (never appears/disappears by state). `param` variant: 1px warm border, radius 10px, card background, height 44px, 16px left padding, chevron 16px from the right, ≥44px reserved before it. `boxed` variant (Output Language, compact): radius 8px, paper background, 12px left padding, chevron 12px from the right, ≥36px reserved. Value truncates before the chevron; chevron rotates 180° when open. Border width/padding never change — only border color.
-- **Menu:** card background, 1px warm border, radius 12, soft shadow, 6px inner padding, portal-rendered (never clipped), width matches trigger, max-height ~280px with a thin scrollbar, opens below (flips above when no room).
-- **Rows:** min 40px, radius 10px, 15px text. Hover/keyboard-highlight: ~12% amber tint (never native/blue). Selected: semibold + amber check icon.
-- **States:** rest border `warm-border`; hover/mouse-focus/open all use `#D8CDB4` (1px, no ring). Keyboard `:focus-visible` adds a single 2px amber ring, 2px offset, instead.
-- **Disabled:** same visible box, muted value/chevron, not-allowed cursor, not reachable by Tab, `aria-disabled="true"`.
-- **Motion:** 120ms fade + 4px slide; respects `prefers-reduced-motion`.
-- **Keyboard:** WAI-ARIA listbox — trigger `aria-haspopup="listbox"`/`aria-expanded`/`aria-labelledby`/`aria-activedescendant`; menu `role="listbox"` + `role="option"` rows. Arrows move highlight, Home/End jump ends, Enter/Space selects, Escape closes (returns focus), type-ahead jumps to a label. Closes on outside click/Escape/Tab/selection.
-- **Output Language variant** (searchable/grouped, separate component, same visual tokens as above, `boxed` trigger, fixed 260px menu, right-edge-aligned and viewport-clamped): a search input pinned at top, auto-focused; languages always shown by native name (except localized "Auto"). Empty search: grouped under "Suggested" (Auto, Turkish, English, Western Armenian) and "All languages" (rest, alphabetized by English name); while searching, groups hide and results are a flat list, empty state shows "No languages found". Rows carry `dir="auto"` for RTL scripts. Arrows/Enter operate on the currently visible rows; typing goes into the search field.
+### Archive (`/archive`)
+- Title + subtitle, tabs "Quizzes" / "Solutions" (archive / calculator icons); active tab in the URL (`?tab=solutions`).
+- **Quizzes:** one card list, hairline dividers, newest first. Row: title link (ink semibold, amber-text hover, music-note icon when the quiz has a song), meta (count • type • difficulty, "• N Options" for MCQ/Mixed, time estimate), locale date; outline "Study" button (book icon) → `/archive/:id?mode=study`. Empty: card + outline "Go to Create".
+- **Solutions (`SolutionsList`):** full-text search above the same card list. Row: 56px thumbnail (calculator placeholder) · topic · math-aware preview · date · trash (inline confirm + 6s undo toast). Empty: card + outline "Go to Solve".
+- **Solution detail (`/archive/solutions/:id`):** Fraunces topic + date, "Back to Solutions", saved thumbnail (contain, max 50vh), then `SolutionView`. Unknown id: not-found card.
+- **Quiz detail (`/archive/:id`):** the result view (§7) plus a "Listen" card (`SongListenSection`, players for this quiz's songs). Not found: card + "Back to Archive".
+- **Study Mode:** opened by `?mode=study` or the header button; view-only, not persisted. Practice cards (no edit, no explanation toggle). After all are answered: "3 / 5 correct", muted "Hints used: N" if any, "Try again" resets.
 
-### 7.11 Solve page
-Same shell as Create. Page title "Solve a math question" + subtitle.
-- **Upload area:** input-card surface; empty state is the same dashed dropzone as 7.5 (click, drag-drop, paste, mobile camera capture), accepting any common photo format (client normalizes every format to JPEG before upload). Converting state (HEIC/RAW decode can take a few seconds): spinner + status text + a text "Cancel" link, same spot as the dropzone. Every chosen photo (picker, camera, drag-drop, paste) goes through the crop step (7.11a) first. Once applied: the cropped JPEG preview (rounded, bordered, `object-contain`, max height 60vh mobile / 70vh desktop) + "Change crop" (crop icon) and "Replace photo" text links, plus an optional two-row note textarea (same style as 7.5).
-- **Primary CTA:** same style as 7.9, label "Solve", disabled until a crop is applied (also while the crop step is open); loading swaps icon for spinner and label for "Solving...", with a text "Cancel" link beneath it that aborts the request with no error.
-- **Multiple-problem choice:** when the server finds more than one problem it returns a short list instead of guessing. Card surface: Fraunces "Which problem should I solve?" heading + muted one-line explanation, then one full-width outline row button per problem (paper fill, warm border, amber border on hover, model text via 7.12 — the model's own label/number, no extra badge), then an outline "Crop the photo" button (crop icon) that reopens the crop step. Choosing a row re-sends the same JPEG with only that choice; rows disable while solving.
-- **Result card:** amber-text uppercase topic label, question, an optional unnumbered intro sentence (the goal, e.g. "The goal is to isolate x" — never a numbered step), then numbered steps (amber circular badge + navy text). Final answer: a compact amber-tinted box (`bg-amber/15`, height follows content, `w-fit`) indented to line up with the step text, with an amber-text "Answer" label. Tip below in a muted paper box. Common mistakes (0–2) below the tip: amber-tinted box (`bg-amber/10`, `amber/40` border) with a warning-triangle icon and an amber-text "Common mistake" label, one sentence or a short bullet list; hidden entirely when there are none. All model text renders through the math-aware text component (7.12).
-- **"Let me try first" switch:** a card-surface row above the result card — label left, the standard switch (7.7) right, `role="switch"` labelled by the text; its value is remembered in localStorage (`quelio.solveTryFirst.v1`, try/catch). On: topic, question and intro stay visible; steps, answer, tip and common mistakes are hidden. Below the question a muted progress line ("Step X of N shown…") and two actions — "Next step" (outline, 2px navy border) and "Show all" (outline, warm border), stacked full width below 640px. "Next step" reveals one step at a time, then the answer last (tip + mistakes appear with it); focus moves to the newly revealed step/answer (`tabIndex=-1`, amber focus ring) so screen readers read it once — no extra live region. "Show all" reveals the rest and focuses the first newly shown item. Turning the switch on again starts over.
-- **Explain this step:** under every visible step, a small amber-text text button with a light-bulb icon (`aria-expanded`). First press calls `/api/explain-step` (spinner line "Explaining this step...") and shows the explanation inline in a muted paper box, with an optional "Example:" line; then an "Even simpler" text button fetches a simpler version shown below in an amber-tinted box labelled "Even simpler". Pressing again just hides/shows — results are cached per solution (in memory and in the saved Solutions record), so repeats are free, also after reopening from the Archive. Errors show one localized error-red line with a "Try again" text button (none for the hourly limit).
-- **Error state:** error-tinted card, localized message per error code (server: unreadable/not_math/too_large/bad_type/upstream/parse/model/not_configured/rate_limited/network; client-side format handling: too_small/unsupported/decode_failed), "Try another photo" button.
-- **Actions row (under the result card):** at most three outline actions in one row — "Check my solution" (check icon, first), "Similar problem" (refresh icon) and a "More" menu button (chevron) holding "Solve another way" and "Create a quiz on this topic" (navigates to Create with topic/question/steps/answer prefilled, MCQ, Medium) — never solid amber. The More menu uses the Select tokens (7.10: card surface, warm border, radius 12, 40px rows, amber-tint highlight) as a WAI-ARIA menu (Enter/Space/ArrowDown open, arrows/Home/End move, Escape closes and returns focus). Below 640px every action stacks full width and the menu spans the button width.
-- **Check my solution panel:** card surface, Fraunces "Check my solution" heading + muted one-line explanation, then the same photo pipeline as Solve (dashed drop zone titled "Drag and drop a photo of your work here", click/camera, paste — routed to this panel while it is open — and drag-drop; any format; the shared crop step; cropped preview with "Change crop"/"Replace photo" links) and an outline "Check my work" button (2px navy border, check icon; spinner + "Reading your work..." with a "Cancel" link).
-- **Read-confirm step ("Did I read your work correctly?"):** nothing is graded before the student confirms the reading. A paper-tinted box under the photo: bold navy title + muted hint, then the lines as read, each a numbered card (warm border, math-rendered). A low-confidence line gets a 2px dashed amber border + amber tint AND a warning icon with "Hard to read — please check this line"; two or more such lines add an amber notice suggesting a sharper photo. Actions: outline-navy primary "Yes, check it" (check icon) + outline "Fix and check" (pencil icon) + a "Retake photo" link. "Fix and check" turns each line into a monospace textarea with a live math preview under it, an X to remove the line and a "+ Add a line" link; an edited line loses its low-confidence mark; primary becomes "Check my fixed work" next to "Cancel" (restores the reading). While grading: spinner + "Checking your work..." and a "Cancel" link. Grading uses only the confirmed text.
-- **Check result — three levels, each with its own icon and text, never color alone:** **Mistake** (verified: the math engine proved it, or two independent AI checks agree) — 2px error border + error tint, X icon + "Mistake" + error-type pill (Arithmetic / Sign / Rule or concept / Copying / Missing step), the kind explanation and a paper box "Corrected step: …"; later steps stay muted. **Check this step again** (only one checker doubted it) — 2px dashed amber border + amber tint, question-mark icon + "Check this step again" + one neutral hint; never says "wrong". **Correct** — green check icon + "Correct" text. Summary box above: green with a check for correct ("Every step checks out", or "Your final answer is right! Have another look at step N" when a soft mark remains), error-tinted with a warning icon for a verified mistake, amber with a question-mark icon for "check step N again" and for "not sure" (reading or problem match uncertain), amber with a warning icon for incomplete / different problem / unreadable. When not sure, or the final answer is wrong but no step could be pinned down, a paper box "Solution to compare with" shows the reference steps and answer instead of an invented error. An outline full-width-on-mobile "Check a new photo" button reopens the upload. Errors: one error-red line with "Try again" (retries the same step; none for the hourly limit); the last result stays visible. The latest result is saved into the Solutions record.
-- **Similar problems panel:** card surface, Fraunces "Similar problems" heading, then a numbered list of practice cards (paper fill, warm border): amber-text uppercase "Similar problem N", the problem, a labelled "Your answer" input + outline "Check" button (2px navy border; stacked full width below 640px; Enter also checks), a polite live result line (check + "Correct!" green / cross + "Not yet. Try again." red / "Partly correct" amber, plus the AI feedback when the server graded it), and a "Show solution" text link. After a check or "Show solution" the full solution appears under a hairline (same numbered steps with "Explain this step", and the compact amber answer box). An outline "Another one" button under the list fetches a new problem (earlier ones sent as an avoid list); loading = spinner line, errors = one error-red line with "Try again" (none for the hourly limit). Simple values/expressions are checked locally (comma decimals, fractions, "x = 8", units); anything else is graded by the server.
-- **Another way panel:** card surface, Fraunces "Another way: {method}" heading, the method's numbered steps (with "Explain this step") and its compact answer box; when no meaningfully different method exists, a muted paper box with the short note instead. Opened from More → "Solve another way"; cached, so reopening shows it without a new request.
-- Explanations, the latest "Check my solution" result, similar problems with the student's answers/verdicts, and the other method are saved into the Solutions record and restored when the solution is reopened from the Archive.
-- **Footer note:** small centered muted line framing Quelio as a learning tool, not an answer-copying shortcut.
+### Turn into a song (`SongPanel`)
+- Entry: outline button (music-note) in the result header; rendered only when `GET /api/song` reports enabled.
+- Panel: right side on md+ (max 420px), bottom sheet on mobile (max 85vh, rounded top), scrim, `role="dialog"`, focus trapped, Escape/close return focus.
+- **A, Options:** style chips + tone chips (Normal/Funny, default Normal). Chips: card/warm border; selected `bg-amber/15` + `border-amber` + amber-text. Length text "About N seconds" (scales with count, capped by provider). Outline "Write lyrics".
+- **B, Lyrics:** coverage note, editable monospace textarea with section tags + counter (error over the limit), amber non-blocking fact-check warning, solid amber "Make the song" (re-checks edits first).
+- **C, Creating:** pulsing music-note, rotating `aria-live` status, outline Cancel (back to B, no error).
+- **D, Player (`SongPlayerCard`, shared):** optional "Demo sound" pill, custom controls + Download over a hidden `<audio>`, lyrics, muted AI disclosure, outline "Make another".
+- Errors: localized message + "Try again"; daily limit notes. Save failure: muted note, song still plays.
+- **Access gate (`MusicAccessGate`, production):** replaces step A until a valid code is stored: card, password input, solid amber "Unlock", localized error. Only creation is gated.
 
-### 7.11a Image crop step (`ImageCropStep`, reusable)
-Shared, lazily loaded component for any image upload; it only reports a crop (normalized rect + rotation) and the caller cuts the final image from the full-resolution, EXIF-oriented original (`src/lib/imageNormalize.ts`, `src/lib/imageCrop.ts`).
-- **Stage:** the WHOLE photo is always visible — contain-fit inside the card width and max 70vh desktop / 60vh mobile, never cropped or wider than the card, tiny photos upscaled at most 2x. Area outside the crop box is dimmed (`navy/45`).
-- **Crop box:** starts at the whole photo; 2px amber border with amber L-shaped corner marks; drag inside to move, corners/edges to resize (24px corner hit areas), pinch with two fingers to scale; minimum 48px so it never collapses. Focusable: arrow keys move, Shift+arrows resize, 2px amber focus ring.
-- **Controls:** a muted instruction line, then small outline tool buttons "Rotate left", "Rotate right" (90°, the box rotates with the photo), "Reset" (whole photo, no rotation); then the two actions — "Use this area" (outline, 2px navy border, crop icon — never solid amber; Solve stays the page's one primary) and "Use whole photo" (outline, warm border; keeps any rotation). Below 640px the actions stack full width.
+### Songs (`/songs`)
+- Same enabled switch as the song feature (redirects to Create when off). Header: title + subtitle, songs-left-today meta, outline "Lock" when a code is stored.
+- **New song:** full-width solid amber button → inline Archive quiz picker (search, title + count rows) → embeds `SongPanel`; empty Archive shows "Go to Create".
+- **Filters:** All/Normal/Funny chips (song chip style) + title search.
+- **Generating row:** pulsing row while creating; `beforeunload` warns on leave.
+- **List:** divided card. Row: title, style • tone • length • date, solid amber play/pause circle (one at a time), outline "View/Hide lyrics", "Download", "Open quiz" (or muted "Quiz deleted"), trash with inline confirm + undo toast.
+- **Empty:** archive icon, "No songs yet", solid amber "New song".
 
-### 7.12 Math text rendering
-Model output mixes plain text with LaTeX (`$...$` inline, `$$...$$` block). A shared component splits text/math segments and renders math via KaTeX (`trust: false`, `throwOnError: false`) — never `dangerouslySetInnerHTML` on raw model text, only on KaTeX's own generated markup.
+## 9. Interaction, motion, accessibility
 
-### 7.13 Archive page
-Same shell as Create. Title "Archive" + subtitle.
-- **Tabs:** "Quizzes" / "Solutions" under the title, same underline tab style as the Create input tabs (7.5: 2px amber underline + bold ink when active, muted otherwise, icon left — archive / calculator). WAI-ARIA tablist, arrow/Home/End keys. The active tab lives in the URL (`/archive?tab=solutions`; Quizzes has no param) so reload and back/forward keep it. Sidebar unchanged.
-- **Quizzes tab — List:** single column, newest first, one card container with hairline dividers between rows (not separate cards).
-- **Row:** title links to `/archive/:id` (ink, semibold, truncates, amber-text on hover); meta line (question count • type • difficulty, + "• N Options" for MCQ/Mixed only, + time estimate); created date/time for the active locale; a secondary outline "Study" button (book icon, never solid amber) pinned right, outside the link, linking straight to `/archive/:id?mode=study` (7.17).
-- **Empty state:** centered card (archive icon, "No quizzes yet" title, subtitle) + one outline "Go to Create" button (never solid amber).
-- Entries with no valid `quiz.questions` array are dropped silently on load (migrated once) — there is no separate "legacy entry" UI state.
-- **Solutions tab:** a search field (card surface, search icon, matches topic/question/intro/steps/answer/tip/mistakes) above the same single card list with hairline dividers, newest first. Row: 56px rounded thumbnail (object-cover, warm border; calculator icon placeholder when a record has none) · topic (ink semibold, amber-text on hover) · one-line problem preview (math-aware, truncates) · date/time; a muted trash icon button pinned right. Rows keep identical thumbnail/trash columns at desktop and 390px. Delete asks inline ("Delete this solution?" + red-tinted Delete + outline Cancel), then a navy undo toast ("Solution deleted." + amber Undo, 6s) restores it in place. No matches: a muted centered card line. Empty state: centered card (calculator icon, "No solutions yet", subtitle) + outline "Go to Solve" link.
-- **Solution detail (`/archive/solutions/:id`):** topic as the Fraunces title + date, "Back to Solutions" text link (→ `?tab=solutions`), the saved thumbnail (rounded, bordered, contain, max 50vh), then the shared Solve result view (`SolutionView`, 7.11 — same card, Create-a-quiz action and footer note). Unknown id: centered not-found card with the back link.
-- **Storage note (Solve):** if a solution can't be saved (IndexedDB full/unavailable), one muted line under that result says so; Solve keeps working and the note isn't repeated.
-
-### 7.14 Quiz result view (Create page, and Archive detail when Study Mode is off)
-Shown below Generate on Create after success (auto-scrolled into view), reused unchanged at `/archive/:id`. Same shell column, not a modal.
-- **Header:** card surface (warm border, radius 14). Editable title in Fraunces (pencil toggles inline input + Save/Cancel) + meta line (question count • type • difficulty • output language, native name or localized "Auto" • "About N min" time estimate, AI-assisted per-question values summed, updates on regenerate/delete/undo). Hairline divider, then action row: a Study/Back-to-editing outline button (Archive detail only, 7.17, never a toggle), Show answers toggle (7.7, off by default), then outline Copy and Print/PDF buttons (never solid amber). "View in Archive" link top-right on Create; "Back to Archive" on Archive detail. Turning Show answers off never hides a question's own answer field/check button — only the correct answer/model answer/key points/explanation link.
-- **Loading state:** three skeleton cards (`animate-pulse`, card surface, no content) replace the result area.
-- **Error state:** card surface, error-tinted border/background, a localized message per error code (`too_short`, `too_long`, `too_long_chars`, `not_supported`, `model`, `upstream`, `parse`, `network`, `not_configured`), "Try again" button.
-- **Incomplete-count note:** if generation couldn't reach the requested count even after automatic top-up retries, a note reads "X of Y questions were created." next to a "Create the rest" button.
-- **Undo snackbar:** fixed bottom-centered navy pill after deleting a question, amber "Undo" action, auto-dismisses.
-
-### 7.15 Question cards
-Card surface (warm border, radius 14), one per question, vertical list.
-- **Header row:** amber circle number (same style as 7.11 step badges), amber-tinted type pill (e.g. "Multiple Choice"); non-editing/non-practice view shows Edit/Regenerate/Delete icon buttons pinned right (each with a tooltip/`aria-label`). While regenerating: centered spinner over a semi-transparent overlay.
-- **Shared answer bar (`AnswerBar`):** used by fill-blanks/short-answer/open-ended — a single-line input (fill-blanks) or textarea (2 rows short-answer, 4 rows + character counter for open-ended) with an amber-outline square check button. Result line (`aria-live="polite"`, never color-only): check + "Correct!" (green), check + "Partly correct" (amber, short-answer/open-ended only), or cross + "Not yet. Try again." (red); short-answer/open-ended add one AI feedback sentence + a coverage count that never names the missing points/model answer. A failed AI grading call shows a localized error line with inline "Try again". Checking: fill-blanks is local-only (lenient normalization + typo tolerance); short-answer tries local first, falls back to `/api/grade`; open-ended always calls `/api/grade`. Enter checks fill-blanks/short-answer; open-ended reserves Enter for newline, checks on Ctrl/Cmd+Enter. State is per-question, memory-only, resets on edit/regenerate/replace.
-- **By type:** mcq/true-false render a native radio group + check button (correct = green tint+icon, wrong = red tint+icon, correct option never revealed, re-checkable); Show answers overlays a separate read-only amber-tinted correct answer. fill-blanks: dashed-underline blank + answer bar; answer shown in bold amber-text above the bar when Show answers is on. short-answer/open-ended: a "Model answer" block (muted paper box) above the answer bar when Show answers is on. matching: two columns (numbered left, lettered right, same box style as mcq options), 4–6 pairs (never fewer than 3), right column always shuffled (`rightOrder`, stable via id when absent — `getRightOrder()` in `src/lib/matching.ts`); a checkable student-answer field (`MatchingColumns`) below regardless of Show answers state (tolerant parsing of `1-A`/`1A`/`1=A`/reversed/etc.), incomplete answers show a hint instead of a wrong result, complete answers show a green/red summary line + per-left-item check/cross marks (never revealing the correct letter). All question text renders through 7.12.
-- **Explanation:** collapsed behind a "Show/Hide explanation" toggle; the toggle itself stays unrendered until the first check (any type) or Show answers is on.
-- **Hint button:** a small secondary square button (light bulb icon, muted border, never solid amber) to the left of the check button, present only when the question has hints and the Hints setting was on. States: "Hint" (unrevealed) → "Another hint" (1 revealed) → disabled "No more hints" (2 revealed, `max 2`). Hidden entirely when Show answers is on or the student already answered correctly. Revealed hints render numbered in a soft amber box (`bg-amber/10`, amber-text) above the result line, `aria-live="polite"`. Hint reveal state is per-question, memory-only, resets on edit/regenerate/replace (same signature as the answer-check state, 7.15 above).
-- **Edit mode:** inline form scoped to the question's type (option/pair rows with add/remove, true/false picker, or textarea), Save (solid amber) / Cancel (outline). Matching: 3–6 pairs, validated against empty/duplicate values, recomputes `rightOrder` on save. Fill-blanks/short-answer add an "Accepted answers" textarea (up to 4, optional); open-ended adds a required "Key points" textarea. Every type also gets two optional "Hint 1"/"Hint 2" fields (max 140 chars each); Save runs the same deterministic leak check as generation against the draft's current answer and blocks with a localized error if a hint would reveal it.
-
-### 7.16 Print / PDF
-Triggered by outline "Print / PDF", which opens a small dialog (same card/overlay style as other dialogs) asking EN "Question sheet" / "With answer key" (default: Question sheet), plus Cancel/Print actions; confirming sets `document.title` to the quiz title (restored on `afterprint`) and calls `window.print()`. A screen-hidden, semantic print layout (`[data-print-only]`, `data-print-variant`) becomes the only visible content under `@media print`, independent of the on-screen Show answers state:
-- **Page:** A4, `@page` margin ~18mm, white background, black text, no amber fills/shadows/rounded cards. Fraunces for the title/Answer key heading, Plus Jakarta Sans for body (both with existing Armenian fallbacks), ~11pt body / 1.45 line-height.
-- **Header (once, top of document):** quiz title, meta line (question count • type • difficulty • "About N min" time estimate, no output-language), a "Quelio" wordmark right, a thin rule; Question-sheet variant only adds a Name/Class/Date fill-in row below it.
-- **Questions:** numbered via native `<ol>` (hanging indent), `break-inside: avoid` per question. mcq: "A)"/"B)"... one per line, two columns only when every option is short; true/false: localized "True"/"False" each with an empty box; fill-blanks: one short ruled line; short-answer: 2 ruled lines; open-ended: ~6 ruled lines; matching: two aligned columns (numbered left, lettered right via `rightOrder`) with a short answer line per left item. Question-sheet variant never shows answers/explanations.
-- **With-answer-key variant:** adds a page break (`page-break-before`) then "Answer Key": question number + correct answer (letter/True-False/word/matching pairs/key points for open-ended, model answer for short-answer), each with its explanation only when the quiz has one.
-- Same print output from the Create result view and the Archive quiz view (one shared component, no second print path).
-
-### 7.17 Archived quiz view & Study Mode practice
-At `/archive/:id`: same header/question list as 7.14–7.15 when Study Mode is off, plus:
-- **Not found:** centered card (archive icon, "Quiz not found", "Back to Archive" button) for a deleted/invalid id.
-- **Entering Study Mode:** the Archive list's "Study" button (7.13) links straight to `/archive/:id?mode=study`, which opens already in practice view; the header's Study/Back-to-editing button (7.14) can also flip modes in place — Study Mode is a view-only, non-persisted state (not written back to the archive entry).
-- **Study Mode practice:** header controls reduce to the Study/Back-to-editing button alone; each question renders as a practice card (no edit actions, no explanation toggle) using the same checkable/retryable UI as 7.15 for every type, hint button included. Once every card has been answered once, a summary row appears ("3 / 5 correct") plus a muted "Hints used: N" line when at least one hint was revealed during the session, with "Try again" to clear and reshow (also resets the hint count).
-
-### 7.18 "Turn into a song"
-Entry point: a secondary button (music-note icon, card surface, warm border, never solid amber) in the quiz result header's action row (7.14) and the archived quiz view — rendered only once `GET /api/song` reports the feature enabled (hidden entirely otherwise, including while that check is in flight).
-- **Panel:** opens as a right-side panel on desktop (max-width 420px) / bottom sheet on mobile (max-height 85vh, rounded top), a scrim backdrop, `role="dialog"`, focus trapped, Escape and a header close button both close it and return focus to the trigger.
-- **Step A — Options:** style chips and a second row of tone chips (same pill style — unselected: card surface/warm border; selected: `bg-amber/15` + `border-amber` + amber-text text, never solid amber; tone is Normal/Funny, default Normal), length shown as dynamic text ("About N seconds" — scales with the quiz's question count, capped to the active provider's longest supported song), then an outline "Write lyrics" button.
-- **Step B — Lyrics:** the resolved length note, a partial-coverage note ("X of Y facts are in this song") when the provider's length cap trimmed the quiz, an editable monospace textarea with `[Intro]`/`[Verse]`/`[Chorus]`/`[Bridge]`/`[Outro]` tags and a character counter (turns error-red over the limit, which scales with length), an amber-tinted non-blocking fact-check warning (title + the specific flagged lines, or a generic line when none are pinpointed) when the server-side fact checker couldn't fully verify the lyrics, and the solid-amber "Make the song" button (the panel's one primary action, disabled when empty or over the limit) — pressing it silently re-checks the (possibly edited) lyrics first and refreshes the warning before generating.
-- **Step C — Creating:** centered pulsing music-note icon, a calm rotating status line (`aria-live="polite"`), and an outline Cancel button that aborts the request and returns to Step B with no error.
-- **Step D — Player** (`SongPlayerCard`, shared with the Archive "Listen" section, 7.13/7.17): optional "Demo sound" badge (amber-tinted pill) when the response used the demo provider; custom play/pause, seek and volume controls plus a Download link around a native (visually hidden) `<audio>` element; the final lyrics below the player; the fact-check warning again if still unresolved; a muted AI-disclosure line; an outline "Make another" button resets to Step A.
-- **Storage:** songs are saved client-side to IndexedDB, keyed by quiz id (see CLAUDE.md); a save failure shows a muted note but the song still plays for the session.
-- **Errors:** every step shows a localized message + outline "Try again" for its own error codes (`not_configured`, `disabled`, `too_long`, `blocked`, `upstream`, `timeout`, `parse`, `network`, `storage_full`), plus a daily per-quiz generation-limit note and a separate daily total-seconds-of-songs limit note.
-- **Access gate** (production only, `MusicAccessGate`): replaces Step A until a valid owner code is stored — centered card, one password input, solid-amber "Unlock" button, localized wrong-code error; a code revoked server-side mid-flow bounces back here with the same card. The song list itself (Songs page, 7.19) is never gated, only the creation flow.
-
-### 7.19 Songs page
-Same shell as other pages. Header: title + muted subtitle, with today's remaining-songs meta and (when a code is stored) an outline "Lock" button on the right; sidebar item and route both follow the same enabled switch as 7.18 (redirects to Create when disabled).
-- **New song:** full-width solid-amber button opens an inline quiz picker (card surface): a search input over the user's Archive quizzes (newest first, title + question count per row); choosing one embeds the existing song panel (7.18) directly on the page, access gate included; an empty Archive shows a message + "Go to Create" link instead of the list.
-- **Filters:** All/Normal/Funny pill chips (same selected treatment as 7.18's chips) plus a search-by-quiz-title input, right-aligned on desktop.
-- **Generating row:** while the embedded panel is on Step C, a pulsing music-note row appears above the list with the quiz title; closing the tab mid-generation prompts the browser's native leave-confirmation.
-- **Song list:** one card per song (divided list, Archive-width on desktop, single column at 390px): quiz title, style • tone • length • date meta line, a solid-amber play/pause circle (only one song plays at a time, page-wide); action row — outline "View/Hide lyrics" (expands a lyrics block with section tags shown as small amber-tinted pill labels), outline "Download", outline "Open quiz" link (or a muted "Quiz deleted" label when the quiz no longer exists in the Archive — the song itself is never removed), and a trash icon button (`hover:bg-error/10 hover:text-error`) that turns into an inline "Delete this song? [Delete] [Cancel]" confirmation before actually deleting.
-- **Delete undo:** same fixed bottom-centered navy pill + amber "Undo" pattern as the question-delete snackbar (7.14).
-- **Empty state:** archive icon, "No songs yet" message, solid-amber "New song" button.
-
-## 8. Iconography
-Outline line icons, stroke ~1.75–2px, rounded caps/joins. 16px in nav/tabs/buttons, 20px for the CTA sun icon. Color inherits context (navy on amber, paper/amber on navy sidebar). The sun icon (circle + 8 rays) is the only "AI moment" motif, used on the CTA only.
-
-## 9. Interaction & Motion
-- Transitions: 150–200ms ease-out for color/background/border/shadow/transform.
-- One entrance fade (opacity + 4px translateY) on main content mount.
-- Hover lift on the CTA only (1px + glow); no bouncing or large motion.
-- Focus never stacks: mouse/touch focus shows only a 1px `#D8CDB4` border (no ring/glow); keyboard `:focus-visible` shows a single 2px amber ring, 2px offset — never both.
-- Respect `prefers-reduced-motion` (animations/transitions collapse to ~0).
+- **Focus:** driven by input modality (`src/lib/focusModality.ts`, `:root.modality-mouse` / `.modality-keyboard`), not `:focus-visible`. Mouse/touch: only a 1px `focus-neutral` border (error border if invalid). Keyboard: one 2px amber outline, 2px offset. Never both; open select triggers show no ring.
+- Transitions 150-200ms ease-out; content fade-in 220ms (opacity + 4px). Hover lift only on the CTA. `prefers-reduced-motion` collapses animations/transitions.
+- Icons: outline, ~1.75-2px stroke, rounded; 16px in nav/tabs/buttons, 20px CTA sun. The sun (circle + 8 rays) appears only on the CTA. Every icon has visible text or `aria-label`.
+- Touch targets >= 40x40px. Tabs, switches, listboxes and menus follow WAI-ARIA patterns (above).
 
 ## 10. Content & Voice
-- Clear, warm, human tone. No hype words. Button labels start with a verb ("Generate Quiz", "Solve", "Clear Input"). Numbers use thousands separators (5,000).
-- Every string comes from an i18n file (`en`, `tr`, `hyw`); never hard-code widths on labels.
-- Never ship a control with no real behavior behind it (no placeholder Logout/Account/Upgrade) — add UI only once the feature exists.
 
-| Key | EN | TR |
-|---|---|---|
-| `hero.title` | Turn anything you read into a quiz. | Okuduğun her şeyi bir quize dönüştür. |
-| `cta.generate` | Generate Quiz | Quiz Oluştur |
-| `params.eyebrow` | Quiz Parameters | Quiz Ayarları |
+- Clear, warm, no hype. Labels start with a verb ("Generate Quiz", "Solve", "Clear Input"). Thousands separators (5,000).
+- Every string comes from `en`/`tr`/`hyw` i18n files (e.g. `hero.title`, `cta.generate`, `params.eyebrow`).
+- Never ship a control with no real behavior (no placeholder Logout/Account/Upgrade).
 
-## 11. Accessibility
-- Text contrast ≥ 4.5:1 (`muted` `#6B6F85` on paper/card passes for 14px+); active nav item (amber bar + full-opacity paper on navy) passes AA.
-- Every icon paired with visible text or `aria-label`. Toggles use `role="switch"` + `aria-checked`. Tabs use `role="tablist"`/`role="tab"` with arrow-key navigation. Selects follow the WAI-ARIA listbox pattern (7.10).
-- Minimum touch target 40×40px. Respect `prefers-reduced-motion`.
+## 11. Do and Don't
 
-## 12. Design Tokens (copy-paste)
+- Do use amber for the primary CTA, active nav, focus and soft tints; use `amber-text` for any amber small text.
+- Do separate with borders and whitespace; keep shadows soft. Fraunces for headings only.
+- Do keep sidebar labels short (max 2 words in EN).
+- Don't add promos, founder lines or cross-app banners.
+- Don't reintroduce indigo/violet, a blue background, the sparkle icon, or any gradient besides the top-right glow.
+- Don't set fixed pixel widths on text containers.
 
-Tailwind v4 `@theme` (in `src/index.css`):
-```css
-@theme {
-  --font-sans: 'Plus Jakarta Sans', 'Noto Sans Armenian Variable', sans-serif;
-  --font-serif: 'Fraunces Variable', 'Noto Serif Armenian Variable', serif;
-
-  --color-navy: #0e1330;
-  --color-ink: #14172b;
-  --color-muted: #6b6f85;
-
-  --color-amber: #f5a524;
-  --color-amber-hover: #e0931a;
-  --color-amber-text: #9c4a09;
-  --color-ember: #ff7a2f;
-
-  --color-paper: #fbf7ef;
-  --color-card: #fffefb;
-  --color-warm-border: #ece5d6;
-  --color-focus-neutral: #d8cdb4;
-
-  --color-success: #1a7a4e;
-  --color-error: #c23a3a;
-}
-```
-
-## 13. Do and Don't
-
-**Do**
-- Reserve amber for the single primary CTA, the active nav marker, and focus accents.
-- Use borders and warm whitespace to separate; keep shadows very soft.
-- Use Fraunces for headings only; keep UI text in Plus Jakarta Sans.
-- Keep sidebar labels short (max 2 words in EN).
-
-**Don't**
-- Don't add third-party promos, founder contact lines or cross-app banners on the main screen.
-- Don't reintroduce the indigo/violet palette, the blue page background, or the sparkle icon.
-- Don't use gradients anywhere except the one approved top-right radial glow.
-- Don't use ember (`#FF7A2F`) for large areas — tiny highlights only.
-- Don't color small text with `--color-amber`/`--color-amber-hover` — use `--color-amber-text` (links, badges, labels, counters).
-- Don't set fixed pixel widths on text containers (Turkish/Armenian will overflow).
-
-New screens must reuse the tokens and components above; add new components to this file before using them.
+New screens reuse these tokens and components; add new components here before using them.

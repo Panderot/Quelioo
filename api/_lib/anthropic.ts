@@ -1,10 +1,8 @@
 import type { IncomingMessage } from 'node:http'
 
-export const DEFAULT_MODEL = 'claude-haiku-4-5'
 const UPSTREAM_TIMEOUT_MS = 25000
 
-/** Solve keeps calling this with no default override, so it keeps resolving to DEFAULT_MODEL exactly as before. */
-export function resolveModel(defaultModel: string = DEFAULT_MODEL): string {
+export function resolveModel(defaultModel: string): string {
   return process.env.ANTHROPIC_MODEL ?? defaultModel
 }
 
@@ -89,12 +87,6 @@ async function postAnthropicMessages(params: CallAnthropicMessagesParams): Promi
 function extractErrorType(payload: unknown): string | null {
   if (!isRecord(payload) || !isRecord(payload.error)) return null
   return typeof payload.error.type === 'string' ? payload.error.type : null
-}
-
-/** POSTs a single-turn message to the Anthropic Messages API and returns the model's text reply, or null on any transport/shape failure. */
-export async function callAnthropicMessages(params: CallAnthropicMessagesParams): Promise<string | null> {
-  const result = await postAnthropicMessages(params)
-  return result.text
 }
 
 /** Same call, with the HTTP status and token usage exposed for callers that need to distinguish auth failures from other errors (used by the multi-provider LLM layer). */

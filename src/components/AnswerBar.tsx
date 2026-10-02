@@ -33,7 +33,7 @@ interface ResultLineProps {
 
 /** The aria-live result line shared by every checkable question type (mcq, true-false,
  * fill-blanks, short-answer, open-ended) — never color-only, always paired with an icon and text. */
-export function ResultLine({ result, error, onRetry }: ResultLineProps) {
+function ResultLine({ result, error, onRetry }: ResultLineProps) {
   const { t } = useTranslation()
 
   if (error) {

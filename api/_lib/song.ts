@@ -68,7 +68,7 @@ function errorStatus(code: SongErrorCode): number {
   }
 }
 
-export function handleSongStatusRequest(): SongStatusResponseBody {
+function handleSongStatusRequest(): SongStatusResponseBody {
   const provider = resolveMusicProvider()
   return { enabled: isMusicEnabled(), provider, maxSeconds: resolveProviderMaxSeconds(provider), requiresAccessCode: isProductionAccessGateActive() }
 }

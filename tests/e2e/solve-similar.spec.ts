@@ -201,7 +201,7 @@ test.describe('Solve — another way', () => {
   })
 })
 
-test('similar problems, answers and the other method are saved and reopen from the Archive', async ({ page, mockSolve }) => {
+test('similar problems, answers and the other method are saved and reopen from the Archive', { tag: '@cross' }, async ({ page, mockSolve }) => {
   await mockSolve(MOCK_RESULT)
   const similar = await script(page, '**/api/similar', [{ body: similarProblem(1) }])
   const another = await script(page, '**/api/another-way', [{ body: { kind: 'method', method: 'Guess and check', steps: ['Try $x = 8$: $31 = 31$.'], answer: '$x = 8$' } }])

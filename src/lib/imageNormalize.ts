@@ -237,16 +237,3 @@ export function renderPreviewCanvas(decoded: DecodedImage, rotation: CropRotatio
   return canvas
 }
 
-/**
- * Turns any supported photo format into a single normalized JPEG the server always knows how to
- * read: EXIF-oriented, flattened onto white, resized to a sane max dimension. Throws
- * ImageNormalizeError with a reason the caller can map to a localized message.
- */
-export async function normalizeImageForSolve(file: File): Promise<NormalizedImage> {
-  const decoded = await decodeImageForSolve(file)
-  try {
-    return encodeNormalized(decoded, FULL_CROP)
-  } finally {
-    decoded.release()
-  }
-}

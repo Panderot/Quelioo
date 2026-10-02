@@ -9,13 +9,13 @@ const STORE = 'solutions'
 const CREATED_AT_INDEX = 'createdAt'
 
 /** Oldest solutions are evicted once the store holds more than this many. */
-export const MAX_SOLUTIONS = 300
+const MAX_SOLUTIONS = 300
 /** Longest side of the stored thumbnail; the full-size photo is never stored. */
 const THUMBNAIL_MAX_SIDE = 800
 const THUMBNAIL_QUALITY = 0.75
 
 /** Bump when a new field needs more than a read-time default (see withDefaults). */
-export const SOLUTION_SCHEMA_VERSION = 1
+const SOLUTION_SCHEMA_VERSION = 1
 
 export interface StoredSolution {
   id: string
@@ -34,7 +34,7 @@ export interface StoredSolution {
   extras: Record<string, unknown>
 }
 
-export class SolutionStorageError extends Error {}
+class SolutionStorageError extends Error {}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -166,7 +166,7 @@ async function putAndEvict(record: StoredSolution): Promise<void> {
 }
 
 /** Shrinks the (already cropped) upload JPEG into a ≤800px thumbnail. Null if it can't be made. */
-export async function makeThumbnail(dataUrl: string): Promise<Blob | null> {
+async function makeThumbnail(dataUrl: string): Promise<Blob | null> {
   try {
     const img = new Image()
     img.src = dataUrl

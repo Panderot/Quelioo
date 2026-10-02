@@ -29,7 +29,7 @@ const DIFFICULTY_MULTIPLIER: Record<EstimateDifficulty, number> = {
 }
 
 /** Server-side clamp range for a model-provided estimatedSeconds value, per question type. */
-export const ESTIMATED_SECONDS_RANGE: Record<EstimateQuestionType, [number, number]> = {
+const ESTIMATED_SECONDS_RANGE: Record<EstimateQuestionType, [number, number]> = {
   'true-false': [8, 60],
   mcq: [15, 180],
   'fill-blanks': [10, 120],
@@ -51,7 +51,7 @@ function baseSecondsForType(type: EstimateQuestionType, optionsCount?: number): 
 /** Base seconds for one question of `type`, difficulty-adjusted — "mixed" averages the base cost
  * across every concrete type the generator can mix in. Shared by the client's pre-generation
  * estimate and the server-side fallback used when the model omits/mangles estimatedSeconds. */
-export function estimateQuestionSeconds(type: EstimateQuestionType | 'mixed', difficulty: EstimateDifficulty, optionsCount?: number): number {
+function estimateQuestionSeconds(type: EstimateQuestionType | 'mixed', difficulty: EstimateDifficulty, optionsCount?: number): number {
   const base =
     type === 'mixed'
       ? MIXED_TYPES.reduce((sum, t) => sum + baseSecondsForType(t, optionsCount), 0) / MIXED_TYPES.length

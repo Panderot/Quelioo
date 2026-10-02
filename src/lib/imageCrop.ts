@@ -16,11 +16,6 @@ export interface CropSpec extends CropRect {
 export const FULL_RECT: CropRect = { x: 0, y: 0, w: 1, h: 1 }
 export const FULL_CROP: CropSpec = { ...FULL_RECT, rotation: 0 }
 
-export function isFullRect(rect: CropRect): boolean {
-  const epsilon = 1e-6
-  return rect.x < epsilon && rect.y < epsilon && rect.w > 1 - epsilon && rect.h > 1 - epsilon
-}
-
 /** Maps a rect through one 90° clockwise turn of the image it is normalized to. */
 export function rotateRectClockwise(rect: CropRect): CropRect {
   return { x: 1 - (rect.y + rect.h), y: rect.x, w: rect.h, h: rect.w }

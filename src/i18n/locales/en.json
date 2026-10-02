@@ -524,7 +524,6 @@
     },
     "writeLyrics": "Write lyrics",
     "writingLyrics": "Writing lyrics...",
-    "rewriteLyrics": "Rewrite lyrics",
     "lyricsLabel": "Lyrics",
     "lyricsCounter": "{{count}}/{{max}} characters",
     "makeTheSong": "Make the song",

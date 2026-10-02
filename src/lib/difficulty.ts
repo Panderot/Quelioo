@@ -1,5 +1,4 @@
-export const DIFFICULTY_LEVELS = ['easy', 'medium', 'hard'] as const
-export type DifficultyLevel = (typeof DIFFICULTY_LEVELS)[number]
+export type DifficultyLevel = 'easy' | 'medium' | 'hard'
 
 /** Single source of truth for what each difficulty means, fed into the generation prompt. */
 const DIFFICULTY_PROMPT_DESCRIPTIONS: Record<DifficultyLevel, string> = {

@@ -187,7 +187,8 @@ test('New song: quiz picker lists and searches Archive quizzes, then opens the s
   await expect(page.getByLabel('Lyrics')).toHaveValue(SAMPLE_LYRICS.lyrics)
 })
 
-test('full flow: a song made from the picker appears in the list; the generating row shows while creating', async ({ page, seedArchive }) => {
+test('full flow: a song made from the picker appears in the list; the generating row shows while creating', { tag: '@cross' }, async ({ browserName, page, seedArchive }) => {
+  test.skip(browserName === 'webkit', 'Playwright WebKit on Windows cannot store Blobs in IndexedDB')
   await mockSongStatus(page, true)
   await mockSongLyrics(page, SAMPLE_LYRICS)
   await mockSongCreate(page, SAMPLE_SONG, { delayMs: 300 })
@@ -226,7 +227,8 @@ test('songs made from the quiz result view appear on the Songs page, with a "See
   await expect(page.locator('[data-purpose="songs-list"] li').filter({ hasText: SAMPLE_QUIZ.title })).toBeVisible()
 })
 
-test('play/pause: only one song plays at a time across the list', async ({ page, seedArchive }) => {
+test('play/pause: only one song plays at a time across the list', { tag: '@cross' }, async ({ browserName, page, seedArchive }) => {
+  test.skip(browserName === 'webkit', 'Playwright WebKit on Windows cannot store Blobs in IndexedDB')
   await mockSongStatus(page, true)
   await seedArchive([SEEDED_ENTRY])
   await page.goto('/?lng=en')
@@ -247,7 +249,8 @@ test('play/pause: only one song plays at a time across the list', async ({ page,
   await expect(rowA.getByRole('button', { name: 'Play' })).toBeVisible()
 })
 
-test('view lyrics expands with section tags shown as pill labels; download has the right filename', async ({ page, seedArchive }) => {
+test('view lyrics expands with section tags shown as pill labels; download has the right filename', { tag: '@cross' }, async ({ browserName, page, seedArchive }) => {
+  test.skip(browserName === 'webkit', 'Playwright WebKit on Windows cannot store Blobs in IndexedDB')
   await mockSongStatus(page, true)
   await seedArchive([SEEDED_ENTRY])
   await page.goto('/?lng=en')
@@ -325,7 +328,8 @@ test('empty state shows a message and a New song button', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'New song' })).toHaveCount(2) // header CTA + empty-state CTA
 })
 
-test('an old song record without the newer fields still renders using defaults', async ({ page, seedArchive }) => {
+test('an old song record without the newer fields still renders using defaults', { tag: '@cross' }, async ({ browserName, page, seedArchive }) => {
+  test.skip(browserName === 'webkit', 'Playwright WebKit on Windows cannot store Blobs in IndexedDB')
   await mockSongStatus(page, true)
   await seedArchive([SEEDED_ENTRY])
   await page.goto('/?lng=en')

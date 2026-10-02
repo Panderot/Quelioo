@@ -68,7 +68,7 @@ export function latexToPlainMath(raw: string): string | null {
 }
 
 /** Turns LaTeX / unicode / Turkish-style answer text into plain mathjs syntax, or null. */
-export function normalizeAnswerText(raw: string): string | null {
+function normalizeAnswerText(raw: string): string | null {
   let text = latexToPlainMath(raw)
   if (text === null) return null
 

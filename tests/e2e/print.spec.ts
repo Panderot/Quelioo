@@ -50,7 +50,7 @@ async function countPdfPages(pdf: Buffer): Promise<number> {
   return pages
 }
 
-test.describe('Print / PDF', () => {
+test.describe('Print / PDF', { tag: '@cross' }, () => {
   test('the print dialog defaults to Question sheet and offers both variants', async ({ page, seedArchive }) => {
     await seedArchive([MIXED_ENTRY])
     await page.goto(`/archive/${MIXED_ENTRY.id}?lng=en`)
@@ -94,7 +94,8 @@ test.describe('Print / PDF', () => {
     await expect(printOnly).not.toContainText('Rayleigh')
   })
 
-  test('with-answer-key variant forces the answer key onto its own page and keeps every question break-inside: avoid', async ({ page, seedArchive }) => {
+  test('with-answer-key variant forces the answer key onto its own page and keeps every question break-inside: avoid', async ({ browserName, page, seedArchive }) => {
+    test.skip(browserName !== 'chromium', 'page.pdf() only exists in Chromium')
     await seedArchive([tinyEntry('tiny-with-explanations', true)])
     await page.goto('/archive/tiny-with-explanations?lng=en')
     await page.getByRole('button', { name: 'Print / PDF' }).click()

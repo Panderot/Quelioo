@@ -16,7 +16,6 @@
 
   --color-amber: #f5a524;
   --color-amber-hover: #e0931a;
-  --color-ember: #ff7a2f;
   /* Bright amber (above) is ~2:1 on paper/card — fine for buttons, fills, underlines, focus
      rings and icons, but fails WCAG small-text contrast. This darker token is the only amber
      allowed on small text (links, badges, labels, counters): ~5.3-6.1:1 on card/paper, and

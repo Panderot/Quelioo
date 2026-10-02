@@ -297,8 +297,10 @@ test.describe('Draft protection', () => {
     await page.getByRole('button', { name: 'Question Type', exact: true }).click()
     await page.getByRole('option', { name: 'True or False', exact: true }).click()
 
-    // The debounced autosave needs a beat to land in localStorage before reloading.
-    await page.waitForTimeout(700)
+    // Wait for the debounced autosave to land in localStorage before reloading.
+    await expect
+      .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('quelio.draft.v1') ?? '{}')))
+      .toMatchObject({ title: 'Draft Title', questionType: 'true-false' })
     await page.reload()
 
     await expect(page.getByText('Your draft was restored')).toBeVisible()

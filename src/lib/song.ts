@@ -65,8 +65,8 @@ export function isSongErrorCode(value: unknown): value is SongErrorCode {
 
 /** Lyrics line/char budget for the 30-second baseline band — scaled up for longer targets by
  * lyricsLimitsForTargetSeconds(). */
-export const MAX_LYRICS_CHARS = 700
-export const MAX_LYRICS_LINES = 14
+const MAX_LYRICS_CHARS = 700
+const MAX_LYRICS_LINES = 14
 export const MAX_SONG_TITLE_CHARS = 80
 export const MAX_MUSIC_PROMPT_CHARS = 300
 export const MAX_KEY_FACT_CHARS = 200
@@ -82,7 +82,7 @@ export interface LengthBand {
 /** Target song length scales with how much the song needs to teach — see
  * quelio-song-quality-prompt.txt §4. Also used in reverse (maxFactsForTargetSeconds) to decide how
  * many facts fit when a provider's maxSeconds is below the quiz's natural target. */
-export const LENGTH_BANDS: LengthBand[] = [
+const LENGTH_BANDS: LengthBand[] = [
   { maxFacts: 5, targetSeconds: 30 },
   { maxFacts: 10, targetSeconds: 60 },
   { maxFacts: 15, targetSeconds: 90 },

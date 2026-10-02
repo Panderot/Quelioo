@@ -524,7 +524,6 @@
     },
     "writeLyrics": "Sözleri yaz",
     "writingLyrics": "Sözler yazılıyor...",
-    "rewriteLyrics": "Sözleri yeniden yaz",
     "lyricsLabel": "Sözler",
     "lyricsCounter": "{{count}}/{{max}} karakter",
     "makeTheSong": "Şarkıyı oluştur",

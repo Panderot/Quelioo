@@ -127,7 +127,7 @@ async function checkWork(page: Page, strings: typeof en = en, open = true) {
 const fill = (template: string, step: number) => template.replace('{{step}}', String(step))
 
 test.describe('Solve — check my solution', () => {
-  test('shows the reading to confirm first; only then grades and marks the verified mistake', async ({ page, mockSolve }) => {
+  test('shows the reading to confirm first; only then grades and marks the verified mistake', { tag: '@cross' }, async ({ page, mockSolve }) => {
     await mockSolve(MOCK_RESULT)
     const calls = await mockCheck(page, { read: [{ body: READING }, { body: CLEAN_READING }], grade: [{ body: HAS_ERROR }, { body: CORRECT }] })
     await page.goto('/solve?lng=en')
@@ -311,7 +311,7 @@ test.describe('Solve — check my solution', () => {
     expect(calls.grades).toHaveLength(3)
   })
 
-  test('a pasted image goes to the open check panel, not to Solve', async ({ page, mockSolve }) => {
+  test('a pasted image goes to the open check panel, not to Solve', { tag: '@cross' }, async ({ page, mockSolve }) => {
     const solveMock = await mockSolve(MOCK_RESULT)
     await page.goto('/solve?lng=en')
     await solve(page)
@@ -332,7 +332,7 @@ test.describe('Solve — check my solution', () => {
   })
 })
 
-test('the check result is saved and reopens from the Archive', async ({ page, mockSolve }) => {
+test('the check result is saved and reopens from the Archive', { tag: '@cross' }, async ({ page, mockSolve }) => {
   await mockSolve(MOCK_RESULT)
   const calls = await mockCheck(page, { read: [{ body: READING }], grade: [{ body: HAS_ERROR }] })
   await page.goto('/solve?lng=en')

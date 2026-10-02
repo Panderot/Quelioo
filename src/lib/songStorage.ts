@@ -47,7 +47,7 @@ function withDefaults(raw: Omit<StoredSong, 'quizTitle' | 'tone' | 'factCheckPas
   }
 }
 
-export class SongStorageError extends Error {}
+class SongStorageError extends Error {}
 
 function makeId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()

@@ -8,14 +8,14 @@ import type { SongProvider } from '../../src/lib/song.js'
 /** The longest song each provider can currently produce. Demo is pure synthesis so it can match any
  * supported length band; "gemini" tops out at lyria-3.5's documented range ("a couple of minutes"),
  * capped to our largest length band rather than guessed higher — see CLAUDE.md. */
-export const DEMO_MAX_SECONDS = 120
+const DEMO_MAX_SECONDS = 120
 /** lyria-3-clip-preview: fixed 30-second clips only, per the live docs (Phase 2 research). */
-export const GEMINI_CLIP_MAX_SECONDS = 30
+const GEMINI_CLIP_MAX_SECONDS = 30
 /** lyria-3.5: variable length, influenced via the prompt text — capped conservatively here. */
-export const GEMINI_LONG_MAX_SECONDS = 120
+const GEMINI_LONG_MAX_SECONDS = 120
 
-export const DEFAULT_GEMINI_CLIP_MODEL = 'lyria-3-clip-preview'
-export const DEFAULT_GEMINI_LONG_MODEL = 'lyria-3.5'
+const DEFAULT_GEMINI_CLIP_MODEL = 'lyria-3-clip-preview'
+const DEFAULT_GEMINI_LONG_MODEL = 'lyria-3.5'
 
 /** Explicit MUSIC_ENABLED always wins; unset defaults to on outside production (matches the LLM
  * provider-order default-by-environment pattern in api/_lib/llm.ts). */

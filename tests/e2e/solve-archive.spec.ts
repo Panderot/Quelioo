@@ -136,7 +136,7 @@ async function solveOnce(page: Page, strings: typeof en = en, size = { width: 20
 const solutionsTab = (page: Page, strings: typeof en = en) => page.getByRole('tab', { name: strings.archive.tabs.solutions })
 const quizzesTab = (page: Page, strings: typeof en = en) => page.getByRole('tab', { name: strings.archive.tabs.quizzes })
 
-test.describe('Archive Solutions tab', () => {
+test.describe('Archive Solutions tab', { tag: '@cross' }, () => {
   test('tabs keep their state in the URL across reload and back/forward', async ({ page }) => {
     await page.goto('/archive?lng=en')
     await expect(quizzesTab(page)).toHaveAttribute('aria-selected', 'true')

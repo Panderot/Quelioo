@@ -1,0 +1,67 @@
+MODEL: Claude Opus 5.5 (select it with /model before pasting this prompt)
+
+CONTEXT AND EXECUTION
+- Follow the project's CLAUDE.md instructions. Search first, then read only files and sections relevant to the task; do not reread unchanged references.
+- Complete the requested work quickly and fully. Avoid unnecessary planning and repeated checks, but do not skip checks needed to catch errors.
+- Keep terminal output brief. If build or lint fails, inspect only the relevant error lines; fix the issue and rerun the failed check. Do not save full logs.
+- Do not create progress notes, audit files, debug dumps, or extra documentation. Save only files required by the task.
+- After build, lint, and visual verification pass, deploy the finished site to Vercel production and verify that the production URL loads correctly.
+- Finish with a few lines stating what was built, what passed, and the production URL. Do not paste logs or entire files.
+
+SPEED (finish fast without lowering quality)
+- While working, run only the specs for this task and the specs that touch the files you changed. Run the full suite only once, at the very end.
+- The full suite runs in Chromium only, with parallel workers (use --workers=2 if memory is low). Firefox and WebKit run only the specs of this task (tag them @cross).
+- Never rerun tests that already passed. Never use fixed waits or sleeps; wait for real conditions.
+- Real API checks: the minimum number of calls, run in parallel where possible.
+- Do not reread files you already read; make related edits together; keep explanations short.
+- Do not poll background commands in loops; wait for their completion notice.
+
+GENERAL RULES
+- Reference: the feature comes from the Ezber repo (https://github.com/Panderot/Ezber, Next.js). Use it only as a reference for behavior and feel (Leitner boxes, 3D flip card, keyboard shortcuts, progress ring, progress dots, session summary). Do NOT copy its bugs and do not add Next.js: rebuild everything natively in Quelio (Vite + React + TypeScript + Tailwind) with the "Solar Paper" design (navy sidebar, cream paper, one flat amber primary per screen, Fraunces headings, Plus Jakarta Sans body, no gradients) and EN/TR/HYW i18n.
+- Everything must work, be logically correct and have no bugs: any bug you find must be fixed immediately and retested, not just reported.
+- Keep i18n key sets identical in en, tr and hyw with no orphan keys. Keep CLAUDE.md max 70 lines. Do not change other pages unless this task says so.
+
+TASK (part 1 of 3): FLASHCARDS PAGE AND STUDY ENGINE (no AI yet)
+
+1) SIDEBAR AND ROUTE
+- New sidebar item after Archive: EN "Flashcards", TR "Kartlar", HYW translate, with a cards/stack line icon in the same style as the other icons; same active, hover and focus rules; also in the mobile drawer. Route /flashcards (deck list), /flashcards/:deckId (deck detail and editor), /flashcards/:deckId/study (study session). Localized browser tab titles.
+- Next to the sidebar label, a small muted count of cards due today (hidden when 0), updated live.
+
+2) DATA (IndexedDB, new store, safe migration)
+- Deck: id (crypto.randomUUID), name (max 80), description (max 160), source (manual / topic / text / quiz / solution, plus a sourceRef id), language, createdAt, updatedAt.
+- Card: id (crypto.randomUUID, never a module counter: Ezber's counter reset on reload and produced duplicate ids), deckId, front (max 300), back (max 600), box 1-5, due (timestamp), lapses, reviews, lastReviewedAt, createdAt.
+- Quota and errors handled: if storage is unavailable, show a short localized note and keep the session in memory.
+
+3) SPACED REPETITION ENGINE (src/lib/srs.ts, pure functions, unit tested)
+- Leitner, 5 boxes, intervals: box 1 = same day, box 2 = 1 day, box 3 = 3 days, box 4 = 7 days, box 5 = 16 days (one constant table).
+- Known: box = min(5, box + 1), due = now + interval of the NEW box. Unknown: box = 1, lapses + 1, due = now, and the card comes back again later in the SAME session (re-queued at the end, max 3 times per session).
+- Due cards = cards with due <= now (new cards are due immediately). Fix Ezber's main bug: when nothing is due, the session does NOT silently show all cards. Instead show "All done for today" with the next due time, and an optional "Practice anyway" mode that shows the cards but does NOT change box or due (practice is not scheduling).
+- Session order: overdue first (oldest due first), then new cards; daily new-card limit 20 per deck (setting in the deck), so a 300-card deck does not flood the student.
+- Times use the user's local day for "today" counts.
+
+4) DECK LIST (/flashcards)
+- Header like other pages (title EN "Flashcards", TR "Kartlar"; subtitle EN "Learn it once, remember it for good", TR "Bir kere öğren, kalıcı hatırla", HYW translate). Primary amber button EN "New deck", TR "Yeni deste".
+- Deck rows/cards: progress ring (mastered = box >= 4, over total), name, "{n} cards · {m} learned · {k} due today", buttons "Study · {k}" (secondary when 0 due) and "Edit". Search by name; sort by due first.
+- Empty state: short message, New deck, and EN "Add sample decks", TR "Örnek desteler ekle" which adds three small starter decks (YDS common words, KPSS geography, Turkish history reforms) with facts double-checked for accuracy, localized deck names; hidden once added.
+
+5) DECK DETAIL AND EDITOR
+- Name and description fields, daily new-card limit, card list with front/back inputs (autosave, debounced), add card, delete card with undo toast, delete deck with confirmation dialog and undo toast (Ezber deleted with one click), reset progress (confirmation).
+- Bulk add: paste lines "front ; back" or "front<TAB>back" with a live preview of parsed cards, invalid lines highlighted.
+- Export the deck as CSV and import CSV (same two columns, UTF-8 with Turkish and Armenian characters, quotes handled).
+- Duplicate fronts in the same deck are flagged.
+
+6) STUDY SESSION
+- Top: deck name, "{i} / {n}", progress dots (wrap on mobile).
+- 3D flip card (CSS 3D, backface hidden), min height about 300px, long text wraps and scrolls inside the card, math rendered with the existing renderer. Respect prefers-reduced-motion (crossfade instead of flip).
+- The card is a real button (keyboard focusable, aria-pressed for flipped, aria-live announces the answer once). Shortcuts: Space flips, Right arrow or 2 = Know, Left arrow or 1 = Don't know (only after flipping), Esc exits. Shortcut hints as small kbd labels, hidden on touch devices.
+- Mobile: tap to flip; after flipping, swipe right = Know, swipe left = Don't know, with clear buttons as well (EN "Don't know" / "Know", TR "Bilmiyorum" / "Biliyorum").
+- Session summary: ring with known / total, cards to repeat, next due time, buttons "Study again" (only if something is due) and "Back to decks".
+- Leaving mid-session keeps what was already graded.
+
+DOCS: design.md for the Flashcards pages and study screen. CLAUDE.md: one line for the flashcards IndexedDB store and the srs rules (practice mode never changes the schedule).
+
+VERIFY
+- Unit tests for srs.ts: intervals per box, known/unknown transitions, lapses, same-session re-queue (max 3), due selection, "nothing due" (no silent full list), practice mode not changing box/due, daily new-card limit, local-day boundaries (mock the clock).
+- E2E (mocked time): sidebar item and due badge; create deck, add, edit, bulk paste, duplicate warning, delete with undo, delete deck with confirmation and undo; CSV export and import round trip with Turkish and Armenian text; study with mouse, keyboard and touch swipe (@cross); reduced motion; session summary; all done for today and practice anyway; reload keeps progress; ids stay unique across reloads; Turkish, English and Western Armenian; 1440px and 390px; no console errors.
+- Run tsc, lint, build and the full suite (Chromium) with zero failures, plus the @cross specs of this task in Firefox and WebKit.
+- Commit and push to master (auto-deploy). Never commit .env files or keys. If the deploy is blocked by the safety classifier, say so and stop.

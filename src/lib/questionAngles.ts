@@ -1,5 +1,5 @@
 /** Angles the generation prompt can lean on for variety — a random subset is picked per request. */
-export const QUESTION_ANGLES = [
+const QUESTION_ANGLES = [
   'definitions',
   'cause and effect',
   'real-life application',

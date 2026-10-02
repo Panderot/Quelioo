@@ -36,7 +36,7 @@ export function removeFocusPart(parts: FocusPart[], id: string): FocusPart[] {
 
 /** Extracts the current snippet text for a part from the live source text, capped at the server's
  * per-snippet character limit. */
-export function focusPartText(text: string, part: FocusPart): string {
+function focusPartText(text: string, part: FocusPart): string {
   return text.slice(part.start, part.end).slice(0, MAX_FOCUS_SNIPPET_CHARS)
 }
 

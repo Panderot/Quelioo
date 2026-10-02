@@ -96,7 +96,7 @@ export function letterFor(index: number): string {
 }
 
 /** positionForPairIndex[pairIndex] = the right-column position (letter index) showing that pair's right value — the inverse of rightOrder. */
-export function invertRightOrder(rightOrder: number[]): number[] {
+function invertRightOrder(rightOrder: number[]): number[] {
   const positionForPairIndex: number[] = []
   rightOrder.forEach((pairIndex, position) => {
     positionForPairIndex[pairIndex] = position
@@ -125,7 +125,7 @@ export interface ParsedMatchingPair {
  * separator between pairs (comma, space, newline...) and within a pair (-, =, :, →, ), nothing)
  * can both vary independently.
  */
-export function parseMatchingAnswerText(text: string): ParsedMatchingPair[] {
+function parseMatchingAnswerText(text: string): ParsedMatchingPair[] {
   const pattern = /(\d+)\s*[-=:→)]?\s*([a-zA-Z])|([a-zA-Z])\s*[-=:→)]?\s*(\d+)/g
   const results: ParsedMatchingPair[] = []
   for (const match of text.matchAll(pattern)) {

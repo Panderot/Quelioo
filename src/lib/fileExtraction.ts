@@ -3,7 +3,7 @@ import { countWords } from './textStats'
 
 export type FileErrorCode = 'unsupported_type' | 'too_large' | 'password_protected' | 'no_text' | 'corrupt' | 'empty' | 'too_short'
 
-export const MAX_FILE_BYTES = 10 * 1024 * 1024
+const MAX_FILE_BYTES = 10 * 1024 * 1024
 const STOP_EXTRACTING_AT_WORDS = 6000
 const TRUNCATE_TO_WORDS = 5000
 

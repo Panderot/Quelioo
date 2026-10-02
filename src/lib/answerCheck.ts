@@ -22,7 +22,7 @@ export function normalizeAnswer(input: string): string {
 }
 
 /** Levenshtein edit distance between two already-normalized strings. */
-export function editDistance(a: string, b: string): number {
+function editDistance(a: string, b: string): number {
   if (a === b) return 0
   const rows = a.length + 1
   const cols = b.length + 1

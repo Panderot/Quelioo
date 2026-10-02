@@ -95,7 +95,7 @@ async function dragCornerToCenter(page: Page) {
   await page.mouse.up()
 }
 
-test.describe('Solve crop step', () => {
+test.describe('Solve crop step', { tag: '@cross' }, () => {
   test('mouse crop maps to the expected region of the original', async ({ page, mockSolve }) => {
     const handle = await mockSolve(MOCK_RESULT)
     await page.goto('/solve?lng=en')
@@ -302,7 +302,7 @@ test.describe('Solve crop step', () => {
   })
 })
 
-test.describe('Solve result extras', () => {
+test.describe('Solve result extras', { tag: '@cross' }, () => {
   test('multiple problems show a choice list; choosing one sends only that choice', async ({ page }) => {
     const problems = ['1) $2x + 3 = 11$', '2) $5y - 4 = 21$']
     const requests: { problem?: string; imageBase64: string }[] = []

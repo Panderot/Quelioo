@@ -4,7 +4,7 @@ import type { FocusPart } from '../lib/focusSnippets'
 import type { InputTab } from '../components/InputCard'
 import { MAX_SOURCE_TEXT_CHARS } from '../lib/textStats'
 
-export const DRAFT_STORAGE_KEY = 'quelio.draft.v1'
+const DRAFT_STORAGE_KEY = 'quelio.draft.v1'
 const SAVE_DEBOUNCE_MS = 500
 
 export interface QuizDraft {

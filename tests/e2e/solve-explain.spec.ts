@@ -135,7 +135,7 @@ test.describe('Solve — let me try first', () => {
     expect(await page.evaluate(() => localStorage.getItem('quelio.solveTryFirst.v1'))).toBe('0')
   })
 
-  test('works when localStorage throws', async ({ page, mockSolve }) => {
+  test('works when localStorage throws', { tag: '@cross' }, async ({ page, mockSolve }) => {
     await page.addInitScript(() => {
       Storage.prototype.getItem = () => {
         throw new Error('blocked')
@@ -209,7 +209,7 @@ test.describe('Solve — explain this step', () => {
     expect(requests).toHaveLength(3)
   })
 
-  test('explanations are saved with the solution and reused when reopened from the Archive', async ({ page, mockSolve }) => {
+  test('explanations are saved with the solution and reused when reopened from the Archive', { tag: '@cross' }, async ({ page, mockSolve }) => {
     await mockSolve(MOCK_RESULT)
     const requests = await mockExplain(page)
     await page.goto('/solve?lng=en')

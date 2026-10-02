@@ -60,7 +60,7 @@ async function useWholePhoto(page: Page, label: string = en.crop.useWhole) {
   await expect(page.locator('[data-purpose="solve-cropped-preview"]')).toBeVisible()
 }
 
-test.describe('Solve — file picker, real formats', () => {
+test.describe('Solve — file picker, real formats', { tag: '@cross' }, () => {
   const validFixtures: { file: string; mimeType: string }[] = [
     { file: 'plain.jpg', mimeType: 'image/jpeg' },
     { file: 'exif-rotated.jpg', mimeType: 'image/jpeg' },
@@ -182,11 +182,14 @@ test.describe('Solve — file picker, real formats', () => {
 
   test('a file over 25MB is rejected as too_large before any decode attempt', async ({ page }) => {
     await page.goto('/solve?lng=en')
-    const oversized = Buffer.concat([fixtureBuffer('plain.jpg'), Buffer.alloc(26 * 1024 * 1024)])
-    await page.locator('input[type="file"]').setInputFiles({
-      name: 'huge.jpg',
-      mimeType: 'image/jpeg',
-      buffer: oversized,
+    // Built in the page: shipping 26MB through setInputFiles costs seconds and adds nothing here.
+    await page.locator('input[type="file"]').evaluate((input: HTMLInputElement) => {
+      const bytes = new Uint8Array(26 * 1024 * 1024)
+      bytes.set([0xff, 0xd8, 0xff, 0xe0])
+      const transfer = new DataTransfer()
+      transfer.items.add(new File([bytes], 'huge.jpg', { type: 'image/jpeg' }))
+      input.files = transfer.files
+      input.dispatchEvent(new Event('change', { bubbles: true }))
     })
     const error = page.locator('[data-purpose="solve-error"]')
     await expect(error).toBeVisible()
@@ -209,7 +212,7 @@ test.describe('Solve — file picker, real formats', () => {
   })
 })
 
-test.describe('Solve — drag-and-drop and paste', () => {
+test.describe('Solve — drag-and-drop and paste', { tag: '@cross' }, () => {
   test('drag-and-drop a valid JPEG shows a preview', async ({ page }) => {
     await page.goto('/solve?lng=en')
     await dropFile(page, fixtureBuffer('plain.jpg'), 'plain.jpg', 'image/jpeg')
@@ -224,7 +227,8 @@ test.describe('Solve — drag-and-drop and paste', () => {
     await expect(error).toContainText(en.solve.errors.unsupported)
   })
 
-  test('paste a valid PNG from the clipboard shows a preview', async ({ page }) => {
+  test('paste a valid PNG from the clipboard shows a preview', async ({ browserName, page }) => {
+    test.skip(browserName !== 'chromium', 'a synthetic paste with a file only reaches the page in Chromium')
     await page.goto('/solve?lng=en')
     await pasteFile(page, fixtureBuffer('transparent.png'), 'transparent.png', 'image/png')
     await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })

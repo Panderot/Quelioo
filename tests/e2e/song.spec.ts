@@ -251,7 +251,8 @@ test('a song-creation failure shows a localized error with retry', async ({ page
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
 })
 
-test('full success flow: player controls, download, IndexedDB save, reload, and the Archive row icon', async ({ page, mockGenerate }) => {
+test('full success flow: player controls, download, IndexedDB save, reload, and the Archive row icon', { tag: '@cross' }, async ({ browserName, page, mockGenerate }) => {
+  test.skip(browserName === 'webkit', 'Playwright WebKit on Windows cannot play audio or store Blobs in IndexedDB')
   await mockSongStatus(page, true)
   await mockSongLyrics(page, SAMPLE_LYRICS)
   await mockSongCreate(page, SAMPLE_SONG)
@@ -401,25 +402,21 @@ test('@mobile the song panel renders as a usable bottom sheet at 390px', async (
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
 
-test('the song feature is localized in English, Turkish and Western Armenian', async ({ page, mockGenerate }) => {
-  await mockSongStatus(page, true)
-  await mockGenerate(SAMPLE_QUIZ)
+const SONG_LOCALES = [
+  { lng: 'en', generate: 'Generate Quiz', entry: 'Turn into a song', funny: 'Funny' },
+  { lng: 'tr', generate: 'Quiz Oluştur', entry: 'Şarkıya çevir', funny: 'Komik' },
+  { lng: 'hyw', generate: 'Ստեղծել քուիզ', entry: 'Երգի վերածել', funny: 'Զուարճալի' },
+]
 
-  await page.goto('/?lng=en')
-  await fillText(page, SHORT_TEXT)
-  await page.getByRole('button', { name: 'Generate Quiz' }).click()
-  await page.getByRole('button', { name: 'Turn into a song' }).click()
-  await expect(page.getByRole('dialog').getByRole('radio', { name: 'Funny' })).toBeVisible()
+for (const { lng, generate, entry, funny } of SONG_LOCALES) {
+  test(`the song feature is localized in ${lng}`, async ({ page, mockGenerate }) => {
+    await mockSongStatus(page, true)
+    await mockGenerate(SAMPLE_QUIZ)
 
-  await page.goto('/?lng=tr')
-  await fillText(page, SHORT_TEXT)
-  await page.getByRole('button', { name: 'Quiz Oluştur' }).click()
-  await page.getByRole('button', { name: 'Şarkıya çevir' }).click()
-  await expect(page.getByRole('dialog').getByRole('radio', { name: 'Komik' })).toBeVisible()
-
-  await page.goto('/?lng=hyw')
-  await fillText(page, SHORT_TEXT)
-  await page.getByRole('button', { name: 'Ստեղծել քուիզ' }).click()
-  await page.getByRole('button', { name: 'Երգի վերածել' }).click()
-  await expect(page.getByRole('dialog').getByRole('radio', { name: 'Զուարճալի' })).toBeVisible()
-})
+    await page.goto(`/?lng=${lng}`)
+    await fillText(page, SHORT_TEXT)
+    await page.getByRole('button', { name: generate }).click()
+    await page.getByRole('button', { name: entry }).click()
+    await expect(page.getByRole('dialog').getByRole('radio', { name: funny })).toBeVisible()
+  })
+}
