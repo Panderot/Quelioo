@@ -1011,7 +1011,11 @@
       "nova": "Nova",
       "onyx": "Onyx",
       "sage": "Sage",
-      "shimmer": "Shimmer"
+      "shimmer": "Shimmer",
+      "ballad": "Ballad",
+      "verse": "Verse",
+      "marin": "Marin",
+      "cedar": "Cedar"
     },
     "audio": {
       "approveHelp": "Նախ կարդա տեքստը։ Ձայնը կը ձայնագրուի միայն հաստատուած տեքստի համար։",

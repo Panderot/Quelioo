@@ -130,10 +130,10 @@ test.describe('/api/lesson: shared owner gate', () => {
 
 test.describe('/api/lesson: fixed 6-minute episodes and series split', () => {
   test('word budget per language and the 5:30-6:30 window', () => {
-    expect(wordsForSeconds('tr', 360)).toBe(732)
+    expect(wordsForSeconds('tr', 360)).toBe(606)
     expect(wordsForSeconds('tr', 330)).toBeLessThan(wordsForSeconds('tr', 390))
     expect(wordsForSeconds('en', 360)).toBe(900)
-    expect(secondsForWords('tr', 732)).toBe(360)
+    expect(secondsForWords('tr', 606)).toBe(360)
   })
 
   for (const [count, expected] of [
@@ -377,7 +377,16 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
       calls.push(body)
       const result = plan(calls.length, body)
       if (typeof result !== 'number') return new Response('{"error":{}}', { status: result.status })
-      return new Response(tinyMp3(result) as BodyInit, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+      if (body.stream_format !== 'sse') return new Response(tinyMp3(result) as BodyInit, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+      // Token-billed models stream base64 audio deltas, then usage.
+      const audio = Buffer.from(tinyMp3(result)).toString('base64')
+      const events = [
+        { type: 'speech.audio.delta', audio: audio.slice(0, 400) },
+        { type: 'speech.audio.delta', audio: audio.slice(400) },
+        { type: 'speech.audio.done', usage: { input_tokens: 20, output_tokens: Math.round(result * 25), total_tokens: 0 } },
+      ]
+      const stream = [...events.map((event) => `data: ${JSON.stringify(event)}`), 'data: [DONE]'].join('\n\n')
+      return new Response(stream, { status: 200, headers: { 'content-type': 'text/event-stream' } })
     }) as typeof fetch
     return calls
   }
@@ -387,11 +396,11 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
     lessonKey,
     style: 'two_hosts',
     language: 'tr',
-    voices: { hostA: 'nova', hostB: 'not-a-voice' },
+    voices: { hostA: 'shimmer', hostB: 'not-a-voice' },
     lines,
   })
 
-  test('sends the pronunciation-normalized text, the chosen (or default) voice and tts-1; returns MP3 segments with durations and cost', async () => {
+  test('sends the pronunciation-normalized text, the chosen (or default) voice, gpt-4o-mini-tts and a per-speaker style instruction; returns MP3 segments with durations and cost', async () => {
     const calls = stubSpeech(() => 2)
     const { status, body } = await handleLessonRequest(
       speakPayload([
@@ -402,15 +411,17 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
     )
     expect(status).toBe(200)
     const result = body as { segments: { id: string; audio: string; durationSeconds: number }[]; unknownAbbreviations: string[]; usage: { costUsd: number; seconds: number } }
-    expect(calls.map((call) => call.model)).toEqual(['tts-1', 'tts-1'])
+    expect(calls.map((call) => call.model)).toEqual(['gpt-4o-mini-tts', 'gpt-4o-mini-tts'])
     expect(calls.map((call) => call.input).sort()).toEqual(["a-te-pe üç kez.", "de-en-a'nın yüzde yetmiş'i ve iks-kü-ze."].sort())
-    expect(calls.find((call) => String(call.input).startsWith('de-en-a'))?.voice).toBe('nova')
-    expect(calls.find((call) => String(call.input).startsWith('a-te-pe'))?.voice).toBe('onyx') // unknown voice -> default
-    expect(calls.every((call) => call.instructions === undefined && call.response_format === 'mp3')).toBe(true)
+    expect(calls.find((call) => String(call.input).startsWith('de-en-a'))?.voice).toBe('shimmer')
+    expect(calls.find((call) => String(call.input).startsWith('a-te-pe'))?.voice).toBe('cedar') // unknown voice -> default
+    expect(calls.every((call) => call.response_format === 'mp3' && call.stream_format === 'sse')).toBe(true)
+    expect(String(calls[0].instructions)).toContain('Speak natural Turkish with a native Turkish accent')
+    expect(calls.find((call) => String(call.input).startsWith('a-te-pe'))?.instructions).toContain('co-host')
     expect(result.segments.map((segment) => segment.id)).toEqual(['p1-L1', 'p1-L2'])
     expect(result.segments[0].durationSeconds).toBeCloseTo(2, 1)
     expect(result.unknownAbbreviations).toEqual(['XQZ'])
-    expect(result.usage.costUsd).toBeGreaterThan(0)
+    expect(result.usage.costUsd).toBeCloseTo(2 * ((50 * 12 + 20 * 0.6) / 1_000_000), 5) // from the streamed usage (rounded to 5 decimals)
   })
 
   test('a failed line is retried once; still failing lines are listed; nothing recorded is an error', async () => {

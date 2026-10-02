@@ -37,7 +37,7 @@ function makeSections(): { id: string; role: string; title: string; keyPointIds:
 
 const SECTIONS = makeSections()
 const LINES = SECTIONS.flatMap((section) => section.lines)
-const VOICES = { hostA: 'nova', hostB: 'onyx' }
+const VOICES = { hostA: 'marin', hostB: 'cedar' }
 
 function lessonRecord(options: { approved?: boolean; title?: string } = {}) {
   return {
@@ -174,13 +174,13 @@ test.describe('Audio Lesson — voices and recording', () => {
     await page.getByRole('button', { name: 'Approve the script and choose voices' }).click()
 
     const voices = page.locator('[data-purpose="lesson-voices"]')
-    await expect(voices.getByRole('button', { name: 'Host A' })).toContainText('Nova')
-    await expect(voices.getByRole('button', { name: 'Host B' })).toContainText('Onyx')
+    await expect(voices.getByRole('button', { name: 'Host A' })).toContainText('Marin')
+    await expect(voices.getByRole('button', { name: 'Host B' })).toContainText('Cedar')
     await expect(page.locator('[data-purpose="audio-estimate"]')).toContainText(`Recording ${LINES.length} lines costs about $0.0`)
 
-    await voices.getByRole('button', { name: 'Listen to Onyx' }).click()
+    await voices.getByRole('button', { name: 'Listen to Cedar' }).click()
     const previewSrc = await voices.locator('audio').evaluate((audio: HTMLAudioElement) => audio.src)
-    expect(previewSrc).toMatch(/\/voices\/tts-1\/onyx-en\.mp3$/)
+    expect(previewSrc).toMatch(/\/voices\/gpt-4o-mini-tts\/cedar-en\.mp3$/)
     expect((await page.request.get(previewSrc)).status()).toBe(200)
     await voices.getByRole('button', { name: 'Host B' }).click()
     await page.getByRole('option', { name: 'Shimmer' }).click()
@@ -193,7 +193,7 @@ test.describe('Audio Lesson — voices and recording', () => {
     expect(requests.length).toBe(Math.ceil(LINES.length / 6))
     expect(requests.every((request) => request.lines.length <= 6)).toBe(true)
     expect(requests.flatMap((request) => request.lines.map((line) => line.id)).sort()).toEqual(LINES.map((line) => line.id).sort())
-    expect(requests[0].voices).toEqual({ hostA: 'nova', hostB: 'shimmer' })
+    expect(requests[0].voices).toEqual({ hostA: 'marin', hostB: 'shimmer' })
     await expect(page.locator('[data-purpose="player-time"]')).toHaveText(`0:00 / 0:${String(Math.round(TOTAL_SECONDS)).padStart(2, '0')}`)
     await page.getByRole('link', { name: 'Back to lessons' }).click()
     await expect(page.locator('[data-purpose="lesson-row"]')).toContainText('Audio ready')

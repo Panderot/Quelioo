@@ -44,9 +44,14 @@ export default function LessonPage() {
     }
   }, [id])
 
+  // Only the latest save may update state after its write: an older, slower write finishing last
+  // must not undo a newer change (e.g. a voice picked right after approving).
+  const saveCounter = useRef(0)
   const saveLesson = useCallback(async (next: StoredLesson) => {
+    const id = ++saveCounter.current
     setLesson(next)
-    setLesson(await putLesson(next))
+    const saved = await putLesson(next)
+    if (id === saveCounter.current) setLesson(saved)
   }, [])
 
   useEffect(() => {

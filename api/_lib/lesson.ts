@@ -193,13 +193,16 @@ function toneRule(options: LessonOptions): string {
     : 'Tone: normal. Warm, clear and encouraging.'
 }
 
+/** Real recordings vary about ±10 s around the estimate, so the estimate must land in 5:40-6:20. */
+const LENGTH_SAFETY_SECONDS = 10
+
 /** Spoken words for 5:30-6:30 of audio, leaving room for the silences after the pause lines. */
 function wordBudget(language: string): { target: number; min: number; max: number } {
   const pauses = EXPECTED_PAUSES * PAUSE_SECONDS
   return {
     target: wordsForSeconds(language, TARGET_EPISODE_SECONDS - pauses),
-    min: wordsForSeconds(language, MIN_EPISODE_SECONDS - pauses),
-    max: wordsForSeconds(language, MAX_EPISODE_SECONDS - pauses),
+    min: wordsForSeconds(language, MIN_EPISODE_SECONDS + LENGTH_SAFETY_SECONDS - pauses),
+    max: wordsForSeconds(language, MAX_EPISODE_SECONDS - LENGTH_SAFETY_SECONDS - pauses),
   }
 }
 

@@ -112,10 +112,10 @@ export const MIN_EPISODE_SECONDS = 330
 export const MAX_EPISODE_SECONDS = 390
 
 /** Spoken words per minute by output language (Turkish ~130-140, English ~150). */
-/** Measured speaking rates of the lesson TTS voices (tts-1): Turkish 114-130 words/min depending on
- * content (long agglutinative words, spelled-out abbreviations), English ~152; Western Armenian
- * assumed close to Turkish. */
-const WORDS_PER_MINUTE: Record<string, number> = { tr: 122, en: 150, hyw: 118 }
+/** Measured speaking rates of the lesson TTS voices (gpt-4o-mini-tts with the per-speaker style
+ * instruction): Turkish ~101 words/min (measured 101.1 and 102.6) (long agglutinative words), English ~150, Western Armenian ~107.
+ * Re-measure when TTS_MODEL changes. */
+const WORDS_PER_MINUTE: Record<string, number> = { tr: 101, en: 150, hyw: 107 }
 const DEFAULT_WORDS_PER_MINUTE = 140
 
 export function wordsPerMinute(language: string): number {
