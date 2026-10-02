@@ -743,6 +743,60 @@
       "inDays_other": "in {{count}} days",
       "none": "nothing scheduled",
       "dueNow": "Cards are due now."
+    },
+    "generate": {
+      "title": "Generate cards with AI",
+      "tabs": {
+        "text": "Text",
+        "topic": "Topic"
+      },
+      "textLabel": "Study text",
+      "textPlaceholder": "Paste the text the cards should come from.",
+      "wordCount": "{{words}} / {{max}} words",
+      "minWords": "at least {{count}} words",
+      "topicLabel": "Topic",
+      "topicPlaceholder": "e.g. Türkiye's geographical regions",
+      "levelLabel": "Level",
+      "levels": {
+        "general": "General",
+        "lgs": "LGS",
+        "yks": "YKS",
+        "kpss": "KPSS",
+        "yds": "YDS",
+        "university": "University"
+      },
+      "countLabel": "Number of cards",
+      "styleLabel": "Card style",
+      "styles": {
+        "term": "Term → definition",
+        "qa": "Question → answer",
+        "translation": "Foreign word → translation"
+      },
+      "languageLabel": "Output language",
+      "generate": "Generate cards",
+      "generating": "Generating cards…",
+      "retry": "Try again",
+      "errors": {
+        "bad_type": "Something about this request wasn't right. Check the options and try again.",
+        "too_large": "That's too much to send at once. Shorten the text and try again.",
+        "too_short": "The text is too short — use at least 30 words.",
+        "too_long": "That's too long — keep the text under 5,000 words and the topic under 120 characters.",
+        "upstream": "The AI service didn't respond. Please try again.",
+        "parse": "The cards came back incomplete. Please try again.",
+        "model": "The AI model is unavailable right now. Please try again later.",
+        "not_configured": "Card generation isn't set up on this server yet.",
+        "rate_limited": "You've generated a lot of cards this hour. Please try again later.",
+        "unverified": "None of the cards passed the fact check. Try a more specific topic.",
+        "network": "Couldn't reach the server. Check your connection and try again."
+      },
+      "reviewTitle": "Review the cards",
+      "reviewHelp": "Edit or untick cards before adding them. Nothing is saved until you add.",
+      "removed_one": "{{count}} doubtful card was removed after the fact check.",
+      "removed_other": "{{count}} doubtful cards were removed after the fact check.",
+      "include": "Include card {{number}}",
+      "add_one": "Add {{count}} card",
+      "add_other": "Add {{count}} cards",
+      "discard": "Discard"
     }
   }
 }

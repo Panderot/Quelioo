@@ -743,6 +743,60 @@
       "inDays_other": "{{count}} gün sonra",
       "none": "planlanmış kart yok",
       "dueNow": "Şu an sırada kart var."
+    },
+    "generate": {
+      "title": "Yapay zekâ ile kart üret",
+      "tabs": {
+        "text": "Metin",
+        "topic": "Konu"
+      },
+      "textLabel": "Çalışma metni",
+      "textPlaceholder": "Kartların çıkarılacağı metni yapıştır.",
+      "wordCount": "{{words}} / {{max}} kelime",
+      "minWords": "en az {{count}} kelime",
+      "topicLabel": "Konu",
+      "topicPlaceholder": "ör. Türkiye'nin coğrafi bölgeleri",
+      "levelLabel": "Seviye",
+      "levels": {
+        "general": "Genel",
+        "lgs": "LGS",
+        "yks": "YKS",
+        "kpss": "KPSS",
+        "yds": "YDS",
+        "university": "Üniversite"
+      },
+      "countLabel": "Kart sayısı",
+      "styleLabel": "Kart türü",
+      "styles": {
+        "term": "Terim → tanım",
+        "qa": "Soru → cevap",
+        "translation": "Yabancı kelime → çeviri"
+      },
+      "languageLabel": "Çıktı dili",
+      "generate": "Kart üret",
+      "generating": "Kartlar üretiliyor…",
+      "retry": "Tekrar dene",
+      "errors": {
+        "bad_type": "Bu istekte bir sorun var. Seçenekleri kontrol edip tekrar dene.",
+        "too_large": "Bir kerede gönderilemeyecek kadar uzun. Metni kısaltıp tekrar dene.",
+        "too_short": "Metin çok kısa; en az 30 kelime kullan.",
+        "too_long": "Çok uzun; metin 5.000 kelimeyi, konu 120 karakteri geçmesin.",
+        "upstream": "Yapay zekâ servisi yanıt vermedi. Lütfen tekrar dene.",
+        "parse": "Kartlar eksik geldi. Lütfen tekrar dene.",
+        "model": "Yapay zekâ modeli şu an kullanılamıyor. Biraz sonra tekrar dene.",
+        "not_configured": "Kart üretme bu sunucuda henüz ayarlanmadı.",
+        "rate_limited": "Bu saat içinde çok kart ürettin. Biraz sonra tekrar dene.",
+        "unverified": "Kartların hiçbiri doğruluk kontrolünden geçemedi. Daha belirli bir konu dene.",
+        "network": "Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene."
+      },
+      "reviewTitle": "Kartları gözden geçir",
+      "reviewHelp": "Eklemeden önce kartları düzenle ya da işaretini kaldır. Eklemeden hiçbir şey kaydedilmez.",
+      "removed_one": "Doğruluk kontrolünden sonra {{count}} şüpheli kart çıkarıldı.",
+      "removed_other": "Doğruluk kontrolünden sonra {{count}} şüpheli kart çıkarıldı.",
+      "include": "{{number}}. kartı ekle",
+      "add_one": "{{count}} kartı ekle",
+      "add_other": "{{count}} kartı ekle",
+      "discard": "Vazgeç"
     }
   }
 }

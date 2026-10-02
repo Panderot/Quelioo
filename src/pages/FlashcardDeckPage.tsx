@@ -20,6 +20,7 @@ import {
 } from '../lib/flashcardText'
 import { isStudyable } from '../lib/srs'
 import AutosaveField from '../components/flashcards/AutosaveField'
+import CardGeneratorPanel from '../components/flashcards/CardGeneratorPanel'
 import ConfirmDialog from '../components/flashcards/ConfirmDialog'
 import StorageNote from '../components/flashcards/StorageNote'
 import UndoToast from '../components/flashcards/UndoToast'
@@ -94,17 +95,16 @@ function CardRow({ card, index, duplicate, autoFocus, onDelete }: CardRowProps) 
           dataPurpose="card-back"
         />
       </div>
-      {duplicate ? (
-        <p id={noteId} data-purpose="duplicate-warning" className="text-xs font-semibold text-error">
-          {t('flashcards.editor.duplicate')}
-        </p>
-      ) : (
-        !isStudyable(card) && (
-          <p id={noteId} className="text-xs text-muted">
-            {t('flashcards.editor.incomplete')}
-          </p>
-        )
-      )}
+      {/* The note line is always reserved, so saving a field on blur never changes the row height
+          (a shrinking page under a clicked button would make the click miss). */}
+      <p
+        id={noteId}
+        data-purpose={duplicate ? 'duplicate-warning' : undefined}
+        aria-hidden={!duplicate && isStudyable(card)}
+        className={`min-h-4 text-xs ${duplicate ? 'font-semibold text-error' : 'text-muted'}`}
+      >
+        {duplicate ? t('flashcards.editor.duplicate') : !isStudyable(card) ? t('flashcards.editor.incomplete') : ''}
+      </p>
     </li>
   )
 }
@@ -128,6 +128,8 @@ export default function FlashcardDeckPage() {
   const [deletedCard, setDeletedCard] = useState<Card | null>(null)
   const [confirm, setConfirm] = useState<'delete' | 'reset' | null>(null)
   const [bulkOpen, setBulkOpen] = useState(false)
+  // null = not chosen yet: shown while the deck is empty.
+  const [generatorOpen, setGeneratorOpen] = useState<boolean | null>(null)
   const [bulkText, setBulkText] = useState('')
   const [status, setStatus] = useState('')
 
@@ -159,6 +161,7 @@ export default function FlashcardDeckPage() {
   }
 
   const handleAddCard = () => {
+    keepGeneratorVisibility()
     const [card] = addCards(deck.id, [{ front: '', back: '' }])
     setFocusCardId(card.id)
   }
@@ -169,11 +172,23 @@ export default function FlashcardDeckPage() {
   }
 
   const handleBulkAdd = () => {
+    keepGeneratorVisibility()
     const added = addCards(deck.id, validBulk.map(({ front, back }) => ({ front, back })))
     setStatus(t('flashcards.bulk.added', { count: added.length }))
     setBulkText('')
     setBulkOpen(false)
   }
+
+  const handleGenerated = (generated: { front: string; back: string }[]) => {
+    const added = addCards(deck.id, generated)
+    setStatus(t('flashcards.bulk.added', { count: added.length }))
+    setGeneratorOpen(false)
+  }
+
+  // An empty deck opens straight into the generator, where Generate is the screen's primary action.
+  const showGenerator = generatorOpen ?? cards.length === 0
+  // Adding cards another way keeps the generator where it is instead of hiding it mid-typing.
+  const keepGeneratorVisibility = () => setGeneratorOpen((open) => open ?? cards.length === 0)
 
   const handleExport = () => {
     const blob = new Blob([cardsToCsv(cards)], { type: 'text/csv;charset=utf-8' })
@@ -196,6 +211,7 @@ export default function FlashcardDeckPage() {
       return
     }
     const { cards: imported, skipped } = csvToCards(await file.text())
+    keepGeneratorVisibility()
     addCards(deck.id, imported)
     const parts = [t('flashcards.csv.imported', { count: imported.length })]
     if (skipped > 0) parts.push(t('flashcards.csv.skipped', { count: skipped }))
@@ -263,6 +279,11 @@ export default function FlashcardDeckPage() {
       </section>
 
       <div className="flex flex-wrap gap-2">
+        {cards.length > 0 && (
+          <button type="button" onClick={() => setGeneratorOpen(!showGenerator)} aria-expanded={showGenerator} className={outlineButton}>
+            {t('flashcards.generate.title')}
+          </button>
+        )}
         <button type="button" onClick={() => setBulkOpen((open) => !open)} aria-expanded={bulkOpen} className={outlineButton}>
           {t('flashcards.bulk.open')}
         </button>
@@ -290,6 +311,8 @@ export default function FlashcardDeckPage() {
       <p role="status" className={status ? 'text-xs font-semibold text-success' : 'sr-only'}>
         {status}
       </p>
+
+      {showGenerator && <CardGeneratorPanel deckFronts={cards.map((card) => card.front)} emphasis={cards.length === 0 ? 'primary' : 'secondary'} onAdd={handleGenerated} />}
 
       {bulkOpen && (
         <section data-purpose="bulk-add" className="space-y-3 rounded-[14px] border border-warm-border bg-card p-5">

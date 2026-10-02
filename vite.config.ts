@@ -13,11 +13,20 @@ import { extractUrlRequestHandler } from './api/_lib/extract-url.js'
 import { gradeRequestHandler } from './api/_lib/grade.js'
 import { songLyricsRequestHandler } from './api/_lib/song-lyrics.js'
 import { songRequestHandler } from './api/_lib/song.js'
+import { cardsRequestHandler } from './api/_lib/cards.js'
+import { solveToolsRequestHandler } from './api/_lib/solve-tools.js'
 
 function apiDevMiddleware(): Plugin {
   return {
     name: 'quelio-api-dev-middleware',
     configureServer(server) {
+      // Production routes these four through /api/solve-tools (vercel.json rewrites); same handlers.
+      server.middlewares.use('/api/solve-tools', (req, res) => {
+        void solveToolsRequestHandler(req, res)
+      })
+      server.middlewares.use('/api/cards', (req, res) => {
+        void cardsRequestHandler(req, res)
+      })
       server.middlewares.use('/api/solve', (req, res) => {
         void solveRequestHandler(req, res)
       })

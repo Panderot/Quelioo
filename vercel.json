@@ -1,5 +1,11 @@
 {
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/api/similar", "destination": "/api/solve-tools?action=similar" },
+    { "source": "/api/another-way", "destination": "/api/solve-tools?action=another-way" },
+    { "source": "/api/explain-step", "destination": "/api/solve-tools?action=explain-step" },
+    { "source": "/api/check-work", "destination": "/api/solve-tools?action=check-work" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
   "functions": {
     "api/generate.ts": {
       "maxDuration": 90
@@ -16,17 +22,11 @@
     "api/song.ts": {
       "maxDuration": 60
     },
-    "api/similar.ts": {
+    "api/solve-tools.ts": {
       "maxDuration": 90
     },
-    "api/another-way.ts": {
-      "maxDuration": 90
-    },
-    "api/check-work.ts": {
-      "maxDuration": 90
-    },
-    "api/explain-step.ts": {
-      "maxDuration": 45
+    "api/cards.ts": {
+      "maxDuration": 120
     },
     "api/solve.ts": {
       "maxDuration": 90
