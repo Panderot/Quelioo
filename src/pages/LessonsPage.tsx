@@ -7,7 +7,9 @@ import UndoToast from '../components/flashcards/UndoToast'
 import NewLessonPanel from '../components/lessons/NewLessonPanel'
 import { HeadphonesIcon, LockIcon, SearchIcon, TrashIcon } from '../components/icons'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { deleteLesson, getAllLessons, isLessonStoragePersistent, lessonStatus, putLesson, subscribeLessons } from '../lib/lessonStorage'
+import { formatUsd } from '../lib/lesson'
+import { lessonLines, segmentKey, voiceFor } from '../lib/lessonAudio'
+import { deleteLesson, getAllLessons, isLessonStoragePersistent, lessonStatus, monthLessonSpendUsd, pruneSegments, putLesson, subscribeLessons } from '../lib/lessonStorage'
 import type { StoredLesson } from '../lib/lessonStorage'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 
@@ -27,6 +29,7 @@ export default function LessonsPage() {
 
   const [lessons, setLessons] = useState<StoredLesson[] | null>(null)
   const [requiresAccessCode, setRequiresAccessCode] = useState(true)
+  const [monthlyBudget, setMonthlyBudget] = useState<number | null>(null)
   const [hasAccessCode, setHasAccessCode] = useState(() => Boolean(getStoredOwnerAccessCode()))
   const [newOpen, setNewOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -39,7 +42,22 @@ export default function LessonsPage() {
     const load = () => void getAllLessons().then((all) => !cancelled && setLessons(all))
     load()
     const unsubscribe = subscribeLessons(load)
-    void getLessonStatus().then((status) => !cancelled && setRequiresAccessCode(status.requiresAccessCode))
+    void getLessonStatus().then((status) => {
+      if (cancelled) return
+      setRequiresAccessCode(status.requiresAccessCode)
+      setMonthlyBudget(status.monthlyBudgetUsd)
+    })
+    // Recorded audio that no saved line uses any more (edited lines, deleted lessons) is removed.
+    void getAllLessons().then((all) => {
+      const keep = new Set(
+        all.flatMap((lesson) =>
+          lesson.episodes.flatMap((episode) =>
+            episode.script ? lessonLines(episode.script.sections).map((line) => segmentKey(line, voiceFor(line.speaker, episode.voices), lesson.options.language)) : [],
+          ),
+        ),
+      )
+      void pruneSegments(keep)
+    })
     return () => {
       cancelled = true
       unsubscribe()
@@ -95,6 +113,14 @@ export default function LessonsPage() {
           <h1 className="font-serif text-2xl leading-snug font-semibold tracking-tight text-navy lg:text-3xl">{t('lessons.title')}</h1>
           <p className="text-sm font-normal text-muted">{t('lessons.subtitle')}</p>
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+        {(hasAccessCode || !requiresAccessCode) && (
+          <p data-purpose="lessons-month-spend" className="text-xs text-muted">
+            {monthlyBudget !== null
+              ? t('lessons.monthSpendBudget', { cost: formatUsd(monthLessonSpendUsd()), budget: formatUsd(monthlyBudget) })
+              : t('lessons.monthSpend', { cost: formatUsd(monthLessonSpendUsd()) })}
+          </p>
+        )}
         {hasAccessCode && (
           <button
             type="button"
@@ -105,6 +131,7 @@ export default function LessonsPage() {
             {t('ownerAccess.lock')}
           </button>
         )}
+        </div>
       </section>
 
       {newOpen ? (

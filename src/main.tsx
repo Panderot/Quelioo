@@ -5,8 +5,10 @@ import './index.css'
 import './i18n'
 import App from './App.tsx'
 import { initFocusModality } from './lib/focusModality'
+import { initSingleAudio } from './lib/singleAudio'
 
 initFocusModality()
+initSingleAudio()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

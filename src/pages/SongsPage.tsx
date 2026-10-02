@@ -304,7 +304,7 @@ export default function SongsPage() {
         />
       )}
 
-      <audio ref={audioRef} className="hidden" onEnded={() => setPlayingId(null)} />
+      <audio ref={audioRef} className="hidden" onEnded={() => setPlayingId(null)} onPause={() => setPlayingId(null)} />
 
       <div className="flex flex-wrap items-center gap-2">
         {(['all', 'normal', 'funny'] as const).map((option) => (

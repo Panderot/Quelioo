@@ -951,7 +951,9 @@
       "locked": "The access code is needed to create lessons.",
       "timeout": "This took too long. Please try again.",
       "network": "There's no connection. Check your internet and try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "daily_cap": "You've reached today's limit for recorded lessons (3 lessons or 30 minutes of audio). Please try again tomorrow.",
+      "budget": "This month's lesson budget would be exceeded, so nothing was recorded."
     },
     "detail": {
       "back": "Back to lessons",
@@ -997,6 +999,56 @@
       "moveDown": "Move down",
       "pauseTag": "pause",
       "editedTag": "edited"
+    },
+    "monthSpend": "This month: {{cost}}",
+    "monthSpendBudget": "This month: {{cost}} of {{budget}}",
+    "voices": {
+      "alloy": "Alloy",
+      "ash": "Ash",
+      "coral": "Coral",
+      "echo": "Echo",
+      "fable": "Fable",
+      "nova": "Nova",
+      "onyx": "Onyx",
+      "sage": "Sage",
+      "shimmer": "Shimmer"
+    },
+    "audio": {
+      "approveHelp": "Read the script first. Audio is recorded only for an approved script.",
+      "approve": "Approve the script and choose voices",
+      "voicesHeading": "Voices",
+      "updateHeading": "Update the audio",
+      "updateHelp_one": "{{count}} line has no audio yet (new, changed or not finished). Only that line is recorded.",
+      "updateHelp_other": "{{count}} lines have no audio yet (new, changed or not finished). Only those lines are recorded.",
+      "preview": "Listen to {{voice}}",
+      "estimate_one": "About {{time}} of audio. Recording {{count}} line costs about {{cost}}.",
+      "estimate_other": "About {{time}} of audio. Recording {{count}} lines costs about {{cost}}.",
+      "checkFirst": "Your edits are checked against your text first.",
+      "record": "Record audio",
+      "updateAudio_one": "Update audio ({{count}} line)",
+      "updateAudio_other": "Update audio ({{count}} lines)",
+      "recording": "Recording {{done}} / {{total}} lines",
+      "progressSaved": "{{done}} of {{total}} lines are recorded and saved.",
+      "linesFailed_one": "{{count}} line couldn't be recorded.",
+      "linesFailed_other": "{{count}} lines couldn't be recorded.",
+      "single": "Lesson",
+      "cost": "Audio cost: {{cost}}",
+      "unknown": "Spelled out letter by letter (add them to the pronunciation list if needed): {{list}}",
+      "editScript": "Edit the script",
+      "hideEditor": "Hide the script editor"
+    },
+    "player": {
+      "play": "Play",
+      "pause": "Pause",
+      "seek": "Lesson position",
+      "back10": "Back 10 s",
+      "forward10": "Forward 10 s",
+      "speed": "Playback speed",
+      "downloadMp3": "Download MP3",
+      "downloadTranscript": "Download transcript",
+      "shortcuts": "Space: play or pause · Left and right arrows: 10 seconds back or forward",
+      "answerHidden": "Think first, then show the answer.",
+      "showAnswer": "Show answer"
     }
   }
 }

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { applyLengthEdit, applyRewrite, handleLessonRequest, parseCheckReply, speakabilityIssue, validatePlan, validateWrittenScript } from '../../api/_lib/lesson'
 import { handleSongCreateRequest } from '../../api/_lib/song'
+import { tinyMp3 } from '../fixtures/tinyMp3'
 import { episodeCountFor, splitIntoEpisodes, usageCostUsd, wordsForSeconds, secondsForWords } from '../../src/lib/lesson'
 
 // Server-side tests for /api/lesson (no browser): OpenAI is stubbed at the fetch level, so the real
@@ -129,10 +130,10 @@ test.describe('/api/lesson: shared owner gate', () => {
 
 test.describe('/api/lesson: fixed 6-minute episodes and series split', () => {
   test('word budget per language and the 5:30-6:30 window', () => {
-    expect(wordsForSeconds('tr', 360)).toBe(810)
+    expect(wordsForSeconds('tr', 360)).toBe(732)
     expect(wordsForSeconds('tr', 330)).toBeLessThan(wordsForSeconds('tr', 390))
     expect(wordsForSeconds('en', 360)).toBe(900)
-    expect(secondsForWords('tr', 810)).toBe(360)
+    expect(secondsForWords('tr', 732)).toBe(360)
   })
 
   for (const [count, expected] of [
@@ -359,5 +360,99 @@ test.describe('/api/lesson: pieces', () => {
     const reply = writerReply()
     const parsed = validateWrittenScript(reply, { part: 1, style: 'narrator', episodeKeyPointIds: ['K1'], needsRecall: false })
     expect(parsed).toBeNull() // every hostA/hostB line is dropped, so nothing valid remains
+  })
+})
+
+test.describe('/api/lesson: speak (text-to-speech)', () => {
+  test.afterEach(resetEnv)
+
+  /** Stubs OpenAI's speech endpoint; `plan` decides per call: seconds of audio, or an HTTP error status. */
+  function stubSpeech(plan: (call: number, body: Record<string, unknown>) => number | { status: number }) {
+    const calls: Record<string, unknown>[] = []
+    process.env.OPENAI_API_KEY = 'test-key'
+    delete process.env.VERCEL_ENV
+    globalThis.fetch = (async (url: unknown, init?: { body?: string }) => {
+      expect(String(url)).toBe('https://api.openai.com/v1/audio/speech')
+      const body = JSON.parse(init?.body ?? '{}') as Record<string, unknown>
+      calls.push(body)
+      const result = plan(calls.length, body)
+      if (typeof result !== 'number') return new Response('{"error":{}}', { status: result.status })
+      return new Response(tinyMp3(result) as BodyInit, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+    }) as typeof fetch
+    return calls
+  }
+
+  const speakPayload = (lines: { id: string; speaker: string; text: string }[], lessonKey = `lesson-${nextIp()}`) => ({
+    action: 'speak',
+    lessonKey,
+    style: 'two_hosts',
+    language: 'tr',
+    voices: { hostA: 'nova', hostB: 'not-a-voice' },
+    lines,
+  })
+
+  test('sends the pronunciation-normalized text, the chosen (or default) voice and tts-1; returns MP3 segments with durations and cost', async () => {
+    const calls = stubSpeech(() => 2)
+    const { status, body } = await handleLessonRequest(
+      speakPayload([
+        { id: 'p1-L1', speaker: 'hostA', text: "DNA'nın %70'i ve XQZ." },
+        { id: 'p1-L2', speaker: 'hostB', text: 'ATP 3 kez.' },
+      ]),
+      { ip: nextIp() },
+    )
+    expect(status).toBe(200)
+    const result = body as { segments: { id: string; audio: string; durationSeconds: number }[]; unknownAbbreviations: string[]; usage: { costUsd: number; seconds: number } }
+    expect(calls.map((call) => call.model)).toEqual(['tts-1', 'tts-1'])
+    expect(calls.map((call) => call.input).sort()).toEqual(["a-te-pe üç kez.", "de-en-a'nın yüzde yetmiş'i ve iks-kü-ze."].sort())
+    expect(calls.find((call) => String(call.input).startsWith('de-en-a'))?.voice).toBe('nova')
+    expect(calls.find((call) => String(call.input).startsWith('a-te-pe'))?.voice).toBe('onyx') // unknown voice -> default
+    expect(calls.every((call) => call.instructions === undefined && call.response_format === 'mp3')).toBe(true)
+    expect(result.segments.map((segment) => segment.id)).toEqual(['p1-L1', 'p1-L2'])
+    expect(result.segments[0].durationSeconds).toBeCloseTo(2, 1)
+    expect(result.unknownAbbreviations).toEqual(['XQZ'])
+    expect(result.usage.costUsd).toBeGreaterThan(0)
+  })
+
+  test('a failed line is retried once; still failing lines are listed; nothing recorded is an error', async () => {
+    stubSpeech((call, body) => (body.input === 'ikinci' ? { status: 500 } : call === 1 ? { status: 500 } : 1))
+    const { body } = await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'hostA', text: 'birinci' }, { id: 'b', speaker: 'hostA', text: 'ikinci' }]), { ip: nextIp() })
+    expect((body as { segments: { id: string }[] }).segments.map((segment) => segment.id)).toEqual(['a'])
+    expect((body as { failed: string[] }).failed).toEqual(['b'])
+
+    stubSpeech(() => ({ status: 500 }))
+    const allFailed = await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'hostA', text: 'birinci' }]), { ip: nextIp() })
+    expect(allFailed).toEqual({ status: 502, body: { error: 'upstream' } })
+  })
+
+  test('daily caps: 3 lessons per day, then 30 minutes of audio, per IP', async () => {
+    stubSpeech(() => 1)
+    const ip = nextIp()
+    for (const key of ['l1', 'l2', 'l3']) expect((await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'hostA', text: 'merhaba' }], `${ip}-${key}`), { ip })).status).toBe(200)
+    expect(await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'hostA', text: 'merhaba' }], `${ip}-l4`), { ip })).toEqual({ status: 429, body: { error: 'daily_cap' } })
+    expect((await handleLessonRequest(speakPayload([{ id: 'b', speaker: 'hostA', text: 'yine' }], `${ip}-l1`), { ip })).status).toBe(200) // same lesson continues
+
+    const busy = nextIp()
+    stubSpeech(() => 300) // 5 minutes per line
+    const six = Array.from({ length: 6 }, (_, i) => ({ id: `x${i}`, speaker: 'hostA', text: `satır ${i}` }))
+    expect((await handleLessonRequest(speakPayload(six, `${busy}-big`), { ip: busy })).status).toBe(200) // 30 minutes used
+    expect(await handleLessonRequest(speakPayload([{ id: 'y', speaker: 'hostA', text: 'bir tane daha' }], `${busy}-big`), { ip: busy })).toEqual({ status: 429, body: { error: 'daily_cap' } })
+  })
+
+  test('monthly budget, owner gate and input checks', async () => {
+    stubSpeech(() => 1)
+    process.env.LESSON_MONTHLY_BUDGET_USD = '0.0000001'
+    expect(await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'hostA', text: 'merhaba dünya' }]), { ip: nextIp() })).toEqual({ status: 402, body: { error: 'budget' } })
+    delete process.env.LESSON_MONTHLY_BUDGET_USD
+
+    process.env.VERCEL_ENV = 'production'
+    delete process.env.OWNER_ACCESS_CODE
+    delete process.env.MUSIC_ACCESS_CODE
+    expect((await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'hostA', text: 'x' }]), { ip: nextIp(), accessCodeHeader: 'x' })).body).toEqual({ error: 'locked' })
+    delete process.env.VERCEL_ENV
+
+    const seven = Array.from({ length: 7 }, (_, i) => ({ id: `x${i}`, speaker: 'hostA', text: 'a' }))
+    expect((await handleLessonRequest(speakPayload(seven), { ip: nextIp() })).body).toEqual({ error: 'bad_type' })
+    expect((await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'teacher', text: 'a' }]), { ip: nextIp() })).body).toEqual({ error: 'bad_type' })
+    expect((await handleLessonRequest(speakPayload([{ id: 'a', speaker: 'hostA', text: 'a'.repeat(1001) }]), { ip: nextIp() })).body).toEqual({ error: 'too_long' })
   })
 })

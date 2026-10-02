@@ -951,7 +951,9 @@
       "locked": "Ders oluşturmak için erişim kodu gerekiyor.",
       "timeout": "Bu çok uzun sürdü. Lütfen tekrar dene.",
       "network": "Bağlantı yok. İnternetini kontrol edip tekrar dene.",
-      "retry": "Tekrar dene"
+      "retry": "Tekrar dene",
+      "daily_cap": "Bugünkü ses kaydı sınırına ulaştın (3 ders ya da 30 dakika ses). Lütfen yarın tekrar dene.",
+      "budget": "Bu ayın ders bütçesi aşılacağı için kayıt yapılmadı."
     },
     "detail": {
       "back": "Derslere dön",
@@ -997,6 +999,56 @@
       "moveDown": "Aşağı taşı",
       "pauseTag": "duraklama",
       "editedTag": "düzenlendi"
+    },
+    "monthSpend": "Bu ay: {{cost}}",
+    "monthSpendBudget": "Bu ay: {{cost}} / {{budget}}",
+    "voices": {
+      "alloy": "Alloy",
+      "ash": "Ash",
+      "coral": "Coral",
+      "echo": "Echo",
+      "fable": "Fable",
+      "nova": "Nova",
+      "onyx": "Onyx",
+      "sage": "Sage",
+      "shimmer": "Shimmer"
+    },
+    "audio": {
+      "approveHelp": "Önce metni oku. Ses yalnızca onaylanan metin için kaydedilir.",
+      "approve": "Metni onayla ve sesleri seç",
+      "voicesHeading": "Sesler",
+      "updateHeading": "Sesi güncelle",
+      "updateHelp_one": "{{count}} satırın henüz sesi yok (yeni, değişmiş ya da yarım kalmış). Yalnızca bu satır kaydedilir.",
+      "updateHelp_other": "{{count}} satırın henüz sesi yok (yeni, değişmiş ya da yarım kalmış). Yalnızca bu satırlar kaydedilir.",
+      "preview": "{{voice}} sesini dinle",
+      "estimate_one": "Yaklaşık {{time}} ses. {{count}} satırı kaydetmek yaklaşık {{cost}} tutar.",
+      "estimate_other": "Yaklaşık {{time}} ses. {{count}} satırı kaydetmek yaklaşık {{cost}} tutar.",
+      "checkFirst": "Düzenlemelerin önce metnine göre kontrol edilir.",
+      "record": "Sesi kaydet",
+      "updateAudio_one": "Sesi güncelle ({{count}} satır)",
+      "updateAudio_other": "Sesi güncelle ({{count}} satır)",
+      "recording": "{{done}} / {{total}} satır kaydediliyor",
+      "progressSaved": "{{total}} satırın {{done}} tanesi kaydedildi ve saklandı.",
+      "linesFailed_one": "{{count}} satır kaydedilemedi.",
+      "linesFailed_other": "{{count}} satır kaydedilemedi.",
+      "single": "Ders",
+      "cost": "Ses maliyeti: {{cost}}",
+      "unknown": "Harf harf okundu (gerekirse telaffuz listesine ekle): {{list}}",
+      "editScript": "Metni düzenle",
+      "hideEditor": "Metin düzenleyiciyi gizle"
+    },
+    "player": {
+      "play": "Oynat",
+      "pause": "Duraklat",
+      "seek": "Dersteki konum",
+      "back10": "10 sn geri",
+      "forward10": "10 sn ileri",
+      "speed": "Oynatma hızı",
+      "downloadMp3": "MP3 indir",
+      "downloadTranscript": "Metni indir",
+      "shortcuts": "Boşluk: oynat ya da duraklat · Sol ve sağ ok: 10 saniye geri ya da ileri",
+      "answerHidden": "Önce düşün, sonra cevabı göster.",
+      "showAnswer": "Cevabı göster"
     }
   }
 }

@@ -11,7 +11,7 @@ import { extractTextFromFile, FileExtractionError } from '../../lib/fileExtracti
 import type { FileErrorCode } from '../../lib/fileExtraction'
 import { LESSON_LEVELS, LESSON_STYLES, LESSON_TONES, estimateEpisodeCostUsd, formatUsd } from '../../lib/lesson'
 import type { EpisodePlan, KeyPoint, LessonLevel, LessonOptions, LessonStyle, LessonTone } from '../../lib/lesson'
-import { createLessonId, getCachedPlan, lessonSourceHash, planCacheKey, putCachedPlan, putLesson } from '../../lib/lessonStorage'
+import { addLessonSpend, createLessonId, getCachedPlan, lessonSourceHash, planCacheKey, putCachedPlan, putLesson } from '../../lib/lessonStorage'
 import type { LessonSourceKind, StoredLesson } from '../../lib/lessonStorage'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode } from '../../lib/ownerAccessCode'
 import { getAllSolutions } from '../../lib/solutionStorage'
@@ -213,6 +213,7 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
     abortRef.current = controller
     try {
       const result = await planLesson({ text: resolved.text, level, language }, controller.signal)
+      addLessonSpend(result.usage.costUsd)
       await putCachedPlan({ key, title: result.title, keyPoints: result.keyPoints, episodes: result.episodes })
       setPlan({ title: result.title, keyPoints: result.keyPoints, episodes: result.episodes, costUsd: result.usage.costUsd, reused: false })
       setStep('plan')
@@ -232,6 +233,7 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
     abortRef.current = controller
     try {
       const result = await writeLessonEpisode({ text: resolved.text, keyPoints: plan.keyPoints, episodes: plan.episodes, part: 1, ...options }, controller.signal)
+      addLessonSpend(result.usage.costUsd)
       const now = new Date().toISOString()
       const lesson: StoredLesson = {
         id: createLessonId(),

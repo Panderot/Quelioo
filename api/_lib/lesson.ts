@@ -6,6 +6,7 @@ import { callLlmJson, cleanString, isRecord, isStringArray } from './llm-json.js
 import type { LlmUsage } from './llm.js'
 import { isProductionAccessGateActive, verifyOwnerAccessCode } from './song-config.js'
 import { requestIp } from './song-rate-limit.js'
+import { monthlyBudgetUsd, parseSpeakRequest, recordSpend, speakBatch, wouldExceedBudget } from './lesson-speech.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
 import {
   LESSON_MODELS,
@@ -28,7 +29,9 @@ import {
   isLessonTone,
   isSectionRole,
   scriptWordCount,
-  secondsForWords,
+  episodeSeconds,
+  EXPECTED_PAUSES,
+  PAUSE_SECONDS,
   splitIntoEpisodes,
   usageCostUsd,
   wordsForSeconds,
@@ -58,6 +61,9 @@ const HELPER_TIMEOUT_MS = 90_000
 /** A 5,000-word source can list many facts; two attempts must still fit in the function's 300s. */
 const PLAN_TIMEOUT_MS = 140_000
 const MAX_REWRITE_ROUNDS = 2
+/** Upper estimates used only for the optional monthly budget check before a paid call. */
+const PLAN_BUDGET_ESTIMATE_USD = 0.01
+const SCRIPT_BUDGET_ESTIMATE_USD = 0.15
 /** The script is long; low reasoning keeps one write under about a minute and a half. */
 const WRITER_REASONING = 'low'
 const WRITE_TARGET_FACTOR = 0.85
@@ -187,11 +193,13 @@ function toneRule(options: LessonOptions): string {
     : 'Tone: normal. Warm, clear and encouraging.'
 }
 
+/** Spoken words for 5:30-6:30 of audio, leaving room for the silences after the pause lines. */
 function wordBudget(language: string): { target: number; min: number; max: number } {
+  const pauses = EXPECTED_PAUSES * PAUSE_SECONDS
   return {
-    target: wordsForSeconds(language, TARGET_EPISODE_SECONDS),
-    min: wordsForSeconds(language, MIN_EPISODE_SECONDS),
-    max: wordsForSeconds(language, MAX_EPISODE_SECONDS),
+    target: wordsForSeconds(language, TARGET_EPISODE_SECONDS - pauses),
+    min: wordsForSeconds(language, MIN_EPISODE_SECONDS - pauses),
+    max: wordsForSeconds(language, MAX_EPISODE_SECONDS - pauses),
   }
 }
 
@@ -261,6 +269,7 @@ class UsageMeter {
     const cached = this.calls.reduce((sum, call) => sum + call.cachedTokens, 0)
     const costUsd = this.calls.reduce((sum, call) => sum + usageCostUsd(call), 0)
     const summary = { costUsd: Math.round(costUsd * 100000) / 100000, cachedShare: input > 0 ? Math.round((cached / input) * 1000) / 1000 : 0, calls: this.calls.length }
+    recordSpend(costUsd)
     console.log(`lesson: action=${this.action} total cost=$${summary.costUsd.toFixed(5)} cachedShare=${summary.cachedShare} calls=${summary.calls}`)
     return summary
   }
@@ -842,7 +851,10 @@ function errorStatus(code: LessonErrorCode): number {
   switch (code) {
     case 'locked':
       return 403
+    case 'budget':
+      return 402
     case 'rate_limited':
+    case 'daily_cap':
       return 429
     case 'not_configured':
       return 503
@@ -898,7 +910,7 @@ function finalizeEpisode(part: number, title: string, sections: WrittenSection[]
     missingKeyPointIds: check.missingKeyPointIds,
     rewrittenLineIds: rewritten.filter((id) => allLines(scriptSections).some((line) => line.id === id)),
   }
-  return { part, title, sections: scriptSections, check: checkResult, wordCount, estimatedSeconds: secondsForWords(language, wordCount) }
+  return { part, title, sections: scriptSections, check: checkResult, wordCount, estimatedSeconds: episodeSeconds(scriptSections, language, countWords) }
 }
 
 async function handleScript(payload: Record<string, unknown>, ip: string): Promise<ActionResult> {
@@ -1050,9 +1062,16 @@ export async function handleLessonRequest(payload: unknown, context: LessonReque
     case 'unlock':
       return { status: 200, body: { ok: true } }
     case 'plan':
+      if (wouldExceedBudget(PLAN_BUDGET_ESTIMATE_USD)) return fail('budget')
       return handlePlan(payload, context.ip)
     case 'script':
+      if (wouldExceedBudget(SCRIPT_BUDGET_ESTIMATE_USD)) return fail('budget')
       return handleScript(payload, context.ip)
+    case 'speak': {
+      const request = parseSpeakRequest(payload)
+      if (typeof request === 'string') return fail(request)
+      return speakBatch(request, { ip: context.ip, accessCode: context.accessCodeHeader })
+    }
     case 'check':
       return handleCheck(payload, context.ip)
     default:
@@ -1060,8 +1079,8 @@ export async function handleLessonRequest(payload: unknown, context: LessonReque
   }
 }
 
-export function lessonStatus(): { requiresAccessCode: boolean } {
-  return { requiresAccessCode: isProductionAccessGateActive() }
+export function lessonStatus(): { requiresAccessCode: boolean; monthlyBudgetUsd: number | null } {
+  return { requiresAccessCode: isProductionAccessGateActive(), monthlyBudgetUsd: monthlyBudgetUsd() }
 }
 
 export async function lessonRequestHandler(req: IncomingMessage, res: ServerResponse): Promise<void> {

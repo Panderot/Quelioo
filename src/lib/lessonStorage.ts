@@ -1,3 +1,4 @@
+import { hashText } from './hash'
 import { isLessonLevel, isLessonStyle, isLessonTone, isRecord } from './lesson'
 import type { EpisodePlan, EpisodeScript, KeyPoint, LessonOptions } from './lesson'
 
@@ -7,9 +8,12 @@ import type { EpisodePlan, EpisodeScript, KeyPoint, LessonOptions } from './less
  * pays for a second extraction. Without IndexedDB everything works in memory for the session. */
 
 const DB_NAME = 'quelio-lessons'
-const DB_VERSION = 1
+/** v2 adds the `segments` store (recorded audio); upgrades only create missing stores. */
+const DB_VERSION = 2
 const LESSONS = 'lessons'
 const PLANS = 'plans'
+const SEGMENTS = 'segments'
+const SPEND_KEY = 'quelio.lessonSpend.v1'
 const LESSON_SCHEMA_VERSION = 1
 /** Oldest lessons are evicted beyond this many. */
 const MAX_LESSONS = 200
@@ -21,10 +25,18 @@ export interface StoredEpisode extends EpisodePlan {
   /** Real cost of generating this part's script (owner-only info), null before it exists. */
   costUsd: number | null
   cachedShare: number | null
-  /** Set once part 2 adds audio; absent until then. */
+  /** Every line of this part has recorded audio for its current text and voices. */
   hasAudio?: boolean
   /** The student changed the script since its last check; it is re-checked before the next step. */
   pendingCheck?: boolean
+  /** The student approved the script; only approved scripts are recorded. */
+  approved?: boolean
+  /** Voice per speaker id. */
+  voices?: Record<string, string>
+  /** Real cost of the audio recorded for this part so far. */
+  audioCostUsd?: number
+  /** Unknown abbreviations the pronunciation pass spelled out (owner info). */
+  unknownAbbreviations?: string[]
 }
 
 export interface StoredLesson {
@@ -45,25 +57,13 @@ export interface StoredLesson {
   planCostUsd: number
 }
 
+export { hashText }
+
 export interface CachedPlan {
   key: string
   title: string
   keyPoints: KeyPoint[]
   episodes: EpisodePlan[]
-}
-
-/** Small, fast, non-cryptographic string hash (cyrb53) — only used to recognize repeated input. */
-export function hashText(value: string): string {
-  let h1 = 0xdeadbeef
-  let h2 = 0x41c6ce57
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index)
-    h1 = Math.imul(h1 ^ code, 2654435761)
-    h2 = Math.imul(h2 ^ code, 1597334677)
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909)
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909)
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36)
 }
 
 export function lessonSourceHash(sourceText: string, options: LessonOptions): string {
@@ -112,6 +112,10 @@ function withDefaults(raw: unknown): StoredLesson | null {
       cachedShare: typeof episode.cachedShare === 'number' ? episode.cachedShare : null,
       ...(episode.hasAudio === true ? { hasAudio: true } : {}),
       ...(episode.pendingCheck === true ? { pendingCheck: true } : {}),
+      ...(episode.approved === true ? { approved: true } : {}),
+      ...(isRecord(episode.voices) ? { voices: episode.voices as Record<string, string> } : {}),
+      ...(typeof episode.audioCostUsd === 'number' ? { audioCostUsd: episode.audioCostUsd } : {}),
+      ...(Array.isArray(episode.unknownAbbreviations) ? { unknownAbbreviations: (episode.unknownAbbreviations as unknown[]).filter((entry): entry is string => typeof entry === 'string') } : {}),
     })),
     planCostUsd: typeof raw.planCostUsd === 'number' ? raw.planCostUsd : 0,
   }
@@ -156,6 +160,7 @@ function openDb(): Promise<IDBDatabase> {
       const db = request.result
       if (!db.objectStoreNames.contains(LESSONS)) db.createObjectStore(LESSONS, { keyPath: 'id' })
       if (!db.objectStoreNames.contains(PLANS)) db.createObjectStore(PLANS, { keyPath: 'key' })
+      if (!db.objectStoreNames.contains(SEGMENTS)) db.createObjectStore(SEGMENTS, { keyPath: 'key' })
     }
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => reject(request.error ?? new Error('open failed'))
@@ -272,5 +277,107 @@ export function lessonStatus(lesson: StoredLesson): 'audio' | 'script' | 'none' 
 }
 
 export function lessonCostUsd(lesson: StoredLesson): number {
-  return lesson.planCostUsd + lesson.episodes.reduce((sum, episode) => sum + (episode.costUsd ?? 0), 0)
+  return lesson.planCostUsd + lesson.episodes.reduce((sum, episode) => sum + (episode.costUsd ?? 0) + (episode.audioCostUsd ?? 0), 0)
+}
+
+// ---------------------------------------------------------------------------
+// Recorded audio segments, keyed by segmentKey (normalized text, voice, model, instructions)
+// ---------------------------------------------------------------------------
+
+export interface StoredSegment {
+  key: string
+  audio: Blob
+  durationSeconds: number
+  createdAt: string
+}
+
+const memorySegments = new Map<string, StoredSegment>()
+
+export async function getSegments(keys: string[]): Promise<Map<string, StoredSegment>> {
+  const wanted = new Set(keys)
+  const found = await persistent(
+    async () => {
+      const db = await openDb()
+      try {
+        return await new Promise<StoredSegment[]>((resolve, reject) => {
+          const tx = db.transaction(SEGMENTS, 'readonly')
+          const store = tx.objectStore(SEGMENTS)
+          const result: StoredSegment[] = []
+          for (const key of wanted) {
+            const request = store.get(key)
+            request.onsuccess = () => {
+              const entry: unknown = request.result
+              if (isRecord(entry) && typeof entry.key === 'string' && typeof entry.durationSeconds === 'number') {
+                const audio = toBlob(entry.bytes ?? entry.audio)
+                if (audio) result.push({ key: entry.key, audio, durationSeconds: entry.durationSeconds, createdAt: typeof entry.createdAt === 'string' ? entry.createdAt : '' })
+              }
+            }
+          }
+          tx.oncomplete = () => resolve(result)
+          tx.onerror = () => reject(tx.error ?? new Error('read failed'))
+        })
+      } finally {
+        db.close()
+      }
+    },
+    () => [...memorySegments.values()].filter((entry) => wanted.has(entry.key)),
+  )
+  return new Map(found.map((segment) => [segment.key, segment]))
+}
+
+/** Stored as plain bytes: Safari refuses Blobs in IndexedDB in private browsing. */
+function toBlob(value: unknown): Blob | null {
+  if (value instanceof Blob) return value
+  if (value instanceof ArrayBuffer) return new Blob([value], { type: 'audio/mpeg' })
+  return null
+}
+
+export async function putSegment(segment: StoredSegment): Promise<void> {
+  memorySegments.set(segment.key, segment)
+  const bytes = await segment.audio.arrayBuffer()
+  await persistent(
+    async () => {
+      await withStore(SEGMENTS, 'readwrite', (store) => store.put({ key: segment.key, bytes, durationSeconds: segment.durationSeconds, createdAt: segment.createdAt }))
+    },
+    () => undefined,
+  )
+}
+
+/** Deletes recorded audio that no saved lesson line uses any more. */
+export async function pruneSegments(keep: Set<string>): Promise<void> {
+  for (const key of memorySegments.keys()) if (!keep.has(key)) memorySegments.delete(key)
+  await persistent(
+    async () => {
+      const keys = ((await withStore<IDBValidKey[]>(SEGMENTS, 'readonly', (store) => store.getAllKeys())) ?? []).filter((key) => typeof key === 'string' && !keep.has(key))
+      if (keys.length > 0) await withStore(SEGMENTS, 'readwrite', (store) => keys.forEach((key) => store.delete(key)))
+    },
+    () => undefined,
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Owner spend this month (scripts + audio), kept even when a lesson is deleted
+// ---------------------------------------------------------------------------
+
+function currentMonth(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+export function monthLessonSpendUsd(): number {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SPEND_KEY) ?? 'null') as { month?: string; usd?: number } | null
+    return raw && raw.month === currentMonth() && typeof raw.usd === 'number' ? raw.usd : 0
+  } catch {
+    return 0
+  }
+}
+
+export function addLessonSpend(usd: number): void {
+  if (!(usd > 0)) return
+  try {
+    localStorage.setItem(SPEND_KEY, JSON.stringify({ month: currentMonth(), usd: Math.round((monthLessonSpendUsd() + usd) * 100000) / 100000 }))
+  } catch {
+    // localStorage unavailable: the total simply isn't kept.
+  }
 }

@@ -112,7 +112,10 @@ export const MIN_EPISODE_SECONDS = 330
 export const MAX_EPISODE_SECONDS = 390
 
 /** Spoken words per minute by output language (Turkish ~130-140, English ~150). */
-const WORDS_PER_MINUTE: Record<string, number> = { tr: 135, en: 150, hyw: 130 }
+/** Measured speaking rates of the lesson TTS voices (tts-1): Turkish 114-130 words/min depending on
+ * content (long agglutinative words, spelled-out abbreviations), English ~152; Western Armenian
+ * assumed close to Turkish. */
+const WORDS_PER_MINUTE: Record<string, number> = { tr: 122, en: 150, hyw: 118 }
 const DEFAULT_WORDS_PER_MINUTE = 140
 
 export function wordsPerMinute(language: string): number {
@@ -121,6 +124,18 @@ export function wordsPerMinute(language: string): number {
 
 export function wordsForSeconds(language: string, seconds: number): number {
   return Math.round((seconds / 60) * wordsPerMinute(language))
+}
+
+/** Silence the player leaves after a "pause" line (the listener thinks before the answer). */
+export const PAUSE_SECONDS = 2.5
+/** Pause lines a typical episode has; their silence is part of the 6 minutes. */
+export const EXPECTED_PAUSES = 8
+
+/** Length of an episode as heard: spoken words plus the silences after pause lines. */
+export function episodeSeconds(sections: ScriptSection[], language: string, countWords: (text: string) => number): number {
+  const lines = sections.flatMap((section) => section.lines)
+  const words = lines.reduce((sum, line) => sum + countWords(line.text), 0)
+  return secondsForWords(language, words) + Math.round(lines.filter((line) => line.pause).length * PAUSE_SECONDS)
 }
 
 export function secondsForWords(language: string, words: number): number {
@@ -226,6 +241,8 @@ export type LessonErrorCode =
   | 'rate_limited'
   | 'locked'
   | 'timeout'
+  | 'daily_cap'
+  | 'budget'
 
 export interface LessonPlanResponse {
   title: string

@@ -1,16 +1,17 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { checkLessonEpisode, getLessonStatus, LessonApiError, verifyAndStoreLessonAccessCode, writeLessonEpisode } from '../api/lesson'
 import type { LessonClientErrorCode } from '../api/lesson'
 import OwnerAccessGate from '../components/OwnerAccessGate'
+import LessonAudio from '../components/lessons/LessonAudio'
 import ScriptEditor from '../components/lessons/ScriptEditor'
 import { CheckIcon, ChevronDownIcon, SpinnerIcon, WarningIcon } from '../components/icons'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { formatClock, formatUsd, scriptWordCount, secondsForWords } from '../lib/lesson'
+import { episodeSeconds, formatClock, formatUsd, scriptWordCount } from '../lib/lesson'
 import type { ScriptSection } from '../lib/lesson'
-import { getLesson, lessonCostUsd, putLesson } from '../lib/lessonStorage'
+import { addLessonSpend, getLesson, lessonCostUsd, putLesson } from '../lib/lessonStorage'
 import type { StoredEpisode, StoredLesson } from '../lib/lessonStorage'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { countWords } from '../lib/textStats'
@@ -27,6 +28,8 @@ export default function LessonPage() {
   const [error, setError] = useState<{ part: number; code: LessonClientErrorCode; action: 'check' | 'write' } | null>(null)
   const [locked, setLocked] = useState<number | null>(null)
   const [requiresAccessCode, setRequiresAccessCode] = useState(true)
+  const [showEditor, setShowEditor] = useState(false)
+  const [recording, setRecording] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
 
   useDocumentTitle(lesson && lesson !== 'missing' ? lesson.title : t('lessons.title'))
@@ -41,12 +44,17 @@ export default function LessonPage() {
     }
   }, [id])
 
+  const saveLesson = useCallback(async (next: StoredLesson) => {
+    setLesson(next)
+    setLesson(await putLesson(next))
+  }, [])
+
   useEffect(() => {
-    if (!busy) return undefined
+    if (!busy && !recording) return undefined
     const handler = (event: BeforeUnloadEvent) => event.preventDefault()
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
-  }, [busy])
+  }, [busy, recording])
 
   if (lesson === null) return null
   if (lesson === 'missing') {
@@ -65,10 +73,7 @@ export default function LessonPage() {
   const episode = current.episodes.find((entry) => entry.part === selectedPart) ?? current.episodes[0]
   const total = current.episodes.length
 
-  const save = async (next: StoredLesson) => {
-    setLesson(next)
-    setLesson(await putLesson(next))
-  }
+  const save = saveLesson
 
   const withEpisode = (base: StoredLesson, part: number, change: (entry: StoredEpisode) => StoredEpisode): StoredLesson => ({
     ...base,
@@ -79,7 +84,7 @@ export default function LessonPage() {
     const words = scriptWordCount(sections, countWords)
     void save(
       withEpisode(current, episode.part, (entry) =>
-        entry.script ? { ...entry, pendingCheck: true, script: { ...entry.script, sections, wordCount: words, estimatedSeconds: secondsForWords(current.options.language, words) } } : entry,
+        entry.script ? { ...entry, pendingCheck: true, script: { ...entry.script, sections, wordCount: words, estimatedSeconds: episodeSeconds(sections, current.options.language, countWords) } } : entry,
       ),
     )
   }
@@ -103,6 +108,7 @@ export default function LessonPage() {
     const lineIds = script.sections.flatMap((section) => section.lines).filter((line) => line.edited || line.issue).map((line) => line.id)
     const keyPoints = base.keyPoints.filter((point) => target.keyPointIds.includes(point.id))
     const result = await checkLessonEpisode({ text: base.sourceText, keyPoints, part, sections: script.sections, lineIds, ...base.options }, signal)
+    addLessonSpend(result.usage.costUsd)
     const next = withEpisode(base, part, (entry) => ({
       ...entry,
       pendingCheck: false,
@@ -152,9 +158,25 @@ export default function LessonPage() {
       }
       setBusy({ kind: 'writing', part })
       const result = await writeLessonEpisode({ text: base.sourceText, keyPoints: base.keyPoints, episodes: base.episodes.map(({ part: p, keyPointIds }) => ({ part: p, keyPointIds })), part, ...base.options }, controller.signal)
+      addLessonSpend(result.usage.costUsd)
       await save(withEpisode(base, part, (entry) => ({ ...entry, script: result.episode, costUsd: result.usage.costUsd, cachedShare: result.usage.cachedShare, pendingCheck: false })))
     } catch (caught) {
       handleFailure(part, 'write', caught)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  /** Pending edits are re-checked before recording; null when the check failed (the error is shown). */
+  const ensureChecked = async (): Promise<StoredLesson | null> => {
+    const controller = new AbortController()
+    abortRef.current = controller
+    setBusy({ kind: 'checking', part: episode.part })
+    try {
+      return await runCheck(current, episode.part, controller.signal)
+    } catch (caught) {
+      handleFailure(episode.part, 'check', caught)
+      return null
     } finally {
       setBusy(null)
     }
@@ -336,7 +358,32 @@ export default function LessonPage() {
             )}
           </section>
 
-          <ScriptEditor key={episode.part} sections={script.sections} style={current.options.style} part={episode.part} onChange={handleEdit} disabled={busyHere} />
+          <LessonAudio
+            key={episode.part}
+            lesson={current}
+            episode={episode}
+            totalParts={total}
+            isOwnerView={isOwnerView}
+            onSave={saveLesson}
+            ensureChecked={ensureChecked}
+            onLocked={() => setLocked(episode.part)}
+            needsCode={needsCode}
+            onBusyChange={setRecording}
+          />
+
+          {episode.hasAudio && (
+            <button
+              type="button"
+              onClick={() => setShowEditor((value) => !value)}
+              aria-expanded={showEditor}
+              className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-semibold text-ink hover:border-focus-neutral"
+            >
+              {showEditor ? t('lessons.audio.hideEditor') : t('lessons.audio.editScript')}
+            </button>
+          )}
+          {(!episode.hasAudio || showEditor) && (
+            <ScriptEditor key={`editor-${episode.part}`} sections={script.sections} style={current.options.style} part={episode.part} onChange={handleEdit} disabled={busyHere || recording} />
+          )}
 
           {nextEpisode && (
             <div className="flex justify-center">
