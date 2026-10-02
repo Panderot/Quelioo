@@ -9,7 +9,6 @@ import {
   MAX_SPEAK_LINE_CHARS,
   SPEAK_BATCH_LINES,
   TTS_MODEL,
-  TTS_MODELS,
   estimateSpeechCostUsd,
   estimateSpeechSeconds,
   speakerInstruction,
@@ -67,7 +66,7 @@ function capKeys(ip: string, accessCode: string | undefined): string[] {
   return [`ip:${ip}`, ...(accessCode ? [`code:${createHash('sha256').update(accessCode).digest('hex').slice(0, 16)}`] : [])]
 }
 
-export function checkDailyCaps(ip: string, accessCode: string | undefined, lessonKey: string, plannedSeconds: number): boolean {
+function checkDailyCaps(ip: string, accessCode: string | undefined, lessonKey: string, plannedSeconds: number): boolean {
   return capKeys(ip, accessCode).every((key) => {
     const usage = usageFor(key)
     const newLesson = !usage.lessons.has(lessonKey)
@@ -118,11 +117,9 @@ interface TtsResult {
 async function callTts(params: { text: string; voice: string; instructions: string }): Promise<TtsResult | null> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) return null
-  const info = TTS_MODELS[TTS_MODEL]
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), TTS_TIMEOUT_MS)
   try {
-    const usesTokens = !info.usdPerMillionChars
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
@@ -131,19 +128,15 @@ async function callTts(params: { text: string; voice: string; instructions: stri
         voice: params.voice,
         input: params.text,
         response_format: 'mp3',
-        ...(info.instructions ? { instructions: params.instructions } : {}),
-        // Token-billed models report usage only in the SSE stream.
-        ...(usesTokens ? { stream_format: 'sse' } : {}),
+        instructions: params.instructions,
+        // The token-billed model reports usage only in the SSE stream.
+        stream_format: 'sse',
       }),
       signal: controller.signal,
     })
     if (!response.ok) {
       console.log(`lesson: tts status=${response.status}`)
       return null
-    }
-    if (!usesTokens) {
-      const audio = new Uint8Array(await response.arrayBuffer())
-      return audio.length > 0 ? { audio, costUsd: (params.text.length * (info.usdPerMillionChars ?? 0)) / 1_000_000 } : null
     }
     const chunks: Uint8Array[] = []
     let outputTokens = 0

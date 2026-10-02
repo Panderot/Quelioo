@@ -61,7 +61,7 @@ function frames(bytes: Uint8Array): Frame[] {
 }
 
 /** Audio frames only: ID3 tags, Xing/Info frames and trailing garbage removed. */
-export function mp3AudioFrames(bytes: Uint8Array): Uint8Array {
+function mp3AudioFrames(bytes: Uint8Array): Uint8Array {
   const list = frames(bytes).filter((frame, index) => !(index === 0 && isInfoFrame(bytes, frame)))
   const out = new Uint8Array(list.reduce((sum, frame) => sum + frame.length, 0))
   let position = 0

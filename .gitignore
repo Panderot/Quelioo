@@ -35,6 +35,7 @@ coverage/
 
 # Local-only Phase 3 'song test' output (real Gemini audio, never committed)
 test-songs/
+test-lessons/
 
 # Task prompts live in ../QUELIO-PROMPTS
 *-prompt.txt

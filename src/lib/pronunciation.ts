@@ -119,7 +119,7 @@ function enBelowThousand(n: number): string {
 }
 
 /** Whole numbers 0 - 999,999,999,999 in words. */
-export function integerToWords(value: number, language: 'tr' | 'en'): string {
+function integerToWords(value: number, language: 'tr' | 'en'): string {
   if (!Number.isFinite(value) || Math.abs(value) >= 1e12) return String(value)
   if (value < 0) return `${language === 'tr' ? 'eksi' : 'minus'} ${integerToWords(-value, language)}`
   if (value === 0) return language === 'tr' ? 'sıfır' : 'zero'

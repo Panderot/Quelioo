@@ -57,8 +57,6 @@ export interface StoredLesson {
   planCostUsd: number
 }
 
-export { hashText }
-
 export interface CachedPlan {
   key: string
   title: string

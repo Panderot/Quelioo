@@ -43,7 +43,7 @@ export function resolveGeminiModel(targetSeconds: number): string {
 }
 
 /** True in production — /api/song-lyrics and /api/song then require a matching `x-music-access`
- * header (see verifyMusicAccessCode). Never gated outside production, so the existing local "song
+ * header (see verifyOwnerAccessCode). Never gated outside production, so the existing local "song
  * test" workflow (CLAUDE.md) keeps working unchanged. */
 export function isProductionAccessGateActive(): boolean {
   return process.env.VERCEL_ENV === 'production'
@@ -67,6 +67,3 @@ export function verifyOwnerAccessCode(provided: string | undefined | null): bool
   if (!expected || !provided) return false
   return timingSafeEqual(digest(provided), digest(expected))
 }
-
-/** Songs keep their own name for the same shared owner gate. */
-export const verifyMusicAccessCode = verifyOwnerAccessCode

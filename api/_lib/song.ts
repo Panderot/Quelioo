@@ -9,7 +9,7 @@ import {
   resolveGeminiModel,
   resolveMusicProvider,
   resolveProviderMaxSeconds,
-  verifyMusicAccessCode,
+  verifyOwnerAccessCode,
 } from './song-config.js'
 import { canRecordSongForIp, recordSongForIp, requestIp } from './song-rate-limit.js'
 import {
@@ -92,7 +92,7 @@ export async function handleSongCreateRequest(
   // Checked first, before any other validation, so the client's "Unlock" flow (a deliberately
   // minimal/invalid body + a candidate code) can tell a wrong code apart from any other failure
   // without ever reaching the paid Gemini call.
-  if (isProductionAccessGateActive() && !verifyMusicAccessCode(context.accessCodeHeader)) return fail('locked')
+  if (isProductionAccessGateActive() && !verifyOwnerAccessCode(context.accessCodeHeader)) return fail('locked')
 
   if (!isRecord(payload)) return fail('parse')
 

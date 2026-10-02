@@ -207,7 +207,7 @@ function wordBudget(language: string): { target: number; min: number; max: numbe
 }
 
 /** Spoken-word budget per section, so the first draft lands near 6 minutes. */
-export function sectionBudgets(target: number, keyPointCount: number, hasRecall: boolean): string {
+function sectionBudgets(target: number, keyPointCount: number, hasRecall: boolean): string {
   const share = (fraction: number) => Math.round(target * fraction)
   const fixed = { recall: hasRecall ? share(0.06) : 0, opening: share(0.06), feynman: share(0.08), recap: share(0.08), selfcheck: share(0.12), tip: share(0.03) }
   const teach = Math.max(60, Math.round((target - Object.values(fixed).reduce((sum, value) => sum + value, 0)) / Math.max(1, keyPointCount)))
@@ -295,7 +295,7 @@ function sourceSentences(text: string): string[] {
 
 /** The full source sentence that contains the model's quote (the extractor quotes only its first words);
  * otherwise the source sentence that shares the most words with it. */
-export function anchorSourceSentence(quote: string, sentences: string[]): string {
+function anchorSourceSentence(quote: string, sentences: string[]): string {
   const normalizedQuote = normalizeForMatch(quote)
   const containing = normalizedQuote ? sentences.find((sentence) => normalizeForMatch(sentence).includes(normalizedQuote)) : undefined
   if (containing) return containing.slice(0, MAX_KEY_POINT_SOURCE_CHARS)
@@ -327,7 +327,7 @@ interface FactGroup {
 }
 
 /** Merges neighbouring groups (smallest combined first, same topic preferred) until at most `target` remain; no fact is dropped. */
-export function mergeToTarget(groups: FactGroup[], target: number): void {
+function mergeToTarget(groups: FactGroup[], target: number): void {
   while (groups.length > target) {
     let best = 0
     let bestScore = Number.POSITIVE_INFINITY
@@ -460,7 +460,7 @@ export function speakabilityIssue(text: string): string | null {
 }
 
 /** Recalculates every "calc" entry with the whitelisted math evaluator; a mismatch flags its line. */
-export function calculationIssue(line: WrittenLine): string | null {
+function calculationIssue(line: WrittenLine): string | null {
   for (const item of line.calc ?? []) {
     if (compareMathAnswers(item.expr, item.equals) === false) return `calc:${item.expr} ≠ ${item.equals}`
   }
@@ -1082,7 +1082,7 @@ export async function handleLessonRequest(payload: unknown, context: LessonReque
   }
 }
 
-export function lessonStatus(): { requiresAccessCode: boolean; monthlyBudgetUsd: number | null } {
+function lessonStatus(): { requiresAccessCode: boolean; monthlyBudgetUsd: number | null } {
   return { requiresAccessCode: isProductionAccessGateActive(), monthlyBudgetUsd: monthlyBudgetUsd() }
 }
 

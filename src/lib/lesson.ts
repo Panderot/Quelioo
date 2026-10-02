@@ -90,10 +90,10 @@ export interface LessonUsage {
 }
 
 export const MAX_KEY_POINTS = 60
-export const MAX_EPISODES = 12
-export const KEY_POINTS_PER_EPISODE = 5
+const MAX_EPISODES = 12
+const KEY_POINTS_PER_EPISODE = 5
 /** A source with up to this many key points stays one (slightly denser) episode instead of a 2-part series. */
-export const MAX_SINGLE_EPISODE_KEY_POINTS = 6
+const MAX_SINGLE_EPISODE_KEY_POINTS = 6
 export const MAX_LINE_CHARS = 600
 export const MAX_LINES_PER_EPISODE = 220
 export const MAX_SECTION_TITLE_CHARS = 120
@@ -111,14 +111,13 @@ export const TARGET_EPISODE_SECONDS = 360
 export const MIN_EPISODE_SECONDS = 330
 export const MAX_EPISODE_SECONDS = 390
 
-/** Spoken words per minute by output language (Turkish ~130-140, English ~150). */
 /** Measured speaking rates of the lesson TTS voices (gpt-4o-mini-tts with the per-speaker style
  * instruction): Turkish ~101 words/min (measured 101.1 and 102.6) (long agglutinative words), English ~150, Western Armenian ~107.
  * Re-measure when TTS_MODEL changes. */
 const WORDS_PER_MINUTE: Record<string, number> = { tr: 101, en: 150, hyw: 107 }
 const DEFAULT_WORDS_PER_MINUTE = 140
 
-export function wordsPerMinute(language: string): number {
+function wordsPerMinute(language: string): number {
   return WORDS_PER_MINUTE[language] ?? DEFAULT_WORDS_PER_MINUTE
 }
 
@@ -185,7 +184,7 @@ export function scriptWordCount(sections: ScriptSection[], countWords: (text: st
 export const LESSON_MODELS = { writer: 'gpt-6-sol', helper: 'gpt-6-luna', checker: 'gpt-6-luna' } as const
 
 /** USD per 1M tokens (OpenAI pricing page). Cache writes bill at 1.25x input, cache reads at the cached rate. */
-export const MODEL_PRICES: Record<string, { input: number; cached: number; output: number }> = {
+const MODEL_PRICES: Record<string, { input: number; cached: number; output: number }> = {
   'gpt-6-sol': { input: 2, cached: 0.2, output: 10 },
   'gpt-6-luna': { input: 0.1, cached: 0.01, output: 0.5 },
 }

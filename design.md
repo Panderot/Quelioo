@@ -94,9 +94,10 @@ App root (flex, bg-paper)
 - **Image crop step (`ImageCropStep`, lazy):** used for every photo upload; reports a normalized rect + rotation, the caller cuts from the full-res EXIF-oriented original (`imageNormalize.ts`, `imageCrop.ts`).
   - Whole photo visible (contain, max 70vh/60vh, upscale <=2x); outside dimmed `navy/45`. Box: 2px amber + L corners, drag/resize/pinch, min 48px; arrows move, Shift+arrows resize.
   - Rotate left/right, Reset; actions "Use this area" (2px navy outline) and "Use whole photo" (warm outline), stacked below 640px.
-- **Undo toast:** fixed bottom-center navy pill (radius 12), paper text, amber "Undo"; auto-dismisses after 6s. Used for question, solution, song, card and deck deletes.
+- **Undo toast:** fixed bottom-center navy pill (radius 12), paper text, amber "Undo"; auto-dismisses after 6s. Used for question, solution, song, card, deck and lesson deletes.
 - **Inline delete confirm:** "Delete this ...?" + red-tinted Delete + outline Cancel before deleting.
 - **Confirm dialog (`ConfirmDialog`):** modal (radius 16, scrim), focus starts on Cancel, Escape cancels, red-tinted confirm. Used for delete deck and reset progress.
+- **Owner gate (`OwnerAccessGate`, production only):** card (radius 12, paper), password input, solid amber "Unlock", localized error. Shared by Songs and Audio Lesson; one stored code unlocks both, "Lock" (outline, lock icon, page header) clears it. Lists stay visible; only the step that leads to a paid call shows the gate.
 
 ## 6. Create page
 
@@ -172,7 +173,7 @@ Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 - **C, Creating:** pulsing music-note, rotating `aria-live` status, outline Cancel (back to B, no error).
 - **D, Player (`SongPlayerCard`, shared):** optional "Demo sound" pill, custom controls + Download over a hidden `<audio>`, lyrics, muted AI disclosure, outline "Make another".
 - Errors: localized message + "Try again"; daily limit notes. Save failure: muted note, song still plays.
-- **Access gate:** the shared `OwnerAccessGate` (see Audio Lesson) replaces step A until a valid code is stored.
+- **Access gate:** `OwnerAccessGate` (§5) replaces step A until a valid code is stored.
 
 ### Songs (`/songs`)
 - Same enabled switch as the song feature (redirects to Create when off). Header: title + subtitle, songs-left-today meta, outline "Lock" when a code is stored.
@@ -198,7 +199,7 @@ Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 - **Summary:** 112px ring with known/total, "You knew X of Y", list of cards to repeat, next review line, solid amber "Study again" (only when something is due) and outline "Back to decks".
 
 ### Audio Lesson (`/lessons`, `/lessons/:id`)
-- **Shared owner gate (`OwnerAccessGate`, production):** card (radius 12, paper), password input, solid amber "Unlock", localized error. Used by Songs and Audio Lesson; one stored code unlocks both, "Lock" (outline, lock icon, page header) clears it. Lists stay visible; only the step that leads to a paid call shows the gate.
+- **Owner gate:** `OwnerAccessGate` (§5) before planning, writing or recording.
 - **List page:** title + subtitle, full-width solid amber "New lesson" (headphones icon). Search box, then one divided card list, newest first. Row: title link, muted source ("Archive quiz: …"), muted "N episodes · about 6 min each • style • date", status pill (`bg-amber/15` amber-text "Script ready", green tint "Audio ready"), outline "Open", trash with inline confirm + undo toast. Empty: headphones icon, "No lessons yet", small solid amber "New lesson".
 - **New lesson (`NewLessonPanel`):** card (radius 14) replacing the button. "Or start from:" chips "From an Archive quiz" / "From a saved solution" open an inline picker (paper, search, rows); a picked source fills the Text tab with a "Using: …" note + "Use my own text". Then Create's `InputCard` (focus marking off, "per lesson" limit line) and "Lesson options": the parameters-panel look (11px uppercase labels, hairline cells): Length (fixed text "About 6 minutes per episode"), Style chips (Two hosts talking default, Teacher and student, Single narrator; song chip style, `role="radio"`), Level `Select` (General, LGS, YKS, KPSS, University), Tone chips (Normal, Fun + muted safety note). Output language lives in the input card. Primary CTA "Plan the lesson" (sun icon, spinner + "Finding the key points..." + Cancel link).
 - **Plan card:** paper box: eyebrow "Lesson plan", Fraunces "This text will be one 6-minute episode" / "…a N-episode series", amber-text toggle "N key points" (list grouped by part), muted estimated cost line, on-demand note, "Key points reused" note on a cache hit. Same source + options already made: amber-tinted row with solid amber "Open it" (the primary), then "Write a new one anyway" becomes a 2px navy outline. Otherwise solid amber "Write the lesson" / "Write part 1" + outline "Change options". Writing: spinner, "Writing and fact-checking…", Cancel; `beforeunload` warns.

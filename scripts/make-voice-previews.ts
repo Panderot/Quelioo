@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-import { TTS_MODEL, TTS_MODELS, TTS_VOICES, speakerInstruction } from '../src/lib/lessonAudio.js'
+import { TTS_MODEL, TTS_VOICES, speakerInstruction } from '../src/lib/lessonAudio.js'
 
 const SAMPLES: Record<string, string> = {
   tr: 'Merhaba! Bugünkü derste bu konuyu birlikte, adım adım öğreneceğiz.',
@@ -56,7 +56,7 @@ async function main() {
           voice,
           input: SAMPLES[lang],
           response_format: 'mp3',
-          ...(TTS_MODELS[TTS_MODEL].instructions ? { instructions: speakerInstruction('narrator', lang) } : {}),
+          instructions: speakerInstruction('narrator', lang),
         }),
       })
       if (!response.ok) throw new Error(`${voice}-${lang}: ${response.status}`)

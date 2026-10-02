@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { extractJson, readRequestBody } from './anthropic.js'
 import { generateJson } from './llm.js'
-import { isMusicEnabled, isProductionAccessGateActive, resolveMusicProvider, resolveProviderMaxSeconds, verifyMusicAccessCode } from './song-config.js'
+import { isMusicEnabled, isProductionAccessGateActive, resolveMusicProvider, resolveProviderMaxSeconds, verifyOwnerAccessCode } from './song-config.js'
 import {
   isRecord,
   isSongStyle,
@@ -399,7 +399,7 @@ export async function handleSongLyricsRequest(
   context: SongLyricsRequestContext = {},
 ): Promise<{ status: number; body: SongLyricsResponseBodyOrError }> {
   // Checked first — see the matching comment in api/_lib/song.ts's handleSongCreateRequest.
-  if (isProductionAccessGateActive() && !verifyMusicAccessCode(context.accessCodeHeader)) {
+  if (isProductionAccessGateActive() && !verifyOwnerAccessCode(context.accessCodeHeader)) {
     return { status: 403, body: { error: 'locked' } }
   }
 
