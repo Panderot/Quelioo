@@ -94,7 +94,7 @@ function errorStatus(code: GradeErrorCode): number {
 }
 
 /** Pure request-handling core, independent of the HTTP transport — mirrors handleGenerateRequest. */
-export async function handleGradeRequest(payload: unknown): Promise<{ status: number; body: GradeResponseBodyOrError }> {
+async function handleGradeRequest(payload: unknown): Promise<{ status: number; body: GradeResponseBodyOrError }> {
   if (!isRecord(payload)) {
     return { status: 400, body: { error: 'parse' } }
   }

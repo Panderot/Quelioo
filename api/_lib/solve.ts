@@ -215,7 +215,7 @@ function errorStatus(code: SolveErrorCode): number {
 }
 
 /** Pure request-handling core, independent of the HTTP transport — mirrors handleGenerateRequest/handleGradeRequest. */
-export async function handleSolveRequest(payload: unknown, ip: string): Promise<{ status: number; body: SolveResponseBody }> {
+async function handleSolveRequest(payload: unknown, ip: string): Promise<{ status: number; body: SolveResponseBody }> {
   if (!isRecord(payload)) {
     return { status: 400, body: { error: 'bad_type' } }
   }

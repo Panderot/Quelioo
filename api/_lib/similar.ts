@@ -106,7 +106,7 @@ function errorStatus(code: SimilarErrorCode): number {
   }
 }
 
-export async function handleSimilarRequest(payload: unknown, ip: string): Promise<{ status: number; body: SimilarResponseBody }> {
+async function handleSimilarRequest(payload: unknown, ip: string): Promise<{ status: number; body: SimilarResponseBody }> {
   const fail = (error: SimilarErrorCode) => ({ status: errorStatus(error), body: { error } as SimilarResponseBody })
   if (!isRecord(payload)) return fail('bad_type')
   const { question, steps, answer, topic, language, avoid } = payload

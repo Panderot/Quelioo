@@ -5,7 +5,7 @@ export interface FocusPart {
 }
 
 export const MAX_FOCUS_PARTS = 5
-export const MAX_FOCUS_SNIPPET_CHARS = 500
+const MAX_FOCUS_SNIPPET_CHARS = 500
 
 function makeId(): string {
   return `focus_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`

@@ -46,7 +46,7 @@ function stringArray(value: unknown): string[] {
 
 /** Normalizes any stored shape (older or partial records) into the current one — every read goes
  * through this so old records render instead of breaking. Returns null for unusable junk. */
-export function withDefaults(raw: unknown): StoredSolution | null {
+function withDefaults(raw: unknown): StoredSolution | null {
   if (!isRecord(raw) || typeof raw.id !== 'string') return null
   const result = isRecord(raw.result) ? raw.result : {}
   return {

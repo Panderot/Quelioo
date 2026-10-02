@@ -62,7 +62,7 @@ function setState(patch: Partial<FlashcardState>) {
   listeners.forEach((listener) => listener())
 }
 
-export function makeId(): string {
+function makeId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
   const bytes = crypto.getRandomValues(new Uint8Array(16))
   bytes[6] = (bytes[6] & 0x0f) | 0x40
@@ -142,7 +142,7 @@ function cardWithDefaults(raw: Partial<Card>): Card | null {
 
 let loadPromise: Promise<void> | null = null
 
-export function loadFlashcards(): Promise<void> {
+function loadFlashcards(): Promise<void> {
   if (loadPromise) return loadPromise
   loadPromise = (async () => {
     const db = await openDb()
@@ -209,11 +209,6 @@ function persist(ops: WriteOps) {
       }
     })
   })
-}
-
-/** Resolves once every queued write has finished (tests and navigation-sensitive flows). */
-export function flushFlashcardWrites(): Promise<void> {
-  return writeChain
 }
 
 function touchDeck(deckId: string, now: number): Deck[] {

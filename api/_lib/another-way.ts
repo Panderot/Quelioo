@@ -76,7 +76,7 @@ function errorStatus(code: AnotherWayErrorCode): number {
   }
 }
 
-export async function handleAnotherWayRequest(payload: unknown, ip: string): Promise<{ status: number; body: AnotherWayResponseBody }> {
+async function handleAnotherWayRequest(payload: unknown, ip: string): Promise<{ status: number; body: AnotherWayResponseBody }> {
   const fail = (error: AnotherWayErrorCode) => ({ status: errorStatus(error), body: { error } as AnotherWayResponseBody })
   if (!isRecord(payload)) return fail('bad_type')
   const { question, steps, answer, language } = payload

@@ -25,7 +25,7 @@ function card(front: string, back: string): DraftCard | null {
   return cleanFront && cleanBack ? { front: cleanFront, back: cleanBack } : null
 }
 
-export function questionToCards(question: QuizQuestion, labels: CardLabels): DraftCard[] {
+function questionToCards(question: QuizQuestion, labels: CardLabels): DraftCard[] {
   let cards: (DraftCard | null)[]
   switch (question.type) {
     case 'mcq':

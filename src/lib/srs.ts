@@ -60,7 +60,7 @@ export function isStudyable(card: Pick<SrsCard, 'front' | 'back'>): boolean {
   return card.front.trim() !== '' && card.back.trim() !== ''
 }
 
-export function isNewCard(card: Pick<SrsCard, 'reviews'>): boolean {
+function isNewCard(card: Pick<SrsCard, 'reviews'>): boolean {
   return card.reviews === 0
 }
 

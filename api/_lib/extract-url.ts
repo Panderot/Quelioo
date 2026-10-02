@@ -194,7 +194,7 @@ async function extractArticle(html: string): Promise<{ title: string; text: stri
   }
 }
 
-export async function handleExtractUrlRequest(payload: unknown): Promise<{ status: number; body: ExtractUrlSuccessBody | ExtractUrlErrorBody }> {
+async function handleExtractUrlRequest(payload: unknown): Promise<{ status: number; body: ExtractUrlSuccessBody | ExtractUrlErrorBody }> {
   if (!isRecord(payload) || typeof payload.url !== 'string' || !payload.url.trim()) {
     return { status: 400, body: { error: 'invalid_url' } }
   }

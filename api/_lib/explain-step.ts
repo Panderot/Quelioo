@@ -129,7 +129,7 @@ function isStringArray(value: unknown): value is string[] {
 }
 
 /** Pure request-handling core, independent of the HTTP transport — mirrors handleSolveRequest. */
-export async function handleExplainRequest(payload: unknown, ip: string): Promise<{ status: number; body: ExplainResponseBody }> {
+async function handleExplainRequest(payload: unknown, ip: string): Promise<{ status: number; body: ExplainResponseBody }> {
   const bad = (error: ExplainErrorCode) => ({ status: errorStatus(error), body: { error } as ExplainResponseBody })
   if (!isRecord(payload)) return bad('bad_type')
 
