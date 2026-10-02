@@ -7,6 +7,9 @@ import ArchivePage from './pages/ArchivePage'
 import ArchiveQuizPage from './pages/ArchiveQuizPage'
 import ArchiveSolutionPage from './pages/ArchiveSolutionPage'
 import CreatePage from './pages/CreatePage'
+import FlashcardDeckPage from './pages/FlashcardDeckPage'
+import FlashcardsPage from './pages/FlashcardsPage'
+import FlashcardStudyPage from './pages/FlashcardStudyPage'
 import NotFoundPage from './pages/NotFoundPage'
 import SolvePage from './pages/SolvePage'
 import SongsPage from './pages/SongsPage'
@@ -37,6 +40,9 @@ export default function App() {
             <Route path="/archive/solutions/:id" element={<ArchiveSolutionPage />} />
             <Route path="/archive/:id" element={<ArchiveQuizPage />} />
             <Route path="/songs" element={<SongsPage />} />
+            <Route path="/flashcards" element={<FlashcardsPage />} />
+            <Route path="/flashcards/:deckId" element={<FlashcardDeckPage />} />
+            <Route path="/flashcards/:deckId/study" element={<FlashcardStudyPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>

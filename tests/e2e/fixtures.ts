@@ -11,6 +11,8 @@ const IGNORED_CONSOLE_PATTERNS: RegExp[] = [
   // Firefox logs this when the Vite dev server's HMR websocket (test harness only, never shipped) drops under load.
   /can.t establish a connection to the server at ws:\/\/localhost:\d+\/\?token=.*@vite\/client/,
   /^\[vite\] failed to connect to websocket/,
+  // Vite's client then fails to report that same dropped websocket back to the dev server.
+  /^Failed to send error to Vite server/,
   // Firefox logs this when a navigation cancels an in-flight web font download (NS_BINDING_ABORTED).
   /downloadable font: download failed .*status=2152398850/,
 ]

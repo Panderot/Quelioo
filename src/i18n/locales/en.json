@@ -9,7 +9,8 @@
     "archive": "Archive",
     "songs": "Songs",
     "openMenu": "Open navigation menu",
-    "closeMenu": "Close navigation menu"
+    "closeMenu": "Close navigation menu",
+    "flashcards": "Flashcards"
   },
   "topbar": {
     "language": {
@@ -611,5 +612,137 @@
     "useArea": "Use this area",
     "useWhole": "Use whole photo",
     "preparing": "Preparing the crop..."
+  },
+  "flashcards": {
+    "title": "Flashcards",
+    "subtitle": "Learn it once, remember it for good",
+    "newDeck": "New deck",
+    "untitledDeck": "Untitled deck",
+    "searchPlaceholder": "Search decks",
+    "noMatches": "No decks match your search.",
+    "backToDecks": "Back to decks",
+    "nav": {
+      "dueToday_one": "{{count}} card due today",
+      "dueToday_other": "{{count}} cards due today"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "undo": "Undo"
+    },
+    "storage": {
+      "unavailable": "Your browser isn't saving flashcards right now, so this session lives only in this tab.",
+      "saveFailed": "Some changes couldn't be saved (storage may be full). They stay until you close this tab."
+    },
+    "empty": {
+      "title": "No decks yet",
+      "subtitle": "Create a deck or start with a few samples."
+    },
+    "samples": {
+      "add": "Add sample decks",
+      "yds": "YDS common words",
+      "kpssGeography": "KPSS geography",
+      "reforms": "Turkish history reforms"
+    },
+    "list": {
+      "cards_one": "{{count}} card",
+      "cards_other": "{{count}} cards",
+      "learned": "{{count}} learned",
+      "dueToday": "{{count}} due today",
+      "study": "Study · {{count}}",
+      "studyLabel": "Study {{name}}, {{count}} due",
+      "edit": "Edit",
+      "editLabel": "Edit {{name}}",
+      "ringLabel": "{{mastered}} of {{total}} cards mastered"
+    },
+    "deck": {
+      "notFound": "This deck doesn't exist anymore.",
+      "delete": "Delete deck",
+      "deleteTitle": "Delete this deck?",
+      "deleteBody_one": "“{{name}}” and its {{count}} card will be deleted. You can undo right after.",
+      "deleteBody_other": "“{{name}}” and its {{count}} cards will be deleted. You can undo right after.",
+      "deleted": "Deck “{{name}}” deleted",
+      "reset": "Reset progress",
+      "resetTitle": "Reset progress for this deck?",
+      "resetBody": "Every card goes back to box 1 and is due today. The cards themselves stay as they are.",
+      "resetDone": "Progress reset."
+    },
+    "editor": {
+      "nameLabel": "Deck name",
+      "descriptionLabel": "Description",
+      "newPerDay": "New cards per day",
+      "cardsHeading": "Cards ({{count}})",
+      "addCard": "Add card",
+      "noCards": "No cards yet. Add one or paste several at once.",
+      "cardNumber": "Card {{number}}",
+      "box": "Box {{box}}",
+      "deleteCard": "Delete card {{number}}",
+      "frontLabel": "Front of card {{number}}",
+      "backLabel": "Back of card {{number}}",
+      "frontPlaceholder": "Front: question or word",
+      "backPlaceholder": "Back: answer",
+      "duplicate": "Same front as another card in this deck",
+      "incomplete": "Cards with an empty side are skipped when studying.",
+      "cardDeleted": "Card deleted"
+    },
+    "bulk": {
+      "open": "Paste many cards",
+      "title": "Paste cards, one per line",
+      "help": "Write “front ; back”, or separate front and back with a tab (as when copying from a spreadsheet).",
+      "preview": "Preview",
+      "line": "Line {{number}}",
+      "errors": {
+        "no_separator": "No “;” or tab:",
+        "empty_side": "One side is empty:",
+        "too_long": "Too long (front 300, back 600 characters):"
+      },
+      "add_one": "Add {{count}} card",
+      "add_other": "Add {{count}} cards",
+      "added_one": "Added {{count}} card.",
+      "added_other": "Added {{count}} cards."
+    },
+    "csv": {
+      "export": "Export CSV",
+      "import": "Import CSV",
+      "imported_one": "Imported {{count}} card.",
+      "imported_other": "Imported {{count}} cards.",
+      "skipped_one": "{{count}} row skipped (empty side or too long).",
+      "skipped_other": "{{count}} rows skipped (empty side or too long).",
+      "tooLarge": "That file is too large (max 2 MB)."
+    },
+    "study": {
+      "tabTitle": "Study: {{name}}",
+      "exit": "Exit study",
+      "progress": "{{current}} / {{total}}",
+      "front": "Front",
+      "back": "Back",
+      "know": "Know",
+      "dontKnow": "Don't know",
+      "flipHintKeyboard": "Click the card or press Space to see the answer.",
+      "flipHintTouch": "Tap the card to see the answer, then swipe right if you know it, left if you don't.",
+      "shortcuts": "Space flip · → or 2 know · ← or 1 don't know · Esc exit",
+      "answerAnnouncement": "Answer: {{answer}}",
+      "allDone": "All done for today",
+      "practiceAnyway": "Practice anyway",
+      "practiceNote": "Practice doesn't change when cards come back.",
+      "practiceBadge": "Practice",
+      "emptyDeck": "This deck has no complete cards yet."
+    },
+    "summary": {
+      "title": "Session complete",
+      "known": "You knew {{known}} of {{total}}.",
+      "ringLabel": "{{known}} of {{total}} known",
+      "toRepeat_one": "{{count}} card to repeat",
+      "toRepeat_other": "{{count}} cards to repeat",
+      "studyAgain": "Study again"
+    },
+    "when": {
+      "next": "Next review: {{when}}",
+      "today": "later today",
+      "tomorrow": "tomorrow",
+      "inDays_one": "in {{count}} day",
+      "inDays_other": "in {{count}} days",
+      "none": "nothing scheduled",
+      "dueNow": "Cards are due now."
+    }
   }
 }

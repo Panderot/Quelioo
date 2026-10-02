@@ -29,11 +29,12 @@ Yapay zekâ ile metin, dosya, URL ve YouTube içeriğinden quiz üreten (MCQ, Do
 
 - localStorage: `quelio.archive.v1` (quiz arşivi), `quelio.draft.v1` (Create taslağı; çıkarılan dosya/URL metnini saklamaz), `quelio.solveTryFirst.v1`, `quelio.songGuard.v1` / `quelio.songSecondsGuard.v1` (şarkı maliyet sınırı), `quelio.musicAccessCode.v1` (doğrulanmış owner kodu; "Lock" siler).
 - IndexedDB `quelio-songs` (`src/lib/songStorage.ts`): quiz başına ≤2, toplam ≤30 şarkı, en eskiler silinir. IndexedDB `quelio-solutions` (`src/lib/solutionStorage.ts`): her başarılı Solve; ≤800px JPEG küçük resim (tam boy asla), `extras` + `schemaVersion` (`withDefaults` ile okunur); en yeni 300 kayıt. Archive `?tab=solutions` ve `/archive/solutions/:id` buradan okur.
+- IndexedDB `quelio-flashcards` (`src/lib/flashcardStorage.ts`, `decks` + `cards`): bellek önbelleği + kalıcı yazım, IndexedDB yoksa notla bellekte çalışır. SRS `src/lib/srs.ts` (saf, Leitner 5 kutu 0/1/3/7/16 gün, yerel gece yarısına planlar, günlük yeni kart limiti, oturumda en fazla 3 tekrar); hiçbir şey vadeli değilse tüm kartları göstermez, "Practice anyway" kutu/vadeyi asla değiştirmez.
 - en/tr/hyw (hyw: Batı Ermenicesi, klasik imla) birebir aynı key setine sahip olmalı; tüm metinler i18n dosyalarından, sabit string yok. HYW metinleri geniş yayından önce anadili Batı Ermenicesi olan biri tarafından gözden geçirilmeli.
 
 ## Test, deploy ve tasarım
 
-- Tarayıcı kontrolleri Playwright headless ile, Claude in Chrome ile değil. `npm run test:e2e` Chromium (desktop + `@mobile`), `npm run test:cross` `@cross` etiketli specleri Firefox/WebKit'te, `npm run test:all` hepsini koşar; `test:e2e:quick` yalnızca değişenleri. `test:live` gerçek deploy'a karşı, yalnızca istenince.
+- Tarayıcı kontrolleri Playwright headless ile, Claude in Chrome ile değil. `npm run test:e2e` Chromium (desktop + `@mobile`), `npm run test:cross` `@cross` etiketli specleri Firefox/WebKit'te (2 worker; daha fazlasında Vite dev sunucusu Firefox'ta takılıyor), `npm run test:all` hepsini koşar; `test:e2e:quick` yalnızca değişenleri. `test:live` gerçek deploy'a karşı, yalnızca istenince.
 - Çalışırken yalnızca değiştirdiğin dosyalara dokunan specleri koş; tam suite'i en sonda bir kez. Geçmiş testi tekrar koşma.
 - Worker sayısı varsayılan CPU'nun yarısı (`PW_WORKERS` ya da `--workers=2` ile düşür). Sabit bekleme/sleep yok, gerçek koşul bekle. Arka plandaki komutu döngüyle yoklama, bitiş bildirimini bekle.
 - Tarayıcı farkı önemli olan yeni specleri (görsel çözme/kırpma, IndexedDB, pano yapıştırma, print, ses) `@cross` ile etiketle. Çıktı kısa (dot reporter): yalnızca başarısız test adları ve ilgili hata satırları.

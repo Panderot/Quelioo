@@ -9,7 +9,8 @@
     "archive": "Arşiv",
     "songs": "Şarkılar",
     "openMenu": "Gezinme menüsünü aç",
-    "closeMenu": "Gezinme menüsünü kapat"
+    "closeMenu": "Gezinme menüsünü kapat",
+    "flashcards": "Kartlar"
   },
   "topbar": {
     "language": {
@@ -611,5 +612,137 @@
     "useArea": "Bu alanı kullan",
     "useWhole": "Fotoğrafın tamamı",
     "preparing": "Kırpma hazırlanıyor..."
+  },
+  "flashcards": {
+    "title": "Kartlar",
+    "subtitle": "Bir kere öğren, kalıcı hatırla",
+    "newDeck": "Yeni deste",
+    "untitledDeck": "Adsız deste",
+    "searchPlaceholder": "Destelerde ara",
+    "noMatches": "Aramanla eşleşen deste yok.",
+    "backToDecks": "Destelere dön",
+    "nav": {
+      "dueToday_one": "Bugün {{count}} kart sırada",
+      "dueToday_other": "Bugün {{count}} kart sırada"
+    },
+    "common": {
+      "cancel": "Vazgeç",
+      "undo": "Geri al"
+    },
+    "storage": {
+      "unavailable": "Tarayıcın şu an kartları kaydetmiyor; bu oturum yalnızca bu sekmede kalır.",
+      "saveFailed": "Bazı değişiklikler kaydedilemedi (depolama dolu olabilir). Bu sekmeyi kapatana kadar kalırlar."
+    },
+    "empty": {
+      "title": "Henüz deste yok",
+      "subtitle": "Bir deste oluştur ya da örneklerle başla."
+    },
+    "samples": {
+      "add": "Örnek desteler ekle",
+      "yds": "YDS sık kelimeler",
+      "kpssGeography": "KPSS coğrafya",
+      "reforms": "Türk tarihi: inkılaplar"
+    },
+    "list": {
+      "cards_one": "{{count}} kart",
+      "cards_other": "{{count}} kart",
+      "learned": "{{count}} öğrenildi",
+      "dueToday": "bugün {{count}} sırada",
+      "study": "Çalış · {{count}}",
+      "studyLabel": "{{name}} destesini çalış, {{count}} sırada",
+      "edit": "Düzenle",
+      "editLabel": "{{name}} destesini düzenle",
+      "ringLabel": "{{total}} kartın {{mastered}} tanesi kalıcı"
+    },
+    "deck": {
+      "notFound": "Bu deste artık yok.",
+      "delete": "Desteyi sil",
+      "deleteTitle": "Bu deste silinsin mi?",
+      "deleteBody_one": "“{{name}}” ve içindeki {{count}} kart silinecek. Hemen ardından geri alabilirsin.",
+      "deleteBody_other": "“{{name}}” ve içindeki {{count}} kart silinecek. Hemen ardından geri alabilirsin.",
+      "deleted": "“{{name}}” destesi silindi",
+      "reset": "İlerlemeyi sıfırla",
+      "resetTitle": "Bu destenin ilerlemesi sıfırlansın mı?",
+      "resetBody": "Tüm kartlar 1. kutuya döner ve bugün sıraya girer. Kartların içeriği değişmez.",
+      "resetDone": "İlerleme sıfırlandı."
+    },
+    "editor": {
+      "nameLabel": "Deste adı",
+      "descriptionLabel": "Açıklama",
+      "newPerDay": "Günlük yeni kart",
+      "cardsHeading": "Kartlar ({{count}})",
+      "addCard": "Kart ekle",
+      "noCards": "Henüz kart yok. Bir tane ekle ya da birden çok kartı yapıştır.",
+      "cardNumber": "Kart {{number}}",
+      "box": "Kutu {{box}}",
+      "deleteCard": "{{number}}. kartı sil",
+      "frontLabel": "{{number}}. kartın ön yüzü",
+      "backLabel": "{{number}}. kartın arka yüzü",
+      "frontPlaceholder": "Ön yüz: soru ya da kelime",
+      "backPlaceholder": "Arka yüz: cevap",
+      "duplicate": "Bu destede aynı ön yüzlü başka bir kart var",
+      "incomplete": "Bir yüzü boş kartlar çalışırken atlanır.",
+      "cardDeleted": "Kart silindi"
+    },
+    "bulk": {
+      "open": "Toplu kart ekle",
+      "title": "Kartları yapıştır, her satıra bir kart",
+      "help": "“ön yüz ; arka yüz” yaz ya da ön ve arka yüzü sekmeyle ayır (tablodan kopyalarken olduğu gibi).",
+      "preview": "Önizleme",
+      "line": "Satır {{number}}",
+      "errors": {
+        "no_separator": "“;” ya da sekme yok:",
+        "empty_side": "Bir yüz boş:",
+        "too_long": "Çok uzun (ön 300, arka 600 karakter):"
+      },
+      "add_one": "{{count}} kart ekle",
+      "add_other": "{{count}} kart ekle",
+      "added_one": "{{count}} kart eklendi.",
+      "added_other": "{{count}} kart eklendi."
+    },
+    "csv": {
+      "export": "CSV olarak dışa aktar",
+      "import": "CSV içe aktar",
+      "imported_one": "{{count}} kart içe aktarıldı.",
+      "imported_other": "{{count}} kart içe aktarıldı.",
+      "skipped_one": "{{count}} satır atlandı (boş yüz ya da çok uzun).",
+      "skipped_other": "{{count}} satır atlandı (boş yüz ya da çok uzun).",
+      "tooLarge": "Dosya çok büyük (en fazla 2 MB)."
+    },
+    "study": {
+      "tabTitle": "Çalış: {{name}}",
+      "exit": "Çalışmadan çık",
+      "progress": "{{current}} / {{total}}",
+      "front": "Ön yüz",
+      "back": "Arka yüz",
+      "know": "Biliyorum",
+      "dontKnow": "Bilmiyorum",
+      "flipHintKeyboard": "Cevabı görmek için karta tıkla ya da Boşluk tuşuna bas.",
+      "flipHintTouch": "Cevabı görmek için karta dokun; biliyorsan sağa, bilmiyorsan sola kaydır.",
+      "shortcuts": "Boşluk çevir · → ya da 2 biliyorum · ← ya da 1 bilmiyorum · Esc çık",
+      "answerAnnouncement": "Cevap: {{answer}}",
+      "allDone": "Bugünlük bu kadar",
+      "practiceAnyway": "Yine de pratik yap",
+      "practiceNote": "Pratik, kartların ne zaman tekrar geleceğini değiştirmez.",
+      "practiceBadge": "Pratik",
+      "emptyDeck": "Bu destede henüz tamamlanmış kart yok."
+    },
+    "summary": {
+      "title": "Oturum tamamlandı",
+      "known": "{{total}} kartın {{known}} tanesini bildin.",
+      "ringLabel": "{{total}} kartın {{known}} tanesi biliniyor",
+      "toRepeat_one": "Tekrar edilecek {{count}} kart",
+      "toRepeat_other": "Tekrar edilecek {{count}} kart",
+      "studyAgain": "Tekrar çalış"
+    },
+    "when": {
+      "next": "Sonraki tekrar: {{when}}",
+      "today": "bugün içinde",
+      "tomorrow": "yarın",
+      "inDays_one": "{{count}} gün sonra",
+      "inDays_other": "{{count}} gün sonra",
+      "none": "planlanmış kart yok",
+      "dueNow": "Şu an sırada kart var."
+    }
   }
 }

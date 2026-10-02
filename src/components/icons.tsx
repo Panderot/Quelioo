@@ -387,3 +387,24 @@ export function WarningIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function CardsIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M8 7V5.5A1.5 1.5 0 019.5 4h9A1.5 1.5 0 0120 5.5v10a1.5 1.5 0 01-1.5 1.5H17M5.5 7h9A1.5 1.5 0 0116 8.5v10a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 014 18.5v-10A1.5 1.5 0 015.5 7z"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+      />
+    </svg>
+  )
+}
+
+export function PlusIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+    </svg>
+  )
+}

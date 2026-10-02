@@ -11,7 +11,7 @@
     "check:llm": "tsx scripts/check-llm.ts",
     "test:e2e": "playwright test --project=desktop --project=mobile",
     "test:e2e:quick": "playwright test --project=desktop --only-changed",
-    "test:cross": "playwright test --project=firefox --project=webkit",
+    "test:cross": "playwright test --project=firefox --project=webkit --workers=2",
     "test:all": "playwright test",
     "test:live": "playwright test --config=playwright.live.config.ts"
   },

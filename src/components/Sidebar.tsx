@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import { useNow } from '../hooks/useNow'
 import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
+import { dueCountForDeck, useFlashcards } from '../lib/flashcardStorage'
 import { LogoMark } from './Logo'
-import { ArchiveIcon, CalculatorIcon, HomeIcon, MusicNoteIcon } from './icons'
+import { ArchiveIcon, CalculatorIcon, CardsIcon, HomeIcon, MusicNoteIcon } from './icons'
 import type { ComponentType, SVGProps } from 'react'
 
 type NavIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -19,6 +21,7 @@ const createNavItem: NavItem = { key: 'create', labelKey: 'nav.create', Icon: Ho
 const solveNavItem: NavItem = { key: 'solve', labelKey: 'nav.solve', Icon: CalculatorIcon, to: '/solve' }
 const songsNavItem: NavItem = { key: 'songs', labelKey: 'nav.songs', Icon: MusicNoteIcon, to: '/songs' }
 const archiveNavItem: NavItem = { key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' }
+const flashcardsNavItem: NavItem = { key: 'flashcards', labelKey: 'nav.flashcards', Icon: CardsIcon, to: '/flashcards' }
 
 interface SidebarProps {
   isMobileOpen: boolean
@@ -29,7 +32,10 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
   const { t } = useTranslation()
   const songStatus = useSongFeatureStatus()
   const mainNavItems: NavItem[] = songStatus?.enabled ? [createNavItem, solveNavItem, songsNavItem] : [createNavItem, solveNavItem]
-  const footerNavItems: NavItem[] = [archiveNavItem]
+  const footerNavItems: NavItem[] = [archiveNavItem, flashcardsNavItem]
+  const flashcards = useFlashcards()
+  const now = Math.max(useNow(), flashcards.changedAt)
+  const dueToday = flashcards.decks.reduce((sum, deck) => sum + dueCountForDeck(deck, flashcards.cards, now), 0)
 
   const itemClasses = (isActive: boolean) =>
     `group relative flex items-center justify-between gap-3 rounded-lg py-2.5 pr-3 pl-4 text-sm transition-colors ${
@@ -43,6 +49,12 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
         <item.Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-amber' : 'text-paper/40 group-hover:text-paper/70'}`} />
         <span className="truncate md:hidden lg:inline">{t(item.labelKey)}</span>
       </span>
+      {item.key === 'flashcards' && dueToday > 0 && (
+        <span data-purpose="flashcards-due-badge" className="text-xs font-semibold text-paper/60 md:hidden lg:inline">
+          <span aria-hidden>{dueToday}</span>
+          <span className="sr-only">{t('flashcards.nav.dueToday', { count: dueToday })}</span>
+        </span>
+      )}
     </>
   )
 
