@@ -31,8 +31,10 @@ interface SidebarProps {
 export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
   const { t } = useTranslation()
   const songStatus = useSongFeatureStatus()
-  const mainNavItems: NavItem[] = songStatus?.enabled ? [createNavItem, solveNavItem, songsNavItem] : [createNavItem, solveNavItem]
-  const footerNavItems: NavItem[] = [archiveNavItem, flashcardsNavItem]
+  // Flashcards sits right after Songs; with Songs hidden it follows Archive in the footer.
+  const songsEnabled = songStatus?.enabled === true
+  const mainNavItems: NavItem[] = songsEnabled ? [createNavItem, solveNavItem, songsNavItem, flashcardsNavItem] : [createNavItem, solveNavItem]
+  const footerNavItems: NavItem[] = songsEnabled ? [archiveNavItem] : [archiveNavItem, flashcardsNavItem]
   const flashcards = useFlashcards()
   const now = Math.max(useNow(), flashcards.changedAt)
   const dueToday = flashcards.decks.reduce((sum, deck) => sum + dueCountForDeck(deck, flashcards.cards, now), 0)

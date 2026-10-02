@@ -43,17 +43,18 @@ async function swipe(target: Locator, dx: number) {
 }
 
 test.describe('Flashcards — decks', () => {
-  test('sidebar item after Archive with a live due-today badge and localized tab title', async ({ page }) => {
+  test('sidebar item with a live due-today badge and localized tab title', async ({ page }) => {
     await open(page, '/flashcards?lng=en')
-    const footer = page.locator('[data-purpose="sidebar-footer"]')
-    await expect(footer.getByRole('link')).toHaveText(['Archive', 'Flashcards'])
+    // Its position (after Songs, or after Archive without Songs) is covered in songs-page.spec.ts.
+    const sidebar = page.locator('[data-purpose="sidebar-navigation"]')
+    await expect(sidebar.getByRole('link', { name: /^Flashcards/ })).toBeVisible()
     await expect(page.locator('[data-purpose="flashcards-due-badge"]')).toHaveCount(0)
     await expect(page).toHaveTitle('Flashcards - Quelio')
 
     await seed(page, [THREE_NEW])
     const badge = page.locator('[data-purpose="flashcards-due-badge"]')
     await expect(badge.locator('[aria-hidden]')).toHaveText('3')
-    await expect(footer.getByRole('link', { name: /Flashcards.*3 cards due today/ })).toBeVisible()
+    await expect(sidebar.getByRole('link', { name: /Flashcards.*3 cards due today/ })).toBeVisible()
 
     // Grading a card updates the badge live.
     await page.getByRole('link', { name: 'Study Capitals, 3 due' }).click()
@@ -366,7 +367,7 @@ test.describe('Flashcards — languages and layout', () => {
     test(`flashcards are localized in ${lng}`, async ({ page }) => {
       await open(page, `/flashcards?lng=${lng}`)
       await seed(page, [THREE_NEW])
-      await expect(page.locator('[data-purpose="sidebar-footer"]')).toContainText(nav)
+      await expect(page.locator('[data-purpose="sidebar-navigation"]')).toContainText(nav)
       await page.locator('[data-purpose="deck-row"]').getByText(study).click()
       for (let i = 0; i < 3; i++) {
         await card(page).click()

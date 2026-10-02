@@ -74,7 +74,7 @@ App root (flex, bg-paper)
 
 ## 5. Shared components
 
-- **Sidebar:** header logo + wordmark + tagline. Main nav: Create, Solve, Songs (`/songs`, shown only when `GET /api/song` reports enabled, drawer included). Footer: Archive, Flashcards (due-today count), pinned bottom, `border-paper/10`. Nav item: no filled pill; inactive `paper/60` (icon `paper/40`), hover paper; active = 3px amber left bar + paper text + amber icon.
+- **Sidebar:** header logo + wordmark + tagline. Main nav: Create, Solve, Songs (`/songs`, shown only when `GET /api/song` reports enabled, drawer included), then Flashcards (due-today count) right after Songs. Footer: Archive, pinned bottom; with Songs hidden, Flashcards follows Archive there, `border-paper/10`. Nav item: no filled pill; inactive `paper/60` (icon `paper/40`), hover paper; active = 3px amber left bar + paper text + amber icon.
 - **Top bar:** h-20, right-aligned; holds only the language switcher (plus the hamburger on the left below md).
 - **Language switcher (`LanguageSwitcher`):** ghost button, globe + short code (EN/TR/ՀԱՅ) + chevron; listbox menu (card, warm border, radius 12, 240px) with native language names. Enter/Space/ArrowDown open, arrows move, Escape closes.
 - **Tabs:** icon (16px) + label, bottom border; active 2px amber underline + bold ink (icon `amber-hover`); inactive muted, hover ink. WAI-ARIA tablist, Arrow/Home/End keys. Used on Create input and Archive.
@@ -182,7 +182,7 @@ Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 - **Empty:** archive icon, "No songs yet", solid amber "New song".
 
 ### Flashcards (`/flashcards`, `/flashcards/:deckId`, `/flashcards/:deckId/study`)
-- Sidebar: footer item after Archive (cards icon); a small muted count of cards due today sits right of the label (hidden at 0 and in the icon rail), sr-only "N cards due today".
+- Sidebar: directly after Songs (after Archive in the footer when Songs is hidden), cards icon; a small muted count of cards due today sits right of the label (hidden at 0 and in the icon rail), sr-only "N cards due today".
 - **Deck list:** title + subtitle, solid amber "New deck" (the screen's primary). Search box, then one divided card list sorted by due count. Row: 48px progress ring (amber arc on warm-border track, mastered = box >= 4), name link, muted "N cards · M learned · K due today", "Study · K" (2px navy outline when K > 0, warm outline otherwise) and outline "Edit"; buttons go full width below 640px. Empty: cards icon, "New deck" (navy outline) and "Add sample decks" (warm outline, only while no sample deck exists).
 - **Deck editor:** back link, Fraunces deck name, Study button. Settings card: name (max 80), description (max 160), "New cards per day" (`Select`). Outline action row: Paste many cards, Export CSV, Import CSV, Reset progress, Delete deck (error text, right-aligned on >= 640px). Fields autosave (400ms debounce, flush on blur). Card rows: "Card N", amber "Box N" pill, trash; front/back textareas side by side from md. Duplicate fronts get an error border + error line; empty-side cards a muted "skipped when studying" note.
 - **Bulk paste:** mono textarea, live preview list (line number, front, back); invalid lines `bg-error/5` + error text with the reason; duplicates flagged in amber-text; "Add N cards" (navy outline).
