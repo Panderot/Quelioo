@@ -797,6 +797,35 @@
       "add_one": "Աւելցնել {{count}} քարտը",
       "add_other": "Աւելցնել {{count}} քարտերը",
       "discard": "Մերժել"
+    },
+    "convert": {
+      "action": "Քարտերու վերածել",
+      "alreadyConverted": "Ասկէ արդէն քարտեր պատրաստած ես «{{name}}» տրցակին մէջ։",
+      "onlyMissing_one": "Հոն աւելցնել միայն պակսող {{count}} քարտը",
+      "onlyMissing_other": "Հոն աւելցնել միայն պակսող {{count}} քարտերը",
+      "nothingMissing": "Այս բոլոր քարտերը արդէն այդ տրցակին մէջ են։",
+      "noCards": "Աւելցնելիք քարտ չկայ։",
+      "destination": "Ուր աւելցնել",
+      "newDeck": "Նոր տրցակ",
+      "existingDeck": "Գոյութիւն ունեցող տրցակ",
+      "chooseDeck": "Տրցակ",
+      "added_one": "«{{name}}» տրցակին {{count}} քարտ աւելցուեցաւ։",
+      "added_other": "«{{name}}» տրցակին {{count}} քարտ աւելցուեցաւ։",
+      "openDeck": "Բանալ տրցակը",
+      "close": "Գոցել"
+    },
+    "mistakes": {
+      "action": "Սխալներէս քարտեր ({{count}})",
+      "deckName": "{{title}} · Սխալներ",
+      "allThere": "Այս սխալները արդէն «{{name}}» տրցակին մէջ են։"
+    },
+    "solution": {
+      "action": "Քարտեր պատրաստել"
+    },
+    "reminder": {
+      "text_one": "Այսօր քեզ կը սպասէ {{count}} քարտ",
+      "text_other": "Այսօր քեզ կը սպասեն {{count}} քարտ",
+      "dismiss": "Պահել մինչեւ վաղը"
     }
   }
 }

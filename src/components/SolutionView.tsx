@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +10,8 @@ import type { SimilarItem, StoredAnotherWay } from '../lib/solutionExtras'
 import { updateSolutionExtras } from '../lib/solutionStorage'
 import { readStepExplanations, STEP_EXPLANATIONS_KEY, withExplanation } from '../lib/stepExplanations'
 import type { StepExplanationCache } from '../lib/stepExplanations'
+import { generateCards } from '../api/cards'
+import AddCardsDialog from './flashcards/AddCardsDialog'
 import AnotherWayPanel from './AnotherWayPanel'
 import CheckWorkPanel from './CheckWorkPanel'
 import ExplainableSteps from './ExplainableSteps'
@@ -56,6 +58,21 @@ function buildQuizPrefillText(
 }
 
 type ExtraKey = typeof STEP_EXPLANATIONS_KEY | typeof SIMILAR_PROBLEMS_KEY | typeof ANOTHER_WAY_KEY | typeof CHECK_WORK_KEY
+
+/** Plain-text version of a solution, used as the source for "Make flashcards". */
+function solutionSourceText(result: SolveResult): string {
+  return [
+    result.topic,
+    result.question,
+    result.intro,
+    ...result.steps.map((step, index) => `${index + 1}. ${step}`),
+    result.answer && `Answer: ${result.answer}`,
+    result.tip && `Tip: ${result.tip}`,
+    ...result.mistakes.map((mistake) => `Common mistake: ${mistake}`),
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
 
 interface SolutionViewProps {
   result: SolveResult
@@ -154,6 +171,14 @@ export default function SolutionView({ result, solutionId = null, initialExtras,
 
   const outlineAction =
     'inline-flex w-full items-center justify-center gap-2 rounded-xl border border-warm-border bg-card px-4 py-2.5 text-sm font-bold text-navy transition-colors hover:border-amber sm:w-auto'
+
+  // "Make flashcards": the whole solution is the source text for /api/cards (solution mode).
+  const [flashcardsOpen, setFlashcardsOpen] = useState(false)
+  const generateSolutionCards = useCallback(
+    (signal: AbortSignal) =>
+      generateCards({ mode: 'solution', text: solutionSourceText(result), language: 'auto', avoid: [] }, signal),
+    [result],
+  )
 
   return (
     <div data-purpose="solve-result" className={`space-y-4 pb-6 ${className}`}>
@@ -292,9 +317,25 @@ export default function SolutionView({ result, solutionId = null, initialExtras,
               label: t('solve.cta.createQuiz'),
               onSelect: handleCreateQuiz,
             },
+            {
+              key: 'flashcards',
+              label: t('flashcards.solution.action'),
+              onSelect: () => setFlashcardsOpen(true),
+            },
           ]}
         />
       </div>
+
+      {flashcardsOpen && (
+        <AddCardsDialog
+          title={t('flashcards.solution.action')}
+          defaultDeckName={result.topic || t('flashcards.untitledDeck')}
+          source="solution"
+          sourceRef={solutionId}
+          generate={generateSolutionCards}
+          onClose={() => setFlashcardsOpen(false)}
+        />
+      )}
 
       <CheckWorkPanel
         ref={checkWorkRef}

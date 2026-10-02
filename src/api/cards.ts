@@ -15,12 +15,14 @@ export type CardsErrorCode =
   | 'network'
 
 export interface CardsRequestPayload {
-  mode: 'text' | 'topic'
+  /** "solution": a solved problem as text; the server asks for 3-6 method cards. */
+  mode: 'text' | 'topic' | 'solution'
   text?: string
   topic?: string
   level?: CardLevel
-  count: number
-  style: CardStyle
+  /** Ignored for "solution". */
+  count?: number
+  style?: CardStyle
   language: string
   /** Fronts already in the target deck, so new cards don't repeat them. */
   avoid: string[]

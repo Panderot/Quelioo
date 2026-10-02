@@ -797,6 +797,35 @@
       "add_one": "{{count}} kartı ekle",
       "add_other": "{{count}} kartı ekle",
       "discard": "Vazgeç"
+    },
+    "convert": {
+      "action": "Kartlara dönüştür",
+      "alreadyConverted": "Bundan daha önce “{{name}}” destesinde kart yaptın.",
+      "onlyMissing_one": "Oraya yalnızca eksik {{count}} kartı ekle",
+      "onlyMissing_other": "Oraya yalnızca eksik {{count}} kartı ekle",
+      "nothingMissing": "Bu kartların hepsi zaten o destede var.",
+      "noCards": "Eklenecek kart yok.",
+      "destination": "Nereye eklensin",
+      "newDeck": "Yeni deste",
+      "existingDeck": "Mevcut deste",
+      "chooseDeck": "Deste",
+      "added_one": "“{{name}}” destesine {{count}} kart eklendi.",
+      "added_other": "“{{name}}” destesine {{count}} kart eklendi.",
+      "openDeck": "Desteyi aç",
+      "close": "Kapat"
+    },
+    "mistakes": {
+      "action": "Yanlışlarımdan kart ({{count}})",
+      "deckName": "{{title}} · Yanlışlar",
+      "allThere": "Bu yanlışlar zaten “{{name}}” destesinde."
+    },
+    "solution": {
+      "action": "Kart yap"
+    },
+    "reminder": {
+      "text_one": "Bugün seni bekleyen {{count}} kart var",
+      "text_other": "Bugün seni bekleyen {{count}} kart var",
+      "dismiss": "Yarına kadar gizle"
     }
   }
 }

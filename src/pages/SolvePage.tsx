@@ -12,6 +12,7 @@ import SolutionView from '../components/SolutionView'
 import { saveSolution } from '../lib/solutionStorage'
 import PhotoDropZone from '../components/PhotoDropZone'
 import { CropIcon, SpinnerIcon, SunIcon } from '../components/icons'
+import DueReminder from '../components/flashcards/DueReminder'
 
 // The crop step is only needed once a photo is chosen — keep it out of the initial bundle.
 const ImageCropStep = lazy(() => import('../components/ImageCropStep'))
@@ -202,6 +203,7 @@ export default function SolvePage() {
 
   return (
     <>
+      <DueReminder />
       <section data-purpose="page-intro" className="space-y-2">
         <h1 className="font-serif text-2xl leading-snug font-semibold tracking-tight text-navy lg:text-3xl">
           {t('solve.title')}

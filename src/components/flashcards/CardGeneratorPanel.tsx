@@ -7,22 +7,17 @@ import type { CardsErrorCode } from '../../api/cards'
 import { SolveExtraApiError } from '../../api/postJson'
 import { CARD_LEVELS, CARD_STYLES, DEFAULT_CARD_COUNT, MAX_AVOID_FRONTS, MAX_TOPIC_CHARS } from '../../lib/cardGeneration'
 import type { CardLevel, CardStyle } from '../../lib/cardGeneration'
-import { MAX_BACK_CHARS, MAX_FRONT_CHARS, normalizeFront } from '../../lib/flashcardText'
 import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../../lib/textStats'
 import OutputLanguageSelect from '../OutputLanguageSelect'
 import Select from '../Select'
 import { SpinnerIcon, SunIcon } from '../icons'
+import CardReviewList from './CardReviewList'
+import { selectedCards, toReviewCards } from '../../lib/cardReview'
+import type { ReviewCard } from '../../lib/cardReview'
 
 type Mode = 'text' | 'topic'
 const MODES: Mode[] = ['text', 'topic']
 const COUNT_OPTIONS = [5, 10, 15, 20, 25, 30]
-
-interface ReviewCard {
-  key: number
-  front: string
-  back: string
-  checked: boolean
-}
 
 interface CardGeneratorPanelProps {
   /** Fronts already in the deck — sent as the avoid list and used to flag duplicates. */
@@ -61,19 +56,7 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
   const topicValid = topic.trim().length > 0 && topic.trim().length <= MAX_TOPIC_CHARS
   const canGenerate = !loading && (mode === 'text' ? textValid : topicValid)
 
-  const deckKeys = useMemo(() => new Set(deckFronts.map(normalizeFront).filter(Boolean)), [deckFronts])
-  const duplicateKeys = useMemo(() => {
-    const result = new Set<number>()
-    const seen = new Set(deckKeys)
-    for (const card of review ?? []) {
-      const key = normalizeFront(card.front)
-      if (!key) continue
-      if (seen.has(key)) result.add(card.key)
-      seen.add(key)
-    }
-    return result
-  }, [review, deckKeys])
-  const selected = (review ?? []).filter((card) => card.checked && card.front.trim() && card.back.trim())
+  const selected = selectedCards(review ?? [])
 
   const generate = async () => {
     if (!canGenerate) return
@@ -94,7 +77,7 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
         },
         controller.signal,
       )
-      setReview(result.cards.map((card, index) => ({ key: index, ...card, checked: true })))
+      setReview(toReviewCards(result.cards))
       setRemoved(result.removed)
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === 'AbortError') return
@@ -113,11 +96,8 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
     setLoading(false)
   }
 
-  const updateCard = (key: number, patch: Partial<ReviewCard>) =>
-    setReview((current) => current?.map((card) => (card.key === key ? { ...card, ...patch } : card)) ?? null)
-
   const handleAdd = () => {
-    onAdd(selected.map((card) => ({ front: card.front.trim(), back: card.back.trim() })))
+    onAdd(selected)
     setReview(null)
     setRemoved(0)
   }
@@ -286,36 +266,7 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
             <p className="text-xs text-muted">{t('flashcards.generate.reviewHelp')}</p>
             {removed > 0 && <p className="text-xs text-muted">{t('flashcards.generate.removed', { count: removed })}</p>}
           </div>
-          <ul className="divide-y divide-warm-border rounded-xl border border-warm-border">
-            {review.map((card, index) => (
-              <li key={card.key} data-purpose="review-card" className={`grid gap-2 p-3 sm:grid-cols-[auto_1fr_1fr] ${card.checked ? '' : 'opacity-60'}`}>
-                <input
-                  type="checkbox"
-                  checked={card.checked}
-                  onChange={(event) => updateCard(card.key, { checked: event.target.checked })}
-                  aria-label={t('flashcards.generate.include', { number: index + 1 })}
-                  className="mt-2 h-4 w-4 accent-amber"
-                />
-                <textarea
-                  rows={2}
-                  value={card.front}
-                  maxLength={MAX_FRONT_CHARS}
-                  onChange={(event) => updateCard(card.key, { front: event.target.value })}
-                  aria-label={t('flashcards.editor.frontLabel', { number: index + 1 })}
-                  className={`${inputClass} resize-y ${duplicateKeys.has(card.key) ? 'border-error' : ''}`}
-                />
-                <textarea
-                  rows={2}
-                  value={card.back}
-                  maxLength={MAX_BACK_CHARS}
-                  onChange={(event) => updateCard(card.key, { back: event.target.value })}
-                  aria-label={t('flashcards.editor.backLabel', { number: index + 1 })}
-                  className={`${inputClass} resize-y`}
-                />
-                {duplicateKeys.has(card.key) && <p className="text-xs font-semibold text-error sm:col-start-2 sm:col-end-4">{t('flashcards.editor.duplicate')}</p>}
-              </li>
-            ))}
-          </ul>
+          <CardReviewList cards={review} onChange={setReview} existingFronts={deckFronts} />
           <div className="flex flex-wrap gap-2">
             <button
               type="button"

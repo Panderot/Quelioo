@@ -48,6 +48,12 @@ test.describe('/api/cards: input limits', () => {
     expect(parseCardsRequest({ mode: 'topic', topic: 'Volcanoes', count: 10, style: 'term', language: 'xx' })).toMatchObject({ language: 'auto', level: 'general' })
   })
 
+  test('solution mode: no word minimum, fixed 3-6 question cards, size-capped', () => {
+    expect(parseCardsRequest({ mode: 'solution', text: 'Solve $3x + 7 = 2x + 15$. Answer: $x = 8$' })).toMatchObject({ mode: 'solution', count: 6, style: 'qa', language: 'auto' })
+    expect(parseCardsRequest({ mode: 'solution', text: '   ' })).toBe('bad_type')
+    expect(parseCardsRequest({ mode: 'solution', text: 'x'.repeat(20_001) })).toBe('too_long')
+  })
+
   test('token budget scales with the card count and doubles on retry', () => {
     const small = cardTokenBudget(5)
     const large = cardTokenBudget(30)
@@ -142,6 +148,17 @@ test.describe('/api/cards: handler with a stubbed provider', () => {
     expect(calls[0].user).toContain('<level>KPSS')
     expect(calls[1].system).toContain('fact-checker')
     expect(calls[1].user).toContain('<card id="2"><front>Largest lake in Türkiye</front><back>Tuz Gölü</back></card>')
+  })
+
+  test('solution mode asks for 3-6 method cards from the solution only, without a verification call', async () => {
+    const calls = stubOpenAi([cardsJson([['What must you do to both sides?', 'The same operation']])])
+    const { status, body } = await handleCardsRequest({ mode: 'solution', text: 'Solve $3x + 7 = 2x + 15$\n1. Subtract $2x$\nAnswer: $x = 8$', avoid: [] }, nextIp())
+    expect(status).toBe(200)
+    expect(body).toMatchObject({ cards: [{ front: 'What must you do to both sides?', back: 'The same operation' }], removed: 0 })
+    expect(calls).toHaveLength(1)
+    expect(calls[0].system).toContain('Write between 3 and 6 cards.')
+    expect(calls[0].system).toContain('METHOD')
+    expect(calls[0].user).toContain('<source_text>\nSolve $3x + 7 = 2x + 15$')
   })
 
   test('a failed verification returns an error, never unchecked cards', async () => {

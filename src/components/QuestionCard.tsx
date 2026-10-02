@@ -102,9 +102,11 @@ interface QuestionCardProps {
   onUpdate: (updater: (question: QuizQuestion) => QuizQuestion) => void
   onDelete: () => void
   onRegenerate: () => void
+  /** Every check's result (correct or not); the result view keeps the first one per question. */
+  onGraded?: (correct: boolean) => void
 }
 
-export default function QuestionCard({ index, question, showAnswers, isRegenerating, outputLanguage, onUpdate, onDelete, onRegenerate }: QuestionCardProps) {
+export default function QuestionCard({ index, question, showAnswers, isRegenerating, outputLanguage, onUpdate, onDelete, onRegenerate, onGraded }: QuestionCardProps) {
   const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [isExplanationOpen, setIsExplanationOpen] = useState(false)
@@ -207,7 +209,7 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
           hintLeakError={hintLeakError}
         />
       ) : (
-        <QuestionView question={question} showAnswers={showAnswers} outputLanguage={outputLanguage} onFirstCheck={markExplanationChecked} />
+        <QuestionView question={question} showAnswers={showAnswers} outputLanguage={outputLanguage} onFirstCheck={markExplanationChecked} onGraded={onGraded} />
       )}
 
       {!isEditing && question.explanation && explanationAllowed && (
@@ -235,11 +237,13 @@ function QuestionView({
   showAnswers,
   outputLanguage,
   onFirstCheck,
+  onGraded,
 }: {
   question: QuizQuestion
   showAnswers: boolean
   outputLanguage: string
   onFirstCheck?: () => void
+  onGraded?: (correct: boolean) => void
 }) {
   const { t } = useTranslation()
   const signature = answerSignature(question)
@@ -279,7 +283,7 @@ function QuestionView({
             signature={signature}
             hints={getHints(question)}
             showAnswers={showAnswers}
-            onFirstCheck={onFirstCheck}
+            onFirstCheck={onFirstCheck} onGraded={onGraded}
           />
         </>
       )}
@@ -308,7 +312,7 @@ function QuestionView({
             signature={signature}
             hints={getHints(question)}
             showAnswers={showAnswers}
-            onFirstCheck={onFirstCheck}
+            onFirstCheck={onFirstCheck} onGraded={onGraded}
           />
         </>
       )}
@@ -320,7 +324,7 @@ function QuestionView({
               <MathText text={question.answer} />
             </p>
           )}
-          <FillBlankCheck question={question} signature={signature} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
+          <FillBlankCheck question={question} signature={signature} showAnswers={showAnswers} onFirstCheck={onFirstCheck} onGraded={onGraded} />
         </div>
       )}
 
@@ -332,7 +336,7 @@ function QuestionView({
               <MathText text={question.answer} />
             </div>
           )}
-          <ShortAnswerCheck question={question} signature={signature} outputLanguage={outputLanguage} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
+          <ShortAnswerCheck question={question} signature={signature} outputLanguage={outputLanguage} showAnswers={showAnswers} onFirstCheck={onFirstCheck} onGraded={onGraded} />
         </div>
       )}
 
@@ -344,7 +348,7 @@ function QuestionView({
               <MathText text={question.answer} />
             </div>
           )}
-          <OpenEndedCheck question={question} signature={signature} outputLanguage={outputLanguage} showAnswers={showAnswers} onFirstCheck={onFirstCheck} />
+          <OpenEndedCheck question={question} signature={signature} outputLanguage={outputLanguage} showAnswers={showAnswers} onFirstCheck={onFirstCheck} onGraded={onGraded} />
         </div>
       )}
 
@@ -354,7 +358,7 @@ function QuestionView({
           rightOrder={getRightOrder(question)}
           showAnswers={showAnswers}
           hints={getHints(question)}
-          onFirstCheck={onFirstCheck}
+          onFirstCheck={onFirstCheck} onGraded={onGraded}
         />
       )}
     </div>

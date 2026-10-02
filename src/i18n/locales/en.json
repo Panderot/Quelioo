@@ -797,6 +797,35 @@
       "add_one": "Add {{count}} card",
       "add_other": "Add {{count}} cards",
       "discard": "Discard"
+    },
+    "convert": {
+      "action": "Turn into flashcards",
+      "alreadyConverted": "You already made flashcards from this in “{{name}}”.",
+      "onlyMissing_one": "Add only the {{count}} missing card there",
+      "onlyMissing_other": "Add only the {{count}} missing cards there",
+      "nothingMissing": "All of these cards are already in that deck.",
+      "noCards": "No cards to add.",
+      "destination": "Add to",
+      "newDeck": "New deck",
+      "existingDeck": "Existing deck",
+      "chooseDeck": "Deck",
+      "added_one": "Added {{count}} card to “{{name}}”.",
+      "added_other": "Added {{count}} cards to “{{name}}”.",
+      "openDeck": "Open deck",
+      "close": "Close"
+    },
+    "mistakes": {
+      "action": "Flashcards from my mistakes ({{count}})",
+      "deckName": "{{title}} · Mistakes",
+      "allThere": "These mistakes are already in “{{name}}”."
+    },
+    "solution": {
+      "action": "Make flashcards"
+    },
+    "reminder": {
+      "text_one": "{{count}} flashcard is waiting for you today",
+      "text_other": "{{count}} flashcards are waiting for you today",
+      "dismiss": "Hide until tomorrow"
     }
   }
 }

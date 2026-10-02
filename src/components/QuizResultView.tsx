@@ -14,6 +14,11 @@ import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
 import SongButton from './SongButton'
+import MoreMenu from './MoreMenu'
+import AddCardsDialog from './flashcards/AddCardsDialog'
+import { addCards, cardsForDeck, createDeck, updateDeck, useFlashcards } from '../lib/flashcardStorage'
+import { DEFAULT_NEW_PER_DAY } from '../lib/srs'
+import { missingCards, quizToCards } from '../lib/quizToCards'
 import { BookIcon, CheckIcon, CloseIcon, PencilIcon } from './icons'
 
 export interface QuizResultMeta {
@@ -158,6 +163,11 @@ export default function QuizResultView({
   const [resetSignal, setResetSignal] = useState(0)
   const [printMenuOpen, setPrintMenuOpen] = useState(false)
   const [printVariant, setPrintVariant] = useState<'questions' | 'with-answers'>('questions')
+  // First check per question (edit view or Study Mode) — later re-checks never overwrite it.
+  const [firstAttempts, setFirstAttempts] = useState<Record<string, boolean>>({})
+  const [convertOpen, setConvertOpen] = useState(false)
+  const [mistakesResult, setMistakesResult] = useState<{ deckId: string; deckName: string; count: number } | null>(null)
+  const flashcards = useFlashcards()
 
   const timeEstimateLabel = useMemo(() => {
     const totalSeconds = computeQuizTotalSeconds(quiz.questions, (meta.difficulty as EstimateDifficulty) ?? 'medium')
@@ -231,6 +241,42 @@ export default function QuizResultView({
     // Let the dialog-close/variant render commit before the (synchronous) print call.
     window.setTimeout(() => window.print(), 50)
   }
+
+  const recordFirstAttempt = (questionId: string) => (correct: boolean) =>
+    setFirstAttempts((current) => (questionId in current ? current : { ...current, [questionId]: correct }))
+
+  const cardLabels = { trueLabel: t('create.result.trueLabel'), falseLabel: t('create.result.falseLabel') }
+  const mistakeIds = new Set(quiz.questions.filter((question) => firstAttempts[question.id] === false).map((question) => question.id))
+  const mistakesRef = `${quizId}#mistakes`
+
+  // Mistakes go straight into "{title} · Mistakes" (no review): new cards are due today, and the
+  // daily new-card limit is raised so all of them really are.
+  const handleMistakesToCards = () => {
+    const cards = quizToCards(quiz, cardLabels, mistakeIds)
+    const existing = flashcards.decks.find((deck) => deck.source === 'quiz' && deck.sourceRef === mistakesRef)
+    if (existing) {
+      const fresh = missingCards(cards, cardsForDeck(flashcards.cards, existing.id).map((card) => card.front))
+      addCards(existing.id, fresh)
+      const pendingNew = cardsForDeck(flashcards.cards, existing.id).filter((card) => card.reviews === 0).length + fresh.length
+      if (pendingNew > existing.newPerDay) updateDeck(existing.id, { newPerDay: pendingNew })
+      setMistakesResult({ deckId: existing.id, deckName: existing.name, count: fresh.length })
+      return
+    }
+    const deck = createDeck({
+      name: t('flashcards.mistakes.deckName', { title: quiz.title }),
+      source: 'quiz',
+      sourceRef: mistakesRef,
+      language: meta.outputLanguage,
+      newPerDay: Math.max(DEFAULT_NEW_PER_DAY, cards.length),
+    })
+    addCards(deck.id, cards)
+    setMistakesResult({ deckId: deck.id, deckName: deck.name, count: cards.length })
+  }
+
+  const moreItems = [
+    { key: 'flashcards', label: t('flashcards.convert.action'), onSelect: () => setConvertOpen(true) },
+    ...(mistakeIds.size > 0 ? [{ key: 'mistakes', label: t('flashcards.mistakes.action', { count: mistakeIds.size }), onSelect: handleMistakesToCards }] : []),
+  ]
 
   const correctCount = Object.values(practiceResults).filter(Boolean).length
   const answeredCount = Object.keys(practiceResults).length
@@ -361,8 +407,31 @@ export default function QuizResultView({
             language={meta.outputLanguage}
             onSongSaved={onSongSaved}
           />
+          <MoreMenu items={moreItems} />
         </div>
+
+        {mistakesResult && (
+          <p role="status" data-purpose="mistakes-result" className="flex flex-wrap items-center gap-2 text-xs font-semibold text-success">
+            {mistakesResult.count > 0
+              ? t('flashcards.convert.added', { count: mistakesResult.count, name: mistakesResult.deckName })
+              : t('flashcards.mistakes.allThere', { name: mistakesResult.deckName })}
+            <Link to={`/flashcards/${mistakesResult.deckId}`} className="text-amber-text hover:underline">
+              {t('flashcards.convert.openDeck')}
+            </Link>
+          </p>
+        )}
       </div>
+
+      {convertOpen && (
+        <AddCardsDialog
+          title={t('flashcards.convert.action')}
+          defaultDeckName={quiz.title}
+          source="quiz"
+          sourceRef={quizId}
+          initialCards={quizToCards(quiz, cardLabels)}
+          onClose={() => setConvertOpen(false)}
+        />
+      )}
 
       {printMenuOpen && (
         <div data-print-hide>
@@ -451,7 +520,10 @@ export default function QuizResultView({
                 question={question}
                 outputLanguage={meta.outputLanguage}
                 resetSignal={resetSignal}
-                onGraded={(correct) => setPracticeResults((current) => ({ ...current, [question.id]: correct }))}
+                onGraded={(correct) => {
+                  setPracticeResults((current) => ({ ...current, [question.id]: correct }))
+                  recordFirstAttempt(question.id)(correct)
+                }}
                 onHintUsed={() => setHintsUsed((count) => count + 1)}
               />
             ))}
@@ -466,6 +538,15 @@ export default function QuizResultView({
                 </p>
                 {hintsUsed > 0 && <p className="text-xs text-muted">{t('archive.practice.hintsUsed', { count: hintsUsed })}</p>}
               </div>
+              {mistakeIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMistakesToCards}
+                  className="ml-auto rounded-xl border-2 border-navy px-4 py-2 text-xs font-bold text-navy hover:bg-navy/5"
+                >
+                  {t('flashcards.mistakes.action', { count: mistakeIds.size })}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleTryAgain}
@@ -489,6 +570,7 @@ export default function QuizResultView({
               onUpdate={(updater) => onQuestionUpdate(question.id, updater)}
               onDelete={() => onQuestionDelete(question.id)}
               onRegenerate={() => onQuestionRegenerate(question.id)}
+              onGraded={recordFirstAttempt(question.id)}
             />
           ))}
         </ul>
