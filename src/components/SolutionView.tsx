@@ -66,6 +66,9 @@ interface SolutionViewProps {
   solutionId?: string | null
   /** The saved record's extras (reopened from the Archive). */
   initialExtras?: Record<string, unknown>
+  /** Steps already revealed in "Let me try first" (restored Solve draft). */
+  initialRevealed?: number
+  onRevealedChange?: (revealed: number) => void
   className?: string
   /** Extra content between the solution card and its actions (e.g. a storage note). */
   children?: ReactNode
@@ -73,7 +76,15 @@ interface SolutionViewProps {
 
 /** The one rendering of a solved problem — used right after solving and when reopening a saved
  * solution from the Archive, so every action here works in both places. */
-export default function SolutionView({ result, solutionId = null, initialExtras, className = '', children }: SolutionViewProps) {
+export default function SolutionView({
+  result,
+  solutionId = null,
+  initialExtras,
+  initialRevealed = 0,
+  onRevealedChange,
+  className = '',
+  children,
+}: SolutionViewProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const switchLabelId = useId()
@@ -81,7 +92,11 @@ export default function SolutionView({ result, solutionId = null, initialExtras,
 
   // ---- Step-by-step reveal ("Let me try first") ----
   const [tryFirst, setTryFirst] = useState(readTryFirst)
-  const [revealed, setRevealed] = useState(0)
+  const [revealed, setRevealedState] = useState(initialRevealed)
+  const setRevealed = (next: number) => {
+    setRevealedState(next)
+    onRevealedChange?.(next)
+  }
   const stepRefs = useRef<(HTMLLIElement | null)[]>([])
   const answerRef = useRef<HTMLDivElement>(null)
   const focusTargetRef = useRef<number | null>(null)

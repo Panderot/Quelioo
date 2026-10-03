@@ -14,6 +14,7 @@ import {
   MAX_SONG_GENERATIONS_PER_DAY,
   MAX_SONG_SECONDS_PER_DAY,
 } from '../lib/songCostGuard'
+import { useIsPageActive } from '../hooks/usePageActive'
 import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { saveSong } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
@@ -103,6 +104,8 @@ export default function SongPanel({
   const loadingMessages = t('song.loading.messages', { returnObjects: true }) as string[]
   const estimatedSeconds = Math.min(targetSecondsForFactCount(keyFacts.length), maxSeconds)
 
+  const pageActive = useIsPageActive()
+
   // Focus the first control when the panel opens.
   useEffect(() => {
     if (!open) return
@@ -111,9 +114,9 @@ export default function SongPanel({
     focusableElements(panel)[0]?.focus()
   }, [open])
 
-  // Focus trap + Escape to close.
+  // Focus trap + Escape to close (not while another page is shown).
   useEffect(() => {
-    if (!open) return
+    if (!open || !pageActive) return
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         onClose()
@@ -136,7 +139,7 @@ export default function SongPanel({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [open, onClose])
+  }, [open, onClose, pageActive])
 
   useEffect(() => {
     if (step !== 'creating') return

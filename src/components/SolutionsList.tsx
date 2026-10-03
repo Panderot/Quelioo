@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { deleteSolution, getAllSolutions, restoreSolution } from '../lib/solutionStorage'
@@ -31,7 +31,19 @@ function searchText(solution: StoredSolution, locale: string): string {
 export default function SolutionsList() {
   const { t, i18n } = useTranslation()
   const [solutions, setSolutions] = useState<StoredSolution[] | null>(null)
-  const [search, setSearch] = useState('')
+  // In the URL (?q=), so the search is still there after opening a solution and coming back, or a reload.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const search = searchParams.get('q') ?? ''
+  const setSearch = (value: string) =>
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (value) next.set('q', value)
+        else next.delete('q')
+        return next
+      },
+      { replace: true },
+    )
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ solution: StoredSolution; index: number } | null>(null)
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)

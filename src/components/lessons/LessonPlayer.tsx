@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { useIsPageActive } from '../../hooks/usePageActive'
 import { formatClock } from '../../lib/lesson'
 import type { ScriptLine, ScriptSection } from '../../lib/lesson'
 import { PAUSE_SECONDS, selfCheckAnswerIds } from '../../lib/lessonAudio'
@@ -10,6 +11,10 @@ import { DownloadIcon, PauseIcon, PlayIcon } from '../icons'
 
 const SPEEDS = [0.75, 0.9, 1, 1.1, 1.25, 1.5]
 const SPEED_KEY = 'quelio.lessonSpeed.v1'
+// Where each lesson part was paused, so a reload continues from there (newest few parts only).
+const POSITION_KEY = 'quelio.lessonPosition.v1'
+const MAX_POSITIONS = 20
+const POSITION_SAVE_EVERY_SECONDS = 5
 const SKIP_SECONDS = 10
 /** Browsers report a time a hair before the requested one after a seek; land just inside the line. */
 const LINE_START_NUDGE = 0.05
@@ -27,6 +32,29 @@ interface LessonPlayerProps {
   /** MP3 bytes per line id, in script order (every line must be present). */
   audioByLine: Map<string, Uint8Array>
   speakerLabel: (speaker: string) => string
+  /** Identifies the lesson part for the remembered playback position. */
+  positionKey?: string
+}
+
+function readPositions(): Record<string, number> {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(POSITION_KEY) ?? '{}')
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? (parsed as Record<string, number>) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writePosition(key: string, seconds: number) {
+  try {
+    const positions = readPositions()
+    delete positions[key]
+    if (seconds > 0) positions[key] = Math.round(seconds * 10) / 10
+    const kept = Object.entries(positions).slice(-MAX_POSITIONS)
+    localStorage.setItem(POSITION_KEY, JSON.stringify(Object.fromEntries(kept)))
+  } catch {
+    // Not remembered without storage.
+  }
 }
 
 function readSpeed(): number {
@@ -51,9 +79,11 @@ function fileSlug(title: string): string {
 }
 
 /** One joined MP3 for the whole part (gapless, one seek bar), with the transcript in sync. */
-export default function LessonPlayer({ title, partLabel, sections, audioByLine, speakerLabel }: LessonPlayerProps) {
+export default function LessonPlayer({ title, partLabel, sections, audioByLine, speakerLabel, positionKey }: LessonPlayerProps) {
   const { t } = useTranslation()
   const audioRef = useRef<HTMLAudioElement>(null)
+  const pageActive = useIsPageActive()
+  const lastSavedRef = useRef(0)
   const lineRefs = useRef(new Map<string, HTMLLIElement>())
   const [playing, setPlaying] = useState(false)
   const [time, setTime] = useState(0)
@@ -154,6 +184,7 @@ export default function LessonPlayer({ title, partLabel, sections, audioByLine, 
 
   // Keyboard: Space plays/pauses, arrows skip 10 s (not while typing or on a control that uses them).
   useEffect(() => {
+    if (!pageActive) return undefined
     const handler = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       if (target && (target.closest('input, textarea, select, [contenteditable="true"], [role="listbox"], [role="menu"]') || event.altKey || event.ctrlKey || event.metaKey)) return
@@ -171,7 +202,7 @@ export default function LessonPlayer({ title, partLabel, sections, audioByLine, 
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handlers only read refs and duration
-  }, [duration])
+  }, [duration, pageActive])
 
   const download = (data: Blob, name: string) => {
     const link = document.createElement('a')
@@ -196,11 +227,31 @@ export default function LessonPlayer({ title, partLabel, sections, audioByLine, 
           preload="auto"
           className="hidden"
           onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onEnded={() => setPlaying(false)}
-          onTimeUpdate={(event) => setTime(event.currentTarget.currentTime)}
+          onPause={(event) => {
+            setPlaying(false)
+            if (positionKey) writePosition(positionKey, event.currentTarget.currentTime)
+          }}
+          onEnded={() => {
+            setPlaying(false)
+            if (positionKey) writePosition(positionKey, 0)
+          }}
+          onTimeUpdate={(event) => {
+            const now = event.currentTarget.currentTime
+            setTime(now)
+            if (positionKey && Math.abs(now - lastSavedRef.current) >= POSITION_SAVE_EVERY_SECONDS) {
+              lastSavedRef.current = now
+              writePosition(positionKey, now)
+            }
+          }}
           onLoadedMetadata={(event) => {
-            event.currentTarget.playbackRate = speed
+            const audio = event.currentTarget
+            audio.playbackRate = speed
+            const saved = positionKey ? readPositions()[positionKey] : undefined
+            if (typeof saved === 'number' && saved > 0 && saved < duration - 1 && audio.currentTime === 0) {
+              audio.currentTime = saved
+              lastSavedRef.current = saved
+              setTime(saved)
+            }
           }}
         />
         <div className="flex items-center gap-3">

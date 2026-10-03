@@ -312,6 +312,7 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
           key={playerTag}
           title={lesson.title}
           partLabel={partLabel}
+          positionKey={`${lesson.id}:${episode.part}`}
           sections={script.sections}
           audioByLine={audioBytes.bytes}
           speakerLabel={(speaker) => t(`lessons.speakers.${speaker}`)}

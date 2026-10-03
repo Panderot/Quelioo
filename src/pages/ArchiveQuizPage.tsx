@@ -8,6 +8,7 @@ import type { GeneratedQuiz } from '../lib/quiz'
 import QuizWorkspace from '../components/QuizWorkspace'
 import SongListenSection from '../components/SongListenSection'
 import { ArchiveIcon } from '../components/icons'
+import { useOnPageReturn } from '../hooks/usePageActive'
 
 /** Keyed by id: opening another entry (e.g. a follow-up quiz "{title} · 2") starts with fresh state. */
 export default function ArchiveQuizPage() {
@@ -20,6 +21,11 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
   const [searchParams] = useSearchParams()
   const [entry, setEntry] = useState<ArchiveEntry | undefined>(() => (id ? getArchiveEntry(id) : undefined))
   const [songRefreshKey, setSongRefreshKey] = useState(0)
+  // Kept mounted while the user is elsewhere: the quiz may have been deleted, or got a new song.
+  useOnPageReturn(() => {
+    if (id && !getArchiveEntry(id)) setEntry(undefined)
+    setSongRefreshKey((key) => key + 1)
+  })
   const [studyMode, setStudyMode] = useState(() => searchParams.get('mode') === 'study')
 
   if (!entry) {

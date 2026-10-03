@@ -13,6 +13,7 @@ import MathText from './MathText'
 import PhotoDropZone from './PhotoDropZone'
 import type { PanelHandle } from './SimilarProblems'
 import { CheckIcon, CropIcon, PencilIcon, QuestionIcon, SpinnerIcon, WarningIcon, XIcon } from './icons'
+import { useIsPageActive } from '../hooks/usePageActive'
 
 const ImageCropStep = lazy(() => import('./ImageCropStep'))
 
@@ -47,6 +48,7 @@ export default function CheckWorkPanel({ source, value, onChange, ref }: CheckWo
   const conversionRef = useRef(0)
   const decodedRef = useRef<DecodedImage | null>(null)
 
+  const pageActive = useIsPageActive()
   const [visible, setVisible] = useState(value !== null)
   // The upload area is open until a check succeeds; "Check a new photo" opens it again.
   const [uploadOpen, setUploadOpen] = useState(false)
@@ -134,7 +136,7 @@ export default function CheckWorkPanel({ source, value, onChange, ref }: CheckWo
   }
 
   // While the upload area is open, a pasted image is the student's work — not a new problem for Solve.
-  const acceptsPaste = visible && uploadOpen && !checking && !isCropping
+  const acceptsPaste = pageActive && visible && uploadOpen && !checking && !isCropping
   const handleFileRef = useRef(handleFile)
   useEffect(() => {
     handleFileRef.current = handleFile

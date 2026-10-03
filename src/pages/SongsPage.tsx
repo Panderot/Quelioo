@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { getArchiveEntries } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import { buildSongKeyFacts } from '../lib/songFacts'
-import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
+import { MAX_SOURCE_EXCERPT_CHARS, SONG_TONES } from '../lib/song'
 import type { SongTone } from '../lib/song'
 import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { deleteSong, getAllSongs, saveSong } from '../lib/songStorage'
@@ -14,6 +14,8 @@ import { remainingSongSecondsToday } from '../lib/songCostGuard'
 import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
 import SongPanel from '../components/SongPanel'
 import { ArchiveIcon, ChevronDownIcon, DownloadIcon, LockIcon, MusicNoteIcon, PauseIcon, PlayIcon, SearchIcon, TrashIcon } from '../components/icons'
+import { useOnPageReturn } from '../hooks/usePageActive'
+import { useSearchParamState } from '../hooks/useSearchParamState'
 
 const UNDO_WINDOW_MS = 6000
 
@@ -54,9 +56,9 @@ export default function SongsPage() {
   const status = useSongFeatureStatus()
 
   const [songs, setSongs] = useState<StoredSong[]>([])
-  // Archive entries aren't needed live — just once per page mount, to know which quizzes still
-  // exist (for "open quiz" vs "Quiz deleted") and to populate the "New song" quiz picker.
-  const archiveEntries = useMemo<ArchiveEntry[]>(() => getArchiveEntries(), [])
+  // Archive entries aren't needed live — read on mount and whenever the user comes back to this
+  // page, to know which quizzes still exist (for "open quiz" vs "Quiz deleted") and for the picker.
+  const [archiveEntries, setArchiveEntries] = useState<ArchiveEntry[]>(getArchiveEntries)
   const [hasAccessCode, setHasAccessCode] = useState(() => Boolean(getStoredOwnerAccessCode()))
 
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -65,8 +67,10 @@ export default function SongsPage() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const [toneFilter, setToneFilter] = useState<'all' | SongTone>('all')
-  const [search, setSearch] = useState('')
+  const [toneParam, setToneParam] = useSearchParamState('tone')
+  const toneFilter: 'all' | SongTone = (SONG_TONES as readonly string[]).includes(toneParam) ? (toneParam as SongTone) : 'all'
+  const setToneFilter = (tone: 'all' | SongTone) => setToneParam(tone === 'all' ? '' : tone)
+  const [search, setSearch] = useSearchParamState('q')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<{ song: StoredSong; index: number } | null>(null)
@@ -83,6 +87,12 @@ export default function SongsPage() {
   useEffect(() => {
     loadSongs()
   }, [])
+
+  // The page stays mounted while the user is elsewhere; songs and quizzes may have changed meanwhile.
+  useOnPageReturn(() => {
+    loadSongs()
+    setArchiveEntries(getArchiveEntries())
+  })
 
   useEffect(
     () => () => {

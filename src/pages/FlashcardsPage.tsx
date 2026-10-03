@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -11,13 +11,14 @@ import ProgressRing from '../components/flashcards/ProgressRing'
 import StorageNote from '../components/flashcards/StorageNote'
 import UndoToast from '../components/flashcards/UndoToast'
 import { CardsIcon, PlusIcon, SearchIcon } from '../components/icons'
+import { useSearchParamState } from '../hooks/useSearchParamState'
 
 export default function FlashcardsPage() {
   const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const state = useFlashcards()
   const now = Math.max(useNow(), state.changedAt)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchParamState('q')
   useDocumentTitle(t('flashcards.title'))
 
   const rows = useMemo(() => {

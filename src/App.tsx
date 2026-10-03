@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 
+import KeptRoute from './components/KeptRoute'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
 import ArchivePage from './pages/ArchivePage'
@@ -15,6 +16,17 @@ import LessonsPage from './pages/LessonsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import SolvePage from './pages/SolvePage'
 import SongsPage from './pages/SongsPage'
+
+const KEPT_ROUTES = [
+  { path: '/', element: <CreatePage /> },
+  { path: '/solve', element: <SolvePage /> },
+  { path: '/archive/:id', element: <ArchiveQuizPage /> },
+  { path: '/songs', element: <SongsPage /> },
+  { path: '/flashcards', element: <FlashcardsPage /> },
+  { path: '/flashcards/:deckId', element: <FlashcardDeckPage /> },
+  { path: '/lessons', element: <LessonsPage /> },
+  { path: '/lessons/:id', element: <LessonPage /> },
+]
 
 export default function App() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
@@ -35,18 +47,19 @@ export default function App() {
         <TopBar onOpenMobileNav={() => setIsMobileNavOpen(true)} />
 
         <div className="animate-fade-in relative mx-auto w-full max-w-5xl space-y-7 p-6 lg:p-8 xl:p-10">
+          {/* Pages that hold unfinished work (photo and crop, forms, results, answers, requests in
+              flight, playback) stay mounted while the user visits other pages; <Routes> renders
+              nothing for them. Lists that other pages change (Archive) are not kept. */}
+          {KEPT_ROUTES.map(({ path, element }) => (
+            <KeptRoute key={path} path={path} element={element} />
+          ))}
           <Routes>
-            <Route path="/" element={<CreatePage />} />
-            <Route path="/solve" element={<SolvePage />} />
+            {KEPT_ROUTES.map(({ path }) => (
+              <Route key={path} path={path} element={null} />
+            ))}
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/solutions/:id" element={<ArchiveSolutionPage />} />
-            <Route path="/archive/:id" element={<ArchiveQuizPage />} />
-            <Route path="/songs" element={<SongsPage />} />
-            <Route path="/flashcards" element={<FlashcardsPage />} />
-            <Route path="/flashcards/:deckId" element={<FlashcardDeckPage />} />
             <Route path="/flashcards/:deckId/study" element={<FlashcardStudyPage />} />
-            <Route path="/lessons" element={<LessonsPage />} />
-            <Route path="/lessons/:id" element={<LessonPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>

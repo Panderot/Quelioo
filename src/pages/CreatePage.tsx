@@ -12,6 +12,7 @@ import {
   cachedPlanForSource,
   createArchiveEntryId,
   getArchiveEntries,
+  getArchiveEntry,
   previousStemsForSource,
   sourceTextHash,
   updateArchiveEntry,
@@ -29,6 +30,8 @@ import { focusSnippetsFor } from '../lib/focusSnippets'
 import { estimateQuizTimeRange } from '../lib/estimateTime'
 import type { EstimateDifficulty, EstimateQuestionType } from '../lib/estimateTime'
 import { clearDraft, readDraft, useSaveDraft } from '../hooks/useDraft'
+import { useIsPageActive } from '../hooks/usePageActive'
+import { deletePageDraft, readPageDraft, writePageDraft } from '../lib/pageDraftStorage'
 import type { QuizDraft } from '../hooks/useDraft'
 import GenerateButton from '../components/GenerateButton'
 import InputCard from '../components/InputCard'
@@ -66,6 +69,46 @@ interface GeneratedResult {
   focusSnippets: string[]
 }
 
+/** Extracted file/URL text and the last quiz, kept in IndexedDB for a reload — never localStorage. */
+interface CreatePageDraft {
+  file: { fileName: string; fileSizeBytes: number; extractedText: string; wordCount: number; truncated: boolean } | null
+  url: { forUrl: string; title: string; extractedText: string; wordCount: number; truncated: boolean } | null
+  result: GeneratedResult | null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseCreatePageDraft(raw: unknown): CreatePageDraft | null {
+  if (!isRecord(raw)) return null
+  const text = (value: unknown) => (typeof value === 'string' ? value : '')
+  const count = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : 0)
+  const file = isRecord(raw.file) && typeof raw.file.extractedText === 'string' && raw.file.extractedText
+    ? {
+        fileName: text(raw.file.fileName),
+        fileSizeBytes: count(raw.file.fileSizeBytes),
+        extractedText: raw.file.extractedText.slice(0, MAX_SOURCE_TEXT_CHARS),
+        wordCount: count(raw.file.wordCount),
+        truncated: raw.file.truncated === true,
+      }
+    : null
+  const url = isRecord(raw.url) && typeof raw.url.extractedText === 'string' && raw.url.extractedText
+    ? {
+        forUrl: text(raw.url.forUrl),
+        title: text(raw.url.title),
+        extractedText: raw.url.extractedText.slice(0, MAX_SOURCE_TEXT_CHARS),
+        wordCount: count(raw.url.wordCount),
+        truncated: raw.url.truncated === true,
+      }
+    : null
+  // The quiz itself is re-read from the Archive entry (it holds later edits); the rest is settings.
+  const result = isRecord(raw.result) && typeof raw.result.entryId === 'string' && typeof raw.result.sourceText === 'string'
+    ? (raw.result as unknown as GeneratedResult)
+    : null
+  return { file, url, result }
+}
+
 const EMPTY_FILE_STATE: FileTabState = {
   file: null,
   fileName: '',
@@ -91,6 +134,7 @@ export default function CreatePage() {
   const { t } = useTranslation()
   const location = useLocation()
   const navigate = useNavigate()
+  const pageActive = useIsPageActive()
   const prefillText = (location.state as CreatePageLocationState | null)?.prefillText
 
   // Computed once (memoized, never re-read from localStorage on later renders) so the initial
@@ -132,10 +176,22 @@ export default function CreatePage() {
    * localStorage) so a repeat Generate click on the same source avoids repeating its questions. */
   const lastGenerationRef = useRef<{ key: string; questions: string[] } | null>(null)
 
+  // The page stays mounted between visits, so a later "Create quiz" from Solve arrives as new
+  // location state rather than a fresh mount; the first one was already used as the initial text.
+  const usedPrefillRef = useRef(prefillText)
   useEffect(() => {
-    if (prefillText) navigate(location.pathname, { replace: true, state: null })
+    if (!prefillText || !pageActive) return
+    if (usedPrefillRef.current !== prefillText) {
+      setActiveTab('text')
+      setTextValue(prefillText)
+      setFocusParts([])
+      setHasError(false)
+      setGenerateError(null)
+    }
+    usedPrefillRef.current = undefined
+    navigate(location.pathname, { replace: true, state: null })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [prefillText, pageActive])
 
   useEffect(() => {
     if (!initialDraft) return undefined
@@ -147,8 +203,78 @@ export default function CreatePage() {
   useEffect(() => () => abortControllerRef.current?.abort(), [])
   useEffect(() => () => urlFetchAbortRef.current?.abort(), [])
 
+  // Bring back extracted file/URL text and the last quiz after a reload (IndexedDB, ≤24 hours).
+  const restoredEntryRef = useRef<string | null>(null)
+  const [draftReady, setDraftReady] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void readPageDraft('create').then((raw) => {
+      if (cancelled) return
+      const draft = parseCreatePageDraft(raw)
+      if (draft?.file) {
+        const saved = draft.file
+        setFileState((current) =>
+          current.file
+            ? current
+            : {
+                ...EMPTY_FILE_STATE,
+                file: new File([], saved.fileName),
+                fileName: saved.fileName,
+                fileSizeBytes: saved.fileSizeBytes,
+                extractedText: saved.extractedText,
+                wordCount: saved.wordCount,
+                truncated: saved.truncated,
+              },
+        )
+      }
+      if (draft?.url && draft.url.forUrl === initialDraft?.urlValue) {
+        const saved = draft.url
+        setUrlState((current) => (current.fetched || current.isFetching ? current : { ...EMPTY_URL_STATE, ...saved, fetched: true }))
+      }
+      const savedQuiz = draft?.result && !prefillText ? getArchiveEntry(draft.result.entryId)?.quiz : undefined
+      if (draft?.result && savedQuiz) {
+        const saved = { ...draft.result, quiz: savedQuiz }
+        restoredEntryRef.current = saved.entryId
+        setResult((current) => current ?? saved)
+      }
+      setDraftReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, on mount
+  }, [])
+
+  useEffect(() => {
+    if (!draftReady || fileState.isExtracting || urlState.isFetching) return undefined
+    const draft: CreatePageDraft = {
+      file:
+        fileState.file && fileState.extractedText
+          ? {
+              fileName: fileState.fileName,
+              fileSizeBytes: fileState.fileSizeBytes,
+              extractedText: fileState.extractedText,
+              wordCount: fileState.wordCount,
+              truncated: fileState.truncated,
+            }
+          : null,
+      url:
+        urlState.fetched && urlState.extractedText
+          ? { forUrl: urlValue, title: urlState.title, extractedText: urlState.extractedText, wordCount: urlState.wordCount, truncated: urlState.truncated }
+          : null,
+      result,
+    }
+    const timer = window.setTimeout(() => {
+      if (draft.file || draft.url || draft.result) void writePageDraft('create', draft)
+      else void deletePageDraft('create')
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [draftReady, fileState, urlState, urlValue, result])
+
   useEffect(() => {
     if (!result) return
+    // A quiz brought back after a reload stays where it is; only a new one scrolls into view.
+    if (restoredEntryRef.current === result.entryId) return
     resultRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
   }, [result?.entryId]) // eslint-disable-line react-hooks/exhaustive-deps
 

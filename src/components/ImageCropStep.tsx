@@ -24,6 +24,8 @@ export interface ImageCropStepProps {
   onApply: (crop: CropSpec) => void
   /** Skips cropping: the whole photo, with any rotation the user already applied. */
   onSkip: (crop: CropSpec) => void
+  /** Reports every change of the box or rotation, so the caller can save unconfirmed work. */
+  onCropChange?: (crop: CropSpec) => void
 }
 
 // Smallest crop box, in CSS pixels on screen, so the box (and its corner handles) never collapses.
@@ -72,7 +74,7 @@ function pointerDistance(points: Map<number, { x: number; y: number }>): number 
  * crop box. Mouse, touch (drag + pinch) and keyboard (arrows move, Shift+arrows resize) all work.
  * It only reports a CropSpec — the caller cuts the final image from the full-resolution original.
  */
-export default function ImageCropStep({ image, initialCrop, onApply, onSkip }: ImageCropStepProps) {
+export default function ImageCropStep({ image, initialCrop, onApply, onSkip, onCropChange }: ImageCropStepProps) {
   const { t } = useTranslation()
   const instructionsId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -88,6 +90,14 @@ export default function ImageCropStep({ image, initialCrop, onApply, onSkip }: I
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [containerWidth, setContainerWidth] = useState(0)
   const [maxHeight, setMaxHeight] = useState(viewportMaxHeight)
+
+  const onCropChangeRef = useRef(onCropChange)
+  useEffect(() => {
+    onCropChangeRef.current = onCropChange
+  })
+  useEffect(() => {
+    onCropChangeRef.current?.({ ...rect, rotation })
+  }, [rect, rotation])
 
   // One downscaled, unrotated copy of the photo; rotations are rendered from it, not the original.
   const basePreview = useMemo(() => {

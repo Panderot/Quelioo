@@ -15,6 +15,7 @@ import { addLessonSpend, getLesson, lessonCostUsd, putLesson } from '../lib/less
 import type { StoredEpisode, StoredLesson } from '../lib/lessonStorage'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { countWords } from '../lib/textStats'
+import { useOnPageReturn } from '../hooks/usePageActive'
 
 type Busy = { kind: 'checking' | 'writing'; part: number } | null
 
@@ -43,6 +44,13 @@ export default function LessonPage() {
       abortRef.current?.abort()
     }
   }, [id])
+
+  // Kept mounted while the user is elsewhere: the lesson may have been deleted from the list.
+  useOnPageReturn(() => {
+    void getLesson(id).then((found) => {
+      if (!found) setLesson('missing')
+    })
+  })
 
   // Only the latest save may update state after its write: an older, slower write finishing last
   // must not undo a newer change (e.g. a voice picked right after approving).

@@ -12,6 +12,7 @@ import { lessonLines, segmentKey, voiceFor } from '../lib/lessonAudio'
 import { deleteLesson, getAllLessons, isLessonStoragePersistent, lessonStatus, monthLessonSpendUsd, pruneSegments, putLesson, subscribeLessons } from '../lib/lessonStorage'
 import type { StoredLesson } from '../lib/lessonStorage'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode } from '../lib/ownerAccessCode'
+import { useSearchParamState } from '../hooks/useSearchParamState'
 
 function formatDate(iso: string, locale: string): string {
   const date = new Date(iso)
@@ -33,7 +34,7 @@ export default function LessonsPage() {
   const [hasAccessCode, setHasAccessCode] = useState(() => Boolean(getStoredOwnerAccessCode()))
   const [newOpen, setNewOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useSearchParamState('q')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [deleted, setDeleted] = useState<StoredLesson | null>(null)
 
