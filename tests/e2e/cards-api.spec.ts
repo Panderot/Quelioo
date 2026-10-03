@@ -161,6 +161,17 @@ test.describe('/api/cards: handler with a stubbed provider', () => {
     expect(calls[0].user).toContain('<source_text>\nSolve $3x + 7 = 2x + 15$')
   })
 
+  test('LaTeX written with single backslashes inside the JSON still parses and keeps its commands', async () => {
+    const raw = String.raw`{"cards": [{"front": "How do you compute $4^3$?", "back": "$4^3 = 4\cdot4\cdot4 = 64$ and $\frac{1}{2}\times 6 = 3$, $a \neq 0$"}]}`
+    const calls = stubOpenAi([raw])
+    const { status, body } = await handleCardsRequest({ mode: 'solution', text: 'Powers: $(2^5 \\cdot 4^3) / 8^3$', avoid: [] }, nextIp())
+    expect(status).toBe(200)
+    expect(calls).toHaveLength(1)
+    const back = (body as { cards: { back: string }[] }).cards[0].back
+    expect(back).toBe(String.raw`$4^3 = 4\cdot4\cdot4 = 64$ and $\frac{1}{2}\times 6 = 3$, $a \neq 0$`)
+    expect(calls[0].system).toContain(String.raw`doubled ("$\\frac{1}{2}$"`)
+  })
+
   test('a failed verification returns an error, never unchecked cards', async () => {
     stubOpenAi([cardsJson([['Q', 'A']]), 'not json', 'still not json'])
     const { status, body } = await handleCardsRequest({ mode: 'topic', topic: 'Volcanoes', count: 5, style: 'qa', language: 'en', avoid: [] }, nextIp())

@@ -95,6 +95,9 @@ export default function Select({
   }
 
   const closeMenu = (refocusTrigger: boolean) => {
+    // A second close while the first one animates must not leave the first timer behind: it would
+    // unmount the menu again after the user already reopened it.
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current)
     setIsOpen(false)
     setEntered(false)
     if (prefersReducedMotion()) {

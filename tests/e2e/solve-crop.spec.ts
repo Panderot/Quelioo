@@ -101,7 +101,7 @@ test.describe('Solve crop step', { tag: '@cross' }, () => {
     await page.goto('/solve?lng=en')
     await choosePhoto(page, await makeQuadrantPng(page, 800, 600))
 
-    await expect(page.getByRole('button', { name: en.solve.cta.solve })).toBeDisabled()
+    await expect(page.getByRole('button', { name: en.solve.cta.solve })).toBeEnabled()
     await dragCornerToCenter(page)
     await page.getByRole('button', { name: en.crop.useArea }).click()
 
@@ -115,6 +115,49 @@ test.describe('Solve crop step', { tag: '@cross' }, () => {
     const [request] = handle.requests() as { imageBase64: string; mimeType: string }[]
     expect(request.mimeType).toBe('image/jpeg')
     expect(request.imageBase64).toBe(await page.locator('[data-purpose="solve-cropped-preview"]').getAttribute('src'))
+  })
+
+  test('Solve is active right after the photo loads and uses the current crop box without confirming it', async ({ page, mockSolve }) => {
+    const handle = await mockSolve(MOCK_RESULT)
+    await page.goto('/solve?lng=en')
+    await choosePhoto(page, await makeQuadrantPng(page, 800, 600))
+
+    await expect(page.locator('[data-purpose="crop-hint"]')).toHaveText(en.crop.solveHint)
+    await dragCornerToCenter(page)
+    await page.getByRole('button', { name: en.solve.cta.solve }).click()
+    await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()
+
+    const [request] = handle.requests() as { imageBase64: string; mimeType: string }[]
+    expect(request.mimeType).toBe('image/jpeg')
+    const sent = await page.evaluate(async (src) => {
+      const img = new Image()
+      img.src = src
+      await img.decode()
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      const data = ctx.getImageData(Math.floor(img.naturalWidth / 2), Math.floor(img.naturalHeight / 2), 1, 1).data
+      return { width: img.naturalWidth, height: img.naturalHeight, center: [data[0], data[1], data[2]] as [number, number, number] }
+    }, request.imageBase64)
+    expect(Math.abs(sent.width - 400)).toBeLessThanOrEqual(4)
+    expect(Math.abs(sent.height - 300)).toBeLessThanOrEqual(4)
+    expectColor(sent.center, RED)
+    // The crop counts as confirmed afterwards: the cropped preview is shown.
+    await expect(page.locator('[data-purpose="solve-cropped-preview"]')).toHaveAttribute('src', request.imageBase64)
+  })
+
+  for (const [code, locale] of [['en', en], ['tr', tr], ['hyw', hyw]] as const) {
+    test(`the crop hint is shown in ${code}`, async ({ page }) => {
+      await page.goto(`/solve?lng=${code}`)
+      await choosePhoto(page, await makeQuadrantPng(page, 800, 600))
+      await expect(page.locator('[data-purpose="crop-hint"]')).toHaveText(locale.crop.solveHint)
+    })
+  }
+
+  test('the Turkish crop hint reads as specified', () => {
+    expect(tr.crop.solveHint).toBe("Soruyu kutunun içine al ve Çöz'e bas.")
   })
 
   test('rotation right then crop maps through the rotation', async ({ page }) => {
@@ -339,7 +382,7 @@ test.describe('Solve result extras', { tag: '@cross' }, () => {
     await page.getByRole('button', { name: en.solve.choices.cropAction }).click()
     await expect(page.locator('[data-purpose="crop-step"]')).toBeVisible()
     await expect(page.locator('[data-purpose="solve-choices"]')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: en.solve.cta.solve })).toBeDisabled()
+    await expect(page.getByRole('button', { name: en.solve.cta.solve })).toBeEnabled()
   })
 
   test('intro line, compact aligned answer and common mistakes render', async ({ page, mockSolve }) => {

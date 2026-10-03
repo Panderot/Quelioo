@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { SolveApiError, solveMathPhoto } from '../api/solve'
 import type { SolveErrorCode, SolveResult } from '../api/solve'
+import { FULL_RECT } from '../lib/imageCrop'
 import type { CropSpec } from '../lib/imageCrop'
 import { decodeImageForSolve, encodeCroppedImage, ImageNormalizeError, renderPreviewCanvas } from '../lib/imageNormalize'
 import type { DecodedImage, NormalizedImage } from '../lib/imageNormalize'
@@ -336,7 +337,23 @@ export default function SolvePage() {
   }
 
   const handleSolve = async (problem?: string) => {
-    if (!normalized || isSolving || isCropping) return
+    if (isSolving) return
+    // "Solve" works as soon as a photo is loaded: an unconfirmed crop uses the box as it is now.
+    let upload = normalized
+    if (isCropping) {
+      if (!decoded) return
+      const crop = liveCrop ?? cropSpec ?? { ...FULL_RECT, rotation: 0 as const }
+      try {
+        upload = encodeCroppedImage(decoded, crop)
+      } catch {
+        setErrorCode('decode_failed')
+        return
+      }
+      setNormalized(upload)
+      setCropSpec(crop)
+      setIsCropping(false)
+    }
+    if (!upload) return
     setIsSolving(true)
     setErrorCode(null)
     setResult(null)
@@ -346,8 +363,8 @@ export default function SolvePage() {
     try {
       const outcome = await solveMathPhoto(
         {
-          imageBase64: normalized.dataUrl,
-          mimeType: normalized.mimeType,
+          imageBase64: upload.dataUrl,
+          mimeType: upload.mimeType,
           language: i18n.language,
           note: note.trim(),
           ...(problem ? { problem } : {}),
@@ -364,7 +381,7 @@ export default function SolvePage() {
         setResult(outcome.result)
         setRevealed(0)
         setRestoredExtras(undefined)
-        void persistSolution(outcome.result, normalized.dataUrl, version)
+        void persistSolution(outcome.result, upload.dataUrl, version)
       }
     } catch (error) {
       if (!controller.signal.aborted) {
@@ -430,6 +447,7 @@ export default function SolvePage() {
               onApply={handleCropDone}
               onSkip={handleCropDone}
               onCropChange={setLiveCrop}
+              hint={t('crop.solveHint')}
             />
           </Suspense>
         ) : normalized ? (
@@ -490,7 +508,7 @@ export default function SolvePage() {
         <button
           type="button"
           onClick={() => void handleSolve()}
-          disabled={!normalized || isSolving || isCropping}
+          disabled={!(normalized || (decoded && isCropping)) || isSolving}
           aria-busy={isSolving}
           className="group flex h-14 w-full items-center justify-center gap-3 rounded-[14px] bg-amber text-base font-bold text-navy shadow-sm transition-all hover:-translate-y-px hover:bg-amber-hover hover:shadow-lg hover:shadow-amber/30 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
         >

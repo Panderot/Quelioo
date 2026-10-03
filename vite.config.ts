@@ -1,5 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import { execSync } from 'node:child_process'
+
 import { defineConfig } from 'vite'
 import type { Plugin } from 'vite'
 
@@ -65,10 +67,39 @@ function apiDevMiddleware(): Plugin {
   }
 }
 
+/** Commit being built: Vercel's own variable in production builds, git locally ("dev" outside a repo). */
+function buildCommit(): string {
+  const fromEnv = process.env.VERCEL_GIT_COMMIT_SHA?.trim()
+  if (fromEnv) return fromEnv
+  try {
+    return execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'dev'
+  } catch {
+    return 'dev'
+  }
+}
+
+/**
+ * Lets anyone confirm which commit production serves without Vercel access: a
+ * <meta name="quelio-commit"> tag in index.html and a static /version.json (not a function).
+ */
+function buildVersionPlugin(): Plugin {
+  const commit = buildCommit()
+  return {
+    name: 'quelio-build-version',
+    transformIndexHtml: () => [{ tag: 'meta', attrs: { name: 'quelio-commit', content: commit }, injectTo: 'head' }],
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ commit }) })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), apiDevMiddleware()],
+  plugins: [react(), tailwindcss(), apiDevMiddleware(), buildVersionPlugin()],
   // Only reached via a lazy import (the similar-problem answer check); pre-bundle it so the dev
   // server doesn't discover it mid-session and reload the page.
   optimizeDeps: { include: ['mathjs/number'] },
+  // The Playwright dev server runs without HMR: when a busy machine drops the HMR socket, Vite's client
+  // reloads the page and wipes the state of whatever test is running.
+  server: { hmr: process.env.QUELIO_NO_HMR ? false : undefined },
 })

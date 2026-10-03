@@ -37,7 +37,14 @@ export interface GeneratedCards {
 const KNOWN: ReadonlySet<string> = new Set(['bad_type', 'too_large', 'too_short', 'too_long', 'upstream', 'parse', 'model', 'not_configured', 'rate_limited', 'unverified'])
 
 export async function generateCards(payload: CardsRequestPayload, signal?: AbortSignal): Promise<GeneratedCards> {
-  const body = await postJson<CardsErrorCode>('/api/cards', payload, KNOWN, signal)
+  let body: Record<string, unknown>
+  try {
+    body = await postJson<CardsErrorCode>('/api/cards', payload, KNOWN, signal)
+  } catch (error) {
+    // A malformed model reply gets one silent second try before the student sees an error.
+    if (!(error instanceof SolveExtraApiError) || error.code !== 'parse') throw error
+    body = await postJson<CardsErrorCode>('/api/cards', payload, KNOWN, signal)
+  }
   const cards = Array.isArray(body.cards)
     ? body.cards.filter(
         (card): card is { front: string; back: string } =>

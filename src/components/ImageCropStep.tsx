@@ -26,6 +26,8 @@ export interface ImageCropStepProps {
   onSkip: (crop: CropSpec) => void
   /** Reports every change of the box or rotation, so the caller can save unconfirmed work. */
   onCropChange?: (crop: CropSpec) => void
+  /** Optional one-line hint shown under the crop tools (e.g. that the main button uses the box as it is). */
+  hint?: string
 }
 
 // Smallest crop box, in CSS pixels on screen, so the box (and its corner handles) never collapses.
@@ -74,7 +76,7 @@ function pointerDistance(points: Map<number, { x: number; y: number }>): number 
  * crop box. Mouse, touch (drag + pinch) and keyboard (arrows move, Shift+arrows resize) all work.
  * It only reports a CropSpec — the caller cuts the final image from the full-resolution original.
  */
-export default function ImageCropStep({ image, initialCrop, onApply, onSkip, onCropChange }: ImageCropStepProps) {
+export default function ImageCropStep({ image, initialCrop, onApply, onSkip, onCropChange, hint }: ImageCropStepProps) {
   const { t } = useTranslation()
   const instructionsId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -334,6 +336,12 @@ export default function ImageCropStep({ image, initialCrop, onApply, onSkip, onC
           {t('crop.reset')}
         </button>
       </div>
+
+      {hint && (
+        <p data-purpose="crop-hint" className="text-center text-xs text-muted">
+          {hint}
+        </p>
+      )}
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
         <button

@@ -83,8 +83,8 @@ const QUALITY_RULES = [
   'Quality rules: exactly one fact per card; the front is short and unambiguous (only one correct answer fits it); the back is concise, at most about 25 words;',
   'the front must never contain or give away its answer (no card whose answer is just a word from its own front);',
   'no duplicates and no card that repeats a front listed in <avoid>; no trick or negative wording; numbers, names and dates must be exact;',
-  'write math in LaTeX between $...$ (inline) so the app can render it; plain text otherwise, no Markdown;',
-  'keep math short, one idea per card; when the front asks how to calculate something specific, the back also gives the worked result (e.g. "$4^3 = 4\\cdot4\\cdot4 = 64$, not $4\\cdot 3$").',
+  'write math in LaTeX between $...$ (inline) so the app can render it; plain text otherwise, no Markdown; this is JSON, so every LaTeX backslash must be doubled ("$\\\\frac{1}{2}$", "$\\\\cdot$");',
+  'keep math short, one idea per card; when the front asks how to calculate something specific, the back also gives the worked result (e.g. "$4^3 = 4\\\\cdot4\\\\cdot4 = 64$, not $4\\\\cdot 3$").',
 ].join(' ')
 
 function generatorSystem(params: { mode: CardsMode; style: CardStyle; language: string; count: number }): string {
@@ -111,9 +111,22 @@ const VERIFIER_SYSTEM = [
   'Respond with ONLY a single JSON object and nothing else, exactly: {"cards": [{"id": number, "verdict": "ok" | "fix" | "remove", "front": string, "back": string}]} with one entry per card id.',
 ].join(' ')
 
+/**
+ * A single-backslash LaTeX command that starts a JSON escape (frac, times, neq, beta, right) parses
+ * into a control character instead of failing; put the backslash back.
+ */
+export function restoreLatexEscapes(text: string): string {
+  return text
+    .replace(/\f(?=[a-z])/g, '\\f')
+    .replace(/\t(?=[a-z])/g, '\\t')
+    .replace(/\x08(?=[a-z])/g, '\\b')
+    .replace(/\r(?=[a-z])/g, '\\r')
+    .replace(/\n(?=eq|abla|ot\b|u\b|i\b|ewline)/g, '\\n')
+}
+
 function cleanCard(front: unknown, back: unknown): GeneratedCard | null {
-  const cleanFront = cleanString(front, MAX_FRONT_CHARS)
-  const cleanBack = cleanString(back, MAX_GENERATED_BACK_CHARS).slice(0, MAX_BACK_CHARS)
+  const cleanFront = restoreLatexEscapes(cleanString(front, MAX_FRONT_CHARS))
+  const cleanBack = restoreLatexEscapes(cleanString(back, MAX_GENERATED_BACK_CHARS)).slice(0, MAX_BACK_CHARS)
   return cleanFront && cleanBack ? { front: cleanFront, back: cleanBack } : null
 }
 

@@ -616,6 +616,7 @@
     "reset": "Reset",
     "useArea": "Use this area",
     "useWhole": "Use whole photo",
+    "solveHint": "Put the question inside the box and press Solve.",
     "preparing": "Preparing the crop..."
   },
   "flashcards": {

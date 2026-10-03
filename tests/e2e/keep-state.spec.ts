@@ -299,6 +299,8 @@ test.describe('Other pages keep their work', () => {
     await page.getByRole('button', { name: 'Add sample decks' }).click()
     const search = page.getByRole('searchbox')
     await search.fill('zzz-no-match')
+    // The search is committed to the URL before the page is left, as it is for a real user.
+    await expect(page).toHaveURL(/q=zzz-no-match/)
     await nav(page, en.nav.solve)
     await nav(page, en.nav.flashcards)
     await expect(page.getByRole('searchbox')).toHaveValue('zzz-no-match')
@@ -313,6 +315,7 @@ test.describe('Other pages keep their work', () => {
     await nav(page, en.nav.archive)
     await page.getByRole('tab', { name: en.archive.tabs.solutions }).click()
     await page.getByRole('searchbox').fill('linear')
+    await expect(page).toHaveURL(/q=linear/)
     await nav(page, en.nav.solve)
     await expect(page.locator('[data-purpose="solve-answer"]')).toBeVisible()
     await page.goBack()

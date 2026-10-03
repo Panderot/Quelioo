@@ -13,26 +13,35 @@ const MCQ_ONLY_QUIZ = {
  * the start, ArrowRight to the substring's offset, Shift+ArrowRight across it) — genuine browser
  * selection, unlike a programmatic setSelectionRange, so it reliably fires the app's real
  * onSelect/onKeyUp handlers exactly the way a keyboard-driven user selection would. */
+/**
+ * Selects `substring` in the quiz textarea: everything but its last character by range, then one
+ * real Shift+ArrowRight so the app gets the keyboard event a user's selection produces.
+ */
 async function selectSubstring(page: Page, substring: string): Promise<void> {
-  const box = page.locator('#quiz-content-input')
-  const text = await box.inputValue()
-  const start = text.indexOf(substring)
-  if (start === -1) throw new Error(`substring not found: ${substring}`)
-  await box.click()
-  await page.keyboard.press('Control+Home')
-  for (let i = 0; i < start; i++) await page.keyboard.press('ArrowRight')
-  for (let i = 0; i < substring.length; i++) await page.keyboard.press('Shift+ArrowRight')
+  await setTextareaSelection(page, substring, 0, substring.length - 1)
+  await page.keyboard.press('Shift+ArrowRight')
 }
 
 /** Places a collapsed caret at `offset` characters into `substring`'s first occurrence. */
 async function placeCaretInside(page: Page, substring: string, offset: number): Promise<void> {
-  const box = page.locator('#quiz-content-input')
-  const text = await box.inputValue()
-  const start = text.indexOf(substring)
-  if (start === -1) throw new Error(`substring not found: ${substring}`)
-  await box.click()
-  await page.keyboard.press('Control+Home')
-  for (let i = 0; i < start + offset; i++) await page.keyboard.press('ArrowRight')
+  await setTextareaSelection(page, substring, offset, offset)
+}
+
+// One evaluate instead of hundreds of key presses: long arrow-key walks made these tests slow enough
+// to hit the 15 s timeout when the machine is busy.
+async function setTextareaSelection(page: Page, substring: string, from: number, to: number): Promise<void> {
+  const found = await page.locator('#quiz-content-input').evaluate(
+    (element, { needle, startOffset, endOffset }) => {
+      const box = element as HTMLTextAreaElement
+      const start = box.value.indexOf(needle)
+      if (start === -1) return false
+      box.focus()
+      box.setSelectionRange(start + startOffset, start + endOffset)
+      return true
+    },
+    { needle: substring, startOffset: from, endOffset: to },
+  )
+  if (!found) throw new Error(`substring not found: ${substring}`)
 }
 
 test.describe('Quiz title', () => {

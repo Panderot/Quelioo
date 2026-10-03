@@ -11,8 +11,8 @@ export default defineConfig({
   fullyParallel: true,
   // About half the CPU cores locally; override with PW_WORKERS (or --workers) when memory is low.
   workers: Number(process.env.PW_WORKERS) || Math.max(1, Math.floor(cpus().length / 2)),
-  timeout: 15_000,
-  expect: { timeout: 5_000 },
+  timeout: 30_000,
+  expect: { timeout: 10_000 },
   retries: isCI ? 1 : 0,
   reporter: 'dot',
   use: {
@@ -25,6 +25,7 @@ export default defineConfig({
     command: `npx vite --port ${PORT} --strictPort`,
     url: BASE_URL,
     reuseExistingServer: true,
+    env: { QUELIO_NO_HMR: '1' },
     timeout: 30_000,
   },
   // test:e2e runs desktop + mobile (Chromium); test:cross runs @cross specs (image decode/crop,

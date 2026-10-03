@@ -114,6 +114,7 @@ export default function OutputLanguageSelect({ id, labelledBy, value, onChange }
   }
 
   const closeMenu = (refocusTrigger: boolean) => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current)
     setIsOpen(false)
     setEntered(false)
     if (prefersReducedMotion()) {

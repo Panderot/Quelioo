@@ -199,25 +199,160 @@ export interface SpeechText {
   unknownAbbreviations: string[]
 }
 
+/**
+ * Words for spoken exponents and fractions. A single exponent stays short ("x üzeri iki"); a grouped
+ * one (a^{m+n}) is bracketed by pauses and an end marker so it cannot be heard as a^m + n, and a
+ * fraction with a grouped numerator or denominator says which part is which.
+ * The hyw column is Western Armenian and needs a native review before wide release.
+ */
+interface MathWords {
+  power: string
+  powerEnd: string
+  quantity: string
+  numerator: string
+  denominator: string
+  fractionEnd: string
+  minus: string
+  /** Turkish pauses right after "üzeri" in a grouped exponent. */
+  groupComma?: boolean
+  operators?: Record<string, string>
+}
+
+const MATH_WORDS: Record<SpeechLanguage, MathWords> = {
+  tr: { power: ' üzeri ', powerEnd: 'üs sonu', quantity: 'parantez içinde', numerator: 'pay', denominator: 'payda', fractionEnd: 'kesir sonu', minus: 'eksi', groupComma: true },
+  en: { power: ' to the power of ', powerEnd: 'end of exponent', quantity: 'the quantity', numerator: 'numerator', denominator: 'denominator', fractionEnd: 'end of fraction', minus: 'minus' },
+  other: {
+    power: ' աստիճան ',
+    powerEnd: 'աստիճանի վերջ',
+    quantity: 'փակագծի մեջ',
+    numerator: 'համարիչ',
+    denominator: 'հայտարար',
+    fractionEnd: 'կոտորակի վերջ',
+    minus: 'մինուս',
+    operators: { '+': 'գումարած', '-': 'հանած', '−': 'հանած', '×': 'բազմապատկած', '·': 'բազմապատկած', '*': 'բազմապատկած', '/': 'բաժանած', '=': 'հավասար է' },
+  },
+}
+
+const SUPERSCRIPT_CHARS: Record<string, string> = { '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁺': '+', '⁻': '-' }
+
+/** Operators inside a spoken group get spaces around them (so "6-9" is a minus, never a range). */
+function spokenGroup(inner: string, words: MathWords): string {
+  const spaced = inner
+    .trim()
+    .replace(/^[-−]\s*/, `${words.minus} `)
+    .replace(/\s*([+\-−×·*/=])\s*/g, ' $1 ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const operators = words.operators
+  return operators ? spaced.replace(/(?<= )([+\-−×·*/=])(?= )/g, (operator: string) => operators[operator] ?? operator) : spaced
+}
+
+function powerPhrase(exponent: string, words: MathWords): string {
+  const clean = exponent.trim()
+  if (/^[-−]?[\p{L}\p{N}]+$/u.test(clean)) return `${words.power}${/^[-−]/.test(clean) ? `${words.minus} ` : ''}${clean.replace(/^[-−]/, '')} `
+  return `${words.power.trimEnd()}${words.groupComma ? "," : ""} ${spokenGroup(clean, words)}, ${words.powerEnd} `
+}
+
+/** Powers: "4⁵", "a^(m+n)", "2⁵⁺⁶⁻⁹", "(x+1)²". With `groupedOnly` (languages without a word table) single ones are left alone. */
+function speakPowers(text: string, language: SpeechLanguage, groupedOnly: boolean): string {
+  const words = MATH_WORDS[language]
+  const pattern = /(\(([^()]*)\))?(?:\^\(([^()]*)\)|\^(-?[\p{L}\p{N}]+)|([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+))/gu
+  return text.replace(pattern, (...args: unknown[]) => {
+    const [match, , base, grouped, caret, superscript, offset, whole] = args as [string, string | undefined, string | undefined, string | undefined, string | undefined, string | undefined, number, string]
+    const before = whole.slice(0, offset)
+    if (superscript !== undefined && base === undefined && !/[\p{N}\p{L})]$/u.test(before)) return match
+    const exponent = grouped ?? caret ?? [...(superscript ?? '')].map((char) => SUPERSCRIPT_CHARS[char] ?? '').join('')
+    // After a unit (m², cm³) a square/cube is said as "kare"/"küp"; any other power is "üzeri".
+    if (!groupedOnly && base === undefined && /(?:^|[\s\d])(?:[kcdm]?m)$/.test(before)) {
+      if (exponent === '2') return language === 'tr' ? ' kare' : ' squared'
+      if (exponent === '3') return language === 'tr' ? ' küp' : ' cubed'
+    }
+    const single = /^[-−]?[\p{L}\p{N}]+$/u.test(exponent.trim())
+    if (groupedOnly && single && base === undefined) return match
+    const baseText = base === undefined ? '' : `${words.quantity} ${spokenGroup(base, words)},`
+    return `${baseText}${powerPhrase(exponent, words)}`
+  })
+}
+
+/** A fraction with a bracketed numerator or denominator ("(a+b) / c", "a / (b+c)"): "pay: a artı b, payda: c, kesir sonu". */
+function speakFractions(text: string, language: SpeechLanguage): string {
+  const words = MATH_WORDS[language]
+  const tokenBefore = /[\p{L}\p{N}⁰¹²³⁴⁵⁶⁷⁸⁹.,]+$/u
+  const tokenAfter = /^[\p{L}\p{N}⁰¹²³⁴⁵⁶⁷⁸⁹.,]+/u
+  let result = text
+  let from = 0
+  for (;;) {
+    const slash = result.indexOf('/', from)
+    if (slash < 0) return result
+    from = slash + 1
+    if (result[slash - 1] === '/' || result[slash + 1] === '/') continue
+    const left = result.slice(0, slash).trimEnd()
+    const right = result.slice(slash + 1).trimStart()
+    const leftGrouped = left.endsWith(')')
+    const rightGrouped = right.startsWith('(')
+    if (!leftGrouped && !rightGrouped) continue
+
+    let numerator: string
+    let numeratorStart: number
+    if (leftGrouped) {
+      let depth = 0
+      let open = -1
+      for (let i = left.length - 1; i >= 0; i -= 1) {
+        if (left[i] === ')') depth += 1
+        else if (left[i] === '(' && (depth -= 1) === 0) {
+          open = i
+          break
+        }
+      }
+      if (open < 0) continue
+      numerator = left.slice(open + 1, -1)
+      numeratorStart = open
+    } else {
+      const token = tokenBefore.exec(left)?.[0]
+      if (!token) continue
+      numerator = token
+      numeratorStart = left.length - token.length
+    }
+
+    let denominator: string
+    let rightConsumed: number
+    if (rightGrouped) {
+      let depth = 0
+      let close = -1
+      for (let i = 0; i < right.length; i += 1) {
+        if (right[i] === '(') depth += 1
+        else if (right[i] === ')' && (depth -= 1) === 0) {
+          close = i
+          break
+        }
+      }
+      if (close < 0) continue
+      denominator = right.slice(1, close)
+      rightConsumed = close + 1
+    } else {
+      const token = tokenAfter.exec(right)?.[0]
+      if (!token) continue
+      denominator = token
+      rightConsumed = token.length
+    }
+
+    const spoken = `${words.numerator}: ${spokenGroup(numerator, words)}, ${words.denominator}: ${spokenGroup(denominator, words)}, ${words.fractionEnd}`
+    const tail = right.slice(rightConsumed)
+    result = `${result.slice(0, numeratorStart)}${spoken}${tail.startsWith(' ') || tail === '' ? '' : ' '}${tail}`
+    from = numeratorStart + spoken.length
+  }
+}
+
 /** Rewrites abbreviations, symbols, units, Roman numerals, formulas and numbers into spoken words. */
 export function normalizeForSpeech(input: string, language: SpeechLanguage): SpeechText {
   // LaTeX never reaches the voice as code: it becomes plain math first.
   let text = mathToPlainText(input).replace(/[*_#`~]+/g, ' ')
   const unknown = new Set<string>()
-  if (language === 'other') return { text: text.replace(/\s+/g, ' ').trim(), unknownAbbreviations: [] }
+  if (language === 'other') return { text: speakPowers(speakFractions(text, 'other'), 'other', true).replace(/\s+/g, ' ').trim(), unknownAbbreviations: [] }
   const lang = language
 
-  // 0. Spoken math: powers ("4⁵", "a^(m+n)"), "·" and a fraction bar after a closing bracket.
-  const toPower = lang === 'tr' ? ' üzeri ' : ' to the power of '
-  const SUPERSCRIPT_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹'
-  // After a unit (m², cm³) a square/cube is said as "kare"/"küp"; any other power is "üzeri".
-  text = text.replace(/(?<=[\p{N}\p{L})])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/gu, (run: string, _group: string, offset: number, whole: string) => {
-    const unit = /(?:^|[\s\d])(?:[kcdm]?m)$/.test(whole.slice(0, offset))
-    if (unit && run === '²') return lang === 'tr' ? ' kare' : ' squared'
-    if (unit && run === '³') return lang === 'tr' ? ' küp' : ' cubed'
-    return `${toPower}${[...run].map((char) => SUPERSCRIPT_DIGITS.indexOf(char)).join('')} `
-  })
-  text = text.replace(/\^\(([^()]*)\)/g, (_m, inner: string) => `${toPower}${inner} `).replace(/\^([\p{L}\p{N}]+)/gu, (_m, inner: string) => `${toPower}${inner} `)
+  // 0. Spoken math: fractions with a bracketed side, powers ("4⁵", "a^(m+n)"), "·" and a fraction bar after a closing bracket.
+  text = speakPowers(speakFractions(text, lang), lang, false)
   text = text.replace(/\s*·\s*/g, ' × ').replace(/\)\s*\/\s*(?=[\p{L}\p{N}(])/gu, `) ${OPERATORS[lang]['/']} `)
 
   // 1. Dictionary entries, longest first, whole words (symbols match anywhere).

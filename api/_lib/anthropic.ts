@@ -154,12 +154,48 @@ function repairUnescapedControlCharsInStrings(text: string): string {
   return result
 }
 
+/**
+ * Doubles backslashes that don't start a valid JSON escape (LaTeX like \cdot, \sqrt written with
+ * a single backslash inside a string value). Only touches text inside strings.
+ */
+function repairInvalidEscapesInStrings(text: string): string {
+  let result = ''
+  let inString = false
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i]
+    if (!inString) {
+      result += char
+      if (char === '"') inString = true
+      continue
+    }
+    if (char === '\\') {
+      const next = text[i + 1] ?? ''
+      const validUnicode = next === 'u' && /^[0-9a-fA-F]{4}$/.test(text.slice(i + 2, i + 6))
+      if (next === '"' || next === '\\' || next === '/' || next === 'b' || next === 'f' || next === 'n' || next === 'r' || next === 't' || validUnicode) {
+        result += char + next
+        i += 1
+      } else {
+        result += '\\\\'
+      }
+      continue
+    }
+    if (char === '"') inString = false
+    result += char
+  }
+  return result
+}
+
 /** Parses a JSON object out of a model reply, tolerating a wrapping ```json code fence and (as a
  * last resort) unescaped control characters inside string values — see repairUnescapedControlCharsInStrings. */
 export function extractJson(text: string): unknown {
   const trimmed = text.trim()
   const unfenced = trimmed.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
-  const attempts = [trimmed, unfenced, repairUnescapedControlCharsInStrings(unfenced)]
+  const attempts = [
+    trimmed,
+    unfenced,
+    repairUnescapedControlCharsInStrings(unfenced),
+    repairUnescapedControlCharsInStrings(repairInvalidEscapesInStrings(unfenced)),
+  ]
   for (const attempt of attempts) {
     try {
       return JSON.parse(attempt)
