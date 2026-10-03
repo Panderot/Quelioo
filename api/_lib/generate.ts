@@ -1335,11 +1335,15 @@ async function runCoveragePass(
   meter.coveredBefore = computeCoverage(coverage, questionsOf(current)).covered
 
   const missing = missingEntries(coverage, questionsOf(current)).filter((entry) => params.targetIds.has(entry.fact.id))
-  const room = params.limit - current.length
+  // A question the verifier found testing none of its planned facts wastes a slot: with a fixed count
+  // it makes room for a question of a missing fact (and is only dropped once that one was written).
+  const wasted = (draft: DraftQuestion) => draft.factIds.length === 0
+  const room = params.limit - current.length + current.filter(wasted).length
   if (missing.length > 0 && room > 0 && meter.elapsedMs() < MISSING_PASS_DEADLINE_MS) {
     const slots = packEntries(missing, ctx.questionType).slice(0, room)
+    const kept = current.filter((draft) => !wasted(draft)) // the wasted ones are replaced, not compared against
     const usageBefore = meter.usage.length
-    const added = await writeForSlots(ctx, slots, facts, questionsOf(current), questionsOf(current).map(asOther), meter).catch(() => ({ drafts: [] as DraftQuestion[], replaced: [] as QuizQuestion[] }))
+    const added = await writeForSlots(ctx, slots, facts, questionsOf(kept), questionsOf(kept).map(asOther), meter).catch(() => ({ drafts: [] as DraftQuestion[], replaced: [] as QuizQuestion[] }))
     meter.coverageUsage.push(...meter.usage.slice(usageBefore))
     const replacedIds = new Set(added.replaced.map((question) => question.id))
     const replacedDrafts = added.replaced.map((question) => ({ question, factIds: question.factIds ?? [] }))
@@ -1350,6 +1354,10 @@ async function runCoveragePass(
       ...verified.filter((draft) => !replacedIds.has(draft.question.id)),
     ]
     meter.missingAdded = verified.filter((draft) => !replacedIds.has(draft.question.id)).length
+    for (let index = 0; current.length > params.limit && index < current.length; ) {
+      if (wasted(current[index])) current.splice(index, 1)
+      else index++
+    }
   }
   meter.coveredAfter = computeCoverage(coverage, questionsOf(current)).covered
   meter.coverageMs = Date.now() - start

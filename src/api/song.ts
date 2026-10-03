@@ -107,9 +107,16 @@ async function postSongJson(url: string, body: unknown, signal?: AbortSignal): P
 }
 
 export async function writeSongLyrics(payload: WriteSongLyricsPayload, signal?: AbortSignal): Promise<SongLyricsResponseBody> {
-  const json = await postSongJson('/api/song-lyrics', payload, signal)
-  if (!isSongLyricsResponseBody(json)) throw new SongApiError('parse')
-  return json
+  // A malformed reply (or a gateway timeout page) gets one silent second try before an error shows.
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const json = await postSongJson('/api/song-lyrics', payload, signal)
+      if (!isSongLyricsResponseBody(json)) throw new SongApiError('parse')
+      return json
+    } catch (error) {
+      if (attempt >= 1 || !(error instanceof SongApiError) || error.code !== 'parse') throw error
+    }
+  }
 }
 
 /** Re-checks the student's current (possibly edited) lyrics without rewriting them — called right

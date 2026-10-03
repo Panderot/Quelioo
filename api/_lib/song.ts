@@ -147,7 +147,11 @@ export async function handleSongCreateRequest(
   }
 
   if (result.timedOut) return fail('timeout')
-  if (!result.ok || !result.audioBase64) return fail(result.blocked ? 'blocked' : 'upstream')
+  if (!result.ok || !result.audioBase64) {
+    console.log(`song: provider=gemini model=${model} geminiStatus=${result.status ?? 'none'} blocked=${result.blocked}`)
+    // A rejected key is a setup problem, not a transient upstream hiccup.
+    return fail(result.blocked ? 'blocked' : result.status === 401 || result.status === 403 ? 'not_configured' : 'upstream')
+  }
 
   console.log(`song: provider=gemini model=${model} duration=${Date.now() - start}ms error=none`)
   recordSongForIp(context.ip, targetSeconds)

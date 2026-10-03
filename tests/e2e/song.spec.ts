@@ -237,6 +237,62 @@ test('a lyrics-generation failure shows a localized error with retry', async ({ 
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
 })
 
+test('a gateway timeout page on the first lyrics try is retried silently', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true)
+  let calls = 0
+  await page.route('**/api/song-lyrics', async (route) => {
+    const body = route.request().postDataJSON() as { mode?: string }
+    if (body.mode === 'check') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ factCheckPassed: true, flaggedLines: [] }) })
+      return
+    }
+    calls += 1
+    if (calls === 1) await route.fulfill({ status: 504, contentType: 'text/plain', body: 'An error occurred with your deployment' })
+    else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_LYRICS) })
+  })
+  await reachResultView(page, mockGenerate)
+
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+
+  await expect(page.getByLabel('Lyrics')).toHaveValue(SAMPLE_LYRICS.lyrics)
+  expect(calls).toBe(2)
+})
+
+test('every style and tone combination sends its choice and reaches the lyrics step', async ({ page, mockGenerate }) => {
+  test.setTimeout(120_000)
+  await mockSongStatus(page, true)
+  const sent: { style: string; tone: string }[] = []
+  await page.route('**/api/song-lyrics', async (route) => {
+    const body = route.request().postDataJSON() as { mode?: string; style: string; tone: string }
+    if (body.mode === 'check') {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ factCheckPassed: true, flaggedLines: [] }) })
+      return
+    }
+    sent.push({ style: body.style, tone: body.tone })
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_LYRICS) })
+  })
+  const dialog = page.getByRole('dialog', { name: 'Turn into a song' })
+  const styleCount = 6
+  const toneCount = 2
+  for (let s = 0; s < styleCount; s++) {
+    for (let t = 0; t < toneCount; t++) {
+      await reachResultView(page, mockGenerate)
+      await page.getByRole('button', { name: 'Turn into a song' }).click()
+      const styles = dialog.getByRole('radiogroup').first().getByRole('radio')
+      const tones = dialog.getByRole('radiogroup').nth(1).getByRole('radio')
+      expect(await styles.count()).toBe(styleCount)
+      expect(await tones.count()).toBe(toneCount)
+      await styles.nth(s).click()
+      await tones.nth(t).click()
+      await dialog.getByRole('button', { name: 'Write lyrics' }).click()
+      await expect(page.getByLabel('Lyrics')).toHaveValue(SAMPLE_LYRICS.lyrics)
+    }
+  }
+  expect(sent).toHaveLength(styleCount * toneCount)
+  expect(new Set(sent.map((entry) => `${entry.style}/${entry.tone}`)).size).toBe(styleCount * toneCount)
+})
+
 test('a song-creation failure shows a localized error with retry', async ({ page, mockGenerate }) => {
   await mockSongStatus(page, true)
   await mockSongLyrics(page, SAMPLE_LYRICS)

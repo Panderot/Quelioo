@@ -276,9 +276,21 @@ export function planSlots(facts: PlannedFact[], questionType: QuestionType, targ
   if (pack(facts).length <= limit) {
     chosen = facts
   } else {
-    for (const fact of factPriority(facts, focusShare)) {
-      const trial = [...chosen, fact]
-      if (pack(trial).length <= limit) chosen = trial
+    // A fixed count spreads over as many different facts as possible: a fact that needs several
+    // questions on its own (a list asked item by item) only gets room after every single-question
+    // fact that fits was taken. `auto` keeps the plain priority order.
+    const ordered = factPriority(facts, focusShare)
+    const passes = target === 'auto' ? [false] : [true, false]
+    let used = pack(chosen).length
+    for (const singleOnly of passes) {
+      for (const fact of ordered) {
+        if (chosen.includes(fact)) continue
+        const trial = [...chosen, fact]
+        const size = pack(trial).length
+        if (size > limit || (singleOnly && size - used > 1)) continue
+        chosen = trial
+        used = size
+      }
     }
   }
   const chosenIds = new Set(chosen.map((fact) => fact.id))

@@ -94,6 +94,12 @@ test.describe('slot assignment per type (Auto)', () => {
     }
   })
 
+  test('a fixed count spreads over different facts before a list fact takes several questions', () => {
+    const facts = [fact(1, { items: ['a', 'b', 'c'] }), ...[2, 3, 4, 5, 6].map((id) => fact(id))]
+    const { slots } = planSlots(facts, 'mcq', 5)
+    expect(slots.map((slot) => slot.factIds[0])).toEqual([2, 3, 4, 5, 6])
+  })
+
   test('a list longer than MAX_LIST_ITEMS is tested in part (shown as partly covered)', () => {
     const long = fact(1, { items: Array.from({ length: MAX_LIST_ITEMS + 2 }, (_, index) => `item ${index}`) })
     const slots = planSlots([long], 'mcq', 'auto').slots
