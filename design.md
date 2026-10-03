@@ -125,7 +125,7 @@ Column order: H1 + subtitle → draft-restore note → input card → eyebrow "Q
 Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 
 - **Header card:** editable Fraunces title; meta: count • type • difficulty • language • "About N min". Action row: Study/Back-to-editing (Archive only), Show answers toggle (default off), outline Copy, Print/PDF, "Turn into a song". "View in Archive" (Create) / "Back to Archive" (Archive) top-right. Show answers never hides a question's own answer field.
-- **Loading:** three pulsing skeleton cards (h-32, radius 14). **Error:** error-tinted card, localized message per code, "Try again". **Incomplete:** "X of Y questions were created." + "Create the rest".
+- **Loading:** three pulsing skeleton cards (h-32, radius 14). **Error:** error-tinted card, localized message per code, "Try again". **Incomplete:** "X of Y questions were created." + "Create the rest". **Short source:** when the text supports fewer good questions than requested, a plain card (same border/radius/padding as the incomplete card, no button, hidden in print and study mode): "This text supports about {n} good questions."
 - **Question card:** card, radius 14. Header: amber number circle, amber-tinted type pill, Edit/Regenerate/Delete icon buttons with labels. Regenerating: spinner overlay.
 - **Answer bar (`AnswerBar`):** fill-blanks input, short-answer textarea (2 rows), open-ended textarea (4 rows + counter); amber-outline square check button.
   - Result line `aria-live="polite"`, icon + text: "Correct!" (green), "Partly correct" (amber, short/open only), "Not yet. Try again." (red). AI feedback never reveals the answer.

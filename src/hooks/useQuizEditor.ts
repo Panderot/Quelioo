@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { GenerateApiError, regenerateOneQuestion, topUpQuestions } from '../api/generateQuiz'
 import type { GenerateErrorCode } from '../api/generateQuiz'
+import { answerSummary } from '../lib/quiz'
 import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 import { shuffleQuizOptions, shuffleSingleQuestionOptions } from '../lib/shuffleOptions'
 
@@ -122,7 +123,9 @@ export function useQuizEditor({
       setRegeneratingId(id)
       setRegenerateError(null)
       try {
-        const avoidQuestions = current.questions.filter((question) => question.id !== id).map((question) => question.question)
+        const others = current.questions.filter((question) => question.id !== id)
+        const avoidQuestions = others.map((question) => question.question)
+        const otherQuestions = others.map((question) => ({ question: question.question, answer: answerSummary(question), type: question.type }))
         const result = await regenerateOneQuestion({
           text: sourceText,
           questionType: target.type,
@@ -130,6 +133,7 @@ export function useQuizEditor({
           optionsCount,
           outputLanguage,
           avoidQuestions,
+          otherQuestions,
           includeExplanations,
           includeHints,
           focusSnippets,

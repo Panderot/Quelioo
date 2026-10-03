@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
-import { extractJson, readRequestBody } from './anthropic.js'
-import { generateJson } from './llm.js'
+import { readRequestBody } from './anthropic.js'
+import { callLlmJson } from './llm-json.js'
 import { isMusicEnabled, isProductionAccessGateActive, resolveMusicProvider, resolveProviderMaxSeconds, verifyOwnerAccessCode } from './song-config.js'
 import {
   isRecord,
@@ -49,6 +49,8 @@ function languageInstruction(language: string): string {
  * truncating mid-string — a hard cutoff at the token limit produces invalid JSON (missing closing
  * quote/braces), which read as a parse failure. Generous on purpose: longer bands and the "funny"
  * tone (wordplay, ad-libs) both run noticeably longer than a plain 30s song. */
+const FACT_CHECK_TOKENS = 900
+
 function lyricsMaxTokens(maxChars: number): number {
   return Math.max(1200, Math.round(maxChars * 3) + 400)
 }
@@ -153,18 +155,22 @@ async function writeLyrics(params: {
   const system = buildWriteSystemPrompt(params)
   const user = buildWriteUserMessage(params)
 
-  let result: Awaited<ReturnType<typeof generateJson>>
+  const tokens = lyricsMaxTokens(params.maxChars)
   try {
-    result = await generateJson({ system, user, maxTokens: lyricsMaxTokens(params.maxChars) })
+    const result = await callLlmJson({
+      system,
+      user,
+      initialTokens: tokens,
+      retryTokens: Math.round(tokens * 1.6),
+      callType: 'song-write',
+      validate: (parsed) => validateWrittenLyrics(parsed, params.maxLines, params.maxChars),
+    })
+    if (result.ok) return result.value
+    return { error: result.error === 'not_configured' ? 'not_configured' : result.error === 'parse' ? 'parse' : 'upstream' }
   } catch (error) {
     console.error('song-lyrics: write failed', error instanceof Error ? error.message : 'unknown error')
     return { error: 'upstream' }
   }
-  if (result.status === 'not_configured') return { error: 'not_configured' }
-  if (result.status === 'error') return { error: 'upstream' }
-
-  const validated = validateWrittenLyrics(extractJson(result.text), params.maxLines, params.maxChars)
-  return validated ?? { error: 'parse' }
 }
 
 // ---------------------------------------------------------------------------
@@ -219,16 +225,22 @@ async function checkLyricsFacts(params: { lyrics: string; facts: string[]; sourc
   const system = buildFactCheckSystemPrompt(params.language)
   const user = buildFactCheckUserMessage(params)
 
-  let result: Awaited<ReturnType<typeof generateJson>>
   try {
-    result = await generateJson({ system, user, maxTokens: 400 })
+    // A JSON check: low reasoning effort, room for reasoning tokens, one retry with 1.6x.
+    const result = await callLlmJson({
+      system,
+      user,
+      initialTokens: FACT_CHECK_TOKENS,
+      retryTokens: Math.round(FACT_CHECK_TOKENS * 1.6),
+      reasoningEffort: 'low',
+      callType: 'song-check',
+      validate: (parsed) => validateFactCheckResult(parsed, lineCount, params.facts.length),
+    })
+    return result.ok ? result.value : null
   } catch (error) {
     console.error('song-lyrics: fact-check failed', error instanceof Error ? error.message : 'unknown error')
     return null
   }
-  if (result.status !== 'ok') return null
-
-  return validateFactCheckResult(extractJson(result.text), lineCount, params.facts.length)
 }
 
 // ---------------------------------------------------------------------------
@@ -283,19 +295,21 @@ async function rewriteFlaggedLines(params: {
   const system = buildRewriteSystemPrompt(params)
   const user = buildRewriteUserMessage({ ...params, missingFacts })
 
-  let result: Awaited<ReturnType<typeof generateJson>>
+  const tokens = lyricsMaxTokens(params.maxChars)
   try {
-    result = await generateJson({ system, user, maxTokens: lyricsMaxTokens(params.maxChars) })
+    const result = await callLlmJson({
+      system,
+      user,
+      initialTokens: tokens,
+      retryTokens: Math.round(tokens * 1.6),
+      callType: 'song-rewrite',
+      validate: (raw) => (isRecord(raw) && typeof raw.lyrics === 'string' ? clampLyrics(raw.lyrics, params.maxLines, params.maxChars) || null : null),
+    })
+    return result.ok ? result.value : null
   } catch (error) {
     console.error('song-lyrics: rewrite failed', error instanceof Error ? error.message : 'unknown error')
     return null
   }
-  if (result.status !== 'ok') return null
-
-  const raw = extractJson(result.text)
-  if (!isRecord(raw) || typeof raw.lyrics !== 'string') return null
-  const lyrics = clampLyrics(raw.lyrics, params.maxLines, params.maxChars)
-  return lyrics || null
 }
 
 // ---------------------------------------------------------------------------

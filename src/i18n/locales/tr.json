@@ -254,6 +254,7 @@
       "matchingCorrectMarkLabel": "Doğru eşleşme",
       "matchingIncorrectMarkLabel": "Yanlış eşleşme",
       "incompleteNote": "{{requested}} sorudan {{created}} tanesi oluşturuldu.",
+      "supportedNote": "Bu metin yaklaşık {{count}} iyi soru çıkarmaya yetiyor.",
       "createRest": "Kalanını oluştur",
       "creatingRest": "Oluşturuluyor...",
       "checkAnswerLabel": "Cevabı kontrol et",

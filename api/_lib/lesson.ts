@@ -529,6 +529,8 @@ async function runCheck(params: {
     retryTokens: 12000,
     onlyProvider: 'openai',
     openAiModel: LESSON_MODELS.checker,
+    reasoningEffort: 'low',
+    callType: 'lesson-check',
     timeoutMs: HELPER_TIMEOUT_MS,
     validate: (parsed) => parseCheckReply(parsed, lineIds, keyPointIds),
   })

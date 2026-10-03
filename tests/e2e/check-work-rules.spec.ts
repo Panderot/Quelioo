@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test'
 import { gradeStudentWork } from '../../api/_lib/check-work'
 import type { LlmJsonCaller } from '../../api/_lib/check-work'
+import { checkStudentSteps } from '../../api/_lib/step-engine'
+
+test('a worded definition line ("kalem $= p$") is not a wrong step; later steps are still checked', () => {
+  const verdicts = checkStudentSteps('$3(p - 5) + 2p = 60$', ['kalem $= p$, defter $= p - 5$', '$3(p - 5) + 2p = 60$', '$5p - 15 = 60$', '$5p = 75$', '$p = 15$'], '15')
+  expect(verdicts[0]).toBe('unknown')
+  expect(verdicts.slice(2)).toEqual(['valid', 'valid', 'valid'])
+  expect(checkStudentSteps('$2x + 4 = 10$', ['$2x = 6$', '$x = 4$'], '3')).toEqual(['valid', 'invalid'])
+})
 
 // Grading rules of /api/check-work with a scripted model (no network): the math engine runs for real.
 

@@ -5,7 +5,7 @@ import type { CheckResultState } from './AnswerBar'
 import { HintBox, HintButton } from './HintControls'
 import { useCheckableAnswer } from '../hooks/useCheckableAnswer'
 import { useHints } from '../hooks/useHints'
-import { isLenientMatch } from '../lib/answerCheck'
+import { isFillBlankMatch, usesTurkishRules } from '../lib/answerCheck'
 import { getAcceptableAnswers } from '../lib/quiz'
 import type { FillBlankQuestion } from '../lib/quiz'
 import { getHints } from '../lib/hints'
@@ -13,14 +13,18 @@ import { getHints } from '../lib/hints'
 interface FillBlankCheckProps {
   question: FillBlankQuestion
   signature: string
+  /** Quiz output language — Turkish (or auto-detected Turkish) enables the base-form rule. */
+  outputLanguage?: string
+  /** Answers of the other questions in the quiz — a typo is never forgiven into one of them. */
+  otherAnswers?: string[]
   showAnswers?: boolean
   onFirstCheck?: () => void
   onGraded?: (correct: boolean) => void
   onHintUsed?: () => void
 }
 
-/** Fill-in-the-blank: checked locally only (lenient normalization + tiny typo tolerance), no AI call. */
-export default function FillBlankCheck({ question, signature, showAnswers = false, onFirstCheck, onGraded, onHintUsed }: FillBlankCheckProps) {
+/** Fill-in-the-blank: checked locally only (normalization, accepted answers, Turkish base forms, at most one typo), no AI call. */
+export default function FillBlankCheck({ question, signature, outputLanguage, otherAnswers, showAnswers = false, onFirstCheck, onGraded, onHintUsed }: FillBlankCheckProps) {
   const { t } = useTranslation()
   const state = useCheckableAnswer<string, CheckResultState>(signature, '')
   const hints = getHints(question)
@@ -28,7 +32,10 @@ export default function FillBlankCheck({ question, signature, showAnswers = fals
 
   const runCheck = () => {
     if (!state.value.trim()) return
-    const correct = isLenientMatch(state.value, [question.answer, ...getAcceptableAnswers(question)])
+    const correct = isFillBlankMatch(state.value, [question.answer, ...getAcceptableAnswers(question)], {
+      turkish: usesTurkishRules(outputLanguage, `${question.question} ${question.answer}`),
+      otherAnswers,
+    })
     state.setResult({ status: correct ? 'correct' : 'incorrect' })
     if (!state.hasCheckedOnce) {
       state.markCheckedOnce()

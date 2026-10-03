@@ -6,7 +6,7 @@ import { GenerateApiError, generateQuiz } from '../api/generateQuiz'
 import type { GenerateErrorCode } from '../api/generateQuiz'
 import { ExtractUrlApiError, extractUrlText } from '../api/extractUrl'
 import type { ExtractUrlErrorCode } from '../api/extractUrl'
-import { addArchiveEntry, createArchiveEntryId, updateArchiveEntry } from '../lib/archive'
+import { MAX_SOURCE_AVOID_STEMS, addArchiveEntry, createArchiveEntryId, getArchiveEntries, previousStemsForSource, sourceTextHash, updateArchiveEntry } from '../lib/archive'
 import { extractTextFromFile, FileExtractionError } from '../lib/fileExtraction'
 import type { FileErrorCode } from '../lib/fileExtraction'
 import { supportsOptionsCount } from '../lib/quizTypes'
@@ -48,6 +48,7 @@ interface GeneratedResult {
   questionType: string
   requestedCount: number
   incomplete: boolean
+  supportedCount?: number
   includeExplanations: boolean
   shuffleOptions: boolean
   includeHints: boolean
@@ -358,7 +359,11 @@ export default function CreatePage() {
       outputLanguage,
       focusSnippets.join('\u0000'),
     ].join('|')
-    const avoidQuestions = lastGenerationRef.current?.key === generationKey ? lastGenerationRef.current.questions : []
+    // Earlier quizzes from the same source text (Archive, matched by hash) plus the last generation
+    // with the same settings: new quizzes cover other facts and wordings first.
+    const sourceHash = sourceTextHash(activeContent)
+    const sameSettings = lastGenerationRef.current?.key === generationKey ? lastGenerationRef.current.questions : []
+    const avoidQuestions = [...new Set([...sameSettings, ...previousStemsForSource(getArchiveEntries(), sourceHash)])].slice(0, MAX_SOURCE_AVOID_STEMS)
 
     try {
       const generated = await generateQuiz(
@@ -404,6 +409,7 @@ export default function CreatePage() {
         shuffleOptions: shuffleApplies,
         includeHints,
         focusPartsCount: focusSnippets.length,
+        sourceHash,
       })
 
       setResult({
@@ -416,6 +422,7 @@ export default function CreatePage() {
         questionType,
         requestedCount: generated.requestedCount,
         incomplete: generated.incomplete,
+        supportedCount: generated.supportedCount,
         includeExplanations,
         shuffleOptions: shuffleApplies,
         includeHints,
@@ -537,6 +544,7 @@ export default function CreatePage() {
             outputLanguage={result.outputLanguage}
             requestedCount={result.requestedCount}
             incomplete={result.incomplete}
+            supportedCount={result.supportedCount}
             onPersist={(quiz) => persistEntry(result.entryId, quiz)}
             archiveLink={{ href: `/archive/${result.entryId}`, label: t('cta.viewInArchive') }}
             includeExplanations={result.includeExplanations}

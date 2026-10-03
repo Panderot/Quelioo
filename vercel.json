@@ -8,7 +8,7 @@
   ],
   "functions": {
     "api/generate.ts": {
-      "maxDuration": 90
+      "maxDuration": 180
     },
     "api/extract-url.ts": {
       "maxDuration": 15

@@ -26,8 +26,9 @@ export async function checkAnswersEquivalent(a: string, b: string, problem: stri
       `<answer_a>\n${neutralizeTag(a, 'answer_a')}\n</answer_a>`,
       `<answer_b>\n${neutralizeTag(b, 'answer_b')}\n</answer_b>`,
     ].join('\n'),
-    initialTokens: 300,
-    retryTokens: 800,
+    initialTokens: 600,
+    retryTokens: 960,
+    callType: 'answer-judge',
     validate: (parsed) => (isRecord(parsed) && typeof parsed.equivalent === 'boolean' ? parsed.equivalent : null),
   })
   return result.ok ? { ok: true, equivalent: result.value } : { ok: false, error: result.error }

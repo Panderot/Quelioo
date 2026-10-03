@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { getKeyPoints } from '../lib/quiz'
+import { getKeyPoints, otherShortAnswers } from '../lib/quiz'
 import type { GeneratedQuiz, QuizQuestion } from '../lib/quiz'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { getOutputLanguage } from '../data/outputLanguages'
@@ -49,6 +49,8 @@ interface QuizResultViewProps {
   studyMode?: boolean
   onToggleStudyMode?: () => void
   missingCount?: number
+  /** The source supports only about this many good questions (fewer than requested). */
+  supportedCount?: number
   isToppingUp?: boolean
   onTopUp?: () => void
   onSongSaved?: () => void
@@ -149,6 +151,7 @@ export default function QuizResultView({
   studyMode = false,
   onToggleStudyMode,
   missingCount = 0,
+  supportedCount,
   isToppingUp = false,
   onTopUp,
   onSongSaved,
@@ -567,6 +570,7 @@ export default function QuizResultView({
               showAnswers={showAnswers}
               isRegenerating={regeneratingId === question.id}
               outputLanguage={meta.outputLanguage}
+              otherAnswers={otherShortAnswers(quiz.questions, question.id)}
               onUpdate={(updater) => onQuestionUpdate(question.id, updater)}
               onDelete={() => onQuestionDelete(question.id)}
               onRegenerate={() => onQuestionRegenerate(question.id)}
@@ -574,6 +578,12 @@ export default function QuizResultView({
             />
           ))}
         </ul>
+      )}
+
+      {!studyMode && supportedCount !== undefined && (
+        <p data-print-hide data-testid="supported-note" className="rounded-[14px] border border-warm-border bg-card p-5 text-sm font-medium text-ink">
+          {t('create.result.supportedNote', { count: supportedCount })}
+        </p>
       )}
 
       {!studyMode && missingCount > 0 && onTopUp && (

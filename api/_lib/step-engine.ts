@@ -393,8 +393,18 @@ interface LineStatements {
 function lineStatements(line: string): LineStatements {
   const segments: string[] = []
   const worded = line.includes('$')
+  let definesWord = false
   if (worded) {
-    for (const match of line.matchAll(/\$\$([^$]+)\$\$|\$([^$]+)\$/g)) segments.push(match[1] ?? match[2])
+    for (const match of line.matchAll(/\$\$([^$]+)\$\$|\$([^$]+)\$/g)) {
+      const segment = match[1] ?? match[2]
+      // "kalem $= p$": the left side is a word outside the math, so this names a quantity — a
+      // definition, not a continuation of the previous equation.
+      if (/^\s*(=|<|>|≤|≥|\\le|\\ge)/.test(segment) && /\p{L}\s*$/u.test(line.slice(0, match.index))) {
+        definesWord = true
+        continue
+      }
+      segments.push(segment)
+    }
   } else {
     segments.push(line)
   }
@@ -417,7 +427,7 @@ function lineStatements(line: string): LineStatements {
       statements.push(parsed)
     }
   }
-  return { statements, unparsedRelation }
+  return { statements, unparsedRelation: unparsedRelation || definesWord }
 }
 
 function isLoneSymbol(piece: string): boolean {

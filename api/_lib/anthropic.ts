@@ -30,6 +30,8 @@ interface CallAnthropicMessagesParams {
   /** Omitted entirely from the request when not passed, so existing callers (Solve) send a byte-identical body. */
   outputConfig?: { effort: string }
   thinking?: { type: string }
+  /** Overrides the default upstream timeout (e.g. a 10-question quiz batch). */
+  timeoutMs?: number
 }
 
 export interface AnthropicCallResult {
@@ -43,7 +45,7 @@ export interface AnthropicCallResult {
 
 async function postAnthropicMessages(params: CallAnthropicMessagesParams): Promise<AnthropicCallResult> {
   const timeoutController = new AbortController()
-  const timeout = setTimeout(() => timeoutController.abort(), UPSTREAM_TIMEOUT_MS)
+  const timeout = setTimeout(() => timeoutController.abort(), params.timeoutMs ?? UPSTREAM_TIMEOUT_MS)
 
   let response: Response
   try {

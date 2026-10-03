@@ -90,7 +90,7 @@ async function callExplain(params: {
 }): Promise<ExplainResponseBody> {
   const system = buildSystemPrompt(params.language, params.level)
   const user = buildUserMessage(params)
-  const attempt = (maxTokens: number) => generateJson({ system, user, maxTokens })
+  const attempt = (maxTokens: number) => generateJson({ system, user, maxTokens, callType: 'explain-step' })
 
   let llmResult = await attempt(INITIAL_MAX_TOKENS)
   if (llmResult.status === 'not_configured') return { error: 'not_configured' }

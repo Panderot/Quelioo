@@ -141,6 +141,7 @@ async function handleSimilarRequest(payload: unknown, ip: string): Promise<{ sta
     const generated = await callLlmJson({
       system,
       user,
+      callType: 'similar',
       initialTokens: 4000,
       retryTokens: 8000,
       validate: (parsed) => validateGenerated(parsed, forbidden),
@@ -151,6 +152,7 @@ async function handleSimilarRequest(payload: unknown, ip: string): Promise<{ sta
     const solved = await callLlmJson({
       system: SOLVER_SYSTEM,
       user: `<problem>\n${neutralizeTag(generated.value.question, 'problem')}\n</problem>`,
+      callType: 'similar',
       initialTokens: 3000,
       retryTokens: 6000,
       validate: (parsed) =>

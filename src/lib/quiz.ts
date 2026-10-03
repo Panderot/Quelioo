@@ -37,8 +37,8 @@ export interface TrueFalseQuestion extends QuizQuestionBase {
 export interface FillBlankQuestion extends QuizQuestionBase {
   type: 'fill-blanks'
   answer: string
-  /** Up to 4 alternative correct phrasings, checked leniently alongside `answer`. Optional only
-   * for backward compatibility with questions saved before this existed. */
+  /** Up to 8 alternative correct forms (base form, fitting inflections, true synonyms), checked
+   * alongside `answer`. Optional only for backward compatibility with older saved questions. */
   acceptableAnswers?: string[]
 }
 
@@ -64,7 +64,7 @@ export interface MatchingQuestion extends QuizQuestionBase {
 export interface OpenEndedQuestion extends QuizQuestionBase {
   type: 'open-ended'
   answer: string
-  /** 2-4 short essential ideas the AI grader checks coverage against. Optional for backward
+  /** 2-5 short essential ideas the AI grader checks coverage against. Optional for backward
    * compatibility with questions saved before this existed — see getKeyPoints(). */
   keyPoints?: string[]
   evidence?: string
@@ -83,6 +83,33 @@ export function getAcceptableAnswers(question: Pick<FillBlankQuestion | ShortAns
   return question.acceptableAnswers ?? []
 }
 
+/** The answer of a question as one short string (correct option, true/false, answer text, pairs) —
+ * sent as DATA with regenerate-one so the new question never repeats or leaks into the others. */
+export function answerSummary(question: QuizQuestion): string {
+  switch (question.type) {
+    case 'mcq':
+      return question.options[question.answerIndex] ?? ''
+    case 'true-false':
+      return question.answerBool ? 'true' : 'false'
+    case 'matching':
+      return question.pairs.map((pair) => `${pair.left} = ${pair.right}`).join('; ')
+    default:
+      return question.answer
+  }
+}
+
+/** Short answers (fill-in, short answer, a short correct mcq option) of every question except
+ * `exceptId` — fill-in checking never forgives a one-letter typo that turns into one of these. */
+export function otherShortAnswers(questions: QuizQuestion[], exceptId: string): string[] {
+  const answers: string[] = []
+  for (const question of questions) {
+    if (question.id === exceptId) continue
+    if (question.type === 'fill-blanks' || question.type === 'short-answer') answers.push(question.answer, ...(question.acceptableAnswers ?? []))
+    else if (question.type === 'mcq') answers.push(question.options[question.answerIndex])
+  }
+  return answers.filter((answer) => answer && answer.split(/\s+/).length <= 3)
+}
+
 export type QuizQuestion =
   | McqQuestion
   | TrueFalseQuestion
@@ -95,6 +122,9 @@ export interface GeneratedQuiz {
   title: string
   questions: QuizQuestion[]
 }
+
+/** Fill-in answers list the base form plus the inflected forms and synonyms that fit the sentence. */
+const MAX_ACCEPTABLE_FILL_ANSWERS = 8
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -208,7 +238,7 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
     case 'fill-blanks': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
-      const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, 4)
+      const acceptableAnswers = sanitizeStringList(raw.acceptableAnswers, MAX_ACCEPTABLE_FILL_ANSWERS)
       return { id, type: 'fill-blanks', question, explanation, answer, acceptableAnswers, estimatedSeconds, hints }
     }
     case 'short-answer': {
@@ -221,7 +251,7 @@ export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQu
     case 'open-ended': {
       const answer = typeof raw.answer === 'string' ? raw.answer.trim() : ''
       if (!answer) return null
-      const keyPoints = sanitizeStringList(raw.keyPoints, 4)
+      const keyPoints = sanitizeStringList(raw.keyPoints, 5)
       const evidence = typeof raw.evidence === 'string' ? raw.evidence.trim().slice(0, 200) : ''
       return { id, type: 'open-ended', question, explanation, answer, keyPoints, evidence, estimatedSeconds, hints }
     }

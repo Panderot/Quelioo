@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
-import { extractJson, readRequestBody } from './anthropic.js'
-import { generateJson } from './llm.js'
+import { readRequestBody } from './anthropic.js'
+import { callLlmJson } from './llm-json.js'
 import { isRecord, isGradeResponseBody, MAX_STUDENT_ANSWER_CHARS } from '../../src/lib/grading.js'
 import type { GradeErrorCode, GradeQuestionType, GradeResponseBody, GradeApiErrorBody } from '../../src/lib/grading.js'
 import { getOutputLanguageEnglishName } from '../../src/data/outputLanguages.js'
@@ -71,6 +71,9 @@ function buildGradeUserMessage(params: {
     .join('\n')
 }
 
+/** Output budget for one verdict (reasoning models spend part of it before the JSON). */
+const GRADE_TOKENS = 900
+
 function validateGradeResult(raw: unknown, keyPointCount: number): GradeResponseBody | null {
   if (!isGradeResponseBody(raw)) return null
   const total = Math.max(1, Math.min(20, Math.round(raw.total) || keyPointCount || 1))
@@ -121,28 +124,29 @@ async function handleGradeRequest(payload: unknown): Promise<{ status: number; b
   const system = buildGradeSystemPrompt({ type, language })
   const user = buildGradeUserMessage({ question, modelAnswer, keyPoints, evidence, studentAnswer: studentAnswerRaw })
 
-  let result: Awaited<ReturnType<typeof generateJson>>
+  // A short JSON verdict: low reasoning effort, room for the reasoning tokens, and one retry with
+  // 1.6x the limit when the reply is cut off or does not validate.
+  let result: Awaited<ReturnType<typeof callLlmJson<GradeResponseBody>>>
   try {
-    result = await generateJson({ system, user, maxTokens: 300 })
+    result = await callLlmJson({
+      system,
+      user,
+      initialTokens: GRADE_TOKENS,
+      retryTokens: Math.round(GRADE_TOKENS * 1.6),
+      reasoningEffort: 'low',
+      callType: 'grade',
+      validate: (parsed) => validateGradeResult(parsed, keyPoints.length),
+    })
   } catch (error) {
     console.error('grade: failed', error instanceof Error ? error.message : 'unknown error')
     return { status: 502, body: { error: 'upstream' } }
   }
 
-  if (result.status === 'not_configured') {
-    return { status: errorStatus('not_configured'), body: { error: 'not_configured' } }
+  if (!result.ok) {
+    const code = result.error === 'not_configured' ? 'not_configured' : result.error === 'parse' ? 'parse' : 'upstream'
+    return { status: errorStatus(code), body: { error: code } }
   }
-  if (result.status === 'error') {
-    return { status: errorStatus('upstream'), body: { error: 'upstream' } }
-  }
-
-  const parsedJson = extractJson(result.text)
-  const validated = validateGradeResult(parsedJson, keyPoints.length)
-  if (!validated) {
-    return { status: 502, body: { error: 'parse' } }
-  }
-
-  return { status: 200, body: validated }
+  return { status: 200, body: result.value }
 }
 
 export async function gradeRequestHandler(req: IncomingMessage, res: ServerResponse): Promise<void> {

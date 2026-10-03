@@ -104,9 +104,11 @@ interface QuestionCardProps {
   onRegenerate: () => void
   /** Every check's result (correct or not); the result view keeps the first one per question. */
   onGraded?: (correct: boolean) => void
+  /** Short answers of the other questions in the quiz (fill-in checking never forgives a typo into one). */
+  otherAnswers?: string[]
 }
 
-export default function QuestionCard({ index, question, showAnswers, isRegenerating, outputLanguage, onUpdate, onDelete, onRegenerate, onGraded }: QuestionCardProps) {
+export default function QuestionCard({ index, question, showAnswers, isRegenerating, outputLanguage, onUpdate, onDelete, onRegenerate, onGraded, otherAnswers }: QuestionCardProps) {
   const { t } = useTranslation()
   const [isEditing, setIsEditing] = useState(false)
   const [isExplanationOpen, setIsExplanationOpen] = useState(false)
@@ -209,7 +211,7 @@ export default function QuestionCard({ index, question, showAnswers, isRegenerat
           hintLeakError={hintLeakError}
         />
       ) : (
-        <QuestionView question={question} showAnswers={showAnswers} outputLanguage={outputLanguage} onFirstCheck={markExplanationChecked} onGraded={onGraded} />
+        <QuestionView question={question} showAnswers={showAnswers} outputLanguage={outputLanguage} otherAnswers={otherAnswers} onFirstCheck={markExplanationChecked} onGraded={onGraded} />
       )}
 
       {!isEditing && question.explanation && explanationAllowed && (
@@ -236,12 +238,14 @@ function QuestionView({
   question,
   showAnswers,
   outputLanguage,
+  otherAnswers,
   onFirstCheck,
   onGraded,
 }: {
   question: QuizQuestion
   showAnswers: boolean
   outputLanguage: string
+  otherAnswers?: string[]
   onFirstCheck?: () => void
   onGraded?: (correct: boolean) => void
 }) {
@@ -324,7 +328,7 @@ function QuestionView({
               <MathText text={question.answer} />
             </p>
           )}
-          <FillBlankCheck question={question} signature={signature} showAnswers={showAnswers} onFirstCheck={onFirstCheck} onGraded={onGraded} />
+          <FillBlankCheck question={question} signature={signature} outputLanguage={outputLanguage} otherAnswers={otherAnswers} showAnswers={showAnswers} onFirstCheck={onFirstCheck} onGraded={onGraded} />
         </div>
       )}
 

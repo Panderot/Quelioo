@@ -254,6 +254,7 @@
       "matchingCorrectMarkLabel": "Ճիշդ զուգակցում",
       "matchingIncorrectMarkLabel": "Սխալ զուգակցում",
       "incompleteNote": "{{requested}} հարցումէն {{created}}ը ստեղծուեցաւ։",
+      "supportedNote": "Այս բնագիրը կը բաւէ մօտաւորապէս {{count}} լաւ հարցումի։",
       "createRest": "Ստեղծել մնացածը",
       "creatingRest": "Կը ստեղծուի...",
       "checkAnswerLabel": "Ստուգել պատասխանը",

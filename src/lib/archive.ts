@@ -1,3 +1,4 @@
+import { hashText } from './hash'
 import type { GeneratedQuiz } from './quiz'
 
 export interface ArchiveEntry {
@@ -22,6 +23,31 @@ export interface ArchiveEntry {
   includeHints?: boolean
   /** Number of focus parts used at generation time — never the snippet text itself. */
   focusPartsCount?: number
+  /** Hash of the normalized source text (see sourceTextHash) — lets a new quiz from the same text
+   * avoid the questions earlier quizzes already asked. Older entries compute it from sourceText. */
+  sourceHash?: string
+}
+
+/** Hash of a source text after trimming, collapsing whitespace and lowercasing. */
+export function sourceTextHash(text: string): string {
+  return hashText(text.trim().replace(/\s+/g, ' ').toLocaleLowerCase())
+}
+
+export const MAX_SOURCE_AVOID_STEMS = 40
+
+/** Question stems of earlier quizzes from the same source text, newest quiz first, capped. */
+export function previousStemsForSource(entries: ArchiveEntry[], hash: string, cap = MAX_SOURCE_AVOID_STEMS): string[] {
+  const stems: string[] = []
+  const sorted = [...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  for (const entry of sorted) {
+    const entryHash = entry.sourceHash ?? (entry.sourceText ? sourceTextHash(entry.sourceText) : undefined)
+    if (entryHash !== hash) continue
+    for (const question of entry.quiz.questions) {
+      if (typeof question.question === 'string' && !stems.includes(question.question)) stems.push(question.question)
+      if (stems.length >= cap) return stems
+    }
+  }
+  return stems
 }
 
 const STORAGE_KEY = 'quelio.archive.v1'

@@ -20,6 +20,8 @@ interface QuizWorkspaceProps {
   outputLanguage: string
   requestedCount: number
   incomplete: boolean
+  /** The source supports fewer good questions than requested — shown as a short note. */
+  supportedCount?: number
   onPersist: (quiz: GeneratedQuiz) => void
   archiveLink?: ArchiveLink
   studyMode?: boolean
@@ -41,6 +43,7 @@ export default function QuizWorkspace({
   outputLanguage,
   requestedCount,
   incomplete,
+  supportedCount,
   onPersist,
   archiveLink,
   studyMode,
@@ -86,6 +89,7 @@ export default function QuizWorkspace({
         studyMode={studyMode}
         onToggleStudyMode={onToggleStudyMode}
         missingCount={editor.missingCount}
+        supportedCount={supportedCount}
         isToppingUp={editor.isToppingUp}
         onTopUp={() => void editor.topUp()}
         onSongSaved={onSongSaved}

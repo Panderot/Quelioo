@@ -175,7 +175,7 @@ async function callSolve(params: {
   const user = buildUserMessage(params.note, params.chosenProblem)
   const image = { mimeType: params.mimeType, base64Data: params.base64Data }
 
-  const attempt = (maxTokens: number) => generateJson({ system, user, maxTokens, image })
+  const attempt = (maxTokens: number) => generateJson({ system, user, maxTokens, image, callType: 'solve' })
 
   let llmResult = await attempt(INITIAL_MAX_TOKENS)
   if (llmResult.status === 'not_configured') return { error: 'not_configured' }

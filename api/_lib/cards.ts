@@ -254,6 +254,8 @@ export async function handleCardsRequest(payload: unknown, ip: string): Promise<
     system: generatorSystem(request),
     user,
     ...cardTokenBudget(request.count),
+    reasoningEffort: 'none',
+    callType: `cards-${request.mode}`,
     validate: (parsed) => validateGeneratedCards(parsed, avoidKeys, request.count),
   })
   if (!generated.ok) return fail(generated.error)
@@ -272,6 +274,8 @@ export async function handleCardsRequest(payload: unknown, ip: string): Promise<
       user: `${topicBlock}\n<cards>\n${numbered}\n</cards>\nCheck every card.`,
       ...cardTokenBudget(cards.length),
       preferProvider: generated.provider === 'openai' ? 'anthropic' : 'openai',
+      reasoningEffort: 'low',
+      callType: 'cards-verify',
       validate: (parsed) => applyVerdicts(cards, parsed, avoidKeys),
     })
     if (!verified.ok) return fail(verified.error)

@@ -108,7 +108,7 @@ async function handleAnotherWayRequest(payload: unknown, ip: string): Promise<{ 
   ].join('\n')
 
   for (const retry of [false, true]) {
-    const generated = await callLlmJson({ system: systemPrompt(resolvedLanguage, retry), user, initialTokens: 4000, retryTokens: 8000, validate })
+    const generated = await callLlmJson({ system: systemPrompt(resolvedLanguage, retry), user, initialTokens: 4000, retryTokens: 8000, callType: 'another-way', validate })
     if (!generated.ok) return fail(generated.error)
     const value = generated.value
     const meta = { provider: generated.provider, fallbackUsed: generated.fallbackUsed }

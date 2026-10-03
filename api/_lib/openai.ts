@@ -9,6 +9,10 @@ export interface OpenAiUsage {
   cachedTokens: number
   /** usage.input_tokens_details.cache_write_tokens — input written to the prompt cache. */
   cacheWriteTokens: number
+  /** usage.output_tokens_details.reasoning_tokens — output spent on hidden reasoning. */
+  reasoningTokens?: number
+  /** The reply stopped at max_output_tokens. */
+  truncated?: boolean
 }
 
 export interface CallOpenAiResponsesParams {
@@ -115,7 +119,10 @@ export async function callOpenAiResponses(params: CallOpenAiResponsesParams): Pr
     // A reply cut off by max_output_tokens (e.g. all spent on reasoning) reads as empty text, so the
     // JSON layer retries it with a higher limit instead of treating it as a provider failure.
     text: extractOutputText(payload) ?? (isRecord(payload) && payload.status === 'incomplete' ? '' : null),
-    usage: extractUsage(payload),
+    usage: (() => {
+      const usage = extractUsage(payload)
+      return usage && isRecord(payload) && payload.status === 'incomplete' ? { ...usage, truncated: true } : usage
+    })(),
     modelRejected: false,
     errorType: null,
     errorCode: null,
@@ -154,9 +161,10 @@ function extractOutputText(payload: unknown): string | null {
 
 function extractUsage(payload: unknown): OpenAiUsage | null {
   if (!isRecord(payload) || !isRecord(payload.usage)) return null
-  const { input_tokens: inputTokens, output_tokens: outputTokens, input_tokens_details: details } = payload.usage
+  const { input_tokens: inputTokens, output_tokens: outputTokens, input_tokens_details: details, output_tokens_details: outputDetails } = payload.usage
   if (typeof inputTokens !== 'number' || typeof outputTokens !== 'number') return null
   const cachedTokens = isRecord(details) && typeof details.cached_tokens === 'number' ? details.cached_tokens : 0
   const cacheWriteTokens = isRecord(details) && typeof details.cache_write_tokens === 'number' ? details.cache_write_tokens : 0
-  return { inputTokens, outputTokens, cachedTokens, cacheWriteTokens }
+  const reasoningTokens = isRecord(outputDetails) && typeof outputDetails.reasoning_tokens === 'number' ? outputDetails.reasoning_tokens : 0
+  return { inputTokens, outputTokens, cachedTokens, cacheWriteTokens, reasoningTokens }
 }

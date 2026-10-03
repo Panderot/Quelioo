@@ -30,6 +30,8 @@ export interface GenerateQuizPayload {
 export interface GenerateQuizResult extends GeneratedQuiz {
   requestedCount: number
   incomplete: boolean
+  /** Set when the source supports fewer good questions than requested (the quiz is not padded). */
+  supportedCount?: number
   /** Informational only — the UI never shows this. */
   provider?: 'anthropic' | 'openai'
   fallbackUsed?: boolean
@@ -42,6 +44,8 @@ export interface RegenerateOnePayload {
   optionsCount?: string
   outputLanguage: string
   avoidQuestions: string[]
+  /** The rest of the quiz (question + short answer) so the new question never leaks or repeats. */
+  otherQuestions?: { question: string; answer: string; type: QuizQuestionType }[]
   includeExplanations?: boolean
   includeHints?: boolean
   focusSnippets?: string[]
@@ -144,6 +148,7 @@ export async function generateQuiz(payload: GenerateQuizPayload, signal?: AbortS
     questions: json.questions,
     requestedCount: typeof json.requestedCount === 'number' ? json.requestedCount : json.questions.length,
     incomplete: typeof json.incomplete === 'boolean' ? json.incomplete : false,
+    supportedCount: typeof json.supportedCount === 'number' ? json.supportedCount : undefined,
     provider: isResponseProvider(json.provider) ? json.provider : undefined,
     fallbackUsed: typeof json.fallbackUsed === 'boolean' ? json.fallbackUsed : undefined,
   }

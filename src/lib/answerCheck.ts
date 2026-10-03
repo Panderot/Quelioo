@@ -16,9 +16,9 @@ export function normalizeAnswer(input: string): string {
     .replace(/ı/g, 'i')
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
+    .replace(/[.!?;:,。؟]+$/u, '')
     .replace(/\s+/g, ' ')
     .trim()
-    .replace(/[.!?;:,]+$/, '')
 }
 
 /** Levenshtein edit distance between two already-normalized strings. */
@@ -65,6 +65,96 @@ export function isLenientMatch(studentAnswer: string, correctAnswers: string[]):
   const normalizedCandidate = normalizeAnswer(studentAnswer)
   if (!normalizedCandidate) return false
   return correctAnswers.some((correct) => isLenientMatchOne(normalizedCandidate, correct))
+}
+
+/** Turkish nominal suffixes (already normalized: no diacritics, ı→i), stripped from the outside in:
+ * copula, then case, then possessive, then plural — each category at most once. Verb suffixes are
+ * never stripped (a verb's degree/tense is part of the answer). */
+const TR_SUFFIX_LAYERS: readonly (readonly string[])[] = [
+  ['dir', 'dur', 'tir', 'tur'],
+  ['ndeki', 'ndaki', 'deki', 'daki', 'teki', 'taki', 'nden', 'ndan', 'nin', 'nun', 'yle', 'yla', 'den', 'dan', 'ten', 'tan', 'nde', 'nda', 'de', 'da', 'te', 'ta', 'le', 'la', 'ye', 'ya', 'yi', 'yu', 'in', 'un', 'ne', 'na', 'ni', 'nu', 'ce', 'ca', 'e', 'a', 'i', 'u'],
+  ['imiz', 'umuz', 'iniz', 'unuz', 'leri', 'lari', 'si', 'su', 'im', 'um', 'i', 'u'],
+  ['ler', 'lar'],
+]
+
+const MIN_STEM_LETTERS = 3
+/** A single-vowel suffix (e.g. dative -a in "glikoza") may only be stripped when at least this many
+ * letters remain — so "kara" never yields "kar" and "masa" never yields "mas". */
+const MIN_STEM_AFTER_VOWEL = 4
+/** Two-letter suffixes that are also common word endings ("yakın", "dakika"): same 4-letter minimum. */
+const AMBIGUOUS_ENDINGS = new Set(['in', 'un', 'im', 'um', 'ni', 'nu', 'na', 'ne', 'ca', 'ce'])
+
+/** Final-consonant hardening that undoes Turkish softening before a vowel suffix (ışığı → ışık). */
+const HARDEN: Record<string, string> = { g: 'k', b: 'p', d: 't', c: 'c' }
+
+/**
+ * Conservative base forms of an EXPECTED Turkish answer (already normalized) — only its last word is
+ * stripped, one suffix per layer, never below 3 letters. Never applied to the student's input.
+ * Example: "organellerde" → ["organeller", "organel"]; "kökleriyle" → ["kokleri", "kokler", "kok"].
+ */
+export function turkishBaseForms(normalizedAnswer: string): string[] {
+  const words = normalizedAnswer.split(' ')
+  const last = words.pop() ?? ''
+  const prefix = words.length > 0 ? `${words.join(' ')} ` : ''
+  const forms: string[] = []
+  let current = last
+  for (const layer of TR_SUFFIX_LAYERS) {
+    const suffix = layer.find((entry) => {
+      if (!current.endsWith(entry)) return false
+      const remaining = current.length - entry.length
+      return remaining >= (entry.length === 1 || AMBIGUOUS_ENDINGS.has(entry) ? MIN_STEM_AFTER_VOWEL : MIN_STEM_LETTERS)
+    })
+    if (!suffix) continue
+    current = current.slice(0, -suffix.length)
+    forms.push(current)
+    const hardened = HARDEN[current.slice(-1)]
+    if (hardened && suffix.length <= 2 && /^[aeiu]/.test(suffix)) forms.push(current.slice(0, -1) + hardened)
+  }
+  return [...new Set(forms)].filter((form) => form.length >= MIN_STEM_LETTERS && form !== last).map((form) => prefix + form)
+}
+
+const TURKISH_HINT = /[çğışöüÇĞİŞÖÜ]|\b(ve|bir|bu|ile|için|nedir|hangi|olarak|değil)\b/i
+
+/** True when Turkish matching rules apply: the quiz language is Turkish, or it was auto-detected and
+ * the question text looks Turkish. */
+export function usesTurkishRules(outputLanguage: string | undefined, sampleText: string): boolean {
+  if (outputLanguage === 'tr') return true
+  if (outputLanguage && outputLanguage !== 'auto') return false
+  return TURKISH_HINT.test(sampleText)
+}
+
+export interface FillBlankMatchOptions {
+  /** Apply the conservative Turkish base-form rule to the expected answers. */
+  turkish?: boolean
+  /** Answers of the OTHER questions in the quiz — a one-letter typo is never forgiven when it turns the
+   * student's word into one of these. */
+  otherAnswers?: string[]
+}
+
+/**
+ * Fill-in-the-blank checking: exact match after normalization against the answer, any accepted
+ * answer, and (Turkish only) the conservative base forms of those; then at most ONE typo for forms of
+ * 6+ letters, never when the typed word is another question's answer or one of the accepted forms of
+ * a different word. No other fuzzy matching.
+ */
+export function isFillBlankMatch(studentAnswer: string, correctAnswers: string[], options: FillBlankMatchOptions = {}): boolean {
+  const candidate = normalizeAnswer(studentAnswer)
+  if (!candidate) return false
+  const accepted = new Set<string>()
+  for (const answer of correctAnswers) {
+    const normalized = normalizeAnswer(answer)
+    if (!normalized) continue
+    accepted.add(normalized)
+    if (options.turkish) for (const form of turkishBaseForms(normalized)) accepted.add(form)
+  }
+  if (accepted.has(candidate)) return true
+
+  const others = new Set((options.otherAnswers ?? []).map(normalizeAnswer).filter(Boolean))
+  if (others.has(candidate)) return false
+  for (const form of accepted) {
+    if (form.length >= 6 && Math.abs(form.length - candidate.length) <= 1 && editDistance(candidate, form) <= 1) return true
+  }
+  return false
 }
 
 /** A stable string capturing exactly the content that determines correctness for a question —

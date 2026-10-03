@@ -254,6 +254,7 @@
       "matchingCorrectMarkLabel": "Correct match",
       "matchingIncorrectMarkLabel": "Incorrect match",
       "incompleteNote": "{{created}} of {{requested}} questions were created.",
+      "supportedNote": "This text supports about {{count}} good questions.",
       "createRest": "Create the rest",
       "creatingRest": "Creating...",
       "checkAnswerLabel": "Check answer",

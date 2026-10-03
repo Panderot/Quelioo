@@ -187,6 +187,10 @@ export const LESSON_MODELS = { writer: 'gpt-6-sol', helper: 'gpt-6-luna', checke
 const MODEL_PRICES: Record<string, { input: number; cached: number; output: number }> = {
   'gpt-6-sol': { input: 2, cached: 0.2, output: 10 },
   'gpt-6-luna': { input: 0.1, cached: 0.01, output: 0.5 },
+  // OPENAI_MODEL default for quiz generation when it falls back to OpenAI.
+  'gpt-5.6-luna': { input: 0.2, cached: 0.02, output: 1.2 },
+  // Quiz generation's default Anthropic model (Anthropic pricing table).
+  'claude-sonnet-5-5': { input: 2, cached: 0.2, output: 10 },
 }
 
 export interface TokenUsage {

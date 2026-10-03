@@ -29,6 +29,7 @@ export async function callLlmJson<T>(params: {
   cacheablePrefix?: string
   timeoutMs?: number
   reasoningEffort?: string
+  callType?: string
 }): Promise<LlmJsonResult<T>> {
   // Every attempt is billed, including an invalid/truncated first reply — all of them are reported.
   const usage: LlmUsage[] = []
@@ -44,6 +45,7 @@ export async function callLlmJson<T>(params: {
       ...(params.cacheablePrefix ? { cacheablePrefix: params.cacheablePrefix } : {}),
       ...(params.timeoutMs ? { timeoutMs: params.timeoutMs } : {}),
       ...(params.reasoningEffort ? { reasoningEffort: params.reasoningEffort } : {}),
+      ...(params.callType ? { callType: params.callType } : {}),
     })
     if (result.status === 'not_configured') return { ok: false, error: 'not_configured', usage }
     if (result.status === 'error') return { ok: false, error: result.error === 'model' ? 'model' : 'upstream', usage }

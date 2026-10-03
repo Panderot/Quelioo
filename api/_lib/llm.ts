@@ -32,11 +32,13 @@ export interface LlmCallParams {
   /** Static instructions placed first with an explicit prompt-cache breakpoint (OpenAI); `system` is the variable rest. */
   cacheablePrefix?: string
   timeoutMs?: number
-  /** OpenAI reasoning effort for this call. */
+  /** OpenAI reasoning effort for this call ("none", "low", ...); omitted = the model default. */
   reasoningEffort?: string
+  /** Short label for the log line (e.g. "quiz-write"); counts only are logged, never content. */
+  callType?: string
 }
 
-/** Token usage of one successful call, for cost logging (OpenAI only for now). */
+/** Token usage of one successful call, for cost logging. */
 export interface LlmUsage extends OpenAiUsage {
   model: string
 }
@@ -143,13 +145,15 @@ ${params.system}` : params.system,
     content,
     outputConfig: effort.outputConfig,
     thinking: effort.thinking,
+    timeoutMs: params.timeoutMs,
   })
 
   if (!result.ok || result.text === null) {
     const logTag = classifyAnthropicFailure(result.status, result.errorType)
     return { error: toClientErrorCode(logTag), logTag, status: result.status, errorType: result.errorType, errorCode: null }
   }
-  return { text: result.text }
+  const usage = result.usage ? { inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, cachedTokens: 0, cacheWriteTokens: 0, model } : undefined
+  return { text: result.text, ...(usage ? { usage } : {}) }
 }
 
 async function callOpenAi(params: LlmCallParams): Promise<ProviderOutcome> {
@@ -225,18 +229,21 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
     }
 
     const fallbackUsed = attempts > 1
-    console.log(`llm: provider=${provider} fallbackUsed=${fallbackUsed} duration=${Date.now() - start}ms error=none`)
+    const usage = outcome.usage
+    console.log(
+      `llm: type=${params.callType ?? 'other'} provider=${provider} fallbackUsed=${fallbackUsed} duration=${Date.now() - start}ms effort=${params.reasoningEffort ?? 'default'} limit=${params.maxTokens} out=${usage?.outputTokens ?? '-'} reasoning=${usage?.reasoningTokens ?? '-'} truncated=${usage?.truncated === true} error=none`,
+    )
     return { status: 'ok', text: outcome.text, provider, fallbackUsed, ...(outcome.usage ? { usage: outcome.usage } : {}) }
   }
 
   const duration = Date.now() - start
   if (attempts === 0) {
-    console.log(`llm: provider=none fallbackUsed=false duration=${duration}ms error=not_configured`)
+    console.log(`llm: type=${params.callType ?? 'other'} provider=none fallbackUsed=false duration=${duration}ms error=not_configured`)
     return { status: 'not_configured' }
   }
 
   console.log(
-    `llm: provider=${lastProvider} fallbackUsed=${attempts > 1} duration=${duration}ms error=${lastFailure.logTag} status=${lastFailure.status} type=${lastFailure.errorType} code=${lastFailure.errorCode}`,
+    `llm: type=${params.callType ?? 'other'} provider=${lastProvider} fallbackUsed=${attempts > 1} duration=${duration}ms error=${lastFailure.logTag} status=${lastFailure.status} type=${lastFailure.errorType} code=${lastFailure.errorCode}`,
   )
   return { status: 'error', error: lastFailure.error }
 }
