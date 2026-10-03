@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, Ref } from 'react'
 
+import MathEditable from '../MathEditable'
+
 const SAVE_DEBOUNCE_MS = 400
 
 interface AutosaveFieldProps {
@@ -15,10 +17,12 @@ interface AutosaveFieldProps {
   placeholder?: string
   describedBy?: string
   dataPurpose?: string
+  /** Show text containing math rendered (KaTeX) until the field is clicked. */
+  math?: boolean
 }
 
 /** A text field that saves itself: debounced while typing, immediately on blur and on unmount. */
-export default function AutosaveField({ value, onCommit, label, maxLength, multiline, rows = 2, invalid, inputRef, placeholder, describedBy, dataPurpose }: AutosaveFieldProps) {
+export default function AutosaveField({ value, onCommit, label, maxLength, multiline, rows = 2, invalid, inputRef, placeholder, describedBy, dataPurpose, math }: AutosaveFieldProps) {
   const [draft, setDraft] = useState(value)
   const pending = useRef<string | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -62,5 +66,17 @@ export default function AutosaveField({ value, onCommit, label, maxLength, multi
     placeholder,
     ref: inputRef,
   }
-  return multiline ? <textarea rows={rows} {...shared} className={`${className} resize-y`} /> : <input type="text" {...shared} className={className} />
+  const field = (extra: { autoFocus?: boolean; onFocus?: () => void; onBlur?: () => void } = {}) => {
+    const props = { ...shared, ...extra, onBlur: () => {
+      flush()
+      extra.onBlur?.()
+    } }
+    return multiline ? <textarea rows={rows} {...props} className={`${className} resize-y`} /> : <input type="text" {...props} className={className} />
+  }
+  if (!math) return field()
+  return (
+    <MathEditable value={draft} label={label} className={className} dataPurpose={dataPurpose}>
+      {(focusProps) => field(focusProps)}
+    </MathEditable>
+  )
 }

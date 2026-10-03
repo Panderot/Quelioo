@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import MathEditable from '../MathEditable'
 import { MAX_BACK_CHARS, MAX_FRONT_CHARS, normalizeFront } from '../../lib/flashcardText'
 import type { ReviewCard } from '../../lib/cardReview'
 
@@ -41,22 +42,25 @@ export default function CardReviewList({ cards, onChange, existingFronts }: Card
             aria-label={t('flashcards.generate.include', { number: index + 1 })}
             className="mt-2 h-4 w-4 accent-amber"
           />
-          <textarea
-            rows={2}
-            value={card.front}
-            maxLength={MAX_FRONT_CHARS}
-            onChange={(event) => update(card.key, { front: event.target.value })}
-            aria-label={t('flashcards.editor.frontLabel', { number: index + 1 })}
-            className={`${inputClass} ${duplicateKeys.has(card.key) ? 'border-error' : ''}`}
-          />
-          <textarea
-            rows={2}
-            value={card.back}
-            maxLength={MAX_BACK_CHARS}
-            onChange={(event) => update(card.key, { back: event.target.value })}
-            aria-label={t('flashcards.editor.backLabel', { number: index + 1 })}
-            className={inputClass}
-          />
+          {(['front', 'back'] as const).map((side) => {
+            const className = `${inputClass} ${side === 'front' && duplicateKeys.has(card.key) ? 'border-error' : ''}`
+            const label = t(side === 'front' ? 'flashcards.editor.frontLabel' : 'flashcards.editor.backLabel', { number: index + 1 })
+            return (
+              <MathEditable key={side} value={card[side]} label={label} className={className} dataPurpose={`review-${side}`}>
+                {(focusProps) => (
+                  <textarea
+                    rows={2}
+                    value={card[side]}
+                    maxLength={side === 'front' ? MAX_FRONT_CHARS : MAX_BACK_CHARS}
+                    onChange={(event) => update(card.key, { [side]: event.target.value })}
+                    aria-label={label}
+                    className={className}
+                    {...focusProps}
+                  />
+                )}
+              </MathEditable>
+            )
+          })}
           {duplicateKeys.has(card.key) && <p className="text-xs font-semibold text-error sm:col-start-2 sm:col-end-4">{t('flashcards.editor.duplicate')}</p>}
         </li>
       ))}

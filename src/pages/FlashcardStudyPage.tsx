@@ -22,6 +22,7 @@ import {
 } from '../lib/srs'
 import type { SessionState } from '../lib/srs'
 import MathText from '../components/MathText'
+import { mathToPlainText } from '../lib/mathPlain'
 import ProgressRing from '../components/flashcards/ProgressRing'
 import StorageNote from '../components/flashcards/StorageNote'
 
@@ -77,7 +78,7 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
     if (!current) return
     const next = !flipped
     setFlipped(next)
-    if (next && announcement === '') setAnnouncement(t('flashcards.study.answerAnnouncement', { answer: current.back }))
+    if (next && announcement === '') setAnnouncement(t('flashcards.study.answerAnnouncement', { answer: mathToPlainText(current.back) }))
   }
 
   const answer = (known: boolean) => {

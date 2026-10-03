@@ -1,3 +1,4 @@
+import { mathToPlainText } from '../lib/mathPlain'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -201,7 +202,7 @@ export default function QuizResultView({
   }, [meta, t, timeEstimateLabel])
 
   const songKeyFacts = useMemo(() => buildSongKeyFacts(quiz), [quiz])
-  const songSourceExcerpt = useMemo(() => sourceText.slice(0, MAX_SOURCE_EXCERPT_CHARS), [sourceText])
+  const songSourceExcerpt = useMemo(() => mathToPlainText(sourceText).slice(0, MAX_SOURCE_EXCERPT_CHARS), [sourceText])
 
   const handleTitleSave = () => {
     const trimmed = titleDraft.trim()

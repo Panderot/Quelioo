@@ -20,6 +20,8 @@ import {
 } from '../lib/flashcardText'
 import { isStudyable } from '../lib/srs'
 import AutosaveField from '../components/flashcards/AutosaveField'
+import MathText from '../components/MathText'
+import { mathToPlainText } from '../lib/mathPlain'
 import CardGeneratorPanel from '../components/flashcards/CardGeneratorPanel'
 import ConfirmDialog from '../components/flashcards/ConfirmDialog'
 import StorageNote from '../components/flashcards/StorageNote'
@@ -83,6 +85,7 @@ function CardRow({ card, index, duplicate, autoFocus, onDelete }: CardRowProps) 
           invalid={duplicate}
           describedBy={duplicate || !isStudyable(card) ? noteId : undefined}
           dataPurpose="card-front"
+          math
         />
         <AutosaveField
           multiline
@@ -93,6 +96,7 @@ function CardRow({ card, index, duplicate, autoFocus, onDelete }: CardRowProps) 
           placeholder={t('flashcards.editor.backPlaceholder')}
           maxLength={MAX_BACK_CHARS}
           dataPurpose="card-back"
+          math
         />
       </div>
       {/* The note line is always reserved, so saving a field on blur never changes the row height
@@ -191,7 +195,7 @@ export default function FlashcardDeckPage() {
   const keepGeneratorVisibility = () => setGeneratorOpen((open) => open ?? cards.length === 0)
 
   const handleExport = () => {
-    const blob = new Blob([cardsToCsv(cards)], { type: 'text/csv;charset=utf-8' })
+    const blob = new Blob([cardsToCsv(cards.map((card) => ({ front: mathToPlainText(card.front), back: mathToPlainText(card.back) })))], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -345,9 +349,9 @@ export default function FlashcardDeckPage() {
                       </span>
                     ) : (
                       <>
-                        <span className="break-words">{line.front}</span>
+                        <span className="break-words"><MathText text={line.front} /></span>
                         <span className="break-words text-muted">
-                          {line.back}
+                          <MathText text={line.back} />
                           {duplicate && <span className="ml-2 font-semibold text-amber-text">{t('flashcards.editor.duplicate')}</span>}
                         </span>
                       </>

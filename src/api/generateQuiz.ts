@@ -1,5 +1,6 @@
 import { answerSummary, isGeneratedQuiz, isQuizQuestion } from '../lib/quiz'
 import type { GeneratedQuiz, QuizQuestion, QuizQuestionType } from '../lib/quiz'
+import { deepMathToPlain } from '../lib/mathPlain'
 import { parseQuizCoverage } from '../lib/factCoverage'
 import type { CoverageFact, FactEntry } from '../lib/factCoverage'
 
@@ -202,7 +203,7 @@ export async function generateQuiz(payload: GenerateQuizPayload, signal?: AbortS
   const coverage = parseQuizCoverage(json.coverage)
   return {
     title: json.title,
-    questions: json.questions,
+    questions: deepMathToPlain(json.questions),
     ...(coverage ? { coverage } : {}),
     requestedCount: typeof json.requestedCount === 'number' ? json.requestedCount : json.questions.length,
     incomplete: typeof json.incomplete === 'boolean' ? json.incomplete : false,
@@ -230,7 +231,7 @@ export async function topUpQuestions(payload: TopUpPayload): Promise<TopUpResult
     throw new GenerateApiError('parse')
   }
   return {
-    questions: json.questions,
+    questions: deepMathToPlain(json.questions),
     provider: isResponseProvider(json.provider) ? json.provider : undefined,
     fallbackUsed: typeof json.fallbackUsed === 'boolean' ? json.fallbackUsed : undefined,
   }
@@ -245,7 +246,7 @@ export async function coverMissingFacts(payload: CoverMissingPayload): Promise<T
   }
   return {
     replaced: Array.isArray(json.replaced) ? json.replaced.filter(isQuizQuestion) : [],
-    questions: json.questions,
+    questions: deepMathToPlain(json.questions),
     provider: isResponseProvider(json.provider) ? json.provider : undefined,
     fallbackUsed: typeof json.fallbackUsed === 'boolean' ? json.fallbackUsed : undefined,
   }

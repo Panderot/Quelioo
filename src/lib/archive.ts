@@ -1,5 +1,6 @@
 import { hashText } from './hash'
 import type { GeneratedQuiz } from './quiz'
+import { deepMathToPlain } from './mathPlain'
 import { parseQuizCoverage } from './factCoverage'
 import type { CoverageFact } from './factCoverage'
 
@@ -89,7 +90,8 @@ function readEntries(): ArchiveEntry[] {
     if (!Array.isArray(parsed)) return []
     const valid = parsed.filter(hasValidQuestions)
     if (valid.length !== parsed.length) writeEntries(valid) // migrate once: drop entries with no valid questions array
-    return valid
+    // Older quizzes may hold LaTeX code from before quizzes were plain text: show readable math.
+    return valid.map((entry) => ({ ...entry, quiz: { ...entry.quiz, questions: deepMathToPlain(entry.quiz.questions) } }))
   } catch {
     return []
   }

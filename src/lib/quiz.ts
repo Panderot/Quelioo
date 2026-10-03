@@ -1,5 +1,6 @@
 import { computeDerangement } from './matching.js'
 import { MAX_HINTS, MAX_HINT_CHARS } from './hints.js'
+import { deepMathToPlain } from './mathPlain.js'
 import type { QuizCoverage } from './factCoverage.js'
 
 export type QuizQuestionType = 'mcq' | 'true-false' | 'fill-blanks' | 'short-answer' | 'matching' | 'open-ended'
@@ -221,8 +222,10 @@ export function isGeneratedQuiz(value: unknown): value is GeneratedQuiz {
 }
 
 /** Normalizes and validates a single raw model-provided question. Returns null if it can't be salvaged. */
-export function sanitizeQuizQuestion(raw: unknown, makeId: () => string): QuizQuestion | null {
-  if (!isRecord(raw)) return null
+export function sanitizeQuizQuestion(rawInput: unknown, makeId: () => string): QuizQuestion | null {
+  if (!isRecord(rawInput)) return null
+  // Quizzes carry readable plain math, never LaTeX code (the writer is told so; this catches the rest).
+  const raw = deepMathToPlain(rawInput)
 
   const question = typeof raw.question === 'string' ? raw.question.trim() : ''
   const explanation = typeof raw.explanation === 'string' ? raw.explanation.trim() : ''

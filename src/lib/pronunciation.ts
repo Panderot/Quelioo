@@ -6,6 +6,8 @@
  * Extend the per-language tables below; matching is on whole words only and case-sensitive.
  */
 
+import { mathToPlainText } from './mathPlain.js'
+
 export type SpeechLanguage = 'tr' | 'en' | 'other'
 
 /** Known abbreviations, acronyms and symbols -> what should be said. */
@@ -199,10 +201,24 @@ export interface SpeechText {
 
 /** Rewrites abbreviations, symbols, units, Roman numerals, formulas and numbers into spoken words. */
 export function normalizeForSpeech(input: string, language: SpeechLanguage): SpeechText {
-  let text = input.replace(/[*_#`~]+/g, ' ')
+  // LaTeX never reaches the voice as code: it becomes plain math first.
+  let text = mathToPlainText(input).replace(/[*_#`~]+/g, ' ')
   const unknown = new Set<string>()
   if (language === 'other') return { text: text.replace(/\s+/g, ' ').trim(), unknownAbbreviations: [] }
   const lang = language
+
+  // 0. Spoken math: powers ("4⁵", "a^(m+n)"), "·" and a fraction bar after a closing bracket.
+  const toPower = lang === 'tr' ? ' üzeri ' : ' to the power of '
+  const SUPERSCRIPT_DIGITS = '⁰¹²³⁴⁵⁶⁷⁸⁹'
+  // After a unit (m², cm³) a square/cube is said as "kare"/"küp"; any other power is "üzeri".
+  text = text.replace(/(?<=[\p{N}\p{L})])([⁰¹²³⁴⁵⁶⁷⁸⁹]+)/gu, (run: string, _group: string, offset: number, whole: string) => {
+    const unit = /(?:^|[\s\d])(?:[kcdm]?m)$/.test(whole.slice(0, offset))
+    if (unit && run === '²') return lang === 'tr' ? ' kare' : ' squared'
+    if (unit && run === '³') return lang === 'tr' ? ' küp' : ' cubed'
+    return `${toPower}${[...run].map((char) => SUPERSCRIPT_DIGITS.indexOf(char)).join('')} `
+  })
+  text = text.replace(/\^\(([^()]*)\)/g, (_m, inner: string) => `${toPower}${inner} `).replace(/\^([\p{L}\p{N}]+)/gu, (_m, inner: string) => `${toPower}${inner} `)
+  text = text.replace(/\s*·\s*/g, ' × ').replace(/\)\s*\/\s*(?=[\p{L}\p{N}(])/gu, `) ${OPERATORS[lang]['/']} `)
 
   // 1. Dictionary entries, longest first, whole words (symbols match anywhere).
   for (const key of Object.keys(DICTIONARY[lang]).sort((a, b) => b.length - a.length)) {

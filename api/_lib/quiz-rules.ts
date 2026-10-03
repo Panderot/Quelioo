@@ -12,6 +12,7 @@ export const GENERAL_QUALITY_RULES = [
   '4) NO HIDDEN REPEATS: every question tests a different fact; no two questions have the same answer; no near-duplicate stems. In a mixed quiz a fact appears in only ONE question across all types.',
   '5) Cover the whole source evenly (the end as much as the beginning). With only 1-3 questions, use the core concepts of the text, not simply its first sentences.',
   '6) Never pad: if <source_text> has fewer distinct, important facts than the requested count, write fewer good questions and set "supportedCount" to the number of good questions the text supports. Never write trivial or repeated questions to reach the count.',
+  '7) MATH IS PLAIN TEXT: never use LaTeX, backslash commands or dollar signs anywhere (stems, options, answers, hints, explanations). Write powers with Unicode superscripts (2⁵, 4³) or a^(m+n) when Unicode cannot express them, use · for multiplication, × and ÷ where natural, a/b or (a+b)/(c+d) for fractions, √ for roots, ° for degrees.',
 ].join(' ')
 
 const TYPE_RULES: Record<QuizQuestionType, string> = {

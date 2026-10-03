@@ -1,11 +1,13 @@
 import type { SolveResult } from '../api/solve'
 import type { ArchiveEntry } from './archive'
 import type { QuizQuestion } from './quiz'
+import { mathToPlainText } from './mathPlain'
 import { MAX_QUIZ_WORDS, countWords } from './textStats'
 
-/** Plain-text version of a solution, used as the source for "Make flashcards" and Audio Lesson. */
-export function solutionSourceText(result: SolveResult): string {
-  return [
+/** Text version of a solution: the source for "Make flashcards" (math stays LaTeX, the cards render it)
+ * and, with `plain`, for Audio Lesson and the quiz box (math as readable text, spoken in words). */
+export function solutionSourceText(result: SolveResult, plain = false): string {
+  const joined = [
     result.topic,
     result.question,
     result.intro,
@@ -16,6 +18,7 @@ export function solutionSourceText(result: SolveResult): string {
   ]
     .filter(Boolean)
     .join('\n')
+  return plain ? mathToPlainText(joined) : joined
 }
 
 function answerText(question: QuizQuestion): string {
@@ -37,7 +40,7 @@ export function quizSourceText(entry: ArchiveEntry): string {
   const questions = entry.quiz.questions
     .map((question) => [`${question.question} — ${answerText(question)}`, question.explanation].filter(Boolean).join('\n'))
     .join('\n\n')
-  const source = entry.sourceText?.trim() ?? ''
+  const source = mathToPlainText(entry.sourceText?.trim() ?? '')
   if (!source) return questions
   const combined = `${source}\n\n${questions}`
   return countWords(combined) <= MAX_QUIZ_WORDS ? combined : source

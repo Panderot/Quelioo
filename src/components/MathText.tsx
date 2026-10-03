@@ -1,6 +1,8 @@
 import katex from 'katex'
 import { useMemo } from 'react'
 
+import { mathToPlainText } from '../lib/mathPlain'
+
 interface MathTextProps {
   text: string
   className?: string
@@ -48,14 +50,15 @@ function splitMathSegments(text: string): (TextSegment | MathSegment)[] {
 function KatexSpan({ latex, block }: { latex: string; block: boolean }) {
   const html = useMemo(() => {
     try {
-      return katex.renderToString(latex, { throwOnError: false, trust: false, displayMode: block, output: 'html' })
+      return katex.renderToString(latex, { throwOnError: true, trust: false, displayMode: block, output: 'html' })
     } catch {
       return null
     }
   }, [latex, block])
 
   if (html === null) {
-    return <span>{block ? `$$${latex}$$` : `$${latex}$`}</span>
+    // Broken LaTeX never reaches the student as code: show it as readable plain text.
+    return <span>{mathToPlainText(block ? `$$${latex}$$` : `$${latex}$`)}</span>
   }
 
   return <span className={block ? 'my-1 block overflow-x-auto' : undefined} dangerouslySetInnerHTML={{ __html: html }} />
@@ -68,7 +71,7 @@ export default function MathText({ text, className }: MathTextProps) {
     <span className={className}>
       {segments.map((segment, index) =>
         segment.type === 'text' ? (
-          <span key={index}>{segment.value}</span>
+          <span key={index}>{mathToPlainText(segment.value, false)}</span>
         ) : (
           <KatexSpan key={index} latex={segment.value} block={segment.block} />
         ),

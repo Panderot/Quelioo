@@ -83,7 +83,8 @@ const QUALITY_RULES = [
   'Quality rules: exactly one fact per card; the front is short and unambiguous (only one correct answer fits it); the back is concise, at most about 25 words;',
   'the front must never contain or give away its answer (no card whose answer is just a word from its own front);',
   'no duplicates and no card that repeats a front listed in <avoid>; no trick or negative wording; numbers, names and dates must be exact;',
-  'write math in LaTeX between $...$ (inline) so the app can render it; plain text otherwise, no Markdown.',
+  'write math in LaTeX between $...$ (inline) so the app can render it; plain text otherwise, no Markdown;',
+  'keep math short, one idea per card; when the front asks how to calculate something specific, the back also gives the worked result (e.g. "$4^3 = 4\\cdot4\\cdot4 = 64$, not $4\\cdot 3$").',
 ].join(' ')
 
 function generatorSystem(params: { mode: CardsMode; style: CardStyle; language: string; count: number }): string {

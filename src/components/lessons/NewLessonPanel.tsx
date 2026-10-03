@@ -336,7 +336,7 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
                   <li key={entry.id}>
                     <button
                       type="button"
-                      onClick={() => pickSource('solution', entry.result.topic || entry.result.question.slice(0, 60), solutionSourceText(entry.result))}
+                      onClick={() => pickSource('solution', entry.result.topic || entry.result.question.slice(0, 60), solutionSourceText(entry.result, true))}
                       className="w-full px-3 py-2.5 text-left hover:bg-paper"
                     >
                       <span className="block truncate text-sm font-medium text-ink">{entry.result.topic || entry.result.question}</span>
