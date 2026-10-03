@@ -194,3 +194,114 @@ export function compareMathAnswers(a: string, b: string): boolean | null {
 export function isLocallyCheckable(expected: string): boolean {
   return prepareAnswer(expected) !== null
 }
+
+// ---- Final-answer comparison: option letters and multi-part answers ----
+
+type OptionMap = Map<string, string>
+
+/** Reads "A) 2  B) 4 ..." style options (inline or one per line) out of the problem text. */
+export function parseOptions(problem: string): OptionMap {
+  const options: OptionMap = new Map()
+  const marker = /(?:^|[\s,;])\(?([A-E])[).:]\s+/g
+  const hits = [...problem.matchAll(marker)]
+  hits.forEach((hit, index) => {
+    const start = (hit.index ?? 0) + hit[0].length
+    const end = index + 1 < hits.length ? (hits[index + 1].index ?? problem.length) : problem.length
+    const value = problem
+      .slice(start, end)
+      .split('\n')[0]
+      .trim()
+      .replace(/[;,.]$/, '')
+      .trim()
+    if (value && !options.has(hit[1])) options.set(hit[1], value)
+  })
+  return options.size >= 2 ? options : new Map()
+}
+
+type Resolved = { letter: string | null; value: string }
+
+/** Splits an option label off an answer: "4 (B)", "B) 4", "(B) 4", "B", "Cevap: B". */
+function splitOptionLabel(raw: string, options: OptionMap): Resolved {
+  const text = raw.replace(/\$+/g, '').replace(/^\s*(?:answer|cevap|yanıt|final answer)\s*[:：]\s*/iu, '').trim()
+  const lead = /^\(?([A-E])[).:]\s*(.+)$/s.exec(text)
+  if (lead) return { letter: lead[1], value: lead[2].trim() }
+  const trail = /^(.+?)\s*[([]\s*([A-E])\s*[)\]]\s*\.?$/s.exec(text)
+  if (trail) return { letter: trail[2], value: trail[1].trim() }
+  const alone = /^\(?([A-E])\)?\.?$/.exec(text)
+  if (alone && options.has(alone[1])) return { letter: alone[1], value: '' }
+  return { letter: null, value: text }
+}
+
+function resolveValue(raw: string, options: OptionMap): { text: string; letter: string | null } {
+  const { letter, value } = splitOptionLabel(raw, options)
+  if (letter && options.has(letter)) {
+    // The option text is the authoritative value for that letter; a stated value is kept only when there is no option text.
+    return { text: value || options.get(letter) || '', letter }
+  }
+  return { text: value, letter }
+}
+
+/** Splits "a) 10 cm, b) 24 cm²", "AC = 10; area = 24", "AC = 10, area = 24" into parts. */
+function splitParts(raw: string): { label: string | null; text: string }[] {
+  const text = raw.replace(/\$+/g, '').trim()
+  const labelled = [...text.matchAll(/(?:^|[\s,;])\(?([a-h])[).]\s+/g)]
+  if (labelled.length >= 2) {
+    return labelled.map((hit, index) => {
+      const start = (hit.index ?? 0) + hit[0].length
+      const end = index + 1 < labelled.length ? (labelled[index + 1].index ?? text.length) : text.length
+      return { label: hit[1], text: text.slice(start, end).trim().replace(/[;,]$/, '').trim() }
+    })
+  }
+  // A comma between digits with no space is a decimal comma; "10, 24" or ";" separate parts.
+  const pieces = text.split(/;|,(?!\d)|(?<=\d\s),\s*|(?<!\d),/).map((piece) => piece.trim()).filter(Boolean)
+  return pieces.map((piece) => ({ label: null, text: piece }))
+}
+
+/** "AC = 10 cm" → "10 cm" (a name before a single "=" is a label, not part of the value). */
+function stripPartName(part: string): string {
+  const sides = part.split('=')
+  return sides.length === 2 && /^[^\d]*$/.test(sides[0]) ? sides[1].trim() : part
+}
+
+function comparePart(a: string, b: string): boolean | null {
+  return compareMathAnswers(stripPartName(a), stripPartName(b))
+}
+
+/**
+ * Compares two final answers of the same problem. Understands option letters ("4 (B)", "B) 4", "B"),
+ * maps a bare letter to its option value from the problem, and compares multi-part answers part by
+ * part. Returns null when it cannot decide locally, so the caller can fall back to the AI judge.
+ */
+export function compareFinalAnswers(a: string, b: string, problem = ''): boolean | null {
+  const options = parseOptions(problem)
+  const left = resolveValue(a, options)
+  const right = resolveValue(b, options)
+
+  if (left.letter && right.letter && left.letter === right.letter) return true
+  if (left.letter && right.letter && left.letter !== right.letter && options.has(left.letter) && options.has(right.letter)) {
+    const byValue = compareMathAnswers(options.get(left.letter) ?? '', options.get(right.letter) ?? '')
+    if (byValue !== null) return byValue
+  }
+
+  // A bare option letter without a known option list can't be compared with a value.
+  const bareLetter = (text: string) => /^[A-E]$/.test(text.trim())
+  if ((bareLetter(left.text) || bareLetter(right.text)) && left.text.trim() !== right.text.trim()) return null
+
+  const direct = compareMathAnswers(left.text, right.text)
+  if (direct !== null) return direct
+
+  // Multi-part answers: match by label when both have labels, otherwise by position.
+  const leftParts = splitParts(left.text)
+  const rightParts = splitParts(right.text)
+  if (leftParts.length < 2 || leftParts.length !== rightParts.length) return null
+  const labelled = leftParts.every((part) => part.label) && rightParts.every((part) => part.label)
+  let undecided = false
+  for (const [index, part] of leftParts.entries()) {
+    const other = labelled ? rightParts.find((candidate) => candidate.label === part.label) : rightParts[index]
+    if (!other) return null
+    const result = comparePart(part.text, other.text)
+    if (result === false) return false
+    if (result === null) undecided = true
+  }
+  return undecided ? null : true
+}

@@ -1,6 +1,6 @@
 import { callLlmJson, isRecord } from './llm-json.js'
 import type { LlmJsonErrorCode } from './llm-json.js'
-import { compareMathAnswers } from '../../src/lib/mathAnswer.js'
+import { compareFinalAnswers } from '../../src/lib/mathAnswer.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
 export type EquivalenceResult = { ok: true; equivalent: boolean } | { ok: false; error: LlmJsonErrorCode }
@@ -16,7 +16,7 @@ const JUDGE_SYSTEM = [
  * expressions, otherwise with a small AI judge call through the shared provider layer.
  */
 export async function checkAnswersEquivalent(a: string, b: string, problem: string): Promise<EquivalenceResult> {
-  const local = compareMathAnswers(a, b)
+  const local = compareFinalAnswers(a, b, problem)
   if (local !== null) return { ok: true, equivalent: local }
 
   const result = await callLlmJson({
