@@ -508,6 +508,7 @@
     "demoBadge": "Demo ses",
     "aiDisclosure": "Bu şarkı yapay zekâ ile yapıldı.",
     "lengthNote": "Yaklaşık {{seconds}} saniye",
+    "lengthNoteLong": "Yaklaşık 1–2 dakika",
     "lengthLabel": "Uzunluk",
     "partialCoverageNote": "Bu şarkıda {{total}} bilgiden {{included}} tanesi var.",
     "style": {

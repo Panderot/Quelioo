@@ -96,6 +96,25 @@ function deleteById(db: IDBDatabase, id: string): Promise<void> {
   })
 }
 
+/** Corrects a stored song's duration to the length measured from its audio file. Best effort: a
+ * missing record or an unavailable IndexedDB leaves the song as it was. */
+export async function updateSongDuration(id: string, durationSeconds: number): Promise<void> {
+  try {
+    const db = await openDb()
+    const tx = db.transaction(STORE, 'readwrite')
+    const store = tx.objectStore(STORE)
+    const existing = await promisifyRequest(store.get(id))
+    if (!existing) return
+    store.put({ ...existing, durationSeconds })
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(new SongStorageError(tx.error?.message ?? 'update failed'))
+    })
+  } catch {
+    // Keep the old value; it is corrected again the next time the songs load.
+  }
+}
+
 /** Saves a new song, then evicts down to MAX_PER_QUIZ for this quiz and MAX_TOTAL overall (oldest
  * first). Throws SongStorageError if IndexedDB is unavailable or the write fails (e.g. quota) — the
  * caller still has the audio in memory for the current session and shows a localized note. */

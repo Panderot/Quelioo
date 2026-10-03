@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { fillText, SHORT_TEXT } from './helpers'
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
-import { TINY_WAV_BASE64 } from '../fixtures/tinyWav'
+import { buildSilentWavBase64, TINY_WAV_BASE64 } from '../fixtures/tinyWav'
 
 const SAMPLE_LYRICS = {
   title: 'Photosynthesis Jam',
@@ -45,7 +45,7 @@ interface SeedSongInput {
 /** Seeds the real IndexedDB store directly (quelio-songs/songs), awaited via page.evaluate so the
  * write is guaranteed to finish before the test navigates to a page that reads it — avoids the race
  * an addInitScript-based IndexedDB seed would have against the app's own mount-time read. */
-async function seedSongs(page: Page, songs: SeedSongInput[]) {
+async function seedSongs(page: Page, songs: SeedSongInput[], audioBase64 = TINY_WAV_BASE64) {
   // Fill in the handful of fields every real StoredSong always has (never actually "legacy") so
   // tests only have to specify what's relevant to them.
   const withRequiredDefaults = songs.map((song) => ({
@@ -88,7 +88,7 @@ async function seedSongs(page: Page, songs: SeedSongInput[]) {
         tx.onerror = () => reject(tx.error)
       }
     })
-  }, { songs: withRequiredDefaults, audioBase64: TINY_WAV_BASE64 })
+  }, { songs: withRequiredDefaults, audioBase64 })
 }
 
 async function mockSongStatus(page: Page, enabled: boolean, options: { requiresAccessCode?: boolean; maxSeconds?: number } = {}) {
@@ -484,4 +484,34 @@ test('access gate: "Lock" forgets the stored code; the song list stays visible w
   await page.getByRole('button', { name: 'New song' }).first().click()
   await page.getByRole('button', { name: new RegExp(SAMPLE_QUIZ.title) }).click()
   await expect(page.getByRole('dialog', { name: 'Turn into a song' }).getByText('Enter access code')).toBeVisible()
+})
+
+test('an old song with a wrong stored length is corrected from its audio file once the songs load', async ({ page, seedArchive }) => {
+  await mockSongStatus(page, true)
+  await seedArchive([SEEDED_ENTRY])
+  await page.goto('/?lng=en')
+  // Stored as 90 s (the requested length) although the file is 3 s long.
+  await seedSongs(
+    page,
+    [{ id: 'song-wrong-length', quizId: SEEDED_ENTRY.id, quizTitle: 'Wrong Length Song', createdAt: '2026-01-02T00:00:00.000Z', durationSeconds: 90 }],
+    buildSilentWavBase64(3),
+  )
+
+  await page.goto('/songs?lng=en')
+  await expect(page.getByText('0:03', { exact: false })).toBeVisible()
+  await expect(page.getByText('1:30')).toHaveCount(0)
+
+  await page.reload()
+  const stored = await page.evaluate(
+    () =>
+      new Promise<number>((resolve, reject) => {
+        const request = indexedDB.open('quelio-songs', 1)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => {
+          const get = request.result.transaction('songs').objectStore('songs').get('song-wrong-length')
+          get.onsuccess = () => resolve(get.result.durationSeconds)
+        }
+      }),
+  )
+  expect(stored).toBe(3)
 })

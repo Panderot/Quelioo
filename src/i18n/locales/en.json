@@ -508,6 +508,7 @@
     "demoBadge": "Demo sound",
     "aiDisclosure": "This song was made with AI.",
     "lengthNote": "About {{seconds}} seconds",
+    "lengthNoteLong": "About 1–2 minutes",
     "lengthLabel": "Length",
     "partialCoverageNote": "{{included}} of {{total}} facts are in this song.",
     "style": {

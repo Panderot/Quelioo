@@ -508,6 +508,7 @@
     "demoBadge": "Ցուցադրական ձայն",
     "aiDisclosure": "Այս երգը շինուեցաւ արհեստական բանականութեամբ։",
     "lengthNote": "Շուրջ {{seconds}} վայրկեան",
+    "lengthNoteLong": "Շուրջ 1–2 րոպէ",
     "lengthLabel": "Տեւողութիւն",
     "partialCoverageNote": "Այս երգին մէջ {{total}} տեղեկութենէն {{included}} կայ։",
     "style": {

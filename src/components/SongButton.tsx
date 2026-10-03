@@ -62,6 +62,7 @@ export default function SongButton({ quizId, quizTitle, keyFacts, sourceExcerpt,
         sourceExcerpt={sourceExcerpt}
         language={language}
         maxSeconds={status.maxSeconds}
+        provider={status.provider}
         requiresAccessCode={status.requiresAccessCode}
         showSeeAllSongsLink
         onSongSaved={onSongSaved}

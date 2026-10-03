@@ -5,7 +5,11 @@ import { Link } from 'react-router-dom'
 import { checkSongLyrics, createSong, writeSongLyrics, SongApiError, verifyAndStoreMusicAccessCode } from '../api/song'
 import type { SongLyricsResponseBody } from '../lib/song'
 import { SONG_STYLES, SONG_TONES, targetSecondsForFactCount } from '../lib/song'
-import type { SongErrorCode, SongStyle, SongTone } from '../lib/song'
+import type { SongErrorCode, SongProvider, SongStyle, SongTone } from '../lib/song'
+import { measureAudioDuration } from '../lib/audioDuration'
+
+/** lyria-3-clip-preview makes fixed ~30 s clips; longer targets use the long model. */
+const CLIP_MAX_SECONDS = 30
 import {
   canGenerateSong,
   canGenerateSongSeconds,
@@ -35,6 +39,8 @@ interface SongPanelProps {
   /** The active provider's longest supported song — clamps the length estimate shown before
    * generation (see lib/song.ts's targetSecondsForFactCount / maxFactsForTargetSeconds). */
   maxSeconds: number
+  /** The active music provider — decides whether the length line is an exact estimate or a range. */
+  provider?: SongProvider
   /** True in production — gates the flow behind OwnerAccessGate until a valid code is stored. */
   requiresAccessCode?: boolean
   /** Shown next to "Make another" after a song is created — true from the quiz result view's entry
@@ -76,6 +82,7 @@ export default function SongPanel({
   sourceExcerpt,
   language,
   maxSeconds,
+  provider,
   requiresAccessCode = false,
   showSeeAllSongsLink = false,
   onSongSaved,
@@ -103,6 +110,9 @@ export default function SongPanel({
 
   const loadingMessages = t('song.loading.messages', { returnObjects: true }) as string[]
   const estimatedSeconds = Math.min(targetSecondsForFactCount(keyFacts.length), maxSeconds)
+  // Gemini songs over one clip (30 s) come from the long model, whose real length varies.
+  const lengthText = (seconds: number) =>
+    provider === 'gemini' && seconds > CLIP_MAX_SECONDS ? t('song.lengthNoteLong') : t('song.lengthNote', { seconds })
 
   const pageActive = useIsPageActive()
 
@@ -239,9 +249,11 @@ export default function SongPanel({
         controller.signal,
       )
       recordSongGeneration(quizId)
-      recordSongSecondsUsed(result.durationSeconds)
 
       const blob = base64ToBlob(result.audio, result.mimeType)
+      // Store the length of the file itself, not the requested one (server value is the fallback).
+      const durationSeconds = (await measureAudioDuration(blob)) ?? result.durationSeconds
+      recordSongSecondsUsed(durationSeconds)
       const url = URL.createObjectURL(blob)
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current)
       objectUrlRef.current = url
@@ -259,7 +271,7 @@ export default function SongPanel({
         provider: result.provider,
         demo: result.demo,
         mimeType: result.mimeType,
-        durationSeconds: result.durationSeconds,
+        durationSeconds,
         factCheckPassed,
         audio: blob,
       }
@@ -388,7 +400,7 @@ export default function SongPanel({
 
               <div className="space-y-1">
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('song.lengthLabel')}</p>
-                <p className="text-sm font-medium text-ink">{t('song.lengthNote', { seconds: estimatedSeconds })}</p>
+                <p className="text-sm font-medium text-ink">{lengthText(estimatedSeconds)}</p>
               </div>
 
               {errorCode && (
@@ -418,7 +430,7 @@ export default function SongPanel({
 
           {step === 'lyrics' && lyricsResult && (
             <>
-              <p className="text-xs text-muted">{t('song.lengthNote', { seconds: lyricsResult.targetSeconds })}</p>
+              <p className="text-xs text-muted">{lengthText(lyricsResult.targetSeconds)}</p>
 
               {lyricsResult.includedFactsCount < lyricsResult.totalFactsCount && (
                 <p className="rounded-xl border border-warm-border bg-paper p-3 text-xs text-muted">

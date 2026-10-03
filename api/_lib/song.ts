@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
+import { mp3DurationSeconds } from '../../src/lib/mp3.js'
 import { readRequestBody } from './anthropic.js'
 import { synthesizeDemoSong } from './song-demo-audio.js'
 import { callGeminiMusic } from './gemini-music.js'
@@ -154,7 +155,10 @@ export async function handleSongCreateRequest(
   }
 
   console.log(`song: provider=gemini model=${model} duration=${Date.now() - start}ms error=none`)
-  recordSongForIp(context.ip, targetSeconds)
+  // The real length of the generated file, never the requested one (the model can overshoot it).
+  const measured = Math.round(mp3DurationSeconds(Buffer.from(result.audioBase64, 'base64')))
+  const durationSeconds = measured > 0 ? measured : targetSeconds
+  recordSongForIp(context.ip, durationSeconds)
   return {
     status: 200,
     body: {
@@ -163,7 +167,7 @@ export async function handleSongCreateRequest(
       lyrics,
       provider: 'gemini',
       demo: false,
-      durationSeconds: targetSeconds,
+      durationSeconds,
     },
   }
 }

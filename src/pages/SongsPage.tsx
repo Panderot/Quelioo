@@ -8,7 +8,8 @@ import { buildSongKeyFacts } from '../lib/songFacts'
 import { MAX_SOURCE_EXCERPT_CHARS, SONG_TONES } from '../lib/song'
 import type { SongTone } from '../lib/song'
 import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
-import { deleteSong, getAllSongs, saveSong } from '../lib/songStorage'
+import { measureAudioDuration } from '../lib/audioDuration'
+import { deleteSong, getAllSongs, saveSong, updateSongDuration } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import { remainingSongSecondsToday } from '../lib/songCostGuard'
 import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
@@ -81,7 +82,21 @@ export default function SongsPage() {
   const [playingId, setPlayingId] = useState<string | null>(null)
 
   const loadSongs = () => {
-    void getAllSongs().then(setSongs)
+    void getAllSongs().then((loaded) => {
+      setSongs(loaded)
+      void correctStoredDurations(loaded)
+    })
+  }
+
+  /** Older songs stored the requested length. Read each file's real length once, fix the stored
+   * value, and update the card, so the card, the player and the file agree. */
+  const correctStoredDurations = async (loaded: StoredSong[]) => {
+    for (const song of loaded) {
+      const real = await measureAudioDuration(song.audio)
+      if (real === null || Math.abs(real - song.durationSeconds) < 1) continue
+      await updateSongDuration(song.id, real)
+      setSongs((current) => current.map((entry) => (entry.id === song.id ? { ...entry, durationSeconds: real } : entry)))
+    }
   }
 
   useEffect(() => {
@@ -308,6 +323,7 @@ export default function SongsPage() {
           sourceExcerpt={(selectedEntry.sourceText ?? '').slice(0, MAX_SOURCE_EXCERPT_CHARS)}
           language={selectedEntry.outputLanguage ?? 'auto'}
           maxSeconds={status?.maxSeconds ?? 30}
+          provider={status?.provider}
           requiresAccessCode={status?.requiresAccessCode ?? false}
           onSongSaved={handleSongSaved}
           onGeneratingChange={setIsGenerating}

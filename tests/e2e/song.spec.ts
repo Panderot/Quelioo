@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test'
 import { test, expect } from './fixtures'
 import { fillText, SHORT_TEXT } from './helpers'
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
-import { TINY_WAV_BASE64 } from '../fixtures/tinyWav'
+import { buildSilentWavBase64, TINY_WAV_BASE64 } from '../fixtures/tinyWav'
 
 const SAMPLE_LYRICS = {
   title: 'Photosynthesis Jam',
@@ -476,3 +476,36 @@ for (const { lng, generate, entry, funny } of SONG_LOCALES) {
     await expect(page.getByRole('dialog').getByRole('radio', { name: funny })).toBeVisible()
   })
 }
+
+test('Gemini clip songs (30 s or less) show "About 30 seconds"', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 30 })
+  await reachResultView(page, mockGenerate)
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await expect(page.getByRole('dialog', { name: 'Turn into a song' }).getByText('About 30 seconds')).toBeVisible()
+})
+
+test('Gemini long-model songs show a 1–2 minute range, not an exact number of seconds', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 120 })
+  await reachResultView(page, mockGenerate) // 6 questions -> 60 s target -> the long model
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Turn into a song' })
+  await expect(dialog.getByText('About 1–2 minutes')).toBeVisible()
+  await expect(dialog.getByText('About 60 seconds')).toHaveCount(0)
+})
+
+test('the saved duration is the real length of the audio file, not the requested or server-reported one', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true)
+  await mockSongLyrics(page, SAMPLE_LYRICS)
+  // The server claims 90 s, the file is 3 s long.
+  await mockSongCreate(page, { ...SAMPLE_SONG, audio: buildSilentWavBase64(3), durationSeconds: 90 })
+  await reachResultView(page, mockGenerate)
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await page.getByRole('button', { name: 'Make the song' }).click()
+  await expect(page.locator('audio')).toBeAttached()
+  await expect(page.getByRole('button', { name: 'Make another' })).toBeVisible()
+
+  await page.goto('/songs?lng=en')
+  await expect(page.getByText('0:03', { exact: false })).toBeVisible()
+  await expect(page.getByText('1:30')).toHaveCount(0)
+})
