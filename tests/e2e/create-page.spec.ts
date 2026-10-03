@@ -183,7 +183,7 @@ test('settings dropdowns list every option and MCQ options count enables only fo
   await page.keyboard.press('Escape')
 
   await page.getByRole('button', { name: 'Question Count', exact: true }).click()
-  for (const label of ['3 Questions', '5 Questions', '10 Questions', '15 Questions', '20 Questions']) {
+  for (const label of ['Auto (cover everything)', '3 Questions', '5 Questions', '10 Questions', '15 Questions', '20 Questions']) {
     await expect(page.getByRole('option', { name: label, exact: true })).toBeVisible()
   }
   await page.keyboard.press('Escape')

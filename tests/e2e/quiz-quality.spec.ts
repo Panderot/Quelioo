@@ -5,16 +5,15 @@ import { previousStemsForSource, sourceTextHash } from '../../src/lib/archive'
 import type { ArchiveEntry } from '../../src/lib/archive'
 import type { QuizQuestion } from '../../src/lib/quiz'
 import {
-  assignFactsToSlots,
   batchSlots,
   checkAgainstOthers,
   checkQuizQuality,
   findDuplicates,
   findLeaks,
   findTrueFalseImbalance,
-  mixedSlotTypes,
   planBatches,
 } from '../../src/lib/quizQuality'
+import { planSlots } from '../../src/lib/factCoverage'
 import type { PlannedFact, QualityCheckOptions } from '../../src/lib/quizQuality'
 
 // Pure unit tests (no browser): fill-in checking, deterministic quiz checks, facts plan, batching
@@ -225,51 +224,48 @@ test.describe('facts plan and batching', () => {
   const facts = (count: number, focusEvery = 0): PlannedFact[] =>
     Array.from({ length: count }, (_, index) => ({
       id: index + 1,
-      text: `Fact ${index + 1}`,
+      label: `Topic ${index + 1}`,
+      statement: `Fact ${index + 1}`,
       span: '',
       position: count > 1 ? index / (count - 1) : 0,
-      importance: index % 3 === 0 ? 3 : 2,
+      importance: index % 3 === 0 ? ('core' as const) : ('supporting' as const),
       focus: focusEvery > 0 && index % focusEvery === 0,
       usedBefore: false,
     }))
 
-  test('assigns distinct facts spread over the whole source', () => {
-    const plan = assignFactsToSlots(facts(40), Array(10).fill('mcq'))
+  test('a manual count picks distinct facts spread over the whole source', () => {
+    const plan = planSlots(facts(40), 'mcq', 10)
     const ids = plan.slots.flatMap((slot) => slot.factIds)
     expect(new Set(ids).size).toBe(10)
     const positions = ids.map((id) => (id - 1) / 39)
     expect(Math.min(...positions)).toBeLessThan(0.1)
     expect(Math.max(...positions)).toBeGreaterThan(0.9)
-    expect(plan.supportedCount).toBe(10)
+    expect(plan.uncoveredFactIds).toHaveLength(30)
   })
 
   test('fewer facts than questions: fewer slots, never padded', () => {
-    const plan = assignFactsToSlots(facts(6), Array(10).fill('fill-blanks'))
-    expect(plan.slots).toHaveLength(6)
-    expect(plan.supportedCount).toBe(6)
-    const matching = assignFactsToSlots(facts(9), Array(5).fill('matching'))
-    expect(matching.supportedCount).toBe(2)
-    expect(new Set(matching.slots.flatMap((slot) => slot.factIds)).size).toBe(8)
-    expect(assignFactsToSlots(facts(2), ['matching']).supportedCount).toBe(0)
+    expect(planSlots(facts(6), 'fill-blanks', 10).slots).toHaveLength(6)
+    const matching = planSlots(facts(9), 'matching', 5)
+    expect(matching.slots).toHaveLength(2)
+    expect(new Set(matching.slots.flatMap((slot) => slot.factIds)).size).toBe(9)
   })
 
   test('about 70 % of the facts come from focus parts when focus exists', () => {
-    const plan = assignFactsToSlots(facts(40, 3), Array(10).fill('mcq'))
     const pool = facts(40, 3)
+    const plan = planSlots(pool, 'mcq', 10)
     const focusCount = plan.slots.filter((slot) => pool[slot.factIds[0] - 1].focus).length
     expect(focusCount).toBe(7)
   })
 
   test('facts used by earlier quizzes come last', () => {
     const pool = facts(12).map((fact) => ({ ...fact, usedBefore: fact.id <= 6 }))
-    const ids = assignFactsToSlots(pool, Array(6).fill('mcq')).slots.flatMap((slot) => slot.factIds)
+    const ids = planSlots(pool, 'mcq', 6).slots.flatMap((slot) => slot.factIds)
     expect(ids.every((id) => id > 6)).toBe(true)
   })
 
   test('mixed: balanced types, one distinct fact set per question across types', () => {
-    const types = mixedSlotTypes(8)
-    expect(types.slice(0, 6).sort()).toEqual(['fill-blanks', 'matching', 'mcq', 'open-ended', 'short-answer', 'true-false'])
-    const plan = assignFactsToSlots(facts(30), types)
+    const plan = planSlots(facts(30), 'mixed', 8)
+    expect(plan.slots.slice(0, 6).map((slot) => slot.type).sort()).toEqual(['fill-blanks', 'matching', 'mcq', 'open-ended', 'short-answer', 'true-false'])
     const ids = plan.slots.flatMap((slot) => slot.factIds)
     expect(new Set(ids).size).toBe(ids.length)
     expect(plan.slots.find((slot) => slot.type === 'matching')?.factIds).toHaveLength(4)

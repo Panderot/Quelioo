@@ -322,7 +322,10 @@ test.describe('Draft protection', () => {
 test.describe('Time estimate', () => {
   test('the pre-generation line updates with type, count, difficulty and options', async ({ page }) => {
     await page.goto('/?lng=en')
-    // Default: 3 mcq medium, 4 options -> collapses to exactly 1 minute.
+    // Auto (the default) needs text first; 3 mcq medium, 4 options -> collapses to exactly 1 minute.
+    await expect(page.locator('#generate-time-estimate')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Question Count', exact: true }).click()
+    await page.getByRole('option', { name: '3 Questions', exact: true }).click()
     await expect(page.getByText('This quiz takes about a minute')).toBeVisible()
 
     await page.getByRole('button', { name: 'Question Type', exact: true }).click()

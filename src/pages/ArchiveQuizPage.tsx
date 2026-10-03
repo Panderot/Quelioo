@@ -9,9 +9,14 @@ import QuizWorkspace from '../components/QuizWorkspace'
 import SongListenSection from '../components/SongListenSection'
 import { ArchiveIcon } from '../components/icons'
 
+/** Keyed by id: opening another entry (e.g. a follow-up quiz "{title} · 2") starts with fresh state. */
 export default function ArchiveQuizPage() {
-  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
+  return <ArchiveQuizEntry key={id} id={id} />
+}
+
+function ArchiveQuizEntry({ id }: { id: string | undefined }) {
+  const { t } = useTranslation()
   const [searchParams] = useSearchParams()
   const [entry, setEntry] = useState<ArchiveEntry | undefined>(() => (id ? getArchiveEntry(id) : undefined))
   const [songRefreshKey, setSongRefreshKey] = useState(0)

@@ -1,5 +1,6 @@
 import { computeDerangement } from './matching.js'
 import { MAX_HINTS, MAX_HINT_CHARS } from './hints.js'
+import type { QuizCoverage } from './factCoverage.js'
 
 export type QuizQuestionType = 'mcq' | 'true-false' | 'fill-blanks' | 'short-answer' | 'matching' | 'open-ended'
 
@@ -21,6 +22,13 @@ interface QuizQuestionBase {
    * check (src/lib/hints.ts) passed for this question. Absent for older questions and whenever
    * hints were off, disabled or dropped. */
   hints?: string[]
+  /** Facts of the quiz's facts plan this question tests (see src/lib/factCoverage.ts). Absent on
+   * older questions and when no plan was made. */
+  factIds?: number[]
+  /** List facts: the item indices this question tests, keyed by fact id (all items when absent). */
+  factItems?: Record<string, number[]>
+  /** The student edited it: its facts still count as covered but can no longer be verified. */
+  edited?: boolean
 }
 
 export interface McqQuestion extends QuizQuestionBase {
@@ -121,6 +129,8 @@ export type QuizQuestion =
 export interface GeneratedQuiz {
   title: string
   questions: QuizQuestion[]
+  /** The facts plan behind the coverage line; absent on older quizzes (no coverage line then). */
+  coverage?: QuizCoverage
 }
 
 /** Fill-in answers list the base form plus the inflected forms and synonyms that fit the sentence. */
@@ -155,6 +165,7 @@ export function isQuizQuestion(value: unknown): value is QuizQuestion {
   if (typeof value.explanation !== 'string') return false
   if (value.estimatedSeconds !== undefined && (typeof value.estimatedSeconds !== 'number' || !Number.isFinite(value.estimatedSeconds))) return false
   if (!isOptionalStringArray(value.hints)) return false
+  if (value.factIds !== undefined && !(Array.isArray(value.factIds) && value.factIds.every((id) => typeof id === 'number'))) return false
 
   switch (value.type) {
     case 'mcq':

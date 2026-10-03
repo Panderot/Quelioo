@@ -6,7 +6,18 @@ import { GenerateApiError, generateQuiz } from '../api/generateQuiz'
 import type { GenerateErrorCode } from '../api/generateQuiz'
 import { ExtractUrlApiError, extractUrlText } from '../api/extractUrl'
 import type { ExtractUrlErrorCode } from '../api/extractUrl'
-import { MAX_SOURCE_AVOID_STEMS, addArchiveEntry, createArchiveEntryId, getArchiveEntries, previousStemsForSource, sourceTextHash, updateArchiveEntry } from '../lib/archive'
+import {
+  MAX_SOURCE_AVOID_STEMS,
+  addArchiveEntry,
+  cachedPlanForSource,
+  createArchiveEntryId,
+  getArchiveEntries,
+  previousStemsForSource,
+  sourceTextHash,
+  updateArchiveEntry,
+} from '../lib/archive'
+import { estimateAutoQuestionCount } from '../lib/factCoverage'
+import type { QuestionType } from '../lib/quizTypes'
 import { extractTextFromFile, FileExtractionError } from '../lib/fileExtraction'
 import type { FileErrorCode } from '../lib/fileExtraction'
 import { supportsOptionsCount } from '../lib/quizTypes'
@@ -100,7 +111,7 @@ export default function CreatePage() {
 
   const [title, setTitle] = useState(initialDraft?.title ?? '')
   const [questionType, setQuestionType] = useState(initialDraft?.questionType ?? 'mcq')
-  const [questionCount, setQuestionCount] = useState(initialDraft?.questionCount ?? '3')
+  const [questionCount, setQuestionCount] = useState(initialDraft?.questionCount ?? 'auto')
   const [difficulty, setDifficulty] = useState(initialDraft?.difficulty ?? 'medium')
   const [optionsCount, setOptionsCount] = useState(initialDraft?.optionsCount ?? '4')
   const [includeExplanations, setIncludeExplanations] = useState(initialDraft?.includeExplanations ?? true)
@@ -171,7 +182,7 @@ export default function CreatePage() {
     setOutputLanguage('auto')
     setTitle('')
     setQuestionType('mcq')
-    setQuestionCount('3')
+    setQuestionCount('auto')
     setDifficulty('medium')
     setOptionsCount('4')
     setIncludeExplanations(true)
@@ -192,7 +203,10 @@ export default function CreatePage() {
   const activeTruncated = activeTab === 'file' ? fileState.truncated : activeTab === 'url' ? urlState.truncated : false
 
   const timeEstimateLabel = useMemo(() => {
-    const parsedCount = Number.parseInt(questionCount, 10)
+    // Auto: the count is guessed from the word count until the plan exists (the result shows the real one).
+    const isAuto = questionCount === 'auto'
+    if (isAuto && activeWordCount < MIN_QUIZ_WORDS) return undefined
+    const parsedCount = isAuto ? estimateAutoQuestionCount(Math.min(activeWordCount, MAX_QUIZ_WORDS), questionType as QuestionType) : Number.parseInt(questionCount, 10)
     if (!Number.isFinite(parsedCount) || parsedCount <= 0) return undefined
     const { underAMinute, minMinutes, maxMinutes } = estimateQuizTimeRange({
       questionType: questionType as EstimateQuestionType | 'mixed',
@@ -200,10 +214,15 @@ export default function CreatePage() {
       difficulty: (difficulty as EstimateDifficulty) ?? 'medium',
       optionsCount: supportsOptionsCount(questionType) ? Number.parseInt(optionsCount, 10) : undefined,
     })
-    if (underAMinute) return t('create.timeEstimate.underMinute')
-    if (minMinutes !== maxMinutes) return t('create.timeEstimate.range', { min: minMinutes, max: maxMinutes })
-    return minMinutes === 1 ? t('create.timeEstimate.singleMinute') : t('create.timeEstimate.single', { minutes: minMinutes })
-  }, [questionType, questionCount, difficulty, optionsCount, t])
+    const time = underAMinute
+      ? t('create.timeEstimate.underMinute')
+      : minMinutes !== maxMinutes
+        ? t('create.timeEstimate.range', { min: minMinutes, max: maxMinutes })
+        : minMinutes === 1
+          ? t('create.timeEstimate.singleMinute')
+          : t('create.timeEstimate.single', { minutes: minMinutes })
+    return isAuto ? t('create.timeEstimate.auto', { count: parsedCount, time }) : time
+  }, [questionType, questionCount, difficulty, optionsCount, activeWordCount, t])
 
   const handleTabChange = (tab: InputTab) => {
     setActiveTab(tab)
@@ -363,7 +382,9 @@ export default function CreatePage() {
     // with the same settings: new quizzes cover other facts and wordings first.
     const sourceHash = sourceTextHash(activeContent)
     const sameSettings = lastGenerationRef.current?.key === generationKey ? lastGenerationRef.current.questions : []
-    const avoidQuestions = [...new Set([...sameSettings, ...previousStemsForSource(getArchiveEntries(), sourceHash)])].slice(0, MAX_SOURCE_AVOID_STEMS)
+    const archiveEntries = getArchiveEntries()
+    const avoidQuestions = [...new Set([...sameSettings, ...previousStemsForSource(archiveEntries, sourceHash)])].slice(0, MAX_SOURCE_AVOID_STEMS)
+    const plan = cachedPlanForSource(archiveEntries, sourceHash, outputLanguage)
 
     try {
       const generated = await generateQuiz(
@@ -380,6 +401,7 @@ export default function CreatePage() {
           shuffleOptions: shuffleApplies,
           includeHints,
           focusSnippets,
+          plan,
         },
         controller.signal,
       )
@@ -391,6 +413,7 @@ export default function CreatePage() {
 
       const finalTitle = title.trim() || generated.title || firstWords(activeContent, 6) || t('archive.untitled')
       const questions = shuffleApplies ? shuffleQuizOptions(generated.questions) : generated.questions
+      const quiz: GeneratedQuiz = { title: finalTitle, questions, ...(generated.coverage ? { coverage: generated.coverage } : {}) }
 
       const id = createArchiveEntryId()
       addArchiveEntry({
@@ -404,7 +427,7 @@ export default function CreatePage() {
         optionsCount: needsOptionsCount ? optionsCount : null,
         outputLanguage,
         sourceText: activeContent,
-        quiz: { title: finalTitle, questions },
+        quiz,
         includeExplanations,
         shuffleOptions: shuffleApplies,
         includeHints,
@@ -414,7 +437,7 @@ export default function CreatePage() {
 
       setResult({
         entryId: id,
-        quiz: { title: finalTitle, questions },
+        quiz,
         sourceText: activeContent,
         difficulty,
         optionsCount: needsOptionsCount ? optionsCount : undefined,

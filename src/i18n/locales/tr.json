@@ -134,7 +134,8 @@
     },
     "questionCount": {
       "label": "Soru Sayısı",
-      "value": "{{count}} Soru"
+      "value": "{{count}} Soru",
+      "auto": "Otomatik (tüm metni kapsa)"
     },
     "difficulty": {
       "label": "Zorluk Seviyesi",
@@ -209,7 +210,8 @@
       "underMinute": "Bu quiz 1 dakikadan kısa sürer",
       "singleMinute": "Bu quiz yaklaşık 1 dakika sürer",
       "single": "Bu quiz yaklaşık {{minutes}} dakika sürer",
-      "range": "Bu quiz yaklaşık {{min}}-{{max}} dakika sürer"
+      "range": "Bu quiz yaklaşık {{min}}-{{max}} dakika sürer",
+      "auto": "Yaklaşık {{count}} soru · {{time}}"
     },
     "errors": {
       "too_short": "Biraz daha metin ekle — en az 30 kelime — Quelio'nun yeterli içeriği olsun.",
@@ -1055,5 +1057,23 @@
       "answerHidden": "Önce düşün, sonra cevabı göster.",
       "showAnswer": "Cevabı göster"
     }
+  },
+  "coverage": {
+    "line": "{{covered}}/{{total}} ana bilgi soruldu",
+    "panelTitle": "Ana bilgiler",
+    "status": {
+      "covered": "Soruldu",
+      "partial": "Kısmen soruldu",
+      "missing": "Eksik"
+    },
+    "edited": "düzenlendi",
+    "questions_one": "Soru: {{list}}",
+    "questions_other": "Sorular: {{list}}",
+    "noQuestions": "Henüz sorulmadı",
+    "answersHidden": "Her bilgiyi görmek için Cevapları göster'i aç.",
+    "addMissing": "Eksik bilgiler için soru ekle",
+    "adding": "Sorular ekleniyor…",
+    "newQuizHint": "Bu quizde yeni soruya yer kalmadı; sorular yeni bir quize eklenecek.",
+    "close": "Kapat"
   }
 }

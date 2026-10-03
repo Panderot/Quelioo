@@ -50,6 +50,7 @@ import type {
   SectionRole,
 } from '../../src/lib/lesson.js'
 import { compareMathAnswers } from '../../src/lib/mathAnswer.js'
+import { splitSourceSentences } from '../../src/lib/factCoverage.js'
 import { neutralizeTag, sanitizeSourceText } from '../../src/lib/sanitizeText.js'
 import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../../src/lib/textStats.js'
 
@@ -286,13 +287,6 @@ function normalizeForMatch(value: string): string {
   return value.toLocaleLowerCase().replace(/\s+/g, ' ').trim()
 }
 
-function sourceSentences(text: string): string[] {
-  return text
-    .split(/(?<=[.!?…])\s+|\n+/)
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length > 0)
-}
-
 /** The full source sentence that contains the model's quote (the extractor quotes only its first words);
  * otherwise the source sentence that shares the most words with it. */
 function anchorSourceSentence(quote: string, sentences: string[]): string {
@@ -353,7 +347,7 @@ function mergeToTarget(groups: FactGroup[], target: number): void {
  */
 export function validatePlan(raw: unknown, text: string): { title: string; keyPoints: KeyPoint[] } | null {
   if (!isRecord(raw) || !Array.isArray(raw.keyPoints)) return null
-  const sentences = sourceSentences(text)
+  const sentences = splitSourceSentences(text)
   const groups: FactGroup[] = []
   for (const entry of raw.keyPoints) {
     if (!isRecord(entry)) continue

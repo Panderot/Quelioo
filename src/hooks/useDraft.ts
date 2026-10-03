@@ -54,7 +54,7 @@ export function readDraft(): QuizDraft | null {
       outputLanguage: typeof draft.outputLanguage === 'string' ? draft.outputLanguage : 'auto',
       title: typeof draft.title === 'string' ? draft.title : '',
       questionType: typeof draft.questionType === 'string' ? draft.questionType : 'mcq',
-      questionCount: typeof draft.questionCount === 'string' ? draft.questionCount : '3',
+      questionCount: typeof draft.questionCount === 'string' ? draft.questionCount : 'auto',
       difficulty: typeof draft.difficulty === 'string' ? draft.difficulty : 'medium',
       optionsCount: typeof draft.optionsCount === 'string' ? draft.optionsCount : '4',
       includeExplanations: typeof draft.includeExplanations === 'boolean' ? draft.includeExplanations : true,

@@ -125,7 +125,7 @@ export default function ArchivePage() {
               const { underAMinute, minutes } = secondsToDisplayMinutes(totalSeconds)
               const timeLabel = underAMinute ? t('create.result.timeUnderMinute') : t('create.result.timeTotal', { minutes })
               const meta = [
-                t('params.questionCount.value', { count: entry.questionCount }),
+                t('params.questionCount.value', { count: entry.questionCount === 'auto' ? entry.quiz.questions.length : entry.questionCount }),
                 t(typeLabelKey),
                 t(difficultyLabelKey),
                 ...(entry.optionsCount ? [t('params.optionsCount.value', { count: entry.optionsCount })] : []),

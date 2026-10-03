@@ -15,6 +15,7 @@ import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
 import SongButton from './SongButton'
 import MoreMenu from './MoreMenu'
+import CoveragePanel from './CoveragePanel'
 import AddCardsDialog from './flashcards/AddCardsDialog'
 import { addCards, cardsForDeck, createDeck, updateDeck, useFlashcards } from '../lib/flashcardStorage'
 import { DEFAULT_NEW_PER_DAY } from '../lib/srs'
@@ -54,6 +55,9 @@ interface QuizResultViewProps {
   isToppingUp?: boolean
   onTopUp?: () => void
   onSongSaved?: () => void
+  /** "Add questions for missing facts" (quizzes with a facts plan only). */
+  onAddMissing?: () => void
+  isAddingMissing?: boolean
 }
 
 /** Ruled writing lines for the print/PDF layout — one line for fill-blanks, two for
@@ -155,6 +159,8 @@ export default function QuizResultView({
   isToppingUp = false,
   onTopUp,
   onSongSaved,
+  onAddMissing,
+  isAddingMissing = false,
 }: QuizResultViewProps) {
   const { t } = useTranslation()
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -335,6 +341,16 @@ export default function QuizResultView({
               </div>
             )}
             <p className="text-xs text-muted">{metaLine}</p>
+            {quiz.coverage && (
+              <CoveragePanel
+                coverage={quiz.coverage}
+                questions={quiz.questions}
+                questionType={meta.questionType}
+                showAnswers={showAnswers && !studyMode}
+                onAddMissing={studyMode ? undefined : onAddMissing}
+                isAddingMissing={isAddingMissing}
+              />
+            )}
           </div>
 
           {archiveLink && (

@@ -56,6 +56,7 @@ export default function QuizWorkspace({
 }: QuizWorkspaceProps) {
   const { t } = useTranslation()
   const editor = useQuizEditor({
+    quizId,
     initialQuiz,
     sourceText,
     questionType: meta.questionType,
@@ -93,10 +94,17 @@ export default function QuizWorkspace({
         isToppingUp={editor.isToppingUp}
         onTopUp={() => void editor.topUp()}
         onSongSaved={onSongSaved}
+        onAddMissing={() => void editor.addMissing()}
+        isAddingMissing={editor.isAddingMissing}
       />
       {editor.regenerateError && (
         <p role="alert" data-print-hide className="-mt-2 text-xs font-medium text-error">
           {t(`create.errors.${editor.regenerateError}`)}
+        </p>
+      )}
+      {editor.addMissingError && (
+        <p role="alert" data-print-hide className="-mt-2 text-xs font-medium text-error">
+          {t(`create.errors.${editor.addMissingError}`)}
         </p>
       )}
       {editor.topUpError && (

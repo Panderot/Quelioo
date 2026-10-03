@@ -100,3 +100,8 @@ Fotosentez, besin zincirinin başlangıcını oluşturur ve atmosferdeki oksijen
 ## Neden önemli?
 
 Otçul hayvanlar bitkileri yiyerek bu enerjiyi alır; etçiller de otçulları yiyerek enerjiyi devralır. Bu nedenle neredeyse bütün canlılar, doğrudan ya da dolaylı olarak fotosentezle üretilen besine bağlıdır. Ormanların azalması bu dengeyi bozar.`
+
+// Coverage run (tests/accuracy/fact-coverage.ts): the 74-word English photosynthesis text with two list
+// facts (three inputs, four rate factors) that a 10-question quiz once asked only in part.
+export const TEXT_COVERAGE_A =
+  'Photosynthesis is the process by which green plants make their own food. It takes place in the chloroplasts of leaf cells. Chlorophyll is the green pigment that absorbs light. Photosynthesis needs carbon dioxide, water and light. Water is absorbed by the roots, and carbon dioxide enters through the stomata. The products are glucose and oxygen. The rate of photosynthesis depends on light intensity, carbon dioxide amount, temperature and water amount. Glucose is stored as starch.'

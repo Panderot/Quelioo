@@ -1,5 +1,6 @@
 import { normalizeAnswer, turkishBaseForms } from './answerCheck.js'
-import type { QuizQuestion, QuizQuestionType } from './quiz.js'
+import type { QuizQuestion } from './quiz.js'
+import type { CoverageFact } from './factCoverage.js'
 
 /**
  * Deterministic, type-aware quality checks for a generated quiz (no model call) plus the pure parts
@@ -202,6 +203,21 @@ function answerKey(question: QuizQuestion, language: QualityLanguage): string | 
   return first ? first.join(' ') : null
 }
 
+/** True when both questions test the same list fact, each through different items. */
+function areListSiblings(a: QuizQuestion, b: QuizQuestion): boolean {
+  if (!a.factItems || !b.factItems) return false
+  return Object.entries(a.factItems).some(([id, items]) => {
+    const other = b.factItems?.[id]
+    return Boolean(other) && items.length > 0 && other!.length > 0 && !items.some((item) => other!.includes(item))
+  })
+}
+
+/** True when both questions claim facts from a facts plan and test nothing in common. */
+function testDifferentFacts(a: QuizQuestion, b: QuizQuestion): boolean {
+  if (!a.factIds?.length || !b.factIds?.length) return false
+  return a.factIds.every((id) => !b.factIds!.includes(id) || areListSiblings(a, b))
+}
+
 /** Near-duplicate stems and repeated answers — the later question of each pair is flagged. */
 export function findDuplicates(questions: QuizQuestion[], language: QualityLanguage): QualityIssue[] {
   const issues: QualityIssue[] = []
@@ -217,6 +233,9 @@ export function findDuplicates(questions: QuizQuestion[], language: QualityLangu
   )
   questions.forEach((question, index) => {
     for (let earlier = 0; earlier < index; earlier++) {
+      // Two questions on different items of one list fact are deliberate, not a repeat (their
+      // answers still must differ, see below).
+      const listSiblings = areListSiblings(question, questions[earlier])
       const repeatedPair = pairWords[index].some((pair) =>
         pairWords[earlier].some((other) => pair.left === other.left || (pair.words.length >= 3 && jaccard(pair.words, other.words) >= SAME_FACT)),
       )
@@ -226,16 +245,20 @@ export function findDuplicates(questions: QuizQuestion[], language: QualityLangu
       }
       const same = normalizeAnswer(question.question) === normalizeAnswer(questions[earlier].question)
       const sameFact = facts[index].length >= 6 && facts[earlier].length >= 6 && jaccard(facts[index], facts[earlier]) >= SAME_FACT
-      if (same || sameFact || (stems[index].length >= 3 && jaccard(stems[index], stems[earlier]) >= NEAR_DUPLICATE_STEM)) {
+      if (same || (!listSiblings && (sameFact || (stems[index].length >= 3 && jaccard(stems[index], stems[earlier]) >= NEAR_DUPLICATE_STEM)))) {
         issues.push({ questionId: question.id, code: 'duplicate_stem', reason: 'It is a near-duplicate of another question; test a different fact.' })
         return
       }
       const key = keys[index]
       const earlierKey = keys[earlier]
+      // Two planned questions on different facts may share a word ("light" / "light intensity"); only
+      // the same answer is a repeat then. Otherwise one answer inside the other counts as the same.
+      const containment = !testDifferentFacts(question, questions[earlier])
       if (
         key &&
         earlierKey &&
-        (key === earlierKey || phraseAppearsIn(key.split(' '), earlierKey.split(' '), language) || phraseAppearsIn(earlierKey.split(' '), key.split(' '), language))
+        (key === earlierKey ||
+          (containment && (phraseAppearsIn(key.split(' '), earlierKey.split(' '), language) || phraseAppearsIn(earlierKey.split(' '), key.split(' '), language))))
       ) {
         issues.push({ questionId: question.id, code: 'duplicate_answer', reason: 'It has the same answer as another question (a hidden repeat); test a different fact.' })
         return
@@ -430,114 +453,23 @@ export function applyDeterministicFixes(question: QuizQuestion): QuizQuestion {
 // Facts plan (pure parts)
 // ---------------------------------------------------------------------------------------------
 
-export interface PlannedFact {
-  id: number
-  text: string
-  /** Short quote from the source supporting the fact. */
-  span: string
-  /** Relative position of the fact in the source, 0 (start) to 1 (end). */
-  position: number
-  /** 3 = core concept, 2 = important detail, 1 = minor detail. */
-  importance: number
-  /** Comes from a part the student marked as focus. */
-  focus: boolean
-  /** Already covered by a question the student saw before (avoid list). */
-  usedBefore: boolean
-}
+export type { PlannedFact, QuestionSlot } from './factCoverage.js'
 
-export interface QuestionSlot {
-  type: QuizQuestionType
-  factIds: number[]
-}
-
-const MIXED_CYCLE: QuizQuestionType[] = ['mcq', 'true-false', 'fill-blanks', 'short-answer', 'matching', 'open-ended']
-
-/** Balanced type mix for a mixed quiz: every type once before any repeats, in a fixed order. */
-export function mixedSlotTypes(count: number): QuizQuestionType[] {
-  return Array.from({ length: count }, (_, index) => MIXED_CYCLE[index % MIXED_CYCLE.length])
-}
-
-/** Distinct source facts one question of this type consumes (matching pairs, open-ended points). */
-export function factsPerQuestion(type: QuizQuestionType): number {
-  if (type === 'matching') return 4
-  if (type === 'open-ended') return 2
-  return 1
-}
-
-/** Picks `k` facts spread over the source; facts an earlier quiz already used are taken only after
- * every fresh fact. */
-function pickSpread(pool: PlannedFact[], k: number): PlannedFact[] {
-  const fresh = pool.filter((fact) => !fact.usedBefore)
-  if (fresh.length >= k) return pickSpreadFrom(fresh, k)
-  return [...fresh, ...pickSpreadFrom(pool.filter((fact) => fact.usedBefore), k - fresh.length)]
-}
-
-/** One fact per equal position bucket (most important first), then the best leftovers. */
-function pickSpreadFrom(pool: PlannedFact[], k: number): PlannedFact[] {
-  if (k <= 0) return []
-  if (pool.length <= k) return [...pool]
-  const better = (a: PlannedFact, b: PlannedFact) => Number(a.usedBefore) - Number(b.usedBefore) || b.importance - a.importance || a.position - b.position
-  const chosen = new Set<PlannedFact>()
-  for (let bucket = 0; bucket < k; bucket++) {
-    const from = bucket / k
-    const to = (bucket + 1) / k
-    const inBucket = pool.filter((fact) => !chosen.has(fact) && fact.position >= from && (fact.position < to || (bucket === k - 1 && fact.position <= 1)))
-    const best = inBucket.sort(better)[0]
-    if (best) chosen.add(best)
-  }
-  for (const fact of [...pool].sort(better)) {
-    if (chosen.size >= k) break
-    chosen.add(fact)
-  }
-  return [...chosen]
-}
-
-export interface SlotPlan {
-  slots: QuestionSlot[]
-  /** How many good questions the facts support for this type mix (≤ requested). */
-  supportedCount: number
-}
-
-/**
- * Assigns DISTINCT facts to question slots. Drops slots from the end when the source has too few
- * facts (never pads). With focus facts present, about `focusShare` of the facts come from focus parts.
- * Facts already used by earlier quizzes are taken only after the fresh ones run out.
- */
-export function assignFactsToSlots(allFacts: PlannedFact[], slotTypes: QuizQuestionType[], focusShare = 0.7): SlotPlan {
-  // Minor details never become questions on their own (no trivial padding) unless nothing else exists.
-  const important = allFacts.filter((fact) => fact.importance >= 2 || fact.focus)
-  const facts = important.length > 0 ? important : allFacts
-  const types = [...slotTypes]
-  const needFor = (list: QuizQuestionType[]) => list.reduce((sum, type) => sum + factsPerQuestion(type), 0)
-  while (types.length > 1 && needFor(types) > facts.length) types.pop()
-  // A matching question needs at least 3 pairs.
-  if (types.length === 1 && types[0] === 'matching' && facts.length < 3) return { slots: [], supportedCount: 0 }
-  const need = Math.min(needFor(types), facts.length)
-
-  const focusFacts = facts.filter((fact) => fact.focus)
-  const otherFacts = facts.filter((fact) => !fact.focus)
-  let chosen: PlannedFact[]
-  if (focusFacts.length > 0) {
-    const focusNeed = Math.min(focusFacts.length, Math.ceil(need * focusShare))
-    const fromFocus = pickSpread(focusFacts, focusNeed)
-    const fromOther = pickSpread(otherFacts, need - fromFocus.length)
-    chosen = [...fromFocus, ...fromOther]
-    if (chosen.length < need) chosen.push(...pickSpread(focusFacts.filter((fact) => !chosen.includes(fact)), need - chosen.length))
-  } else {
-    chosen = pickSpread(facts, need)
-  }
-  chosen.sort((a, b) => a.position - b.position)
-
-  // Interleave so each slot draws from a different part of the source; multi-fact slots get
-  // neighbouring facts (a matching question or a comparison works best on related facts).
-  const slots: QuestionSlot[] = []
-  let cursor = 0
-  for (const type of types) {
-    const take = Math.min(factsPerQuestion(type), chosen.length - cursor)
-    slots.push({ type, factIds: chosen.slice(cursor, cursor + take).map((fact) => fact.id) })
-    cursor += take
-  }
-  return { slots: slots.filter((slot) => slot.factIds.length > 0), supportedCount: slots.filter((slot) => slot.factIds.length > 0).length }
+/** Marks facts that a question the student already saw (avoid list) asks: at least half of the fact's
+ * content words (two or more) appear in one earlier stem. Deterministic, so a cached plan works with
+ * any avoid list. */
+export function markUsedBefore<T extends CoverageFact>(facts: T[], previousStems: string[], language: QualityLanguage): (T & { usedBefore: boolean })[] {
+  const stems = previousStems.map((stem) => wordsOf(stem))
+  return facts.map((fact) => {
+    const words = [...new Set(contentWordsOf(fact.statement, language))]
+    const usedBefore =
+      words.length >= 2 &&
+      stems.some((stem) => {
+        const shared = words.filter((term) => stem.some((word) => wordMatchesTerm(word, term, language))).length
+        return shared >= 2 && shared / words.length >= 0.5
+      })
+    return { ...fact, usedBefore }
+  })
 }
 
 export const MAX_BATCH_SIZE = 10

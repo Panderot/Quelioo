@@ -1,5 +1,7 @@
-import { isGeneratedQuiz, isQuizQuestion } from '../lib/quiz'
+import { answerSummary, isGeneratedQuiz, isQuizQuestion } from '../lib/quiz'
 import type { GeneratedQuiz, QuizQuestion, QuizQuestionType } from '../lib/quiz'
+import { parseQuizCoverage } from '../lib/factCoverage'
+import type { CoverageFact, FactEntry } from '../lib/factCoverage'
 
 export type GenerateErrorCode =
   | 'too_short'
@@ -12,9 +14,35 @@ export type GenerateErrorCode =
   | 'network'
   | 'not_configured'
 
+/** Another question of the quiz, sent as DATA (with its facts, so a new question on a different fact
+ * may share a word with its answer). */
+export interface OtherQuestion {
+  question: string
+  answer: string
+  type: QuizQuestionType
+  factIds?: number[]
+  factItems?: Record<string, number[]>
+  /** Lets the server return a reworded version of this question (never one the student edited). */
+  id?: string
+  edited?: boolean
+}
+
+export function otherQuestionOf(question: QuizQuestion): OtherQuestion {
+  return {
+    question: question.question,
+    answer: answerSummary(question),
+    type: question.type,
+    ...(question.factIds ? { factIds: question.factIds } : {}),
+    ...(question.factItems ? { factItems: question.factItems } : {}),
+    id: question.id,
+    ...(question.edited ? { edited: true } : {}),
+  }
+}
+
 export interface GenerateQuizPayload {
   text: string
   questionType: string
+  /** A number, or "auto" (every fact of the source, up to the maximum count). */
   questionCount: string
   difficulty: string
   optionsCount?: string
@@ -25,6 +53,10 @@ export interface GenerateQuizPayload {
   shuffleOptions?: boolean
   includeHints?: boolean
   focusSnippets?: string[]
+  /** Cached facts plan of the same source (Archive) — the server skips the extraction. */
+  plan?: CoverageFact[]
+  /** Only these facts of `plan` (a second quiz for the facts the first one had no room for). */
+  onlyFactIds?: number[]
 }
 
 export interface GenerateQuizResult extends GeneratedQuiz {
@@ -45,10 +77,14 @@ export interface RegenerateOnePayload {
   outputLanguage: string
   avoidQuestions: string[]
   /** The rest of the quiz (question + short answer) so the new question never leaks or repeats. */
-  otherQuestions?: { question: string; answer: string; type: QuizQuestionType }[]
+  otherQuestions?: OtherQuestion[]
   includeExplanations?: boolean
   includeHints?: boolean
   focusSnippets?: string[]
+  /** The facts the question tests (kept by the new one and verified again), with their plan entries. */
+  factIds?: number[]
+  factItems?: Record<string, number[]>
+  plan?: CoverageFact[]
 }
 
 export interface RegenerateOneResult {
@@ -69,6 +105,26 @@ export interface TopUpPayload {
   includeExplanations?: boolean
   includeHints?: boolean
   focusSnippets?: string[]
+}
+
+export interface CoverMissingPayload {
+  text: string
+  questionType: string
+  difficulty: string
+  optionsCount?: string
+  outputLanguage: string
+  avoidQuestions: string[]
+  otherQuestions: OtherQuestion[]
+  existingCount: number
+  plan: CoverageFact[]
+  missing: { id: number; items?: number[] }[]
+  includeExplanations?: boolean
+  includeHints?: boolean
+  focusSnippets?: string[]
+}
+
+export function missingPayloadEntries(entries: FactEntry[]): { id: number; items?: number[] }[] {
+  return entries.map((entry) => (entry.items ? { id: entry.fact.id, items: entry.items } : { id: entry.fact.id }))
 }
 
 export interface TopUpResult {
@@ -143,9 +199,11 @@ export async function generateQuiz(payload: GenerateQuizPayload, signal?: AbortS
   if (!isRecord(json) || !isGeneratedQuiz(json)) {
     throw new GenerateApiError('parse')
   }
+  const coverage = parseQuizCoverage(json.coverage)
   return {
     title: json.title,
     questions: json.questions,
+    ...(coverage ? { coverage } : {}),
     requestedCount: typeof json.requestedCount === 'number' ? json.requestedCount : json.questions.length,
     incomplete: typeof json.incomplete === 'boolean' ? json.incomplete : false,
     supportedCount: typeof json.supportedCount === 'number' ? json.supportedCount : undefined,
@@ -172,6 +230,21 @@ export async function topUpQuestions(payload: TopUpPayload): Promise<TopUpResult
     throw new GenerateApiError('parse')
   }
   return {
+    questions: json.questions,
+    provider: isResponseProvider(json.provider) ? json.provider : undefined,
+    fallbackUsed: typeof json.fallbackUsed === 'boolean' ? json.fallbackUsed : undefined,
+  }
+}
+
+/** Questions for the facts (and list items) the quiz does not cover yet; `replaced` are existing
+ * questions reworded (same fact and answer) so that a new answer is not written in them. */
+export async function coverMissingFacts(payload: CoverMissingPayload): Promise<TopUpResult & { replaced: QuizQuestion[] }> {
+  const json = await postGenerate({ mode: 'cover_missing', ...payload })
+  if (!isRecord(json) || !Array.isArray(json.questions) || !json.questions.every(isQuizQuestion)) {
+    throw new GenerateApiError('parse')
+  }
+  return {
+    replaced: Array.isArray(json.replaced) ? json.replaced.filter(isQuizQuestion) : [],
     questions: json.questions,
     provider: isResponseProvider(json.provider) ? json.provider : undefined,
     fallbackUsed: typeof json.fallbackUsed === 'boolean' ? json.fallbackUsed : undefined,

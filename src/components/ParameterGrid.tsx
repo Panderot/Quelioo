@@ -91,10 +91,13 @@ export default function ParameterGrid({
   const optionsCountEnabled = supportsOptionsCount(questionType)
   const shuffleEnabled = supportsOptionsCount(questionType)
 
-  const questionCountOptions = ['3', '5', '10', '15', '20'].map((count) => ({
-    value: count,
-    label: t('params.questionCount.value', { count }),
-  }))
+  const questionCountOptions = [
+    { value: 'auto', label: t('params.questionCount.auto') },
+    ...['3', '5', '10', '15', '20'].map((count) => ({
+      value: count,
+      label: t('params.questionCount.value', { count }),
+    })),
+  ]
 
   const difficultyOptions = [
     { value: 'easy', label: t('params.difficulty.easy') },

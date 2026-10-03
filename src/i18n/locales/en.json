@@ -134,7 +134,8 @@
     },
     "questionCount": {
       "label": "Question Count",
-      "value": "{{count}} Questions"
+      "value": "{{count}} Questions",
+      "auto": "Auto (cover everything)"
     },
     "difficulty": {
       "label": "Difficulty Level",
@@ -209,7 +210,8 @@
       "underMinute": "This quiz takes less than a minute",
       "singleMinute": "This quiz takes about a minute",
       "single": "This quiz takes about {{minutes}} minutes",
-      "range": "This quiz takes about {{min}}-{{max}} minutes"
+      "range": "This quiz takes about {{min}}-{{max}} minutes",
+      "auto": "About {{count}} questions · {{time}}"
     },
     "errors": {
       "too_short": "Add a bit more text — at least 30 words — so Quelio has enough to work with.",
@@ -1055,5 +1057,23 @@
       "answerHidden": "Think first, then show the answer.",
       "showAnswer": "Show answer"
     }
+  },
+  "coverage": {
+    "line": "{{covered}}/{{total}} key facts covered",
+    "panelTitle": "Key facts",
+    "status": {
+      "covered": "Covered",
+      "partial": "Partly covered",
+      "missing": "Missing"
+    },
+    "edited": "edited",
+    "questions_one": "Question {{list}}",
+    "questions_other": "Questions {{list}}",
+    "noQuestions": "Not asked yet",
+    "answersHidden": "Turn on Show answers to see each fact.",
+    "addMissing": "Add questions for missing facts",
+    "adding": "Adding questions…",
+    "newQuizHint": "This quiz has no room for more questions, so they go into a new quiz.",
+    "close": "Close"
   }
 }

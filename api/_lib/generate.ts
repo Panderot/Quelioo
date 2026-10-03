@@ -4,7 +4,8 @@ import { extractJson, isRecord, readRequestBody } from './anthropic.js'
 import { generateJson } from './llm.js'
 import type { LlmProvider, LlmUsage } from './llm.js'
 import { GENERAL_QUALITY_RULES, typeRules, typeRulesFor } from './quiz-rules.js'
-import { extractFactsPlan, reviewQuiz } from './quiz-quality.js'
+import { extractFactsPlan, reviewQuiz, spanIsInFocus, verifyCoverage } from './quiz-quality.js'
+import type { VerifiedQuestion } from './quiz-quality.js'
 import { answerSummary, sanitizeQuizQuestion } from '../../src/lib/quiz.js'
 import type { GeneratedQuiz, QuizQuestion, QuizQuestionType } from '../../src/lib/quiz.js'
 import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../../src/lib/textStats.js'
@@ -21,17 +22,32 @@ import { MAX_HINTS, MAX_HINT_CHARS, findHintLeak, fillBlankHint2Template, firstL
 import type { HintLeakResult } from '../../src/lib/hints.js'
 import {
   applyDeterministicFixes,
-  assignFactsToSlots,
   batchSlots,
   checkAgainstOthers,
   checkQuizQuality,
-  factsPerQuestion,
+  findLeaks,
   findTrueFalseImbalance,
-  mixedSlotTypes,
+  markUsedBefore,
   planBatches,
   qualityLanguageFor,
+  contentWordsOf,
+  wordMatchesTerm,
+  wordsOf,
 } from '../../src/lib/quizQuality.js'
-import type { PlannedFact, QualityCheckOptions, QualityIssue, QuestionSlot } from '../../src/lib/quizQuality.js'
+import type { QualityCheckOptions, QualityIssue, QualityLanguage } from '../../src/lib/quizQuality.js'
+import {
+  COVERAGE_VERSION,
+  MAX_QUESTION_COUNT,
+  computeCoverage,
+  estimateAutoQuestionCount,
+  isListFact,
+  missingEntries,
+  packEntries,
+  parseCoverageFacts,
+  planSlots,
+  testedItems,
+} from '../../src/lib/factCoverage.js'
+import type { CoverageFact, FactEntry, PlannedFact, QuestionSlot, QuizCoverage, SlotPlan } from '../../src/lib/factCoverage.js'
 import { usageCostUsd } from '../../src/lib/lesson.js'
 
 export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model' | 'not_configured'
@@ -55,8 +71,11 @@ export interface RegenerateOneResponseBody {
   fallbackUsed: boolean
 }
 
+/** top_up and cover_missing: new questions to append (cover_missing ones carry verified factIds; its
+ * `replaced` are existing questions reworded so the new ones fit, under their own ids). */
 export interface TopUpResponseBody {
   questions: QuizQuestion[]
+  replaced?: QuizQuestion[]
   provider: LlmProvider
   fallbackUsed: boolean
 }
@@ -84,6 +103,18 @@ export interface GenerateMetrics {
   costUsd: number
   /** Cost of the facts plan + review + rewrites (the quality overhead). */
   qualityCostUsd: number
+  /** Cost of the coverage work: verification calls and the missing-facts pass. */
+  coverageCostUsd: number
+  coverageMs: number
+  /** The plan came from the client cache (no extraction call). */
+  planCached: boolean
+  /** Share of source words linked to a fact by the plan (sanity check). */
+  coveredWordShare: number
+  /** Facts covered after writing (before the missing pass) and at the end, of `facts`. */
+  coveredBefore: number
+  coveredAfter: number
+  /** Questions added by the missing-facts pass. */
+  missingAdded: number
   models: string[]
 }
 
@@ -99,8 +130,7 @@ const MAX_OTHER_FIELD_CHARS = 400
 const MAX_FOCUS_SNIPPETS = 5
 const MAX_FOCUS_SNIPPET_CHARS = 500
 const MAX_TITLE_CHARS = 80
-/** Above this count the facts plan runs first (1-5 questions: one call with the same rules). */
-const PLAN_ABOVE_COUNT = 5
+const MAX_PLAN_FACT_IDS = 200
 const BATCH_CONCURRENCY = 3
 const MAX_QUALITY_REWRITES = 8
 const HINT_REWRITE_TOKENS = 700
@@ -119,8 +149,11 @@ const PROMPT_LANGUAGE_NAME_OVERRIDES: Record<string, string> = {
   sr: 'Serbian (Cyrillic script, not Latin)',
 }
 
-function outputLanguageInstruction(outputLanguage: string): string {
+function outputLanguageInstruction(outputLanguage: string, sourceText = ''): string {
   if (outputLanguage === 'auto') {
+    // Named when it can be detected: rules with Turkish examples otherwise pull some questions into Turkish.
+    const guess = sourceText ? qualityLanguageFor('auto', sourceText) : 'other'
+    if (guess === 'en' || guess === 'tr') return `Write the quiz in ${guess === 'en' ? 'English' : 'Turkish'}, the language of the source text.`
     return 'Write the quiz in the same language as the source text (if the source text mixes languages, use whichever language is dominant in it).'
   }
   const name = PROMPT_LANGUAGE_NAME_OVERRIDES[outputLanguage] ?? getOutputLanguageEnglishName(outputLanguage) ?? 'English'
@@ -229,6 +262,10 @@ interface GenerateContext {
   includeHints: boolean
   focusSnippets: string[]
   title?: string
+  /** The cached facts plan sent back by the client (DATA, validated); extracted when absent. */
+  plan?: CoverageFact[]
+  /** Only these facts of the plan (a second quiz for the facts the first one had no room for). */
+  onlyFactIds?: number[]
 }
 
 /** Collects token usage and step timings of one request. */
@@ -246,6 +283,13 @@ class RequestMeter {
   dropped = 0
   /** Why rewrites were not taken (issue codes only, never content). */
   rejected: string[] = []
+  coverageUsage: LlmUsage[] = []
+  coverageMs = 0
+  planCached = false
+  coveredWordShare = 0
+  coveredBefore = 0
+  coveredAfter = 0
+  missingAdded = 0
   private readonly start = Date.now()
 
   elapsedMs(): number {
@@ -257,6 +301,12 @@ class RequestMeter {
     const list = Array.isArray(usage) ? usage : [usage]
     this.usage.push(...list)
     if (quality) this.qualityUsage.push(...list)
+  }
+
+  addCoverage(usage: LlmUsage[] | undefined): void {
+    if (!usage) return
+    this.usage.push(...usage)
+    this.coverageUsage.push(...usage)
   }
 
   finish(mode: string, questionCount: number): GenerateMetrics {
@@ -276,6 +326,13 @@ class RequestMeter {
       rejected: this.rejected,
       costUsd: cost(this.usage),
       qualityCostUsd: cost(this.qualityUsage),
+      coverageCostUsd: cost(this.coverageUsage),
+      coverageMs: this.coverageMs,
+      planCached: this.planCached,
+      coveredWordShare: this.coveredWordShare,
+      coveredBefore: this.coveredBefore,
+      coveredAfter: this.coveredAfter,
+      missingAdded: this.missingAdded,
       models: [...new Set(this.usage.map((usage) => usage.model))],
     }
   }
@@ -298,7 +355,7 @@ async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T, index
 function buildGenerateSystemPrompt(ctx: GenerateContext, params: { questionCount: number; slots?: QuestionSlot[]; angles: string[]; seed: string }): string {
   const hasPlan = Boolean(params.slots)
   const countInstruction = hasPlan
-    ? `Write exactly one question per slot of <question_plan>, in order (${params.questionCount} in total). Each slot gives the question type and the numbered facts from <facts_plan> it must test: build that question from those facts only, and put their numbers in "factIds". Different slots never test the same fact.`
+    ? `Write exactly one question per slot of <question_plan>, in order (${params.questionCount} in total). Each slot gives the question type and the numbered facts from <facts_plan> it must test: build that question from those facts only, make a correct answer require every one of them, and put their numbers in "factIds". Different slots never test the same fact — except a list fact whose items are split over several slots: then each of those questions tests ONLY its own item and never names the list's other items (they are other questions' answers). When a slot says ALL items, answering correctly must need every item and the model answer names each item (an open-ended question lists each item in its keyPoints, a short answer's "answer" names each item, a matching question gives one pair per item) — never a general answer like "each one is necessary".`
     : `Write exactly ${params.questionCount} questions, strictly based on facts stated in <source_text>, each testing a different fact. First list in "factsUsed" the one distinct fact each question will test (one short line per question, in order, no two alike), then write the questions from that list.`
   const rules = hasPlan && ctx.questionType === 'mixed' ? typeRulesFor(params.slots!.map((slot) => slot.type)) : typeRules(ctx.questionType)
   return [
@@ -309,7 +366,7 @@ function buildGenerateSystemPrompt(ctx: GenerateContext, params: { questionCount
     questionTypeInstruction(ctx.questionType, ctx.optionsCount),
     GENERAL_QUALITY_RULES,
     rules,
-    outputLanguageInstruction(ctx.outputLanguage),
+    outputLanguageInstruction(ctx.outputLanguage, ctx.text),
     `For variety, favor these angles where they fit the selected difficulty: ${params.angles.join(', ')}. Vary sentence structure and openings — avoid starting every question with "Which of the following". Internal variation seed ${params.seed} — use it only to pick a fresh angle and phrasing, never mention it in the output.`,
     PREVIOUS_QUESTIONS_INSTRUCTION,
     explanationInstruction(ctx.includeExplanations),
@@ -323,16 +380,41 @@ function buildGenerateSystemPrompt(ctx: GenerateContext, params: { questionCount
     .join(' ')
 }
 
-function buildPlanBlocks(slots: QuestionSlot[], facts: PlannedFact[]): string {
+function factLine(fact: CoverageFact): string {
+  const items = isListFact(fact) ? ` Items: ${fact.items!.map((item, index) => `(${index + 1}) ${item}`).join('; ')}.` : ''
+  return `${fact.id}. [${fact.label}] ${fact.statement}${items}${fact.span ? ` (source: "${fact.span}")` : ''}`
+}
+
+/** How a slot (or a question's claims) uses one fact: the whole fact, ALL list items, or some items. */
+function factUse(fact: CoverageFact | undefined, id: number, items: number[] | undefined): string {
+  if (!fact || !isListFact(fact)) return `fact ${id}`
+  const own = items && items.length > 0 ? items : fact.items!.map((_, index) => index)
+  if (own.length === fact.items!.length) return `fact ${id} (ALL items: ${fact.items!.join('; ')})`
+  if (own.length === 1) return `fact ${id} (only item ${own[0] + 1}: "${fact.items![own[0]]}")`
+  return `fact ${id} (only items ${own.map((item) => `"${fact.items![item]}"`).join(', ')})`
+}
+
+function buildPlanBlocks(slots: QuestionSlot[], facts: CoverageFact[]): string {
   const byId = new Map(facts.map((fact) => [fact.id, fact]))
   const used = new Set(slots.flatMap((slot) => slot.factIds))
   const factLines = [...used]
     .sort((a, b) => a - b)
     .map((id) => byId.get(id))
-    .filter((fact): fact is PlannedFact => Boolean(fact))
-    .map((fact) => `${fact.id}. ${neutralizeTag(fact.text, 'facts_plan')}${fact.span ? ` (source: "${neutralizeTag(fact.span, 'facts_plan')}")` : ''}`)
-  const slotLines = slots.map((slot, index) => `${index + 1}. type ${slot.type} — facts ${slot.factIds.join(', ')}`)
-  return `\n\n<facts_plan>\n${factLines.join('\n')}\n</facts_plan>\n\n<question_plan>\n${slotLines.join('\n')}\n</question_plan>`
+    .filter((fact): fact is CoverageFact => Boolean(fact))
+    .map(factLine)
+  const slotLines = slots.map(
+    (slot, index) => `${index + 1}. type ${slot.type} — ${slot.factIds.map((id) => factUse(byId.get(id), id, slot.items?.[id])).join(', ')}${slot.type === 'matching' ? ' — one pair per fact or item' : ''}`,
+  )
+  return `\n\n<facts_plan>\n${neutralizeTag(factLines.join('\n'), 'facts_plan')}\n</facts_plan>\n\n<question_plan>\n${neutralizeTag(slotLines.join('\n'), 'question_plan')}\n</question_plan>`
+}
+
+/** The facts a question (or slot) must test, as text for a single-question rewrite. */
+function claimDescriptions(factIds: number[], factItems: Record<string, number[]> | undefined, facts: CoverageFact[]): string[] {
+  const byId = new Map(facts.map((fact) => [fact.id, fact]))
+  return factIds.flatMap((id) => {
+    const fact = byId.get(id)
+    return fact ? [`${fact.statement} — ${factUse(fact, id, factItems?.[String(id)])}`] : []
+  })
 }
 
 function maxTokensForGenerate(questionCount: number, questionType: QuestionType, includeHints: boolean): number {
@@ -366,6 +448,43 @@ function normalizeForDedup(text: string): string {
 interface DraftQuestion {
   question: QuizQuestion
   factIds: number[]
+}
+
+/** Sets the facts a question claims to test (on the question too, so the checks and the client see them). */
+function withClaims(draft: DraftQuestion, factIds: number[], factItems?: Record<string | number, number[]>): DraftQuestion {
+  const items = factItems ? Object.fromEntries(Object.entries(factItems).filter(([id]) => factIds.includes(Number(id)))) : {}
+  const { factItems: _drop, ...rest } = draft.question
+  void _drop
+  const question = { ...rest, factIds, ...(Object.keys(items).length > 0 ? { factItems: items } : {}) } as QuizQuestion
+  return { question, factIds }
+}
+
+/** Pairs a batch's drafts with its slots: by the returned factIds and type first, then by position,
+ * then by overlapping facts; the slot's facts (and list items) become the question's claims (the
+ * coverage verification checks them). */
+function claimSlots(drafts: DraftQuestion[], slots: QuestionSlot[]): DraftQuestion[] {
+  const key = (ids: number[]) => [...ids].sort((a, b) => a - b).join(',')
+  const used = new Set<number>()
+  const take = (index: number) => {
+    used.add(index)
+    return index
+  }
+  const chosen: (number | null)[] = drafts.map((draft) => {
+    const index = slots.findIndex((slot, i) => !used.has(i) && slot.type === draft.question.type && key(slot.factIds) === key(draft.factIds))
+    return index === -1 ? null : take(index)
+  })
+  drafts.forEach((draft, position) => {
+    if (chosen[position] !== null) return
+    if (position < slots.length && !used.has(position) && slots[position].type === draft.question.type) chosen[position] = take(position)
+    else {
+      const index = slots.findIndex((slot, i) => !used.has(i) && slot.type === draft.question.type && slot.factIds.some((id) => draft.factIds.includes(id)))
+      if (index !== -1) chosen[position] = take(index)
+    }
+  })
+  return drafts.map((draft, position) => {
+    const index = chosen[position]
+    return index === null ? withClaims(draft, []) : withClaims(draft, slots[index].factIds, slots[index].items)
+  })
 }
 
 /** Drops questions whose normalized text exactly matches an earlier one in the list. */
@@ -575,7 +694,7 @@ type BatchOutcome =
  * once with a higher token limit. */
 async function callGenerateBatch(
   ctx: GenerateContext,
-  params: { questionCount: number; slots?: QuestionSlot[]; facts?: PlannedFact[]; previousQuestions: string[] },
+  params: { questionCount: number; slots?: QuestionSlot[]; facts?: CoverageFact[]; previousQuestions: string[]; timeoutMs?: number },
   meter: RequestMeter,
 ): Promise<BatchOutcome> {
   const angles = pickRandomAngles(4)
@@ -587,7 +706,7 @@ async function callGenerateBatch(
 
   let lastError: GenerateErrorCode = 'parse'
   for (const maxTokens of [baseTokens, Math.min(16_000, Math.round(baseTokens * 1.6))]) {
-    const result = await generateJson({ system, user: userMessage, maxTokens, timeoutMs: batchTimeoutMs(params.questionCount), callType: 'quiz-write' })
+    const result = await generateJson({ system, user: userMessage, maxTokens, timeoutMs: params.timeoutMs ?? batchTimeoutMs(params.questionCount), callType: 'quiz-write' })
     if (result.status === 'not_configured') return { error: 'not_configured' }
     if (result.status === 'error') return { error: result.error }
     meter.add(result.usage)
@@ -626,6 +745,13 @@ export interface OtherQuestionContext {
   question: string
   answer: string
   type?: QuizQuestionType
+  /** The facts it tests (so a new question on a different fact may share a word with its answer). */
+  factIds?: number[]
+  factItems?: Record<string, number[]>
+  /** The client's question id (a reworded question is returned under it) and whether the student
+   * edited it (never reworded). */
+  id?: string
+  edited?: boolean
 }
 
 function buildOtherQuestionsBlock(others: OtherQuestionContext[]): string {
@@ -639,12 +765,13 @@ function buildOtherQuestionsBlock(others: OtherQuestionContext[]): string {
 /** Pseudo-questions for the deterministic check against client-sent context (short answers only;
  * types whose answer is not a term never leak). */
 function contextAsQuestions(others: OtherQuestionContext[]): QuizQuestion[] {
-  return others.map((other, index) => {
-    const id = `ctx_${index}`
+  return others.map((other, index): QuizQuestion => {
+    const id = other.id ?? `ctx_${index}`
+    const claims = other.factIds ? { factIds: other.factIds, ...(other.factItems ? { factItems: other.factItems } : {}) } : {}
     if (other.type === 'true-false' || other.type === 'matching' || other.type === 'open-ended') {
-      return { id, type: 'true-false', question: other.question, explanation: '', answerBool: true }
+      return { id, type: 'true-false', question: other.question, explanation: '', answerBool: true, ...claims }
     }
-    return { id, type: 'short-answer', question: other.question, explanation: '', answer: other.answer || '-' }
+    return { id, type: 'short-answer', question: other.question, explanation: '', answer: other.answer || '-', ...claims }
   })
 }
 
@@ -656,6 +783,8 @@ interface WriteOneParams {
   reasons?: string[]
   previousVersion?: string
   wantBool?: boolean
+  /** Cut-off for this call (the missing-facts pass), instead of the default single-question timeout. */
+  timeoutMs?: number
 }
 
 function buildRegenerateSystemPrompt(ctx: GenerateContext, params: WriteOneParams): string {
@@ -674,7 +803,7 @@ function buildRegenerateSystemPrompt(ctx: GenerateContext, params: WriteOneParam
     explanationInstruction(ctx.includeExplanations),
     hintsInstruction(ctx.includeHints),
     focusSnippetsInstruction(ctx.focusSnippets.length > 0, false).replace(/at least 70% of the questions[^—]*—/, 'prefer facts from these focus parts —'),
-    outputLanguageInstruction(ctx.outputLanguage),
+    outputLanguageInstruction(ctx.outputLanguage, ctx.text),
     TYPE_SCHEMA_NOTE,
     'Respond with ONLY a single JSON object and nothing else — no markdown code fences, no commentary — matching exactly this shape: {"question": Question}.',
   ]
@@ -700,7 +829,7 @@ async function writeOneQuestion(
   let lastError: GenerateErrorCode = 'parse'
   const oneTokens = ctx.includeHints ? 1800 : 1400
   for (const maxTokens of [oneTokens, Math.round(oneTokens * 1.6)]) {
-    const result = await generateJson({ system, user: userMessage, maxTokens, timeoutMs: batchTimeoutMs(1), callType: quality ? 'quiz-rewrite' : 'quiz-regenerate' })
+    const result = await generateJson({ system, user: userMessage, maxTokens, timeoutMs: params.timeoutMs ?? batchTimeoutMs(1), callType: quality ? 'quiz-rewrite' : 'quiz-regenerate' })
     if (result.status === 'not_configured') return { error: 'not_configured' }
     if (result.status === 'error') return { error: result.error }
     meter.add(result.usage, quality)
@@ -773,9 +902,10 @@ async function runQualityPass(
     .slice(0, MAX_QUALITY_REWRITES)
   if (flagged.length === 0) return finishQualityPass(drafts, options, meter, ctx.questionType === 'mixed')
 
-  const factById = new Map((facts ?? []).map((fact) => [fact.id, fact]))
   const usedFactIds = new Set(drafts.flatMap((draft) => draft.factIds))
-  const unusedFacts = (facts ?? []).filter((fact) => !usedFactIds.has(fact.id)).sort((a, b) => Number(a.usedBefore) - Number(b.usedBefore) || b.importance - a.importance)
+  const unusedFacts = (facts ?? [])
+    .filter((fact) => !usedFactIds.has(fact.id))
+    .sort((a, b) => Number(a.usedBefore) - Number(b.usedBefore) || Number(a.importance === 'supporting') - Number(b.importance === 'supporting'))
   let unusedCursor = 0
 
   const rewriteStart = Date.now()
@@ -787,15 +917,17 @@ async function runQualityPass(
   const jobs = flagged.map((draft) => {
     const entry = byId.get(draft.question.id)!
     let factIds = draft.factIds
+    let factItems = draft.question.factItems
     if (entry.repeatFact && unusedCursor < unusedFacts.length) {
-      const take = factsPerQuestion(draft.question.type)
+      const take = draft.question.type === 'matching' ? 4 : draft.question.type === 'open-ended' ? 2 : 1
       factIds = unusedFacts.slice(unusedCursor, unusedCursor + take).map((fact) => fact.id)
+      factItems = undefined
       unusedCursor += take
     }
-    return { draft, entry, factIds }
+    return { draft, entry, factIds, factItems }
   })
   const late = new Promise<null>((resolveLate) => setTimeout(() => resolveLate(null), window))
-  const candidates = await mapLimit(jobs, REWRITE_CONCURRENCY, async ({ draft, entry, factIds }) => Promise.race([late, (async () => {
+  const candidates = await mapLimit(jobs, REWRITE_CONCURRENCY, async ({ draft, entry, factIds, factItems }) => Promise.race([late, (async () => {
     const others = drafts.filter((other) => other !== draft).map((other) => ({ question: other.question.question, answer: answerSummary(other.question), type: other.question.type }))
     const result = await writeOneQuestion(
       ctx,
@@ -803,7 +935,7 @@ async function runQualityPass(
         questionType: draft.question.type,
         others,
         avoidQuestions: ctx.avoidQuestions.slice(-20),
-        facts: factIds.map((id) => factById.get(id)?.text).filter((text): text is string => Boolean(text)),
+        facts: claimDescriptions(factIds, factItems, facts ?? []),
         reasons: entry.reasons,
         previousVersion: `${draft.question.question} | A: ${answerSummary(draft.question)}`,
         wantBool: entry.wantBool,
@@ -811,7 +943,7 @@ async function runQualityPass(
       meter,
       true,
     ).catch(() => ({ error: 'upstream' as const }))
-    return 'question' in result ? { question: { ...result.question, id: draft.question.id }, factIds } : null
+    return 'question' in result ? withClaims({ question: { ...result.question, id: draft.question.id }, factIds }, factIds, factItems) : null
   })()]))
   meter.timings.rewriteMs = Date.now() - rewriteStart
   meter.rewritten = candidates.filter(Boolean).length
@@ -874,33 +1006,62 @@ function finishQualityPass(drafts: DraftQuestion[], options: QualityCheckOptions
   return kept.map((draft) => ({ ...draft, question: applyDeterministicFixes(draft.question) }))
 }
 
-/** Writes the slots of a facts plan in batches of at most 10 (limited concurrency); slots a batch
- * missed are retried once in one extra call. */
+/** Writes the slots of a facts plan in batches of at most 10 (limited concurrency); every question
+ * claims its slot's facts. Slots no question claims (a failed batch, a skipped slot) are retried once. */
 async function writeFromPlan(
   ctx: GenerateContext,
   slots: QuestionSlot[],
-  facts: PlannedFact[],
+  facts: CoverageFact[],
   meter: RequestMeter,
+  previousQuestions: string[] = ctx.avoidQuestions,
+  deadlineMs?: number,
 ): Promise<{ drafts: DraftQuestion[]; title: string; provider: LlmProvider; fallbackUsed: boolean } | { error: GenerateErrorCode }> {
   const batches = batchSlots(slots)
+  // With a deadline (the missing-facts pass) a slow call is cut off in time; the facts stay missing.
+  const timeoutFor = (count: number) => (deadlineMs ? Math.max(10_000, Math.min(batchTimeoutMs(count), deadlineMs - meter.elapsedMs())) : undefined)
   const results = await mapLimit(batches, BATCH_CONCURRENCY, (batch) =>
-    callGenerateBatch(ctx, { questionCount: batch.length, slots: batch, facts, previousQuestions: ctx.avoidQuestions }, meter),
+    callGenerateBatch(ctx, { questionCount: batch.length, slots: batch, facts, previousQuestions, timeoutMs: timeoutFor(batch.length) }, meter),
   )
-  const successes = results.filter((result): result is Extract<BatchOutcome, { drafts: DraftQuestion[] }> => 'drafts' in result)
+  const successes: Extract<BatchOutcome, { drafts: DraftQuestion[] }>[] = []
+  let drafts: DraftQuestion[] = []
+  results.forEach((result, index) => {
+    if (!('drafts' in result)) return
+    successes.push(result)
+    drafts.push(...claimSlots(result.drafts, batches[index]))
+  })
   if (successes.length === 0) return results.find((result): result is { error: GenerateErrorCode } => 'error' in result) ?? { error: 'upstream' }
 
-  let drafts = successes.flatMap((result) => result.drafts)
-  const covered = new Set(drafts.flatMap((draft) => draft.factIds))
-  const missing = slots.filter((slot) => !slot.factIds.some((id) => covered.has(id)))
-  const shortBy = slots.length - drafts.length
-  if (shortBy > 0 && missing.length > 0) {
-    const retrySlots = missing.slice(0, shortBy)
-    const retry = await callGenerateBatch(
-      ctx,
-      { questionCount: retrySlots.length, slots: retrySlots, facts, previousQuestions: [...ctx.avoidQuestions, ...drafts.map((draft) => draft.question.question)].slice(-MAX_AVOID_QUESTIONS) },
-      meter,
+  const slotKey = (type: string, factIds: number[], items: object | undefined) => `${type}|${factIds.join(',')}|${JSON.stringify(items ?? {})}`
+  const claimed = new Map<string, number>()
+  for (const draft of drafts) {
+    const key = slotKey(draft.question.type, draft.factIds, draft.question.factItems)
+    claimed.set(key, (claimed.get(key) ?? 0) + 1)
+  }
+  const missing = slots.filter((slot) => {
+    const key = slotKey(slot.type, slot.factIds, slot.items)
+    const count = claimed.get(key) ?? 0
+    if (count === 0) return true
+    claimed.set(key, count - 1)
+    return false
+  })
+  if (missing.length > 0 && (!deadlineMs || meter.elapsedMs() < deadlineMs - 20_000)) {
+    const retryBatches = batchSlots(missing)
+    const retries = await mapLimit(retryBatches, BATCH_CONCURRENCY, (batch) =>
+      callGenerateBatch(
+        ctx,
+        {
+          questionCount: batch.length,
+          slots: batch,
+          facts,
+          previousQuestions: [...previousQuestions, ...drafts.map((draft) => draft.question.question)].slice(-MAX_AVOID_QUESTIONS),
+          timeoutMs: timeoutFor(batch.length),
+        },
+        meter,
+      ),
     )
-    if ('drafts' in retry) drafts = [...drafts, ...retry.drafts]
+    retries.forEach((retry, index) => {
+      if ('drafts' in retry) drafts = [...drafts, ...claimSlots(retry.drafts, retryBatches[index])]
+    })
   }
   return {
     drafts,
@@ -910,52 +1071,325 @@ async function writeFromPlan(
   }
 }
 
-/**
- * Generates up to `questionCount` questions: above 5 a cheap facts plan assigns distinct facts to
- * slots first (fewer slots when the source runs out — never padded); writing runs in batches of at
- * most 10; then the quality pass; then hints.
- */
-async function callGenerate(ctx: GenerateContext, questionCount: number, meter: RequestMeter): Promise<GenerateOutcome> {
-  let facts: PlannedFact[] | null = null
-  let slots: QuestionSlot[] | null = null
-  let supportedCount: number | undefined
+function planLanguage(ctx: GenerateContext): string {
+  if (ctx.outputLanguage === 'auto') {
+    // The cheap planner sometimes drifts into another language when only told "the source language".
+    const guess = qualityLanguageFor('auto', ctx.text)
+    const name = guess === 'en' ? 'English' : guess === 'tr' ? 'Turkish' : null
+    return name ? `${name}, the language of the source (never translate)` : 'the language the source sentences are written in (never translate)'
+  }
+  return PROMPT_LANGUAGE_NAME_OVERRIDES[ctx.outputLanguage] ?? getOutputLanguageEnglishName(ctx.outputLanguage) ?? 'English'
+}
 
-  const slotTypes: QuizQuestionType[] = ctx.questionType === 'mixed' ? mixedSlotTypes(questionCount) : Array(questionCount).fill(ctx.questionType)
-  const needFacts = slotTypes.reduce((sum, type) => sum + factsPerQuestion(type), 0)
-  // Plan above 5 questions, and whenever the slots need more than 5 facts (matching/open-ended/mixed),
-  // so a short text is never over-asked.
-  if (questionCount > PLAN_ABOVE_COUNT || needFacts > PLAN_ABOVE_COUNT) {
-    const planStart = Date.now()
-    const plan = await extractFactsPlan({
-      text: ctx.text,
-      focusSnippets: ctx.focusSnippets,
-      avoidQuestions: ctx.avoidQuestions,
-      maxFacts: Math.min(60, Math.max(12, Math.ceil(needFacts * 1.5))),
-    }).catch(() => ({ value: null, usage: [] as LlmUsage[] }))
+/** The facts plan: the client's cached plan when sent, otherwise one extraction (cheap model). */
+async function planFacts(ctx: GenerateContext, meter: RequestMeter): Promise<CoverageFact[] | null> {
+  let facts = ctx.plan ?? null
+  if (facts) {
+    meter.planCached = true
+  } else {
+    const plan = await extractFactsPlan({ text: ctx.text, language: planLanguage(ctx) }).catch(() => ({ value: null, usage: [] as LlmUsage[] }))
     meter.add(plan.usage, true)
-    meter.timings.planMs = Date.now() - planStart
-    if (plan.value) {
-      facts = plan.value
-      meter.facts = facts.length
-      const assigned = assignFactsToSlots(facts, slotTypes)
-      if (assigned.slots.length > 0) {
-        slots = assigned.slots
-        const focusIds = new Set(facts.filter((fact) => fact.focus).map((fact) => fact.id))
-        meter.focusSlots = slots.filter((slot) => slot.factIds.some((id) => focusIds.has(id))).length
-        if (assigned.supportedCount < questionCount) supportedCount = assigned.supportedCount
+    if (!plan.value) return null
+    facts = plan.value.facts
+    meter.coveredWordShare = plan.value.coveredWordShare
+  }
+  if (ctx.onlyFactIds) {
+    const only = new Set(ctx.onlyFactIds)
+    facts = facts.filter((fact) => only.has(fact.id))
+  }
+  return facts.length > 0 ? facts : null
+}
+
+/** Per-request view of the plan: focus parts and the facts earlier quizzes already asked (deterministic). */
+function plannedFacts(ctx: GenerateContext, facts: CoverageFact[]): PlannedFact[] {
+  const language = qualityLanguageFor(ctx.outputLanguage, ctx.text)
+  return markUsedBefore(facts, ctx.avoidQuestions, language).map((fact) => ({
+    ...fact,
+    focus: ctx.focusSnippets.length > 0 && spanIsInFocus(fact.span || fact.statement, ctx.focusSnippets),
+  }))
+}
+
+/** After this point of the request the missing-facts pass is skipped, after the second the
+ * verification and further rewrites; every missing-pass call ends by WRITE_DEADLINE_MS. The whole
+ * request stays well inside the function limit (hints and the response still follow). */
+const MISSING_PASS_DEADLINE_MS = 100_000
+const VERIFY_DEADLINE_MS = 145_000
+const WRITE_DEADLINE_MS = 160_000
+const MISSING_REWRITES = 3
+
+/** Everything a question shows as its correct answer (for the deterministic item check). */
+function correctAnswerText(question: QuizQuestion): string {
+  switch (question.type) {
+    case 'mcq':
+      return question.options[question.answerIndex] ?? ''
+    case 'fill-blanks':
+    case 'short-answer':
+      return [question.answer, ...(question.acceptableAnswers ?? [])].join(' ')
+    case 'open-ended':
+      return [question.answer, ...(question.keyPoints ?? [])].join(' ')
+    case 'matching':
+      return question.pairs.map((pair) => `${pair.left} ${pair.right}`).join(' ')
+    default:
+      return ''
+  }
+}
+
+/** Deterministic: every content word of a list item appears (in some form) in the correct answer. */
+function answerHasItem(question: QuizQuestion, item: string, language: QualityLanguage): boolean {
+  const terms = contentWordsOf(item, language)
+  const all = terms.length > 0 ? terms : wordsOf(item)
+  const words = wordsOf(correctAnswerText(question))
+  return all.length > 0 && all.every((term) => words.some((word) => wordMatchesTerm(word, term, language)))
+}
+
+/**
+ * Applies the verifier's verdict to the claims: a fact the question does not really test is no longer
+ * claimed; list items count when the verifier confirms them or the correct answer contains them
+ * (deterministic). A question whose correct answer contradicts the source is removed. Without a
+ * verdict for a question its claims stay.
+ */
+function applyVerdict(drafts: DraftQuestion[], verdict: Map<string, VerifiedQuestion> | null, facts: CoverageFact[], language: QualityLanguage): DraftQuestion[] {
+  if (!verdict) return drafts
+  const byId = new Map(facts.map((fact) => [fact.id, fact]))
+  return drafts.flatMap((draft) => {
+    const result = verdict.get(draft.question.id)
+    if (!result) return [draft]
+    if (result.wrong) return []
+    const factIds: number[] = []
+    const factItems: Record<number, number[]> = {}
+    for (const id of draft.factIds) {
+      const fact = byId.get(id)
+      if (!fact) continue
+      const claimedItems = isListFact(fact) ? testedItems(draft.question, fact) : null
+      const confirmed = claimedItems ? claimedItems.filter((item) => answerHasItem(draft.question, fact.items![item], language)) : []
+      if (!result.tests.has(id) && confirmed.length === 0) continue
+      factIds.push(id)
+      if (claimedItems) factItems[id] = [...new Set([...(result.tests.get(id) ?? []), ...confirmed])].sort((a, b) => a - b)
+    }
+    return [withClaims(draft, factIds, factItems)]
+  })
+}
+
+async function verifyDrafts(drafts: DraftQuestion[], facts: CoverageFact[], language: QualityLanguage, meter: RequestMeter): Promise<DraftQuestion[]> {
+  if (drafts.length === 0 || meter.elapsedMs() > VERIFY_DEADLINE_MS) return drafts
+  const verdict = await verifyCoverage({ facts, questions: drafts.map((draft) => draft.question) }).catch(() => ({ value: null, usage: [] as LlmUsage[] }))
+  meter.addCoverage(verdict.usage)
+  return applyVerdict(drafts, verdict.value, facts, language)
+}
+
+function asOther(question: QuizQuestion): OtherQuestionContext {
+  return { question: question.question, answer: answerSummary(question), type: question.type, factIds: question.factIds, factItems: question.factItems }
+}
+
+/** Rewords an existing question so that it no longer contains `term` (another question's answer),
+ * keeping its type, fact and correct answer. Null when the rewrite fails. */
+async function rewordExisting(
+  ctx: GenerateContext,
+  container: QuizQuestion,
+  context: OtherQuestionContext | undefined,
+  term: string,
+  facts: CoverageFact[],
+  others: OtherQuestionContext[],
+  meter: RequestMeter,
+): Promise<QuizQuestion | null> {
+  const questionType = context?.type ?? container.type
+  const answer = context?.answer ?? answerSummary(container)
+  const claims = container.factIds ?? []
+  const result = await writeOneQuestion(
+    ctx,
+    {
+      questionType,
+      others,
+      avoidQuestions: [],
+      facts: claims.length > 0 ? claimDescriptions(claims, container.factItems, facts) : undefined,
+      reasons: [`Its wording contains "${term}", which is the answer of another question. Reword it without that term or any form of it; keep testing the same fact with the same correct answer.`],
+      previousVersion: `${container.question} | A: ${answer}`,
+      wantBool: questionType === 'true-false' ? answer === 'true' : undefined,
+      timeoutMs: Math.max(8_000, WRITE_DEADLINE_MS - meter.elapsedMs()),
+    },
+    meter,
+    true,
+  ).catch(() => ({ error: 'upstream' as const }))
+  if (!('question' in result)) return null
+  return withClaims({ question: { ...result.question, id: container.id }, factIds: claims }, claims, container.factItems).question
+}
+
+/** At most this many existing questions are reworded so that one new question fits. */
+const MAX_REWORDED = 3
+
+/**
+ * Writes questions for `slots` next to an existing quiz (its stems are DATA): a new question that
+ * repeats or leaks into the quiz is rewritten (up to MISSING_REWRITES times) with the reasons. When the
+ * only problem left is that the new answer is written in up to MAX_REWORDED existing questions (a list item
+ * "light" next to "chlorophyll absorbs light"), those questions are reworded without the term — same
+ * fact, same answer — and returned as `replaced`. Otherwise the new question is dropped. The kept
+ * questions get fresh ids and claim their slots' facts. `others[i]` describes `existing[i]`.
+ */
+async function writeForSlots(
+  ctx: GenerateContext,
+  slots: QuestionSlot[],
+  facts: CoverageFact[],
+  existing: QuizQuestion[],
+  others: OtherQuestionContext[],
+  meter: RequestMeter,
+): Promise<{ drafts: DraftQuestion[]; replaced: QuizQuestion[]; provider?: LlmProvider; fallbackUsed: boolean; error?: GenerateErrorCode }> {
+  const written = await writeFromPlan(ctx, slots, facts, meter, [...ctx.avoidQuestions, ...existing.map((question) => question.question)].slice(-MAX_AVOID_QUESTIONS), WRITE_DEADLINE_MS)
+  if ('error' in written) return { drafts: [], replaced: [], fallbackUsed: false, error: written.error }
+  const stamp = Date.now().toString(36)
+  const fresh = written.drafts.map((draft, index) => ({ ...draft, question: { ...draft.question, id: `q_${stamp}_m${index}` } }))
+  const options = qualityOptions(ctx, [...existing, ...fresh.map((draft) => draft.question)].map((question) => question.question).join(' '))
+  const severe = (question: QuizQuestion, against: QuizQuestion[]) => checkAgainstOthers(question, against, options).filter((issue) => SEVERE_CODES.has(issue.code))
+  /** The candidate's own answer is written in `container` (only rewording the container helps). */
+  const answerInside = (candidate: QuizQuestion, container: QuizQuestion) => findLeaks([candidate, container], options.language).some((issue) => issue.questionId === candidate.id)
+
+  const candidates = await mapLimit(fresh, REWRITE_CONCURRENCY, async (draft, index) => {
+    const against = [...existing, ...fresh.filter((_, other) => other !== index).map((item) => item.question)]
+    let current = draft
+    for (let attempt = 0; attempt < MISSING_REWRITES; attempt++) {
+      const issues = severe(current.question, against)
+      if (issues.length === 0 || meter.elapsedMs() > VERIFY_DEADLINE_MS) break
+      // The answer only sits in existing wording: rewriting the new question cannot help.
+      if (issues.every((issue) => issue.code === 'leak') && severe(current.question, against.filter((other) => !answerInside(current.question, other))).length === 0) break
+      const rewrite = await writeOneQuestion(
+        ctx,
+        {
+          questionType: draft.question.type,
+          others: [...others, ...fresh.filter((_, other) => other !== index).map((item) => asOther(item.question))],
+          avoidQuestions: ctx.avoidQuestions.slice(-20),
+          facts: claimDescriptions(draft.factIds, draft.question.factItems, facts),
+          reasons: issues.map((issue) => issue.reason),
+          previousVersion: `${current.question.question} | A: ${answerSummary(current.question)}`,
+          timeoutMs: Math.max(8_000, WRITE_DEADLINE_MS - meter.elapsedMs()),
+        },
+        meter,
+        true,
+      ).catch(() => ({ error: 'upstream' as const }))
+      if (!('question' in rewrite)) break
+      current = withClaims({ question: { ...rewrite.question, id: draft.question.id }, factIds: draft.factIds }, draft.factIds, draft.question.factItems)
+    }
+    return current
+  })
+
+  // Accept in order against the (possibly reworded) quiz and the new questions kept so far.
+  const quiz = [...existing]
+  const replaced = new Map<string, QuizQuestion>()
+  const kept: DraftQuestion[] = []
+  for (const candidate of candidates) {
+    const keptQuestions = () => kept.map((item) => item.question)
+    let issues = severe(candidate.question, [...quiz, ...keptQuestions()])
+    if (issues.length > 0 && issues.every((issue) => issue.code === 'leak')) {
+      const containers = quiz.map((question, index) => ({ question, index })).filter(({ question }) => answerInside(candidate.question, question))
+      const rest = quiz.filter((_, index) => !containers.some((container) => container.index === index))
+      if (
+        containers.length > 0 &&
+        containers.length <= MAX_REWORDED &&
+        containers.every(({ index }) => !others[index]?.edited) &&
+        severe(candidate.question, [...rest, ...keptQuestions()]).length === 0 &&
+        meter.elapsedMs() < VERIFY_DEADLINE_MS
+      ) {
+        const term = answerSummary(candidate.question)
+        const context = [...rest, ...keptQuestions(), candidate.question].map(asOther)
+        const reworded = await Promise.all(containers.map(({ question, index }) => rewordExisting(ctx, question, others[index], term, facts, context, meter)))
+        const fits = reworded.every(
+          (question, i) =>
+            question !== null &&
+            question.type === (others[containers[i].index]?.type ?? containers[i].question.type) &&
+            severe(question, [...quiz.filter((_, index) => index !== containers[i].index), ...keptQuestions(), candidate.question]).length === 0,
+        )
+        if (fits) {
+          containers.forEach(({ index }, i) => {
+            quiz[index] = applyDeterministicFixes(reworded[i]!)
+            replaced.set(quiz[index].id, quiz[index])
+          })
+          issues = severe(candidate.question, [...quiz, ...keptQuestions()])
+        }
       }
     }
+    if (issues.length > 0) {
+      meter.rejected.push(`missing_${issues.map((issue) => issue.code).join('+')}`)
+      continue
+    }
+    kept.push({ ...candidate, question: applyDeterministicFixes(candidate.question) })
   }
+  return { drafts: kept, replaced: [...replaced.values()], provider: written.provider, fallbackUsed: written.fallbackUsed }
+}
+
+/**
+ * Coverage pass: verification of every question's claims (one cheap call), then — when facts the plan
+ * chose are missing or partly covered and the count allows — one pass that writes only the missing
+ * questions, appends them and verifies them. Never fails the generation: on any error the quiz keeps
+ * its honest coverage state.
+ */
+async function runCoveragePass(
+  ctx: GenerateContext,
+  facts: CoverageFact[],
+  drafts: DraftQuestion[],
+  meter: RequestMeter,
+  params: { targetIds: Set<number>; limit: number },
+): Promise<DraftQuestion[]> {
+  const start = Date.now()
+  const language = qualityLanguageFor(ctx.outputLanguage, ctx.text)
+  const coverage: QuizCoverage = { version: COVERAGE_VERSION, facts }
+  const questionsOf = (list: DraftQuestion[]) => list.map((draft) => draft.question)
+  let current = await verifyDrafts(drafts, facts, language, meter)
+  meter.coveredBefore = computeCoverage(coverage, questionsOf(current)).covered
+
+  const missing = missingEntries(coverage, questionsOf(current)).filter((entry) => params.targetIds.has(entry.fact.id))
+  const room = params.limit - current.length
+  if (missing.length > 0 && room > 0 && meter.elapsedMs() < MISSING_PASS_DEADLINE_MS) {
+    const slots = packEntries(missing, ctx.questionType).slice(0, room)
+    const usageBefore = meter.usage.length
+    const added = await writeForSlots(ctx, slots, facts, questionsOf(current), questionsOf(current).map(asOther), meter).catch(() => ({ drafts: [] as DraftQuestion[], replaced: [] as QuizQuestion[] }))
+    meter.coverageUsage.push(...meter.usage.slice(usageBefore))
+    const replacedIds = new Set(added.replaced.map((question) => question.id))
+    const replacedDrafts = added.replaced.map((question) => ({ question, factIds: question.factIds ?? [] }))
+    const verified = await verifyDrafts([...added.drafts, ...replacedDrafts], facts, language, meter)
+    const byId = new Map(verified.map((draft) => [draft.question.id, draft]))
+    current = [
+      ...current.flatMap((draft) => (replacedIds.has(draft.question.id) ? (byId.has(draft.question.id) ? [byId.get(draft.question.id)!] : []) : [draft])),
+      ...verified.filter((draft) => !replacedIds.has(draft.question.id)),
+    ]
+    meter.missingAdded = verified.filter((draft) => !replacedIds.has(draft.question.id)).length
+  }
+  meter.coveredAfter = computeCoverage(coverage, questionsOf(current)).covered
+  meter.coverageMs = Date.now() - start
+  return current
+}
+
+/**
+ * Generates a quiz. A cheap facts plan comes first (cached by the client per source); `auto` asks every
+ * fact (up to MAX_QUESTION_COUNT questions), a number asks the most important facts that fit (never
+ * padded). Writing runs in batches of at most 10, then the quality pass, the coverage pass and hints.
+ * Without a plan (the extraction failed) the quiz is written as before, without a coverage line.
+ */
+async function callGenerate(ctx: GenerateContext, target: number | 'auto', meter: RequestMeter): Promise<GenerateOutcome> {
+  const planStart = Date.now()
+  const baseFacts = await planFacts(ctx, meter)
+  meter.timings.planMs = Date.now() - planStart
+  let facts: PlannedFact[] | null = null
+  let slotPlan: SlotPlan | null = null
+  if (baseFacts) {
+    facts = plannedFacts(ctx, baseFacts)
+    meter.facts = facts.length
+    const plan = planSlots(facts, ctx.questionType, target)
+    if (plan.slots.length > 0) {
+      slotPlan = plan
+      const focusIds = new Set(facts.filter((fact) => fact.focus).map((fact) => fact.id))
+      meter.focusSlots = plan.slots.filter((slot) => slot.factIds.some((id) => focusIds.has(id))).length
+    }
+  }
+
+  const questionCount = target === 'auto' ? (slotPlan?.slots.length ?? estimateAutoQuestionCount(countWords(ctx.text), ctx.questionType)) : target
+  let supportedCount = slotPlan && target !== 'auto' && slotPlan.slots.length < target ? slotPlan.slots.length : undefined
 
   const writeStart = Date.now()
   let drafts: DraftQuestion[]
   let title: string
   let provider: LlmProvider
   let fallbackUsed: boolean
-  const targetCount = supportedCount ?? questionCount
 
-  if (slots && facts) {
-    const written = await writeFromPlan(ctx, slots, facts, meter)
+  if (slotPlan && facts) {
+    const written = await writeFromPlan(ctx, slotPlan.slots, facts, meter)
     if ('error' in written) return written
     ;({ drafts, title, provider, fallbackUsed } = written)
   } else {
@@ -963,7 +1397,7 @@ async function callGenerate(ctx: GenerateContext, questionCount: number, meter: 
     const results = await mapLimit(sizes, BATCH_CONCURRENCY, (size) => callGenerateBatch(ctx, { questionCount: size, previousQuestions: ctx.avoidQuestions }, meter))
     const successes = results.filter((result): result is Extract<BatchOutcome, { drafts: DraftQuestion[] }> => 'drafts' in result)
     if (successes.length === 0) return results.find((result): result is { error: GenerateErrorCode } => 'error' in result) ?? { error: 'upstream' }
-    drafts = successes.flatMap((result) => result.drafts)
+    drafts = successes.flatMap((result) => result.drafts.map((draft) => withClaims(draft, [])))
     title = successes.find((result) => result.title)?.title ?? 'Quiz'
     provider = successes[0].provider
     fallbackUsed = successes.some((result) => result.fallbackUsed)
@@ -972,8 +1406,9 @@ async function callGenerate(ctx: GenerateContext, questionCount: number, meter: 
   }
   drafts = dedupeDrafts(drafts)
 
-  const wanted = supportedCount ?? targetCount
-  for (let round = 0; round < MAX_TOPUP_ROUNDS && drafts.length < wanted && supportedCount === undefined; round++) {
+  const wanted = supportedCount ?? questionCount
+  // Without a plan, top up a short quiz; with a plan the coverage pass fills missing facts instead.
+  for (let round = 0; !slotPlan && round < MAX_TOPUP_ROUNDS && drafts.length < wanted && supportedCount === undefined; round++) {
     const topUp = await callGenerateBatch(
       ctx,
       { questionCount: wanted - drafts.length, previousQuestions: [...ctx.avoidQuestions, ...drafts.map((draft) => draft.question.question)].slice(-MAX_AVOID_QUESTIONS) },
@@ -981,7 +1416,7 @@ async function callGenerate(ctx: GenerateContext, questionCount: number, meter: 
     )
     if ('error' in topUp && topUp.error === 'not_configured') break // no provider key at all — retrying won't help
     if ('error' in topUp) continue // transient provider hiccup — try the next round instead of giving up
-    drafts = dedupeDrafts([...drafts, ...topUp.drafts])
+    drafts = dedupeDrafts([...drafts, ...topUp.drafts.map((draft) => withClaims(draft, []))])
     provider = topUp.provider
     fallbackUsed = fallbackUsed || topUp.fallbackUsed
   }
@@ -989,7 +1424,16 @@ async function callGenerate(ctx: GenerateContext, questionCount: number, meter: 
 
   const stamp = Date.now().toString(36)
   drafts = drafts.slice(0, wanted).map((draft, index) => ({ ...draft, question: { ...draft.question, id: `q_${stamp}_${index}` } }))
-  const checked = await runQualityPass(ctx, drafts, facts, meter)
+  let checked = await runQualityPass(ctx, drafts, facts, meter)
+
+  let coverage: QuizCoverage | undefined
+  if (slotPlan && baseFacts) {
+    checked = await runCoveragePass(ctx, baseFacts, checked, meter, {
+      targetIds: new Set(slotPlan.coveredFactIds),
+      limit: target === 'auto' ? MAX_QUESTION_COUNT : target,
+    }).catch(() => checked)
+    coverage = { version: COVERAGE_VERSION, facts: baseFacts }
+  }
   const finalQuestions = await finalizeHints(
     checked.map((draft) => draft.question),
     ctx.includeHints,
@@ -997,11 +1441,12 @@ async function callGenerate(ctx: GenerateContext, questionCount: number, meter: 
   )
 
   return {
-    quiz: { title, questions: finalQuestions },
+    quiz: { title, questions: finalQuestions, ...(coverage ? { coverage } : {}) },
     provider,
     fallbackUsed,
     requestedCount: questionCount,
-    incomplete: finalQuestions.length < wanted,
+    // With a coverage line, missing facts get their own "Add questions" action instead.
+    incomplete: !coverage && finalQuestions.length < wanted,
     ...(supportedCount !== undefined ? { supportedCount: finalQuestions.length < supportedCount ? finalQuestions.length : supportedCount } : {}),
   }
 }
@@ -1019,16 +1464,26 @@ async function callTopUp(ctx: GenerateContext, count: number, meter: RequestMete
   return { questions, provider: result.provider, fallbackUsed: result.fallbackUsed }
 }
 
+/** The facts a regenerated question keeps (its factIds, with the plan entries sent as DATA). */
+interface KeptClaims {
+  facts: CoverageFact[]
+  factIds: number[]
+  factItems?: Record<string, number[]>
+}
+
 /** Regenerate-one: same type, same difficulty, never leaking into or repeating the rest of the quiz
- * (sent as DATA). A result that still leaks or repeats is rewritten once with the reasons. */
+ * (sent as DATA). A result that still leaks or repeats is rewritten once with the reasons. With
+ * claims, the new question is written from the same facts and its coverage is verified again. */
 async function callRegenerateOne(
   ctx: GenerateContext,
   questionType: QuizQuestionType,
   others: OtherQuestionContext[],
   meter: RequestMeter,
+  claims?: KeptClaims,
 ): Promise<{ question: QuizQuestion; provider: LlmProvider; fallbackUsed: boolean } | { error: GenerateErrorCode }> {
   const avoidQuestions = ctx.avoidQuestions
-  const first = await writeOneQuestion(ctx, { questionType, others, avoidQuestions }, meter)
+  const facts = claims ? claimDescriptions(claims.factIds, claims.factItems, claims.facts) : undefined
+  const first = await writeOneQuestion(ctx, { questionType, others, avoidQuestions, facts }, meter)
   if ('error' in first) return first
 
   let chosen = first
@@ -1038,15 +1493,84 @@ async function callRegenerateOne(
   if (issues.length > 0) {
     const retry = await writeOneQuestion(
       ctx,
-      { questionType, others, avoidQuestions, reasons: issues.map((issue) => issue.reason), previousVersion: `${first.question.question} | A: ${answerSummary(first.question)}` },
+      { questionType, others, avoidQuestions, facts, reasons: issues.map((issue) => issue.reason), previousVersion: `${first.question.question} | A: ${answerSummary(first.question)}` },
       meter,
       true,
     )
     if ('question' in retry && checkAgainstOthers(retry.question, context, options).length < issues.length) chosen = retry
   }
 
-  const [question] = await finalizeHints([applyDeterministicFixes(chosen.question)], ctx.includeHints, ctx.outputLanguage)
+  let draft = withClaims({ question: applyDeterministicFixes(chosen.question), factIds: [] }, claims?.factIds ?? [], claims?.factItems)
+  if (claims && claims.factIds.length > 0) {
+    const [verified] = await verifyDrafts([draft], claims.facts, qualityLanguageFor(ctx.outputLanguage, ctx.text), meter)
+    // A regenerated question whose answer contradicts the source keeps no claims (its facts show as missing).
+    draft = verified ?? withClaims(draft, [])
+  }
+  const [question] = await finalizeHints([draft.question], ctx.includeHints, ctx.outputLanguage)
   return { question, provider: chosen.provider, fallbackUsed: chosen.fallbackUsed }
+}
+
+/** "Add questions for missing facts": writes only the questions the missing facts (and list items)
+ * need, in the quiz's type and difficulty, next to the existing quiz (DATA), and verifies them. */
+async function callCoverMissing(
+  ctx: GenerateContext,
+  params: { facts: CoverageFact[]; missing: FactEntry[]; others: OtherQuestionContext[]; existingCount: number },
+  meter: RequestMeter,
+): Promise<{ questions: QuizQuestion[]; replaced: QuizQuestion[]; provider: LlmProvider; fallbackUsed: boolean } | { error: GenerateErrorCode }> {
+  const slots = packEntries(params.missing, ctx.questionType).slice(0, Math.max(0, MAX_QUESTION_COUNT - params.existingCount))
+  if (slots.length === 0) return { error: 'not_supported' }
+  const written = await writeForSlots(ctx, slots, params.facts, contextAsQuestions(params.others), params.others, meter)
+  if (written.error || !written.provider) return { error: written.error ?? 'upstream' }
+  const replacedIds = new Set(written.replaced.map((question) => question.id))
+  const checked = await verifyDrafts(
+    [...written.drafts, ...written.replaced.map((question) => ({ question, factIds: question.factIds ?? [] }))],
+    params.facts,
+    qualityLanguageFor(ctx.outputLanguage, ctx.text),
+    meter,
+  )
+  const verified = checked.filter((draft) => !replacedIds.has(draft.question.id))
+  const replaced = await finalizeHints(
+    checked.filter((draft) => replacedIds.has(draft.question.id)).map((draft) => draft.question),
+    ctx.includeHints,
+    ctx.outputLanguage,
+  )
+  const coverage: QuizCoverage = { version: COVERAGE_VERSION, facts: params.facts }
+  meter.facts = params.facts.length
+  meter.missingAdded = verified.length
+  meter.coveredAfter = computeCoverage(coverage, verified.map((draft) => draft.question)).covered
+  const questions = await finalizeHints(
+    verified.map((draft) => draft.question),
+    ctx.includeHints,
+    ctx.outputLanguage,
+  )
+  return { questions, replaced, provider: written.provider, fallbackUsed: written.fallbackUsed }
+}
+
+/** Missing facts sent by the client: [{id, items?}] matched against the plan (unknown ids dropped). */
+function parseMissingEntries(value: unknown, facts: CoverageFact[]): FactEntry[] {
+  if (!Array.isArray(value)) return []
+  const byId = new Map(facts.map((fact) => [fact.id, fact]))
+  return value.filter(isRecord).flatMap((entry) => {
+    const fact = typeof entry.id === 'number' ? byId.get(entry.id) : undefined
+    if (!fact) return []
+    const items = Array.isArray(entry.items) ? entry.items.filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item >= 0 && item < (fact.items?.length ?? 0)) : []
+    return [items.length > 0 ? { fact, items } : { fact }]
+  }).slice(0, MAX_QUESTION_COUNT)
+}
+
+function parseFactIdList(value: unknown, max = MAX_QUESTION_COUNT * 4): number[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const ids = value.filter((entry): entry is number => typeof entry === 'number' && Number.isInteger(entry) && entry > 0).slice(0, max)
+  return ids.length > 0 ? ids : undefined
+}
+
+function parseFactItems(value: unknown): Record<string, number[]> | undefined {
+  if (!isRecord(value)) return undefined
+  const entries = Object.entries(value)
+    .filter(([key, items]) => /^\d+$/.test(key) && Array.isArray(items))
+    .map(([key, items]) => [key, (items as unknown[]).filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item >= 0).slice(0, 12)] as const)
+    .filter(([, items]) => items.length > 0)
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined
 }
 
 function errorStatus(code: GenerateErrorCode): number {
@@ -1081,6 +1605,10 @@ function parseOtherQuestions(value: unknown): OtherQuestionContext[] {
       question: typeof entry.question === 'string' ? entry.question.trim().slice(0, MAX_OTHER_FIELD_CHARS) : '',
       answer: typeof entry.answer === 'string' ? entry.answer.trim().slice(0, MAX_OTHER_FIELD_CHARS) : '',
       type: typeof entry.type === 'string' && CONCRETE_QUESTION_TYPES.has(entry.type) ? (entry.type as QuizQuestionType) : undefined,
+      factIds: parseFactIdList(entry.factIds, 8),
+      factItems: parseFactItems(entry.factItems),
+      id: typeof entry.id === 'string' && entry.id.length <= 80 ? entry.id : undefined,
+      edited: entry.edited === true,
     }))
     .filter((entry) => entry.question)
     .slice(0, MAX_OTHER_QUESTIONS)
@@ -1088,7 +1616,7 @@ function parseOtherQuestions(value: unknown): OtherQuestionContext[] {
 
 function logMetrics(metrics: GenerateMetrics): void {
   console.log(
-    `generate: mode=${metrics.mode} questions=${metrics.questionCount} totalMs=${metrics.totalMs} planMs=${metrics.planMs} writeMs=${metrics.writeMs} reviewMs=${metrics.reviewMs} rewriteMs=${metrics.rewriteMs} facts=${metrics.facts} detFlags=${metrics.deterministicFlags} modelFlags=${metrics.modelFlags} rewritten=${metrics.rewritten} accepted=${metrics.accepted} dropped=${metrics.dropped} rejected=${metrics.rejected.join(',') || 'none'} costUsd=${metrics.costUsd.toFixed(4)} qualityCostUsd=${metrics.qualityCostUsd.toFixed(4)}`,
+    `generate: mode=${metrics.mode} questions=${metrics.questionCount} totalMs=${metrics.totalMs} planMs=${metrics.planMs} writeMs=${metrics.writeMs} reviewMs=${metrics.reviewMs} rewriteMs=${metrics.rewriteMs} facts=${metrics.facts} detFlags=${metrics.deterministicFlags} modelFlags=${metrics.modelFlags} rewritten=${metrics.rewritten} accepted=${metrics.accepted} dropped=${metrics.dropped} rejected=${metrics.rejected.join(',') || 'none'} costUsd=${metrics.costUsd.toFixed(4)} qualityCostUsd=${metrics.qualityCostUsd.toFixed(4)} coverageCostUsd=${metrics.coverageCostUsd.toFixed(4)} coverageMs=${metrics.coverageMs} planCached=${metrics.planCached} wordShare=${metrics.coveredWordShare.toFixed(2)} covered=${metrics.coveredBefore}->${metrics.coveredAfter}/${metrics.facts} missingAdded=${metrics.missingAdded}`,
   )
 }
 
@@ -1103,14 +1631,16 @@ export async function handleGenerateRequest(payload: unknown, hooks: GenerateReq
     return { status: 400, body: { error: 'not_supported' } }
   }
 
-  const mode: 'generate' | 'regenerate_one' | 'top_up' | null =
+  const mode: 'generate' | 'regenerate_one' | 'top_up' | 'cover_missing' | null =
     payload.mode === 'regenerate_one'
       ? 'regenerate_one'
       : payload.mode === 'top_up'
         ? 'top_up'
-        : payload.mode === undefined || payload.mode === 'generate'
-          ? 'generate'
-          : null
+        : payload.mode === 'cover_missing'
+          ? 'cover_missing'
+          : payload.mode === undefined || payload.mode === 'generate'
+            ? 'generate'
+            : null
   if (mode === null) {
     return { status: 400, body: { error: 'not_supported' } }
   }
@@ -1131,7 +1661,7 @@ export async function handleGenerateRequest(payload: unknown, hooks: GenerateReq
   }
 
   const questionTypeRaw = typeof payload.questionType === 'string' ? payload.questionType : ''
-  const allowedTypes = mode === 'generate' ? GENERATE_QUESTION_TYPES : CONCRETE_QUESTION_TYPES
+  const allowedTypes = mode === 'generate' || mode === 'cover_missing' ? GENERATE_QUESTION_TYPES : CONCRETE_QUESTION_TYPES
   if (!allowedTypes.has(questionTypeRaw)) {
     return { status: 400, body: { error: 'not_supported' } }
   }
@@ -1157,6 +1687,8 @@ export async function handleGenerateRequest(payload: unknown, hooks: GenerateReq
     includeHints: payload.includeHints !== false,
     focusSnippets: parseFocusSnippets(payload.focusSnippets),
     title: parseTitle(payload.title),
+    plan: parseCoverageFacts(payload.plan) ?? undefined,
+    onlyFactIds: parseFactIdList(payload.onlyFactIds, MAX_PLAN_FACT_IDS),
   }
   const meter = new RequestMeter()
   const report = (count: number) => {
@@ -1168,7 +1700,9 @@ export async function handleGenerateRequest(payload: unknown, hooks: GenerateReq
   if (mode === 'regenerate_one') {
     let result: Awaited<ReturnType<typeof callRegenerateOne>>
     try {
-      result = await callRegenerateOne(ctx, questionType as QuizQuestionType, parseOtherQuestions(payload.otherQuestions), meter)
+      const factIds = parseFactIdList(payload.factIds, 8)
+      const claims = ctx.plan && factIds ? { facts: ctx.plan, factIds: factIds.filter((id) => ctx.plan!.some((fact) => fact.id === id)), factItems: parseFactItems(payload.factItems) } : undefined
+      result = await callRegenerateOne(ctx, questionType as QuizQuestionType, parseOtherQuestions(payload.otherQuestions), meter, claims)
     } catch (error) {
       console.error('generate: regenerate_one failed', error instanceof Error ? error.message : 'unknown error')
       result = { error: 'upstream' }
@@ -1183,8 +1717,28 @@ export async function handleGenerateRequest(payload: unknown, hooks: GenerateReq
     }
   }
 
+  if (mode === 'cover_missing') {
+    const missing = ctx.plan ? parseMissingEntries(payload.missing, ctx.plan) : []
+    const existingCount = typeof payload.existingCount === 'number' && Number.isInteger(payload.existingCount) ? Math.max(0, payload.existingCount) : 0
+    if (!ctx.plan || missing.length === 0) return { status: 400, body: { error: 'not_supported' } }
+    let result: Awaited<ReturnType<typeof callCoverMissing>>
+    try {
+      result = await callCoverMissing(ctx, { facts: ctx.plan, missing, others: parseOtherQuestions(payload.otherQuestions), existingCount }, meter)
+    } catch (error) {
+      console.error('generate: cover_missing failed', error instanceof Error ? error.message : 'unknown error')
+      result = { error: 'upstream' }
+    }
+    report('questions' in result ? result.questions.length : 0)
+    if ('error' in result) {
+      return { status: errorStatus(result.error), body: { error: result.error } }
+    }
+    return { status: 200, body: { questions: result.questions, replaced: result.replaced, provider: result.provider, fallbackUsed: result.fallbackUsed } }
+  }
+
+  // "auto" (generate only): as many questions as the facts need, up to MAX_QUESTION_COUNT.
+  const autoCount = mode === 'generate' && payload.questionCount === 'auto'
   const questionCountParsed = typeof payload.questionCount === 'string' ? Number.parseInt(payload.questionCount, 10) : Number.NaN
-  if (!Number.isInteger(questionCountParsed) || questionCountParsed < 1 || questionCountParsed > 30) {
+  if (!autoCount && (!Number.isInteger(questionCountParsed) || questionCountParsed < 1 || questionCountParsed > MAX_QUESTION_COUNT)) {
     return { status: 400, body: { error: 'not_supported' } }
   }
 
@@ -1205,7 +1759,7 @@ export async function handleGenerateRequest(payload: unknown, hooks: GenerateReq
 
   let result: GenerateOutcome
   try {
-    result = await callGenerate(ctx, questionCountParsed, meter)
+    result = await callGenerate(ctx, autoCount ? 'auto' : questionCountParsed, meter)
   } catch (error) {
     console.error('generate: failed', error instanceof Error ? error.message : 'unknown error')
     result = { error: 'upstream' }
