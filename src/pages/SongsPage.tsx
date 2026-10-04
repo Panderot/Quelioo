@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -81,27 +81,26 @@ export default function SongsPage() {
   const currentUrlRef = useRef<string | null>(null)
   const [playingId, setPlayingId] = useState<string | null>(null)
 
-  const loadSongs = () => {
+  /** Older songs stored the requested length. Read each file's real length once, fix the stored
+   * value, and update the card, so the card, the player and the file agree. */
+  const loadSongs = useCallback(() => {
+    const correctStoredDurations = async (loaded: StoredSong[]) => {
+      for (const song of loaded) {
+        const real = await measureAudioDuration(song.audio)
+        if (real === null || Math.abs(real - song.durationSeconds) < 1) continue
+        await updateSongDuration(song.id, real)
+        setSongs((current) => current.map((entry) => (entry.id === song.id ? { ...entry, durationSeconds: real } : entry)))
+      }
+    }
     void getAllSongs().then((loaded) => {
       setSongs(loaded)
       void correctStoredDurations(loaded)
     })
-  }
-
-  /** Older songs stored the requested length. Read each file's real length once, fix the stored
-   * value, and update the card, so the card, the player and the file agree. */
-  const correctStoredDurations = async (loaded: StoredSong[]) => {
-    for (const song of loaded) {
-      const real = await measureAudioDuration(song.audio)
-      if (real === null || Math.abs(real - song.durationSeconds) < 1) continue
-      await updateSongDuration(song.id, real)
-      setSongs((current) => current.map((entry) => (entry.id === song.id ? { ...entry, durationSeconds: real } : entry)))
-    }
-  }
+  }, [])
 
   useEffect(() => {
     loadSongs()
-  }, [])
+  }, [loadSongs])
 
   // The page stays mounted while the user is elsewhere; songs and quizzes may have changed meanwhile.
   useOnPageReturn(() => {

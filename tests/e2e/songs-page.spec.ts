@@ -548,3 +548,26 @@ test('a song card shows "x/y questions in the song" with the covering lines, and
   await expect(page.getByText('[Kıta 1]')).toBeVisible()
   await expect(page.getByText('[Nakarat]')).toBeVisible()
 })
+
+test('the Songs page stays mounted but refreshes its list when you come back to it', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true)
+  await mockSongLyrics(page, SAMPLE_LYRICS)
+  await mockSongCreate(page, SAMPLE_SONG)
+  await mockGenerate(SAMPLE_QUIZ)
+
+  await page.goto('/songs?lng=en')
+  await expect(page.getByRole('heading', { name: 'Songs' })).toBeVisible()
+  await expect(page.locator('[data-purpose="songs-list"] li')).toHaveCount(0)
+
+  const nav = page.locator('[data-purpose="sidebar-navigation"]')
+  await nav.getByRole('link', { name: 'Create' }).click()
+  await fillText(page, SHORT_TEXT)
+  await page.getByRole('button', { name: 'Generate Quiz' }).click()
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await page.getByRole('button', { name: 'Make the song' }).click()
+  await expect(page.getByText('Demo sound')).toBeVisible()
+
+  await page.getByRole('link', { name: 'See all songs' }).click()
+  await expect(page.locator('[data-purpose="songs-list"] li').filter({ hasText: SAMPLE_QUIZ.title })).toBeVisible()
+})

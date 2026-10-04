@@ -286,21 +286,3 @@ export function sanitizeQuizQuestion(rawInput: unknown, makeId: () => string): Q
       return null
   }
 }
-
-/** Normalizes and validates a raw model response into a GeneratedQuiz, dropping any question that can't be salvaged. */
-export function sanitizeGeneratedQuiz(raw: unknown): GeneratedQuiz | null {
-  if (!isRecord(raw)) return null
-
-  const title = typeof raw.title === 'string' && raw.title.trim() ? raw.title.trim() : 'Quiz'
-  const rawQuestions = Array.isArray(raw.questions) ? raw.questions : []
-
-  let counter = 0
-  const makeId = () => `q_${Date.now().toString(36)}_${counter++}`
-
-  const questions = rawQuestions
-    .map((question) => sanitizeQuizQuestion(question, makeId))
-    .filter((question): question is QuizQuestion => question !== null)
-
-  if (questions.length === 0) return null
-  return { title, questions }
-}

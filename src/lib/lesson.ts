@@ -114,7 +114,6 @@ export const MAX_LINE_CHARS = 600
 export const MAX_LINES_PER_EPISODE = 220
 export const MAX_SECTION_TITLE_CHARS = 120
 export const MAX_KEY_POINT_CHARS = 400
-export const MAX_KEY_POINT_SOURCE_CHARS = 800
 /** A key point merges several facts; these caps are far above any merged key point so no fact is cut. */
 export const MAX_MERGED_KEY_POINT_CHARS = 4000
 export const MAX_MERGED_SOURCE_CHARS = 8000
@@ -130,8 +129,6 @@ export const MIN_EPISODE_SECONDS_TARGET = 120
  * length follows the source (45 words ~ 2.3 minutes, 100 words ~ 4.2, 155+ words the 6-minute maximum). */
 const BASE_LESSON_SECONDS = 50
 const SECONDS_PER_SOURCE_WORD = 2
-/** Every part of a series is a full-length episode. */
-export const TARGET_EPISODE_SECONDS = MAX_EPISODE_SECONDS_TARGET
 
 /** Target length of one episode in seconds. A series (more than one part) always uses full episodes. */
 export function episodeTargetSeconds(params: { sourceWords: number; episodes: number }): number {

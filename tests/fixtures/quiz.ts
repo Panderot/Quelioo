@@ -78,5 +78,3 @@ export const SAMPLE_QUIZ = {
     },
   ],
 }
-
-export type SampleQuiz = typeof SAMPLE_QUIZ
