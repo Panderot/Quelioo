@@ -3,10 +3,10 @@
 // Usage: node scripts/test-each.mjs [spec-file ...]   (default: every tests/e2e/*.spec.ts)
 import { spawn, spawnSync } from 'node:child_process'
 import { readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { posix } from 'node:path'
 
 const PORT = 5190
-const files = process.argv.length > 2 ? process.argv.slice(2) : readdirSync('tests/e2e').filter((f) => f.endsWith('.spec.ts')).map((f) => join('tests/e2e', f))
+const files = process.argv.length > 2 ? process.argv.slice(2) : readdirSync('tests/e2e').filter((f) => f.endsWith('.spec.ts')).map((f) => posix.join('tests/e2e', f))
 
 const nodeCount = () => {
   const r = spawnSync('powershell', ['-NoProfile', '-Command', "(Get-Process node -ErrorAction SilentlyContinue | Measure-Object).Count"], { encoding: 'utf8' })
