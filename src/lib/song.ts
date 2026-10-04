@@ -45,6 +45,9 @@ export type SongErrorCode =
   | 'parse'
   | 'network'
   | 'storage_full'
+  | 'no_facts'
+  | 'rate_limited'
+  | 'busy'
 
 const SONG_ERROR_CODES: ReadonlySet<string> = new Set<SongErrorCode>([
   'not_configured',
@@ -57,6 +60,9 @@ const SONG_ERROR_CODES: ReadonlySet<string> = new Set<SongErrorCode>([
   'parse',
   'network',
   'storage_full',
+  'no_facts',
+  'rate_limited',
+  'busy',
 ])
 
 export function isSongErrorCode(value: unknown): value is SongErrorCode {
@@ -117,11 +123,6 @@ export function splitFactsIntoSongs(factCount: number): number[] {
   const base = Math.floor(factCount / songs)
   const extra = factCount % songs
   return Array.from({ length: songs }, (_, index) => base + (index < extra ? 1 : 0))
-}
-
-/** Price of one song, from Google's list prices: lyria-3-clip-preview (30 s) $0.04, lyria-3.5 $0.08. */
-export function songPriceUsd(targetSeconds: number): number {
-  return targetSeconds <= 30 ? 0.04 : 0.08
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { handleGenerateRequest } from '../../api/_lib/generate'
+import { handleGenerateRequest, repeatedFactDrafts } from '../../api/_lib/generate'
 import type { GenerateMetrics } from '../../api/_lib/generate'
 
 // Server-side tests for /api/generate's facts plan and quality pass (no browser): OpenAI is stubbed at
@@ -313,4 +313,66 @@ test('regenerate-one sends the rest of the quiz (questions and answers) as DATA 
   expect(calls).toHaveLength(2)
   expect(calls[0].text).toContain('<other_questions>')
   expect(calls[0].text).toContain('A: stoma')
+})
+
+test('a question that repeats the fact of another one is moved to an unused fact, and the count stays exact', async () => {
+  const facts = [
+    plannedFact('Tanım', 'Fotosentez ışıkla besin üretimidir', 1),
+    plannedFact('Su alımı', 'Su köklerle emilir', 2),
+    plannedFact('Gaz çıkışı', 'Oksijen atmosfere verilir', 3),
+    plannedFact('Pigment', 'Klorofil ışığı soğurur', 4),
+    plannedFact('Depolama', 'Fazla glikoz nişasta olarak depolanır', 5),
+  ]
+  const calls = stubOpenAi((call) => {
+    if (call.kind === 'plan') return { facts, noTestable: [6, 7] }
+    if (call.kind === 'write') {
+      return {
+        title: 'T',
+        questions: [
+          fill('1', 'Bitkilerin ışıkla besin üretmesi sürecine ___ denir.', 'fotosentez', [1]),
+          fill('2', 'Bitkinin ışıkla besin üretirken atmosfere verdiği ürün ___ olarak adlandırılır.', 'oksijen', [2]),
+          fill('3', 'Üretim sırasında oluşan gaz ürünün bitki dışına salınması ___ salımıdır.', 'O2', [3]),
+        ],
+      }
+    }
+    if (call.kind === 'review') return { flags: [{ id: call.text.match(/q_[a-z0-9]+_2/)?.[0] ?? 'none', reason: 'It tests the same fact as question 2.', repeatsFact: true }] }
+    if (call.kind === 'rewrite') return { question: fill('x', 'Yeşil pigment olan ___ ışığı soğurur.', 'klorofil') }
+    return 500
+  })
+  const { status, body } = await handleGenerateRequest({ ...basePayload, questionCount: '3' })
+  expect(status).toBe(200)
+  const answers = (body as { questions: { answer: string }[] }).questions.map((question) => question.answer)
+  expect(answers).toHaveLength(3)
+  expect(answers).toEqual(['fotosentez', 'oksijen', 'klorofil'])
+  // The rewrite was told to test an unused fact, not the repeated one.
+  expect(calls.find((call) => call.kind === 'rewrite')!.text).toContain('Klorofil ışığı soğurur')
+})
+
+test('a repeat with no unused fact left is not rewritten, and a fixed count never returns more questions', async () => {
+  const facts = [plannedFact('Tanım', 'Fotosentez ışıkla besin üretimidir', 1), plannedFact('Gaz çıkışı', 'Oksijen atmosfere verilir', 2)]
+  const calls = stubOpenAi((call) => {
+    if (call.kind === 'plan') return { facts, noTestable: [3, 4, 5, 6, 7] }
+    if (call.kind === 'write') {
+      return {
+        title: 'T',
+        questions: [
+          fill('1', 'Bitkilerin ışıkla besin üretmesi sürecine ___ denir.', 'fotosentez', [1]),
+          fill('2', 'Bitkinin ışıkla besin üretirken atmosfere verdiği ürün ___ olarak adlandırılır.', 'oksijen', [2]),
+          fill('3', 'Üretim sırasında oluşan gaz ürünün bitki dışına salınması ___ salımıdır.', 'O2', [2]),
+        ],
+      }
+    }
+    if (call.kind === 'review') return { flags: [{ id: call.text.match(/q_[a-z0-9]+_1/)?.[0] ?? 'none', reason: 'Same fact as another question.', repeatsFact: true }] }
+    return 500
+  })
+  const { body } = await handleGenerateRequest({ ...basePayload, questionCount: '2' })
+  expect((body as { questions: unknown[] }).questions).toHaveLength(2)
+  expect(calls.filter((call) => call.kind === 'rewrite')).toHaveLength(0)
+})
+
+test('repeatedFactDrafts: a later question with the same facts (and list items) is the repeat', () => {
+  const draft = (id: string, factIds: number[], factItems?: Record<string, number[]>) =>
+    ({ question: { ...fill(id, `Question ${id} ___`, id), factIds, ...(factItems ? { factItems } : {}) }, factIds }) as unknown as Parameters<typeof repeatedFactDrafts>[0][number]
+  const list = [draft('a', [1]), draft('b', [2]), draft('c', [1]), draft('d', [3], { 3: [0] }), draft('e', [3], { 3: [1] }), draft('f', [3], { 3: [0] }), draft('g', [])]
+  expect(repeatedFactDrafts(list).map((item) => item.question.id)).toEqual(['c', 'f'])
 })

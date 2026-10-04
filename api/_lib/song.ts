@@ -62,6 +62,10 @@ function errorStatus(code: SongErrorCode): number {
       return 422
     case 'timeout':
       return 504
+    case 'rate_limited':
+      return 429
+    case 'busy':
+      return 503
     case 'upstream':
       return 502
     default:
@@ -112,8 +116,7 @@ export async function handleSongCreateRequest(
   // Per-IP backstop on top of the client's own daily guards (lib/songCostGuard.ts) — see
   // song-rate-limit.ts for why this is best-effort, not a strict distributed limiter.
   if (!canRecordSongForIp(context.ip, targetSeconds)) {
-    console.log(`song: provider=none duration=${Date.now() - start}ms error=rate_limited ip=${context.ip}`)
-    return { status: 429, body: { error: 'disabled' } }
+    return fail('rate_limited')
   }
 
   const musicPrompt = clampString(payload.musicPrompt, MAX_MUSIC_PROMPT_CHARS)
@@ -151,7 +154,7 @@ export async function handleSongCreateRequest(
   if (!result.ok || !result.audioBase64) {
     console.log(`song: provider=gemini model=${model} geminiStatus=${result.status ?? 'none'} blocked=${result.blocked}`)
     // A rejected key is a setup problem, not a transient upstream hiccup.
-    return fail(result.blocked ? 'blocked' : result.status === 401 || result.status === 403 ? 'not_configured' : 'upstream')
+    return fail(result.blocked ? 'blocked' : result.status === 401 || result.status === 403 ? 'not_configured' : result.status === 429 ? 'busy' : 'upstream')
   }
 
   console.log(`song: provider=gemini model=${model} duration=${Date.now() - start}ms error=none`)
@@ -159,6 +162,8 @@ export async function handleSongCreateRequest(
   const measured = Math.round(mp3DurationSeconds(Buffer.from(result.audioBase64, 'base64')))
   const durationSeconds = measured > 0 ? measured : targetSeconds
   recordSongForIp(context.ip, durationSeconds)
+  // Google list prices (lyria-3-clip-preview $0.04, lyria-3.5 $0.08): logged for the owner, never shown to students.
+  console.log(`song: cost=$${targetSeconds <= 30 ? '0.04' : '0.08'} seconds=${durationSeconds}`)
   return {
     status: 200,
     body: {

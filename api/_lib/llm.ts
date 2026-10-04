@@ -32,6 +32,9 @@ export interface LlmCallParams {
   /** Static instructions placed first with an explicit prompt-cache breakpoint (OpenAI); `system` is the variable rest. */
   cacheablePrefix?: string
   timeoutMs?: number
+  /** Absolute time (ms since epoch) by which the whole call, fallback included, must be over: each
+   * provider attempt gets at most what is left, and no attempt starts with almost nothing left. */
+  deadlineAt?: number
   /** OpenAI reasoning effort for this call ("none", "low", ...); omitted = the model default. */
   reasoningEffort?: string
   /** Short label for the log line (e.g. "quiz-write"); counts only are logged, never content. */
@@ -198,6 +201,9 @@ const CALLERS: Record<LlmProvider, (params: LlmCallParams) => Promise<ProviderOu
  * (e.g. auth/quota/rate/model/bad_request) — enough to diagnose a failure from the log alone,
  * without ever logging keys, prompts, user text or generated questions.
  */
+/** With a deadline, an attempt is only started when at least this much time is left. */
+const MIN_ATTEMPT_MS = 4_000
+
 export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
   const start = Date.now()
   const resolved = resolveProviderOrder()
@@ -207,13 +213,23 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
     : (preferred && resolved.includes(preferred) ? [preferred, ...resolved.filter((p) => p !== preferred)] : resolved).slice(0, 2)
 
   let attempts = 0
+  let expired = false
   let lastProvider: LlmProvider | null = null
   let lastFailure: ProviderFailure = { error: 'upstream', logTag: 'upstream', status: null, errorType: null, errorCode: null }
 
   for (const provider of order) {
+    let attemptParams = params
+    if (params.deadlineAt !== undefined) {
+      const left = params.deadlineAt - Date.now()
+      if (left < MIN_ATTEMPT_MS) {
+        expired = true
+        break
+      } // out of time: report the last failure instead of starting a doomed attempt
+      attemptParams = { ...params, timeoutMs: Math.min(params.timeoutMs ?? left, left) }
+    }
     let outcome: ProviderOutcome
     try {
-      outcome = await CALLERS[provider](params)
+      outcome = await CALLERS[provider](attemptParams)
     } catch (error) {
       console.error('llm: unexpected error', error instanceof Error ? error.message : 'unknown')
       outcome = { error: 'upstream', logTag: 'upstream', status: null, errorType: null, errorCode: null }
@@ -237,7 +253,7 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
   }
 
   const duration = Date.now() - start
-  if (attempts === 0) {
+  if (attempts === 0 && !expired) {
     console.log(`llm: type=${params.callType ?? 'other'} provider=none fallbackUsed=false duration=${duration}ms error=not_configured`)
     return { status: 'not_configured' }
   }

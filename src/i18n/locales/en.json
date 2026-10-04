@@ -569,16 +569,20 @@
       "parse": "Quelio couldn't read a valid song this time. Please try again.",
       "network": "Couldn't connect. Check your connection and try again.",
       "storage_full": "This song couldn't be saved on this device, but it will keep playing for this session.",
+      "no_facts": "There is nothing left to turn into a song here. Your earlier song already covers it.",
+      "rate_limited": "Quelio has reached the song limit for today. Please try again tomorrow.",
+      "busy": "The music service is busy right now. Please try again in a minute.",
       "retry": "Try again"
     },
     "coverage": {
       "summary": "{{covered}}/{{total}} questions in the song",
+      "seriesSummary": "Song {{part}}: {{covered}}/{{total}} · Series: {{seriesCovered}}/{{seriesTotal}}",
       "hide": "Hide questions",
       "notCovered": "Not in the song",
       "lineLabel": "Line"
     },
     "series": {
-      "note": "This quiz is split into {{count}} songs because it does not fit in one. Total price about ${{price}}.",
+      "note": "This quiz will be split into {{count}} songs. It uses {{count}} of today's song credits.",
       "noteFree": "This quiz is split into {{count}} songs because it does not fit in one.",
       "partLabel": "Song {{number}} of {{count}}",
       "partName": "Song {{number}}",
@@ -594,7 +598,7 @@
   "songsPage": {
     "title": "Songs",
     "subtitle": "Turn your quizzes into songs you can't forget",
-    "songsLeftToday": "{{count}} songs left today",
+    "minutesLeftToday": "About {{count}} min of songs left today",
     "newSong": "New song",
     "pickerTitle": "Choose a quiz",
     "pickerSearchPlaceholder": "Search quizzes...",

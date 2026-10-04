@@ -304,6 +304,8 @@ export async function verifyCoverage(params: { facts: CoverageFact[]; questions:
 export interface ReviewFlag {
   id: string
   reason: string
+  /** The reviewer found another question testing the same fact; this later one should move to an unused fact. */
+  repeatsFact?: boolean
 }
 
 /** Compact, answer-revealing view of a question for the reviewer (DATA only). */
@@ -333,8 +335,9 @@ function reviewRules(questionType: QuestionType, difficulty: string, optionsCoun
     GENERAL_QUALITY_RULES,
     typeRules(questionType),
     'Difficulty: on hard, flag a question that can be answered by recalling one sentence of the source (a story around a recall question is still recall); on medium, flag pure term-from-definition recall; on easy, flag anything that gives the answer away.',
+    'Compare the questions with each other: two questions that test the same fact are a repeat even when worded differently, asked about from another side or written as different types (for example one asks which product is released to the atmosphere and another asks what happens to the gas product — both test that oxygen is released). Flag the LATER question of such a pair and set "repeatsFact": true on its flag.',
     'Do not flag style preferences. Each reason is one short English sentence that says exactly what to fix.',
-    'Respond with ONLY a JSON object: {"flags": [{"id": string, "reason": string}]} — an empty list when every question is fine.',
+    'Respond with ONLY a JSON object: {"flags": [{"id": string, "reason": string, "repeatsFact"?: boolean}]} — an empty list when every question is fine.',
   ]
     .filter(Boolean)
     .join(' ')
@@ -346,7 +349,7 @@ function parseReview(parsed: unknown, ids: Set<string>): ReviewFlag[] | null {
   for (const entry of parsed.flags) {
     if (!isRecord(entry) || typeof entry.id !== 'string' || !ids.has(entry.id)) continue
     const reason = cleanString(entry.reason, MAX_REASON_CHARS)
-    if (reason && !flags.some((flag) => flag.id === entry.id)) flags.push({ id: entry.id, reason })
+    if (reason && !flags.some((flag) => flag.id === entry.id)) flags.push({ id: entry.id, reason, ...(entry.repeatsFact === true ? { repeatsFact: true } : {}) })
   }
   return flags
 }

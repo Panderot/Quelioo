@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 
 import { checkSongLyrics, createSong, writeSongLyrics, SongApiError, verifyAndStoreMusicAccessCode } from '../api/song'
 import type { SongLyricsResponseBody } from '../lib/song'
-import { SONG_STYLES, SONG_TONES, songPriceUsd, splitFactsIntoSongs, targetSecondsForFactCount } from '../lib/song'
-import { buildSongCoverage } from '../lib/songFacts'
+import { SONG_STYLES, SONG_TONES, splitFactsIntoSongs, targetSecondsForFactCount } from '../lib/song'
+import { buildSongCoverage, coveredCount } from '../lib/songFacts'
 import { canonicalSectionTags, localizeSectionTags } from '../lib/songTags'
 import SongCoverage from './SongCoverage'
 import type { SongErrorCode, SongProvider, SongStyle, SongTone } from '../lib/song'
@@ -116,6 +116,8 @@ export default function SongPanel({
   /** Which song of a numbered series the panel is on (always 0 for a quiz that fits one song). */
   const [partIndex, setPartIndex] = useState(0)
   const [factLines, setFactLines] = useState<number[] | null>(null)
+  /** How many questions each finished song of the series covers (for the "Series: x/y" label). */
+  const [partCovered, setPartCovered] = useState<number[]>([])
 
   const loadingMessages = t('song.loading.messages', { returnObjects: true }) as string[]
   // The quiz's facts are split into as few songs as fit; each song teaches its own slice.
@@ -125,7 +127,6 @@ export default function SongPanel({
   const partStart = partSizes.slice(0, currentPart).reduce((sum, size) => sum + size, 0)
   const partFacts = seriesCount > 0 ? keyFacts.slice(partStart, partStart + partSizes[currentPart]) : keyFacts
   const estimatedSeconds = Math.min(targetSecondsForFactCount(partFacts.length), maxSeconds)
-  const seriesPrice = partSizes.reduce((sum, size) => sum + songPriceUsd(Math.min(targetSecondsForFactCount(size), maxSeconds)), 0)
   // Gemini songs over one clip (30 s) come from the long model, whose real length varies.
   const lengthText = (seconds: number) =>
     provider === 'gemini' && seconds > CLIP_MAX_SECONDS ? t('song.lengthNoteLong') : t('song.lengthNote', { seconds })
@@ -211,6 +212,10 @@ export default function SongPanel({
 
   const handleWriteLyrics = async () => {
     setErrorCode(null)
+    if (partFacts.length === 0) {
+      setErrorCode('no_facts')
+      return
+    }
     setIsWritingLyrics(true)
     try {
       const result = await writeSongLyrics({
@@ -296,6 +301,8 @@ export default function SongPanel({
 
       // Songs of a numbered series are named "Quiz title · Song N" everywhere they are listed.
       const seriesLabel = seriesCount > 1 ? `${quizTitle} · ${t('song.series.partName', { number: currentPart + 1 })}` : quizTitle
+      const savedCoverage = buildSongCoverage(partFacts, checkedFactLines, canonicalLyrics)
+      setPartCovered((current) => Object.assign([...current], { [currentPart]: savedCoverage ? coveredCount(savedCoverage) : 0 }))
       const entry: Omit<StoredSong, 'id' | 'createdAt'> = {
         quizId,
         quizTitle: seriesLabel,
@@ -308,7 +315,8 @@ export default function SongPanel({
         mimeType: result.mimeType,
         durationSeconds,
         factCheckPassed,
-        coverage: buildSongCoverage(partFacts, checkedFactLines, canonicalLyrics),
+        coverage: savedCoverage,
+        ...(seriesCount > 1 ? { seriesPart: currentPart + 1 } : {}),
         audio: blob,
       }
       try {
@@ -347,6 +355,14 @@ export default function SongPanel({
   }`
   const draftLyricsLines = draftLyrics.split('\n')
   const coverageItems = buildSongCoverage(partFacts, factLines, canonicalSectionTags(draftLyrics))
+  const seriesCoverage =
+    seriesCount > 1 && coverageItems
+      ? {
+          part: currentPart + 1,
+          covered: partCovered.reduce((sum, count, index) => sum + (index === currentPart ? 0 : count), 0) + coveredCount(coverageItems),
+          total: keyFacts.length,
+        }
+      : undefined
 
   const factCheckWarning = !factCheckPassed && (
     <div role="status" className="space-y-1.5 rounded-xl border border-amber/30 bg-amber/10 p-3">
@@ -444,7 +460,7 @@ export default function SongPanel({
                     <p className="text-xs font-semibold text-ink">{t('song.series.partLabel', { number: currentPart + 1, count: seriesCount })}</p>
                     <p className="text-xs text-muted">
                       {provider === 'gemini'
-                        ? t('song.series.note', { count: seriesCount, price: seriesPrice.toFixed(2) })
+                        ? t('song.series.note', { count: seriesCount })
                         : t('song.series.noteFree', { count: seriesCount })}
                     </p>
                   </>
@@ -502,7 +518,7 @@ export default function SongPanel({
                 </p>
               </div>
 
-              {coverageItems && <SongCoverage items={coverageItems} />}
+              {coverageItems && <SongCoverage items={coverageItems} series={seriesCoverage} />}
 
               {factCheckWarning}
 
@@ -562,7 +578,7 @@ export default function SongPanel({
             <>
               <SongPlayerCard audioUrl={song.url} lyrics={song.lyrics} demo={song.demo} downloadName={downloadName} />
 
-              {coverageItems && <SongCoverage items={coverageItems} />}
+              {coverageItems && <SongCoverage items={coverageItems} series={seriesCoverage} />}
 
               {factCheckWarning}
 
@@ -585,6 +601,7 @@ export default function SongPanel({
                 type="button"
                 onClick={() => {
                   setPartIndex(0)
+                  setPartCovered([])
                   resetToOptions()
                 }}
                 className="w-full rounded-xl border border-warm-border bg-card px-4 py-2.5 text-sm font-bold text-navy transition-colors hover:border-amber"

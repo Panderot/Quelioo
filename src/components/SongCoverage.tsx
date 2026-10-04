@@ -5,11 +5,13 @@ import type { SongCoverageItem } from '../lib/song'
 
 interface SongCoverageProps {
   items: SongCoverageItem[]
+  /** Set for a numbered series: this song's number and how much of the whole quiz the series covers so far. */
+  series?: { part: number; covered: number; total: number }
 }
 
 /** "5/5 questions are in the song" — opens a list of each quiz question with the lyric line that
  * teaches it. */
-export default function SongCoverage({ items }: SongCoverageProps) {
+export default function SongCoverage({ items, series }: SongCoverageProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const listId = useId()
@@ -27,7 +29,9 @@ export default function SongCoverage({ items }: SongCoverageProps) {
           covered === items.length ? 'border-warm-border bg-paper text-navy' : 'border-amber/30 bg-amber/10 text-amber-text'
         }`}
       >
-        {open ? t('song.coverage.hide') : t('song.coverage.summary', { covered, total: items.length })}
+        {open ? t('song.coverage.hide') : series
+          ? t('song.coverage.seriesSummary', { part: series.part, covered, total: items.length, seriesCovered: series.covered, seriesTotal: series.total })
+          : t('song.coverage.summary', { covered, total: items.length })}
       </button>
       {open && (
         <ol id={listId} className="list-decimal space-y-1.5 pl-5 text-xs text-ink">

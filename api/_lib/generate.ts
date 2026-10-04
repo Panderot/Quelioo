@@ -884,29 +884,32 @@ async function runQualityPass(
   const modelFlags = review.value ?? []
   meter.modelFlags = modelFlags.length
 
-  const byId = new Map<string, { reasons: string[]; severe: boolean; wantBool?: boolean; repeatFact: boolean }>()
-  const note = (id: string, reason: string, issue?: QualityIssue) => {
-    const entry = byId.get(id) ?? { reasons: [], severe: false, repeatFact: false }
+  const byId = new Map<string, { reasons: string[]; severe: boolean; wantBool?: boolean; repeatFact: boolean; onlyRepeats: boolean }>()
+  const note = (id: string, reason: string, issue?: QualityIssue, repeatsFact = false) => {
+    const entry = byId.get(id) ?? { reasons: [], severe: false, repeatFact: false, onlyRepeats: true }
     entry.reasons.push(reason)
+    if (!repeatsFact) entry.onlyRepeats = false
+    if (repeatsFact) entry.repeatFact = true
     if (issue && SEVERE_CODES.has(issue.code)) entry.severe = true
     if (issue?.wantBool !== undefined) entry.wantBool = issue.wantBool
     if (issue && (issue.code === 'duplicate_answer' || issue.code === 'duplicate_stem' || issue.code === 'leak')) entry.repeatFact = true
     byId.set(id, entry)
   }
   for (const issue of deterministic) note(issue.questionId, issue.reason, issue)
-  for (const flag of modelFlags) note(flag.id, flag.reason)
-
-  const flagged = drafts
-    .filter((draft) => byId.has(draft.question.id))
-    .sort((a, b) => Number(byId.get(b.question.id)!.severe) - Number(byId.get(a.question.id)!.severe))
-    .slice(0, MAX_QUALITY_REWRITES)
-  if (flagged.length === 0) return finishQualityPass(drafts, options, meter, ctx.questionType === 'mixed')
+  for (const flag of modelFlags) note(flag.id, flag.reason, undefined, flag.repeatsFact === true)
 
   const usedFactIds = new Set(drafts.flatMap((draft) => draft.factIds))
   const unusedFacts = (facts ?? [])
     .filter((fact) => !usedFactIds.has(fact.id))
     .sort((a, b) => Number(a.usedBefore) - Number(b.usedBefore) || Number(a.importance === 'supporting') - Number(b.importance === 'supporting'))
   let unusedCursor = 0
+
+  // A repeat the reviewer found is only worth a rewrite while an unused fact is left to move it to.
+  const flagged = drafts
+    .filter((draft) => byId.has(draft.question.id) && !(byId.get(draft.question.id)!.onlyRepeats && unusedFacts.length === 0))
+    .sort((a, b) => Number(byId.get(b.question.id)!.severe) - Number(byId.get(a.question.id)!.severe))
+    .slice(0, MAX_QUALITY_REWRITES)
+  if (flagged.length === 0) return finishQualityPass(drafts, options, meter, ctx.questionType === 'mixed')
 
   const rewriteStart = Date.now()
   const window = REWRITE_DEADLINE_MS - meter.elapsedMs()
@@ -1314,6 +1317,24 @@ async function writeForSlots(
   return { drafts: kept, replaced: [...replaced.values()], provider: written.provider, fallbackUsed: written.fallbackUsed }
 }
 
+/** Questions that test the same fact (and the same list items) as an earlier question — the later
+ * one is the repeat. Questions without a verified fact are never repeats (they are wasted anyway). */
+export function repeatedFactDrafts<T extends { question: QuizQuestion; factIds: number[] }>(drafts: T[]): T[] {
+  const seen = new Set<string>()
+  const repeats: T[] = []
+  for (const draft of drafts) {
+    if (draft.factIds.length === 0) continue
+    const items = draft.question.factItems ?? {}
+    const key = [...draft.factIds]
+      .sort((a, b) => a - b)
+      .map((id) => `${id}:${JSON.stringify(items[id] ?? [])}`)
+      .join('|')
+    if (seen.has(key)) repeats.push(draft)
+    else seen.add(key)
+  }
+  return repeats
+}
+
 /**
  * Coverage pass: verification of every question's claims (one cheap call), then — when facts the plan
  * chose are missing or partly covered and the count allows — one pass that writes only the missing
@@ -1337,7 +1358,10 @@ async function runCoveragePass(
   const missing = missingEntries(coverage, questionsOf(current)).filter((entry) => params.targetIds.has(entry.fact.id))
   // A question the verifier found testing none of its planned facts wastes a slot: with a fixed count
   // it makes room for a question of a missing fact (and is only dropped once that one was written).
-  const wasted = (draft: DraftQuestion) => draft.factIds.length === 0
+  // A second question testing a fact another question already tests is wasted too while facts are
+  // still missing: its slot goes to a question of an unused fact.
+  const repeated = new Set(repeatedFactDrafts(current))
+  const wasted = (draft: DraftQuestion) => draft.factIds.length === 0 || (missing.length > 0 && repeated.has(draft))
   const room = params.limit - current.length + current.filter(wasted).length
   if (missing.length > 0 && room > 0 && meter.elapsedMs() < MISSING_PASS_DEADLINE_MS) {
     const slots = packEntries(missing, ctx.questionType).slice(0, room)
@@ -1442,6 +1466,8 @@ async function callGenerate(ctx: GenerateContext, target: number | 'auto', meter
     }).catch(() => checked)
     coverage = { version: COVERAGE_VERSION, facts: baseFacts }
   }
+  // A fixed count is exact: never more questions than the student asked for.
+  if (target !== 'auto') checked = checked.slice(0, target)
   const finalQuestions = await finalizeHints(
     checked.map((draft) => draft.question),
     ctx.includeHints,

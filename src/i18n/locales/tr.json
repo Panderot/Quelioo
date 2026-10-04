@@ -569,16 +569,20 @@
       "parse": "Quelio bu sefer geçerli bir şarkı okuyamadı. Lütfen tekrar dene.",
       "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
       "storage_full": "Bu şarkı bu cihazda kaydedilemedi ama bu oturum boyunca çalmaya devam edecek.",
+      "no_facts": "Bu bölümde şarkıya çevrilecek bir şey kalmadı. Önceki şarkın zaten kapsıyor.",
+      "rate_limited": "Quelio bugünkü şarkı sınırına ulaştı. Lütfen yarın tekrar dene.",
+      "busy": "Müzik servisi şu an yoğun. Lütfen bir dakika sonra tekrar dene.",
       "retry": "Tekrar dene"
     },
     "coverage": {
       "summary": "{{covered}}/{{total}} soru şarkıda",
+      "seriesSummary": "Şarkı {{part}}: {{covered}}/{{total}} · Seri: {{seriesCovered}}/{{seriesTotal}}",
       "hide": "Soruları gizle",
       "notCovered": "Şarkıda yok",
       "lineLabel": "Satır"
     },
     "series": {
-      "note": "Bu quiz tek şarkıya sığmadığı için {{count}} şarkıya bölünecek. Toplam fiyat yaklaşık ${{price}}.",
+      "note": "Bu quiz {{count}} şarkıya bölünecek. Bugünkü şarkı hakkından {{count}} tane kullanılır.",
       "noteFree": "Bu quiz tek şarkıya sığmadığı için {{count}} şarkıya bölünecek.",
       "partLabel": "{{number}}/{{count}}. şarkı",
       "partName": "Şarkı {{number}}",
@@ -594,7 +598,7 @@
   "songsPage": {
     "title": "Şarkılar",
     "subtitle": "Quizlerini unutulmaz şarkılara dönüştür",
-    "songsLeftToday": "Bugün {{count}} şarkı hakkın kaldı",
+    "minutesLeftToday": "Bugün yaklaşık {{count}} dk şarkı hakkın kaldı",
     "newSong": "Yeni şarkı",
     "pickerTitle": "Bir quiz seç",
     "pickerSearchPlaceholder": "Quiz ara...",

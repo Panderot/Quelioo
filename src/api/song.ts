@@ -80,7 +80,7 @@ function songRequestHeaders(): HeadersInit {
   return headers
 }
 
-async function postSongJson(url: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
+async function postSongJson(url: string, body: unknown, signal?: AbortSignal, gatewayTimeoutIsTimeout = false): Promise<unknown> {
   let response: Response
   try {
     response = await fetch(url, {
@@ -98,7 +98,8 @@ async function postSongJson(url: string, body: unknown, signal?: AbortSignal): P
   try {
     json = await response.json()
   } catch {
-    throw new SongApiError('parse')
+    // For the paid music call a gateway timeout page is a timeout (never retried); lyrics keep their silent retry.
+    throw new SongApiError(gatewayTimeoutIsTimeout && response.status === 504 ? 'timeout' : 'parse')
   }
 
   if (isRecord(json) && 'error' in json) {
@@ -130,7 +131,7 @@ export async function checkSongLyrics(payload: CheckSongLyricsPayload, signal?: 
 }
 
 export async function createSong(payload: CreateSongPayload, signal?: AbortSignal): Promise<SongCreateResponseBody> {
-  const json = await postSongJson('/api/song', payload, signal)
+  const json = await postSongJson('/api/song', payload, signal, true)
   if (!isSongCreateResponseBody(json)) throw new SongApiError('parse')
   return json
 }

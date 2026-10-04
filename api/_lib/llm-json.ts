@@ -28,6 +28,8 @@ export async function callLlmJson<T>(params: {
   openAiModel?: string
   cacheablePrefix?: string
   timeoutMs?: number
+  /** See LlmCallParams.deadlineAt — covers the fallback provider and the invalid-reply retry too. */
+  deadlineAt?: number
   reasoningEffort?: string
   callType?: string
 }): Promise<LlmJsonResult<T>> {
@@ -44,6 +46,7 @@ export async function callLlmJson<T>(params: {
       ...(params.openAiModel ? { openAiModel: params.openAiModel } : {}),
       ...(params.cacheablePrefix ? { cacheablePrefix: params.cacheablePrefix } : {}),
       ...(params.timeoutMs ? { timeoutMs: params.timeoutMs } : {}),
+      ...(params.deadlineAt !== undefined ? { deadlineAt: params.deadlineAt } : {}),
       ...(params.reasoningEffort ? { reasoningEffort: params.reasoningEffort } : {}),
       ...(params.callType ? { callType: params.callType } : {}),
     })

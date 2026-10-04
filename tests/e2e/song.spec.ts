@@ -510,14 +510,15 @@ test('the saved duration is the real length of the audio file, not the requested
   await expect(page.getByText('1:30')).toHaveCount(0)
 })
 
-test('a quiz that does not fit one song is split into a numbered series, with the count and total price shown first', async ({ page, mockGenerate }) => {
+test('a quiz that does not fit one song is split into a numbered series, with the count and the song credits it uses (never a price)', async ({ page, mockGenerate }) => {
   const quiz = buildQuizWithQuestionCount(20) // 20 facts > 18 per song -> 2 songs of 10 (90 s each, $0.08)
   await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 120 })
   await reachResultView(page, mockGenerate, quiz)
   await page.getByRole('button', { name: 'Turn into a song' }).click()
   const dialog = page.getByRole('dialog', { name: 'Turn into a song' })
   await expect(dialog.getByText('Song 1 of 2')).toBeVisible()
-  await expect(dialog.getByText('This quiz is split into 2 songs because it does not fit in one. Total price about $0.16.')).toBeVisible()
+  await expect(dialog.getByText("This quiz will be split into 2 songs. It uses 2 of today's song credits.")).toBeVisible()
+  await expect(dialog.getByText('$')).toHaveCount(0)
 })
 
 test('series: the first song is stored as "Title · Song 1", then "Next song" moves on to part 2 with its own facts', async ({ page, mockGenerate }) => {
@@ -605,4 +606,99 @@ test('Turkish: lyrics show localized tags, editing works with them, and the Engl
     'check:[Verse 1]\nBitkiler karbondioksit alır\n[Chorus]\nOksijen verir',
     'create:[Verse 1]\nBitkiler karbondioksit alır\n[Chorus]\nOksijen verir',
   ])
+})
+
+test('a quiz that fits one song gets no series: no part label, no series note and no "Next song" button', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 120 })
+  await mockSongLyrics(page, { ...SAMPLE_LYRICS, targetSeconds: 90, maxLyricsChars: 800, includedFactsCount: 11, totalFactsCount: 11, factLines: Array.from({ length: 11 }, (_, index) => index) })
+  await mockSongCreate(page, SAMPLE_SONG)
+  await reachResultView(page, mockGenerate, buildQuizWithQuestionCount(11))
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Turn into a song' })
+  await expect(dialog.getByText(/of 1$/)).toHaveCount(0)
+  await expect(dialog.getByText(/split into/)).toHaveCount(0)
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await page.getByRole('button', { name: 'Make the song' }).click()
+  await expect(page.locator('audio')).toBeAttached()
+  await expect(page.getByRole('button', { name: /Next song/ })).toHaveCount(0)
+})
+
+test('series: the coverage button shows this song and the whole series', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 120 })
+  // 20 questions -> 2 songs of 10; song 1 teaches 6 of its 10 questions.
+  await mockSongLyrics(page, { ...SAMPLE_LYRICS, targetSeconds: 90, maxLyricsChars: 800, includedFactsCount: 10, totalFactsCount: 10, factLines: [1, 1, 1, 1, 1, 1, -1, -1, -1, -1] })
+  await mockSongCreate(page, SAMPLE_SONG)
+  await reachResultView(page, mockGenerate, buildQuizWithQuestionCount(20))
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await expect(page.getByRole('button', { name: 'Song 1: 6/10 · Series: 6/20' })).toBeVisible()
+})
+
+test('a part with nothing to cover shows a clear message, keeps song 1 and "Try again" is offered', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 120 })
+  await page.route('**/api/song-lyrics', async (route) => {
+    await route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'no_facts' }) })
+  })
+  await reachResultView(page, mockGenerate, buildQuizWithQuestionCount(20))
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await expect(page.getByText('There is nothing left to turn into a song here. Your earlier song already covers it.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+  await expect(page.getByText(/Something went wrong|\$/)).toHaveCount(0)
+})
+
+const CREATE_FAILURES: { name: string; status: number; body: string; contentType: string; message: string }[] = [
+  { name: 'daily limit on the server', status: 429, body: JSON.stringify({ error: 'rate_limited' }), contentType: 'application/json', message: 'Quelio has reached the song limit for today. Please try again tomorrow.' },
+  { name: 'Gemini 429 (busy)', status: 503, body: JSON.stringify({ error: 'busy' }), contentType: 'application/json', message: 'The music service is busy right now. Please try again in a minute.' },
+  { name: 'Gemini 401/403 (key rejected)', status: 503, body: JSON.stringify({ error: 'not_configured' }), contentType: 'application/json', message: 'Song generation is temporarily unavailable. Please try again shortly.' },
+  { name: 'Gemini 5xx', status: 502, body: JSON.stringify({ error: 'upstream' }), contentType: 'application/json', message: 'Something went wrong creating your song. Please try again.' },
+  { name: 'gateway timeout page', status: 504, body: '<html>504 Gateway Timeout</html>', contentType: 'text/html', message: 'That took too long. Please try again.' },
+]
+
+for (const failure of CREATE_FAILURES) {
+  test(`a failed song (${failure.name}) shows a clear message, no code or price, "Try again", and uses no daily credit`, async ({ page, mockGenerate }) => {
+    await mockSongStatus(page, true)
+    await mockSongLyrics(page, SAMPLE_LYRICS)
+    await page.route('**/api/song', async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.fallback()
+        return
+      }
+      await route.fulfill({ status: failure.status, contentType: failure.contentType, body: failure.body })
+    })
+    await reachResultView(page, mockGenerate)
+    await page.getByRole('button', { name: 'Turn into a song' }).click()
+    await page.getByRole('button', { name: 'Write lyrics' }).click()
+    await page.getByRole('button', { name: 'Make the song' }).click()
+    const dialog = page.getByRole('dialog', { name: 'Turn into a song' })
+    await expect(dialog.getByText(failure.message)).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Try again' })).toBeVisible()
+    await expect(dialog.getByText(/rate_limited|not_configured|upstream|busy|\$|[45]\d\d/)).toHaveCount(0)
+    expect(await page.evaluate(() => `${localStorage.getItem('quelio.songGuard.v1') ?? ''}${localStorage.getItem('quelio.songSecondsGuard.v1') ?? ''}`)).toBe('')
+  })
+}
+
+test('offline while making the song shows the connection message and "Try again" works', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true)
+  await mockSongLyrics(page, SAMPLE_LYRICS)
+  let failNext = true
+  await page.route('**/api/song', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback()
+      return
+    }
+    if (failNext) {
+      failNext = false
+      await route.abort('internetdisconnected')
+      return
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_SONG) })
+  })
+  await reachResultView(page, mockGenerate)
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await page.getByRole('button', { name: 'Make the song' }).click()
+  await expect(page.getByText("Couldn't connect. Check your connection and try again.")).toBeVisible()
+  await page.getByRole('button', { name: 'Try again' }).click()
+  await expect(page.locator('audio')).toBeAttached()
 })

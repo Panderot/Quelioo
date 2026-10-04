@@ -36,6 +36,8 @@ export interface StoredSong {
   createdAt: string
   /** Which lyric line teaches each quiz question; absent on songs made before coverage existed. */
   coverage?: SongCoverageItem[]
+  /** 1-based number of this song inside a numbered series (a quiz split over several songs). */
+  seriesPart?: number
   audio: Blob
 }
 
@@ -193,4 +195,18 @@ export async function getQuizIdsWithSongs(): Promise<Set<string>> {
   } catch {
     return new Set()
   }
+}
+
+/** Songs for the list: songs of one quiz stay together (the quiz with the newest song first) and a
+ * numbered series reads in order, Song 1 before Song 2. */
+export function orderSongsForList(songs: StoredSong[]): StoredSong[] {
+  const newest = new Map<string, string>()
+  for (const song of songs) if (song.createdAt > (newest.get(song.quizId) ?? '')) newest.set(song.quizId, song.createdAt)
+  return [...songs].sort((a, b) => {
+    if (a.quizId !== b.quizId) return (newest.get(b.quizId) ?? '').localeCompare(newest.get(a.quizId) ?? '') || a.quizId.localeCompare(b.quizId)
+    const partA = a.seriesPart ?? Number.POSITIVE_INFINITY
+    const partB = b.seriesPart ?? Number.POSITIVE_INFINITY
+    if (partA !== partB) return partA < partB ? -1 : 1
+    return b.createdAt.localeCompare(a.createdAt)
+  })
 }

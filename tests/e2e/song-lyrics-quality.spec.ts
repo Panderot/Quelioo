@@ -2,14 +2,16 @@ import { expect, test } from '@playwright/test'
 
 import { handleSongLyricsRequest } from '../../api/_lib/song-lyrics'
 import { buildSongCoverage } from '../../src/lib/songFacts'
-import { findFillerLines, isLyricsTooShort } from '../../src/lib/songLyricsQuality'
+import { generateJson } from '../../api/_lib/llm'
+import { findFillerLines, findTermViolations, fitLyricsToLimits, isLyricsTooShort, maxCharsPerFactLine } from '../../src/lib/songLyricsQuality'
 import {
   lyricsLimitsForTargetSeconds,
   MAX_FACTS_PER_SONG,
-  songPriceUsd,
   splitFactsIntoSongs,
   targetSecondsForFactCount,
 } from '../../src/lib/song'
+import { orderSongsForList } from '../../src/lib/songStorage'
+import type { StoredSong } from '../../src/lib/songStorage'
 import { canonicalSectionTags, isSectionTagLine, localizeSectionTags } from '../../src/lib/songTags'
 
 // Song lyrics quality (no browser): section-tag localization and mapping back, filler-line detection,
@@ -82,8 +84,6 @@ test.describe('filler lines and length', () => {
     expect(splitFactsIntoSongs(20)).toEqual([10, 10])
     expect(splitFactsIntoSongs(40)).toEqual([14, 13, 13])
     expect(splitFactsIntoSongs(40).reduce((a, b) => a + b, 0)).toBe(40)
-    expect(songPriceUsd(30)).toBe(0.04)
-    expect(songPriceUsd(90)).toBe(0.08)
   })
 
   test('coverage lists each question with the line that teaches it', () => {
@@ -233,5 +233,115 @@ test.describe('server write -> review -> one rewrite', () => {
     expect(body).toMatchObject({ factCheckPassed: false, flaggedLines: [2], factLines: [1, -1, 5] })
     expect(calls[0].text).toContain('[Chorus]')
     expect(calls[0].text).not.toContain('Nakarat')
+  })
+})
+
+test.describe('source terms and claims', () => {
+  const SOURCE = 'Bitkiler karbondioksit ve su kullanır. Stomalar yaprakta bulunur. Klorofil ışığı soğurur. Su miktarı fotosentez hızını etkiler.'
+
+  test('a term cut short or replaced ("karbon gazı", "karbon") is flagged, the full term is not', () => {
+    const lyrics = ['[Verse 1]', 'Karbon gazı azalırsa fotosentez hızı düşer', 'Stoma minik pencere, karbon misafiri alır', 'Karbondioksit stomadan girer', 'Stomalar yaprakta durur'].join('\n')
+    expect(findTermViolations(lyrics, SOURCE)).toEqual([1, 2])
+  })
+
+  test('an absolute claim the source never makes is flagged, and allowed when the source makes it', () => {
+    expect(findTermViolations('Işık yoksa süreç tamamen durur', SOURCE)).toEqual([0])
+    expect(findTermViolations('Işık yoksa süreç tamamen durur', `${SOURCE} Işık yoksa süreç tamamen durur.`)).toEqual([])
+    expect(findTermViolations('Water is never wasted here', SOURCE)).toEqual([0])
+  })
+
+  test('endings of a source word and section tags are not flagged', () => {
+    expect(findTermViolations('[Chorus]\nStoma yaprakta, klorofil ışığı soğurur\nSu miktarı hızı etkiler', SOURCE)).toEqual([])
+  })
+
+  test('the server rewrites a wrong term even when the review found nothing, and flags it if it stays', async () => {
+    const WRONG = GOOD.replace('karbondioksit', 'karbon gazı')
+    const calls = stubOpenAi((call) => {
+      if (call.kind === 'write') return writeReply(WRONG)
+      if (call.kind === 'rewrite') return { lyrics: GOOD }
+      return review()
+    })
+    const source = { ...REQUEST, sourceExcerpt: 'Fotosentez kloroplastta olur. Su ve karbondioksit kullanılır.' }
+    const { body } = await handleSongLyricsRequest(source)
+    expect(calls.map((call) => call.kind)).toEqual(['write', 'review', 'rewrite', 'review'])
+    expect(calls[2].text).toContain('<wrong_line_numbers>3</wrong_line_numbers>')
+    expect(body).toMatchObject({ lyrics: GOOD, factCheckPassed: true, flaggedLines: [] })
+
+    stubOpenAi((call) => (call.kind === 'write' ? writeReply(WRONG) : call.kind === 'rewrite' ? { lyrics: WRONG } : review()))
+    const stuck = (await handleSongLyricsRequest(source)).body as { factCheckPassed: boolean; flaggedLines: number[] }
+    expect(stuck.factCheckPassed).toBe(false)
+    expect(stuck.flaggedLines.length).toBeGreaterThan(0)
+  })
+
+  test('a part with no facts to cover never reaches the model and answers no_facts', async () => {
+    const calls = stubOpenAi(() => writeReply(GOOD))
+    const { status, body } = await handleSongLyricsRequest({ ...REQUEST, keyFacts: [] })
+    expect(status).toBe(400)
+    expect(body).toEqual({ error: 'no_facts' })
+    expect(calls).toHaveLength(0)
+  })
+})
+
+test('the Songs list keeps a quiz together, newest quiz first, and a series reads Song 1 then Song 2', () => {
+  const song = (id: string, quizId: string, createdAt: string, seriesPart?: number) => ({ id, quizId, createdAt, ...(seriesPart ? { seriesPart } : {}) }) as unknown as StoredSong
+  const songs = [song('b1', 'quiz-b', '2026-10-04T10:00:00Z'), song('a2', 'quiz-a', '2026-10-04T12:00:00Z', 2), song('a1', 'quiz-a', '2026-10-04T11:00:00Z', 1), song('b0', 'quiz-b', '2026-10-03T10:00:00Z')]
+  expect(orderSongsForList(songs).map((entry) => entry.id)).toEqual(['a1', 'a2', 'b1', 'b0'])
+})
+
+test.describe('budget overflow and deadlines', () => {
+  test('lyrics over the budget lose whole lines from the end, never half a line or a dangling tag', () => {
+    const long = ['[Verse 1]', 'Birinci satir burada', 'Ikinci satir burada', '[Chorus]', 'Nakarat satiri burada', 'Son satir burada'].join('\n')
+    const fitted = fitLyricsToLimits(long, 30, 60)
+    expect(fitted.overflow).toBe(true)
+    expect(fitted.lyrics).toBe(['[Verse 1]', 'Birinci satir burada', 'Ikinci satir burada'].join('\n'))
+    expect(fitLyricsToLimits(long, 30, 500)).toEqual({ lyrics: long, overflow: false })
+    expect(fitLyricsToLimits('[Verse 1]\nbir\n[Chorus]', 30, 13).lyrics).toBe('[Verse 1]\nbir')
+  })
+
+  test('each fact line gets a character budget that leaves room for every fact', () => {
+    expect(maxCharsPerFactLine(800, 10)).toBeLessThan(800 / 10)
+    expect(maxCharsPerFactLine(800, 10) * 10).toBeLessThan(800)
+    expect(maxCharsPerFactLine(260, 4)).toBeGreaterThan(24)
+  })
+
+  test('a song that went over the limit is rewritten shorter instead of losing its last facts', async () => {
+    const OVER = ['[Verse 1]', ...Array.from({ length: 6 }, (_, index) => `Bu cok uzun bir satir sayi ${index} ve fotosentez hakkinda`), '[Chorus]', 'Son nakarat satiri'].join('\n')
+    const calls = stubOpenAi((call) => {
+      if (call.kind === 'write') return writeReply(OVER)
+      if (call.kind === 'rewrite') return { lyrics: GOOD }
+      return review()
+    })
+    const { body } = await handleSongLyricsRequest(REQUEST)
+    expect(calls.map((call) => call.kind)).toEqual(['write', 'review', 'rewrite', 'review'])
+    expect(calls[2].text).toContain('shorter: every line shorter, no fact dropped')
+    expect((body as { lyrics: string }).lyrics).toBe(GOOD)
+    // A 30 s budget is too tight to split per line (the writer would only deliberate); a 90 s one is workable.
+    expect(calls[0].text).not.toContain('Budget every line')
+    const tenFacts = Array.from({ length: 10 }, (_, index) => `Soru ${index + 1}? — Cevap ${index + 1}`)
+    const roomy = stubOpenAi((call) => (call.kind === 'write' ? writeReply(GOOD) : review()))
+    await handleSongLyricsRequest({ ...REQUEST, keyFacts: tenFacts })
+    expect(roomy[0].text).toContain('Never go over 800 characters')
+  })
+
+  test('a call with a deadline almost reached starts no provider attempt at all', async () => {
+    const calls = stubOpenAi(() => writeReply(GOOD))
+    const result = await generateJson({ system: 's', user: 'u', maxTokens: 100, deadlineAt: Date.now() + 1_000 })
+    expect(result).toEqual({ status: 'error', error: 'upstream' })
+    expect(calls).toHaveLength(0)
+  })
+
+  test('the write timeout follows the deadline, so a slow first provider cannot eat the fallback and the 90 s limit', async () => {
+    const seen: number[] = []
+    process.env.OPENAI_API_KEY = 'test-key'
+    process.env.LLM_PROVIDER_ORDER = 'openai'
+    delete process.env.ANTHROPIC_API_KEY
+    globalThis.fetch = (async (_url: unknown, init?: { signal?: AbortSignal }) => {
+      seen.push(Date.now())
+      return new Promise<Response>((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))))
+    }) as typeof fetch
+    const startedAt = Date.now()
+    const result = await generateJson({ system: 's', user: 'u', maxTokens: 100, timeoutMs: 60_000, deadlineAt: startedAt + 5_000 })
+    expect(result.status).toBe('error')
+    expect(Date.now() - startedAt).toBeLessThan(8_000)
   })
 })

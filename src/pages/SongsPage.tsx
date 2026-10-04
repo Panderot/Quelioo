@@ -11,7 +11,7 @@ import { MAX_SOURCE_EXCERPT_CHARS, SONG_TONES } from '../lib/song'
 import type { SongTone } from '../lib/song'
 import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { measureAudioDuration } from '../lib/audioDuration'
-import { deleteSong, getAllSongs, saveSong, updateSongDuration } from '../lib/songStorage'
+import { deleteSong, getAllSongs, orderSongsForList, saveSong, updateSongDuration } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import { remainingSongSecondsToday } from '../lib/songCostGuard'
 import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
@@ -143,7 +143,7 @@ export default function SongsPage() {
 
   const filteredSongs = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return songs.filter((song) => (toneFilter === 'all' || song.tone === toneFilter) && (!query || song.quizTitle.toLowerCase().includes(query)))
+    return orderSongsForList(songs).filter((song) => (toneFilter === 'all' || song.tone === toneFilter) && (!query || song.quizTitle.toLowerCase().includes(query)))
   }, [songs, toneFilter, search])
 
   const filteredPickerEntries = useMemo(() => {
@@ -151,7 +151,7 @@ export default function SongsPage() {
     return archiveEntries.filter((entry) => !query || entry.title.toLowerCase().includes(query))
   }, [archiveEntries, pickerSearch])
 
-  const songsLeftToday = Math.max(0, Math.floor(remainingSongSecondsToday() / 30))
+  const minutesLeftToday = Math.max(0, Math.floor(remainingSongSecondsToday() / 60))
 
   if (status && !status.enabled) {
     return <Navigate to="/" replace />
@@ -222,6 +222,8 @@ export default function SongsPage() {
       mimeType: song.mimeType,
       durationSeconds: song.durationSeconds,
       factCheckPassed: song.factCheckPassed,
+      coverage: song.coverage,
+      seriesPart: song.seriesPart,
       audio: song.audio,
     })
     setSongs((current) => {
@@ -255,7 +257,7 @@ export default function SongsPage() {
               {t('ownerAccess.lock')}
             </button>
           )}
-          <p className="text-xs font-medium text-muted">{t('songsPage.songsLeftToday', { count: songsLeftToday })}</p>
+          <p className="text-xs font-medium text-muted">{t('songsPage.minutesLeftToday', { count: minutesLeftToday })}</p>
         </div>
       </section>
 

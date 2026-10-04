@@ -45,3 +45,8 @@ export function buildSongCoverage(facts: string[], factLines: number[] | null | 
     return { question: fact.split(' — ')[0], line: line || null }
   })
 }
+
+/** How many questions of a coverage list have a lyric line. */
+export function coveredCount(items: SongCoverageItem[]): number {
+  return items.filter((item) => item.line !== null).length
+}
