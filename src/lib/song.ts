@@ -63,10 +63,6 @@ export function isSongErrorCode(value: unknown): value is SongErrorCode {
   return typeof value === 'string' && SONG_ERROR_CODES.has(value)
 }
 
-/** Lyrics line/char budget for the 30-second baseline band — scaled up for longer targets by
- * lyricsLimitsForTargetSeconds(). */
-const MAX_LYRICS_CHARS = 700
-const MAX_LYRICS_LINES = 14
 export const MAX_SONG_TITLE_CHARS = 80
 export const MAX_MUSIC_PROMPT_CHARS = 300
 export const MAX_KEY_FACT_CHARS = 200
@@ -77,17 +73,25 @@ export interface LengthBand {
   /** This band applies to quizzes with up to this many key facts (one per question). */
   maxFacts: number
   targetSeconds: number
+  /** What can actually be sung in this length: a measured real 30 s clip sang only about 6 lines
+   * (a short verse and a chorus), so the budget follows the sung lines, not a character count.
+   * Section tag lines and line breaks count toward both limits. */
+  maxLines: number
+  maxChars: number
 }
 
-/** Target song length scales with how much the song needs to teach — see
- * quelio-song-quality-prompt.txt §4. Also used in reverse (maxFactsForTargetSeconds) to decide how
- * many facts fit when a provider's maxSeconds is below the quiz's natural target. */
+/** The song length follows the content: the shortest band whose line budget fits every key fact
+ * (each fact needs about one line, plus a chorus). A 30 s clip only when everything fits in it;
+ * longer bands use the long model. More facts than the longest band holds are split into a series. */
 const LENGTH_BANDS: LengthBand[] = [
-  { maxFacts: 5, targetSeconds: 30 },
-  { maxFacts: 10, targetSeconds: 60 },
-  { maxFacts: 15, targetSeconds: 90 },
-  { maxFacts: Infinity, targetSeconds: 120 },
+  { maxFacts: 4, targetSeconds: 30, maxLines: 8, maxChars: 260 },
+  { maxFacts: 9, targetSeconds: 60, maxLines: 18, maxChars: 600 },
+  { maxFacts: 13, targetSeconds: 90, maxLines: 24, maxChars: 800 },
+  { maxFacts: 18, targetSeconds: 120, maxLines: 30, maxChars: 1000 },
 ]
+
+/** Most facts one song can teach (the longest band). */
+export const MAX_FACTS_PER_SONG = LENGTH_BANDS[LENGTH_BANDS.length - 1].maxFacts
 
 export function targetSecondsForFactCount(factCount: number): number {
   const band = LENGTH_BANDS.find((entry) => factCount <= entry.maxFacts)
@@ -96,16 +100,28 @@ export function targetSecondsForFactCount(factCount: number): number {
 
 export function maxFactsForTargetSeconds(targetSeconds: number): number {
   const band = LENGTH_BANDS.find((entry) => entry.targetSeconds === targetSeconds)
-  return band ? band.maxFacts : Infinity
+  return band ? band.maxFacts : MAX_FACTS_PER_SONG
 }
 
-const BASE_TARGET_SECONDS = 30
-
-/** Lyrics line/char budget scales linearly with the target length relative to the 30s baseline
- * (MAX_LYRICS_LINES/MAX_LYRICS_CHARS). */
+/** The sung-line and character budget for a song length. */
 export function lyricsLimitsForTargetSeconds(targetSeconds: number): { maxLines: number; maxChars: number } {
-  const scale = targetSeconds / BASE_TARGET_SECONDS
-  return { maxLines: Math.round(MAX_LYRICS_LINES * scale), maxChars: Math.round(MAX_LYRICS_CHARS * scale) }
+  const band = LENGTH_BANDS.find((entry) => entry.targetSeconds === targetSeconds) ?? LENGTH_BANDS[LENGTH_BANDS.length - 1]
+  return { maxLines: band.maxLines, maxChars: band.maxChars }
+}
+
+/** How a quiz's facts are split into songs: as few as possible, evenly filled, each within one
+ * song's capacity. One entry per song, the number of facts it teaches. */
+export function splitFactsIntoSongs(factCount: number): number[] {
+  if (factCount <= 0) return []
+  const songs = Math.ceil(factCount / MAX_FACTS_PER_SONG)
+  const base = Math.floor(factCount / songs)
+  const extra = factCount % songs
+  return Array.from({ length: songs }, (_, index) => base + (index < extra ? 1 : 0))
+}
+
+/** Price of one song, from Google's list prices: lyria-3-clip-preview (30 s) $0.04, lyria-3.5 $0.08. */
+export function songPriceUsd(targetSeconds: number): number {
+  return targetSeconds <= 30 ? 0.04 : 0.08
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -130,12 +146,16 @@ export interface SongLyricsResponseBody {
   factCheckPassed: boolean
   /** 0-based line indexes (within `lyrics`, split on "\n") that the fact checker flagged. */
   flaggedLines: number[]
+  /** For each key fact in the song (same order), the 0-based line that states it, or -1 when no line does. */
+  factLines?: number[]
 }
 
 /** Response for `mode: "check"` — re-checks lyrics the student edited, without rewriting them. */
 export interface SongLyricsCheckResponseBody {
   factCheckPassed: boolean
   flaggedLines: number[]
+  /** For each key fact (same order), the 0-based line that states it, or -1 (absent when unchecked). */
+  factLines?: number[]
 }
 
 export interface SongApiErrorBody {
@@ -198,4 +218,10 @@ export function isSongCreateResponseBody(value: unknown): value is SongCreateRes
     typeof value.demo === 'boolean' &&
     typeof value.durationSeconds === 'number'
   )
+}
+
+/** One quiz question and the lyric line that teaches it (null when no line does). */
+export interface SongCoverageItem {
+  question: string
+  line: string | null
 }

@@ -10,7 +10,7 @@ import { getOutputLanguage } from '../data/outputLanguages'
 import { buildAnswerKeyLine, getRightOrder, letterFor } from '../lib/matching'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
 import type { EstimateDifficulty } from '../lib/estimateTime'
-import { buildSongKeyFacts } from '../lib/songFacts'
+import { buildSongFactPlan, buildSongKeyFacts } from '../lib/songFacts'
 import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
 import QuestionCard from './QuestionCard'
 import PracticeQuestionCard from './PracticeQuestionCard'
@@ -202,6 +202,7 @@ export default function QuizResultView({
   }, [meta, t, timeEstimateLabel])
 
   const songKeyFacts = useMemo(() => buildSongKeyFacts(quiz), [quiz])
+  const songFactPlan = useMemo(() => buildSongFactPlan(quiz), [quiz])
   const songSourceExcerpt = useMemo(() => mathToPlainText(sourceText).slice(0, MAX_SOURCE_EXCERPT_CHARS), [sourceText])
 
   const handleTitleSave = () => {
@@ -423,6 +424,7 @@ export default function QuizResultView({
             quizId={quizId}
             quizTitle={quiz.title}
             keyFacts={songKeyFacts}
+            factPlan={songFactPlan}
             sourceExcerpt={songSourceExcerpt}
             language={meta.outputLanguage}
             onSongSaved={onSongSaved}

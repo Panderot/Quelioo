@@ -10,6 +10,7 @@ interface SongButtonProps {
   quizId: string
   quizTitle: string
   keyFacts: string[]
+  factPlan?: string[]
   sourceExcerpt: string
   language: string
   onSongSaved?: () => void
@@ -18,7 +19,7 @@ interface SongButtonProps {
 /** Secondary "Turn into a song" entry point — renders nothing until the server reports the feature
  * as enabled (GET /api/song), matching the always-hidden-until-checked behavior required in
  * production. See CLAUDE.md. */
-export default function SongButton({ quizId, quizTitle, keyFacts, sourceExcerpt, language, onSongSaved }: SongButtonProps) {
+export default function SongButton({ quizId, quizTitle, keyFacts, factPlan, sourceExcerpt, language, onSongSaved }: SongButtonProps) {
   const { t } = useTranslation()
   const [status, setStatus] = useState<SongStatusResponseBody | null>(null)
   const [open, setOpen] = useState(false)
@@ -59,6 +60,7 @@ export default function SongButton({ quizId, quizTitle, keyFacts, sourceExcerpt,
         quizId={quizId}
         quizTitle={quizTitle}
         keyFacts={keyFacts}
+        factPlan={factPlan}
         sourceExcerpt={sourceExcerpt}
         language={language}
         maxSeconds={status.maxSeconds}

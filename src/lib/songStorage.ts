@@ -1,4 +1,4 @@
-import type { SongProvider, SongStyle, SongTone } from './song'
+import type { SongCoverageItem, SongProvider, SongStyle, SongTone } from './song'
 
 /** Songs can be large (raw PCM/MP3 bytes), so they're kept in IndexedDB rather than localStorage —
  * see CLAUDE.md. Keyed by quiz id: the archived quiz view's "Listen" section, the Archive row's
@@ -11,7 +11,8 @@ const QUIZ_ID_INDEX = 'quizId'
 const CREATED_AT_INDEX = 'createdAt'
 
 /** Latest N songs kept per quiz (oldest for that quiz evicted beyond this). */
-const MAX_PER_QUIZ = 2
+/** A quiz split into a numbered series needs one stored song per part (up to 3 parts). */
+const MAX_PER_QUIZ = 6
 /** Oldest songs evicted globally once the store holds more than this many, regardless of quiz. */
 const MAX_TOTAL = 30
 
@@ -33,6 +34,8 @@ export interface StoredSong {
    * this field existed default to true (the feature already blocked known-bad lyrics then too). */
   factCheckPassed: boolean
   createdAt: string
+  /** Which lyric line teaches each quiz question; absent on songs made before coverage existed. */
+  coverage?: SongCoverageItem[]
   audio: Blob
 }
 

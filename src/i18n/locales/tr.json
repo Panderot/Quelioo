@@ -570,6 +570,19 @@
       "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
       "storage_full": "Bu şarkı bu cihazda kaydedilemedi ama bu oturum boyunca çalmaya devam edecek.",
       "retry": "Tekrar dene"
+    },
+    "coverage": {
+      "summary": "{{covered}}/{{total}} soru şarkıda",
+      "hide": "Soruları gizle",
+      "notCovered": "Şarkıda yok",
+      "lineLabel": "Satır"
+    },
+    "series": {
+      "note": "Bu quiz tek şarkıya sığmadığı için {{count}} şarkıya bölünecek. Toplam fiyat yaklaşık ${{price}}.",
+      "noteFree": "Bu quiz tek şarkıya sığmadığı için {{count}} şarkıya bölünecek.",
+      "partLabel": "{{number}}/{{count}}. şarkı",
+      "partName": "Şarkı {{number}}",
+      "next": "Sonraki şarkı ({{number}}/{{count}})"
     }
   },
   "ownerAccess": {

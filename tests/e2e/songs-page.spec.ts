@@ -39,6 +39,7 @@ interface SeedSongInput {
   mimeType?: string
   durationSeconds?: number
   factCheckPassed?: boolean
+  coverage?: { question: string; line: string | null }[]
   createdAt: string
 }
 
@@ -514,4 +515,33 @@ test('an old song with a wrong stored length is corrected from its audio file on
       }),
   )
   expect(stored).toBe(3)
+})
+
+test('a song card shows "x/y questions in the song" with the covering lines, and its lyrics use the localized tags', async ({ page, seedArchive }) => {
+  await mockSongStatus(page, true)
+  await seedArchive([SEEDED_ENTRY])
+  await page.goto('/?lng=tr')
+  await seedSongs(page, [
+    {
+      id: 'song-coverage',
+      quizId: SEEDED_ENTRY.id,
+      quizTitle: 'Kapsam Şarkısı',
+      createdAt: '2026-01-02T00:00:00.000Z',
+      lyrics: '[Verse 1]\nKloroplastta olur\n[Chorus]\nKlorofil ışığı soğurur',
+      coverage: [
+        { question: 'Nerede olur?', line: 'Kloroplastta olur' },
+        { question: 'Işığı ne soğurur?', line: 'Klorofil ışığı soğurur' },
+        { question: 'Ürünler nelerdir?', line: null },
+      ],
+    },
+  ])
+
+  await page.goto('/songs?lng=tr')
+  await page.getByRole('button', { name: '2/3 soru şarkıda' }).click()
+  await expect(page.getByText('Satır: Kloroplastta olur')).toBeVisible()
+  await expect(page.getByText('Şarkıda yok')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Sözleri göster' }).click()
+  await expect(page.getByText('[Kıta 1]')).toBeVisible()
+  await expect(page.getByText('[Nakarat]')).toBeVisible()
 })

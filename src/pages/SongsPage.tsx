@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 
 import { getArchiveEntries } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
-import { buildSongKeyFacts } from '../lib/songFacts'
+import SongCoverage from '../components/SongCoverage'
+import { buildSongFactPlan, buildSongKeyFacts } from '../lib/songFacts'
+import { isSectionTagLine, localizeSectionTags } from '../lib/songTags'
 import { MAX_SOURCE_EXCERPT_CHARS, SONG_TONES } from '../lib/song'
 import type { SongTone } from '../lib/song'
 import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
@@ -320,6 +322,7 @@ export default function SongsPage() {
           quizId={selectedEntry.id}
           quizTitle={selectedEntry.quiz.title}
           keyFacts={buildSongKeyFacts(selectedEntry.quiz)}
+          factPlan={buildSongFactPlan(selectedEntry.quiz)}
           sourceExcerpt={(selectedEntry.sourceText ?? '').slice(0, MAX_SOURCE_EXCERPT_CHARS)}
           language={selectedEntry.outputLanguage ?? 'auto'}
           maxSeconds={status?.maxSeconds ?? 30}
@@ -469,8 +472,8 @@ export default function SongsPage() {
 
                 {expandedId === song.id && (
                   <div className="rounded-xl border border-warm-border bg-paper p-3 text-sm whitespace-pre-line text-ink">
-                    {song.lyrics.split('\n').map((line, index) => {
-                      const isTag = /^\[[a-zA-Z]+\]$/.test(line.trim())
+                    {localizeSectionTags(song.lyrics, i18n.language).split('\n').map((line, index) => {
+                      const isTag = isSectionTagLine(line)
                       return isTag ? (
                         <span key={index} className="mb-1 mt-2 inline-block rounded-full bg-amber/15 px-2 py-0.5 text-[11px] font-bold text-amber-text first:mt-0">
                           {line.trim()}
@@ -481,6 +484,8 @@ export default function SongsPage() {
                     })}
                   </div>
                 )}
+
+                {song.coverage && <SongCoverage items={song.coverage} />}
 
                 {!song.factCheckPassed && <p className="text-xs text-muted">{t('song.factCheck.genericWarning')}</p>}
               </li>

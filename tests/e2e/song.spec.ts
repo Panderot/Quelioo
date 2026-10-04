@@ -134,10 +134,10 @@ test('entry button appears when enabled and opens the panel with style and tone 
 })
 
 for (const [count, seconds] of [
-  [5, 30],
-  [10, 60],
-  [15, 90],
-  [20, 120],
+  [4, 30],
+  [9, 60],
+  [13, 90],
+  [18, 120],
 ] as const) {
   test(`length note shows "About ${seconds} seconds" for a ${count}-question quiz`, async ({ page, mockGenerate }) => {
     const quiz = buildQuizWithQuestionCount(count)
@@ -149,7 +149,7 @@ for (const [count, seconds] of [
 }
 
 test('the length note is clamped to the provider\'s max length even for a long quiz', async ({ page, mockGenerate }) => {
-  const quiz = buildQuizWithQuestionCount(20) // natural target would be 120s
+  const quiz = buildQuizWithQuestionCount(18) // natural target would be 120s
   await mockSongStatus(page, true, { maxSeconds: 30 }) // e.g. the Gemini clip model
   await reachResultView(page, mockGenerate, quiz)
   await page.getByRole('button', { name: 'Turn into a song' }).click()
@@ -508,4 +508,101 @@ test('the saved duration is the real length of the audio file, not the requested
   await page.goto('/songs?lng=en')
   await expect(page.getByText('0:03', { exact: false })).toBeVisible()
   await expect(page.getByText('1:30')).toHaveCount(0)
+})
+
+test('a quiz that does not fit one song is split into a numbered series, with the count and total price shown first', async ({ page, mockGenerate }) => {
+  const quiz = buildQuizWithQuestionCount(20) // 20 facts > 18 per song -> 2 songs of 10 (90 s each, $0.08)
+  await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 120 })
+  await reachResultView(page, mockGenerate, quiz)
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Turn into a song' })
+  await expect(dialog.getByText('Song 1 of 2')).toBeVisible()
+  await expect(dialog.getByText('This quiz is split into 2 songs because it does not fit in one. Total price about $0.16.')).toBeVisible()
+})
+
+test('series: the first song is stored as "Title · Song 1", then "Next song" moves on to part 2 with its own facts', async ({ page, mockGenerate }) => {
+  const quiz = buildQuizWithQuestionCount(20)
+  const sent: { keyFacts: string[] }[] = []
+  await mockSongStatus(page, true, { provider: 'gemini', maxSeconds: 120 })
+  await page.route('**/api/song-lyrics', async (route) => {
+    const body = route.request().postDataJSON() as { mode?: string; keyFacts: string[] }
+    if (body.mode !== 'check') sent.push({ keyFacts: body.keyFacts })
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        body.mode === 'check'
+          ? { factCheckPassed: true, flaggedLines: [] }
+          : { ...SAMPLE_LYRICS, targetSeconds: 90, maxLyricsChars: 800, includedFactsCount: 10, totalFactsCount: 10 },
+      ),
+    })
+  })
+  await mockSongCreate(page, SAMPLE_SONG)
+  await reachResultView(page, mockGenerate, quiz)
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await page.getByRole('button', { name: 'Make the song' }).click()
+  await page.getByRole('button', { name: 'Next song (2/2)' }).click()
+  await expect(page.getByText('Song 2 of 2')).toBeVisible()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await expect(page.getByLabel('Lyrics')).toBeVisible()
+  expect(sent).toHaveLength(2)
+  expect(sent[0].keyFacts).toHaveLength(10)
+  expect(sent[1].keyFacts).toHaveLength(10)
+  expect(sent[0].keyFacts[0]).toContain('Question 1?')
+  expect(sent[1].keyFacts[0]).toContain('Question 11?')
+
+  await page.goto('/songs?lng=en')
+  await expect(page.getByText('Length Test Quiz · Song 1')).toBeVisible()
+})
+
+test('coverage: "x/y questions in the song" opens a list of each question with the line that teaches it', async ({ page, mockGenerate }) => {
+  await mockSongStatus(page, true)
+  // SAMPLE_QUIZ has 6 questions: question 1 is taught by line 1, question 2 by line 3, the rest are missing.
+  await mockSongLyrics(page, { ...SAMPLE_LYRICS, factLines: [1, 3, -1, -1, -1, -1] })
+  await reachResultView(page, mockGenerate)
+  await page.getByRole('button', { name: 'Turn into a song' }).click()
+  await page.getByRole('button', { name: 'Write lyrics' }).click()
+  await page.getByRole('button', { name: '2/6 questions in the song' }).click()
+  await expect(page.getByText('Line: Plants take in carbon dioxide each day')).toBeVisible()
+  await expect(page.getByText('Not in the song')).toHaveCount(4)
+})
+
+test('Turkish: lyrics show localized tags, editing works with them, and the English tags are what gets sent', async ({ page, mockGenerate }) => {
+  const sentLyrics: string[] = []
+  await mockSongStatus(page, true)
+  await page.route('**/api/song-lyrics', async (route) => {
+    const body = route.request().postDataJSON() as { mode?: string; lyrics?: string }
+    if (body.mode === 'check') {
+      sentLyrics.push(`check:${body.lyrics}`)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ factCheckPassed: true, flaggedLines: [] }) })
+      return
+    }
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_LYRICS) })
+  })
+  await page.route('**/api/song', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.fallback()
+      return
+    }
+    sentLyrics.push(`create:${(route.request().postDataJSON() as { lyrics: string }).lyrics}`)
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SAMPLE_SONG) })
+  })
+  await mockGenerate(SAMPLE_QUIZ)
+  await page.goto('/?lng=tr')
+  await fillText(page, SHORT_TEXT)
+  await page.getByRole('button', { name: 'Quiz Oluştur' }).click()
+  await page.getByRole('button', { name: 'Şarkıya çevir' }).click()
+  await page.getByRole('button', { name: 'Sözleri yaz' }).click()
+
+  const textarea = page.getByLabel('Sözler')
+  await expect(textarea).toHaveValue(/^\[Kıta\]\n.*\n\[Nakarat\]\n/s)
+  // The student edits a line and a tag in the localized form.
+  await textarea.fill('[Kıta 1]\nBitkiler karbondioksit alır\n[Nakarat]\nOksijen verir')
+  await page.getByRole('button', { name: 'Şarkıyı oluştur' }).click()
+  await expect(page.locator('audio')).toBeAttached()
+  expect(sentLyrics).toEqual([
+    'check:[Verse 1]\nBitkiler karbondioksit alır\n[Chorus]\nOksijen verir',
+    'create:[Verse 1]\nBitkiler karbondioksit alır\n[Chorus]\nOksijen verir',
+  ])
 })

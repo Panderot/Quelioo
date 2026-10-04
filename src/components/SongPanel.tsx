@@ -4,7 +4,10 @@ import { Link } from 'react-router-dom'
 
 import { checkSongLyrics, createSong, writeSongLyrics, SongApiError, verifyAndStoreMusicAccessCode } from '../api/song'
 import type { SongLyricsResponseBody } from '../lib/song'
-import { SONG_STYLES, SONG_TONES, targetSecondsForFactCount } from '../lib/song'
+import { SONG_STYLES, SONG_TONES, songPriceUsd, splitFactsIntoSongs, targetSecondsForFactCount } from '../lib/song'
+import { buildSongCoverage } from '../lib/songFacts'
+import { canonicalSectionTags, localizeSectionTags } from '../lib/songTags'
+import SongCoverage from './SongCoverage'
 import type { SongErrorCode, SongProvider, SongStyle, SongTone } from '../lib/song'
 import { measureAudioDuration } from '../lib/audioDuration'
 
@@ -34,6 +37,8 @@ interface SongPanelProps {
   quizId: string
   quizTitle: string
   keyFacts: string[]
+  /** The quiz's facts plan as statements (core first) — extra material for the lyrics, optional. */
+  factPlan?: string[]
   sourceExcerpt: string
   language: string
   /** The active provider's longest supported song — clamps the length estimate shown before
@@ -79,6 +84,7 @@ export default function SongPanel({
   quizId,
   quizTitle,
   keyFacts,
+  factPlan = [],
   sourceExcerpt,
   language,
   maxSeconds,
@@ -88,7 +94,7 @@ export default function SongPanel({
   onSongSaved,
   onGeneratingChange,
 }: SongPanelProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const panelRef = useRef<HTMLDivElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const objectUrlRef = useRef<string | null>(null)
@@ -107,9 +113,19 @@ export default function SongPanel({
   const [messageIndex, setMessageIndex] = useState(0)
   const [song, setSong] = useState<{ blob: Blob; url: string; lyrics: string; demo: boolean } | null>(null)
   const [storageNote, setStorageNote] = useState(false)
+  /** Which song of a numbered series the panel is on (always 0 for a quiz that fits one song). */
+  const [partIndex, setPartIndex] = useState(0)
+  const [factLines, setFactLines] = useState<number[] | null>(null)
 
   const loadingMessages = t('song.loading.messages', { returnObjects: true }) as string[]
-  const estimatedSeconds = Math.min(targetSecondsForFactCount(keyFacts.length), maxSeconds)
+  // The quiz's facts are split into as few songs as fit; each song teaches its own slice.
+  const partSizes = splitFactsIntoSongs(keyFacts.length)
+  const seriesCount = partSizes.length
+  const currentPart = Math.min(partIndex, Math.max(seriesCount - 1, 0))
+  const partStart = partSizes.slice(0, currentPart).reduce((sum, size) => sum + size, 0)
+  const partFacts = seriesCount > 0 ? keyFacts.slice(partStart, partStart + partSizes[currentPart]) : keyFacts
+  const estimatedSeconds = Math.min(targetSecondsForFactCount(partFacts.length), maxSeconds)
+  const seriesPrice = partSizes.reduce((sum, size) => sum + songPriceUsd(Math.min(targetSecondsForFactCount(size), maxSeconds)), 0)
   // Gemini songs over one clip (30 s) come from the long model, whose real length varies.
   const lengthText = (seconds: number) =>
     provider === 'gemini' && seconds > CLIP_MAX_SECONDS ? t('song.lengthNoteLong') : t('song.lengthNote', { seconds })
@@ -180,6 +196,7 @@ export default function SongPanel({
     setCostGuardReached(false)
     setSecondsGuardReached(false)
     setStorageNote(false)
+    setFactLines(null)
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current)
       objectUrlRef.current = null
@@ -196,9 +213,18 @@ export default function SongPanel({
     setErrorCode(null)
     setIsWritingLyrics(true)
     try {
-      const result = await writeSongLyrics({ quizTitle, keyFacts, sourceExcerpt, style, tone, language })
+      const result = await writeSongLyrics({
+        quizTitle,
+        keyFacts: partFacts,
+        ...(seriesCount <= 1 && factPlan.length > 0 ? { factPlan } : {}),
+        sourceExcerpt,
+        style,
+        tone,
+        language,
+      })
       setLyricsResult(result)
-      setDraftLyrics(result.lyrics)
+      setDraftLyrics(localizeSectionTags(result.lyrics, i18n.language))
+      setFactLines(result.factLines ?? null)
       setFlaggedLines(result.flaggedLines)
       setFactCheckPassed(result.factCheckPassed)
       setStep('lyrics')
@@ -229,8 +255,15 @@ export default function SongPanel({
     setErrorCode(null)
 
     // Re-check the student's current (possibly edited) lyrics — informational only, never blocking.
+    // Lyrics are shown with localized section tags; everything sent anywhere uses the English ones.
+    const canonicalLyrics = canonicalSectionTags(draftLyrics)
+    let checkedFactLines = factLines
     try {
-      const recheck = await checkSongLyrics({ mode: 'check', lyrics: draftLyrics, keyFacts, sourceExcerpt, language })
+      const recheck = await checkSongLyrics({ mode: 'check', lyrics: canonicalLyrics, keyFacts: partFacts, sourceExcerpt, language })
+      if (recheck.factLines) {
+        setFactLines(recheck.factLines)
+        checkedFactLines = recheck.factLines
+      }
       setFlaggedLines(recheck.flaggedLines)
       setFactCheckPassed(recheck.factCheckPassed)
     } catch {
@@ -245,7 +278,7 @@ export default function SongPanel({
 
     try {
       const result = await createSong(
-        { lyrics: draftLyrics, musicPrompt: lyricsResult.musicPrompt, style, language, targetSeconds: lyricsResult.targetSeconds },
+        { lyrics: canonicalLyrics, musicPrompt: lyricsResult.musicPrompt, style, language, targetSeconds: lyricsResult.targetSeconds },
         controller.signal,
       )
       recordSongGeneration(quizId)
@@ -261,10 +294,12 @@ export default function SongPanel({
       setSong({ blob, url, lyrics: result.lyrics, demo: result.demo })
       setStep('player')
 
+      // Songs of a numbered series are named "Quiz title · Song N" everywhere they are listed.
+      const seriesLabel = seriesCount > 1 ? `${quizTitle} · ${t('song.series.partName', { number: currentPart + 1 })}` : quizTitle
       const entry: Omit<StoredSong, 'id' | 'createdAt'> = {
         quizId,
-        quizTitle,
-        title: lyricsResult.title,
+        quizTitle: seriesLabel,
+        title: seriesCount > 1 ? seriesLabel : lyricsResult.title,
         lyrics: result.lyrics,
         style,
         tone,
@@ -273,6 +308,7 @@ export default function SongPanel({
         mimeType: result.mimeType,
         durationSeconds,
         factCheckPassed,
+        coverage: buildSongCoverage(partFacts, checkedFactLines, canonicalLyrics),
         audio: blob,
       }
       try {
@@ -304,11 +340,13 @@ export default function SongPanel({
 
   if (!open) return null
 
-  const lyricsTooLong = Boolean(lyricsResult) && draftLyrics.length > lyricsResult!.maxLyricsChars
+  const canonicalDraftLength = canonicalSectionTags(draftLyrics).length
+  const lyricsTooLong = Boolean(lyricsResult) && canonicalDraftLength > lyricsResult!.maxLyricsChars
   const downloadName = `${(quizTitle || 'song').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'song'}.${
     song ? extensionForMime(song.blob.type) : 'audio'
   }`
   const draftLyricsLines = draftLyrics.split('\n')
+  const coverageItems = buildSongCoverage(partFacts, factLines, canonicalSectionTags(draftLyrics))
 
   const factCheckWarning = !factCheckPassed && (
     <div role="status" className="space-y-1.5 rounded-xl border border-amber/30 bg-amber/10 p-3">
@@ -401,6 +439,16 @@ export default function SongPanel({
               <div className="space-y-1">
                 <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('song.lengthLabel')}</p>
                 <p className="text-sm font-medium text-ink">{lengthText(estimatedSeconds)}</p>
+                {seriesCount > 1 && (
+                  <>
+                    <p className="text-xs font-semibold text-ink">{t('song.series.partLabel', { number: currentPart + 1, count: seriesCount })}</p>
+                    <p className="text-xs text-muted">
+                      {provider === 'gemini'
+                        ? t('song.series.note', { count: seriesCount, price: seriesPrice.toFixed(2) })
+                        : t('song.series.noteFree', { count: seriesCount })}
+                    </p>
+                  </>
+                )}
               </div>
 
               {errorCode && (
@@ -450,9 +498,11 @@ export default function SongPanel({
                   className="w-full rounded-xl border border-warm-border bg-card p-3 font-mono text-sm text-ink"
                 />
                 <p className={`text-right text-xs ${lyricsTooLong ? 'font-semibold text-error' : 'text-muted'}`}>
-                  {t('song.lyricsCounter', { count: draftLyrics.length, max: lyricsResult.maxLyricsChars })}
+                  {t('song.lyricsCounter', { count: canonicalDraftLength, max: lyricsResult.maxLyricsChars })}
                 </p>
               </div>
+
+              {coverageItems && <SongCoverage items={coverageItems} />}
 
               {factCheckWarning}
 
@@ -512,13 +562,31 @@ export default function SongPanel({
             <>
               <SongPlayerCard audioUrl={song.url} lyrics={song.lyrics} demo={song.demo} downloadName={downloadName} />
 
+              {coverageItems && <SongCoverage items={coverageItems} />}
+
               {factCheckWarning}
 
               {storageNote && <p className="text-xs text-muted">{t('song.errors.storage_full')}</p>}
 
+              {currentPart < seriesCount - 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPartIndex(currentPart + 1)
+                    resetToOptions()
+                  }}
+                  className="w-full rounded-xl bg-amber py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover"
+                >
+                  {t('song.series.next', { number: currentPart + 2, count: seriesCount })}
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={resetToOptions}
+                onClick={() => {
+                  setPartIndex(0)
+                  resetToOptions()
+                }}
                 className="w-full rounded-xl border border-warm-border bg-card px-4 py-2.5 text-sm font-bold text-navy transition-colors hover:border-amber"
               >
                 {t('song.player.makeAnother')}

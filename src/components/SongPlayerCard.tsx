@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { localizeSectionTags } from '../lib/songTags'
 import { DownloadIcon, PauseIcon, PlayIcon, VolumeIcon } from './icons'
 
 interface SongPlayerCardProps {
@@ -20,7 +21,7 @@ function formatTime(seconds: number): string {
 /** The custom Solar-Paper audio player used by both the song panel (Step D) and the archived quiz
  * view's "Listen" section — play/pause, seek, volume, download, lyrics, demo badge, AI disclosure. */
 export default function SongPlayerCard({ audioUrl, lyrics, demo, downloadName }: SongPlayerCardProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const audioRef = useRef<HTMLAudioElement>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -111,7 +112,7 @@ export default function SongPlayerCard({ audioUrl, lyrics, demo, downloadName }:
 
       <div className="space-y-1.5">
         <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('song.lyricsLabel')}</p>
-        <p className="rounded-xl border border-warm-border bg-paper p-3 text-sm whitespace-pre-line text-ink">{lyrics}</p>
+        <p className="rounded-xl border border-warm-border bg-paper p-3 text-sm whitespace-pre-line text-ink">{localizeSectionTags(lyrics, i18n.language)}</p>
       </div>
 
       <p className="text-xs text-muted">{t('song.aiDisclosure')}</p>

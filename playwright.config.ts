@@ -1,4 +1,3 @@
-import { cpus } from 'node:os'
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 5190
@@ -9,8 +8,8 @@ const DESKTOP_VIEWPORT = { width: 1280, height: 800 }
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
-  // About half the CPU cores locally; override with PW_WORKERS (or --workers) when memory is low.
-  workers: Number(process.env.PW_WORKERS) || Math.max(1, Math.floor(cpus().length / 2)),
+  // This PC has 16 GB RAM: 2 workers locally; override with PW_WORKERS (or --workers).
+  workers: Number(process.env.PW_WORKERS) || 2,
   timeout: 30_000,
   expect: { timeout: 10_000 },
   retries: isCI ? 1 : 0,

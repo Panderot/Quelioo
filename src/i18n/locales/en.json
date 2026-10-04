@@ -570,6 +570,19 @@
       "network": "Couldn't connect. Check your connection and try again.",
       "storage_full": "This song couldn't be saved on this device, but it will keep playing for this session.",
       "retry": "Try again"
+    },
+    "coverage": {
+      "summary": "{{covered}}/{{total}} questions in the song",
+      "hide": "Hide questions",
+      "notCovered": "Not in the song",
+      "lineLabel": "Line"
+    },
+    "series": {
+      "note": "This quiz is split into {{count}} songs because it does not fit in one. Total price about ${{price}}.",
+      "noteFree": "This quiz is split into {{count}} songs because it does not fit in one.",
+      "partLabel": "Song {{number}} of {{count}}",
+      "partName": "Song {{number}}",
+      "next": "Next song ({{number}}/{{count}})"
     }
   },
   "ownerAccess": {

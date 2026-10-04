@@ -49,6 +49,8 @@ export interface WriteSongLyricsPayload {
   mode?: 'write'
   quizTitle: string
   keyFacts: string[]
+  /** The quiz's facts plan as statements, core first (extra material beyond the per-question facts). */
+  factPlan?: string[]
   sourceExcerpt: string
   style: SongStyle
   tone: SongTone
