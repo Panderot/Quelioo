@@ -44,7 +44,8 @@ const PLAN_RULES = [
   'List the atomic key facts of the WHOLE source in source order: definitions, terms, causes and effects, conditions, process steps, numbers, dates, names, comparisons and lists. Atomic means one idea that one question can test; a sentence with several ideas gives several facts. A list ("X needs A, B and C", "depends on A, B, C and D", the stages of a process) is ONE fact with "items" — never split a list into one fact per item and never drop an item. Items are short terms (1-4 words each); two different statements joined by "and" are two separate facts, not a list. Never repeat a fact; skip vague evaluations and meta text.',
   'For each fact give: "label" (2-5 words naming the topic that is asked about WITHOUT giving the answer away, e.g. "Inputs of photosynthesis", never "Needs water and light"), "statement" (the fact, at most 25 words), "s" (the numbers of the sentences that state it), "importance" ("core" = a main idea every student must know, "supporting" = a detail), and only for a list fact "items" (every item, short, in source order).',
   'Then "noTestable": the numbers of the sentences with no testable content (greetings, filler, transitions, a sentence that only repeats an earlier one). Every sentence number must appear in at least one fact\'s "s" or in "noTestable".',
-  'Respond with ONLY a JSON object: {"facts": [{"label": string, "statement": string, "s": number[], "importance": "core" | "supporting", "items"?: string[]}], "noTestable": number[]}.',
+  'Also give "title": a short title (3-6 words) for the whole source.',
+  'Respond with ONLY a JSON object: {"title": string, "facts": [{"label": string, "statement": string, "s": number[], "importance": "core" | "supporting", "items"?: string[]}], "noTestable": number[]}.',
 ].join(' ')
 
 const MAX_STATEMENT_CHARS = 240
@@ -61,6 +62,7 @@ interface RawFact {
 }
 
 interface RawPlan {
+  title: string
   facts: RawFact[]
   noTestable: number[]
 }
@@ -80,14 +82,14 @@ function parseRawPlan(parsed: unknown, sentenceCount: number): RawPlan | null {
     const items = Array.isArray(entry.items) ? entry.items.map((item) => cleanString(item, 120)).filter(Boolean).slice(0, 12) : []
     facts.push({ label, statement, sentences: toIndices(entry.s), importance: entry.importance === 'supporting' ? 'supporting' : 'core', items: items.length >= 2 ? items : [] })
   }
-  return { facts, noTestable: toIndices(parsed.noTestable) }
+  return { title: cleanString(parsed.title, 120), facts, noTestable: toIndices(parsed.noTestable) }
 }
 
 function wordCountOf(text: string): number {
   return text.split(/\s+/).filter(Boolean).length
 }
 
-async function callPlan(params: { sentences: string[]; indices: number[]; language: string; only?: number[]; knownLabels?: string[] }): Promise<HelperResult<RawPlan>> {
+async function callPlan(params: { sentences: string[]; indices: number[]; language: string; only?: number[]; knownLabels?: string[]; onlyOpenAi?: boolean }): Promise<HelperResult<RawPlan>> {
   const words = params.indices.reduce((sum, index) => sum + wordCountOf(params.sentences[index]), 0)
   const onlyNote = params.only
     ? ` Only sentences ${params.only.map((index) => index + 1).join(', ')} still need facts: list the facts they state (or put them in "noTestable"); the facts with these labels are already listed, do not repeat them: ${(params.knownLabels ?? []).slice(0, 80).join('; ')}.`
@@ -99,7 +101,7 @@ async function callPlan(params: { sentences: string[]; indices: number[]; langua
     user: `<source_sentences>\n${numbered}\n</source_sentences>\n\nWrite the facts plan now.`,
     initialTokens: Math.min(14_000, 900 + Math.ceil(words * 7)),
     retryTokens: Math.min(16_000, 1500 + Math.ceil(words * 11)),
-    preferProvider: 'openai',
+    ...(params.onlyOpenAi ? { onlyProvider: 'openai' as const } : { preferProvider: 'openai' as const }),
     openAiModel: CHEAP_MODEL,
     reasoningEffort: 'none',
     callType: 'quiz-plan',
@@ -130,6 +132,8 @@ function statementKey(statement: string): string {
 }
 
 export interface FactsPlanResult {
+  /** Short title of the whole source (first chunk's). */
+  title: string
   facts: CoverageFact[]
   /** Share of source words in sentences linked to a fact (deterministic sanity check). */
   coveredWordShare: number
@@ -145,12 +149,12 @@ export interface FactsPlanResult {
  * Every sentence must be linked to a fact or marked as having no testable content; gaps are
  * re-extracted once. Duplicate statements are dropped.
  */
-export async function extractFactsPlan(params: { text: string; language: string }): Promise<HelperResult<FactsPlanResult>> {
+export async function extractFactsPlan(params: { text: string; language: string; onlyOpenAi?: boolean }): Promise<HelperResult<FactsPlanResult>> {
   const sentences = splitSourceSentences(params.text)
   if (sentences.length === 0) return { value: null, usage: [] }
   const usage: LlmUsage[] = []
   const failed = { value: null, usage: [] as LlmUsage[] }
-  const replies = await Promise.all(sentenceChunks(sentences).map((indices) => callPlan({ sentences, indices, language: params.language }).catch(() => failed)))
+  const replies = await Promise.all(sentenceChunks(sentences).map((indices) => callPlan({ sentences, indices, language: params.language, onlyOpenAi: params.onlyOpenAi }).catch(() => failed)))
   for (const reply of replies) usage.push(...reply.usage)
   if (replies.every((reply) => !reply.value)) return { value: null, usage }
 
@@ -173,6 +177,7 @@ export async function extractFactsPlan(params: { text: string; language: string 
       language: params.language,
       only: check.gaps,
       knownLabels: raw.map((fact) => fact.label),
+      onlyOpenAi: params.onlyOpenAi,
     }).catch(() => failed)
     usage.push(...retry.usage)
     if (retry.value) {
@@ -212,7 +217,8 @@ export async function extractFactsPlan(params: { text: string; language: string 
     })
   }
   if (facts.length === 0) return { value: null, usage }
-  return { value: { facts, coveredWordShare: check.coveredWordShare, gaps: check.gaps.length, gapRerun, duplicatesDropped }, usage }
+  const title = replies.find((reply) => reply.value?.title)?.value?.title ?? ''
+  return { value: { title, facts, coveredWordShare: check.coveredWordShare, gaps: check.gaps.length, gapRerun, duplicatesDropped }, usage }
 }
 
 // ---------------------------------------------------------------------------------------------

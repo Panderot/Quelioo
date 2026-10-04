@@ -83,7 +83,7 @@ export default function CoveragePanel({ coverage, questions, questionType, showA
   const titleId = useId()
   const summary = useMemo(() => computeCoverage(coverage, questions), [coverage, questions])
   const missing = useMemo(() => missingEntries(coverage, questions), [coverage, questions])
-  const opensNewQuiz = missing.length > 0 && questions.length + slotsNeededFor(missing, questionType as QuestionType) > MAX_QUESTION_COUNT
+  const opensNewQuiz = missing.length > 0 && questions.length + slotsNeededFor(missing, questionType as QuestionType, 'whole') > MAX_QUESTION_COUNT
 
   useEffect(() => {
     if (!open || isDesktop) return undefined

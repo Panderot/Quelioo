@@ -153,7 +153,7 @@ test.describe('Audio Lesson — create, list and edit', () => {
     await startNewLesson(page)
     await expect(page.getByText('Use 30 to 5,000 words per lesson.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Mark as focus' })).toHaveCount(0)
-    await expect(page.getByText('About 6 minutes per episode')).toBeVisible()
+    await expect(page.getByText('Length follows your text (up to about 6 minutes per episode)')).toBeVisible()
 
     await page.getByRole('radio', { name: 'Teacher and student' }).click()
     await chooseOption(page, 'Level', 'YKS')
@@ -163,9 +163,10 @@ test.describe('Audio Lesson — create, list and edit', () => {
 
     await page.getByRole('button', { name: 'Plan the lesson' }).click()
     const plan = page.locator('[data-purpose="lesson-plan"]')
-    await expect(plan).toContainText('This text will be one 6-minute episode')
+    await expect(plan).toContainText(/This text will be one episode of about \d+ minutes/)
     await expect(plan).toContainText('4 key points')
-    await expect(plan.locator('[data-purpose="lesson-cost-estimate"]')).toHaveText(/Estimated cost: about \$0\.\d{3}/)
+    await expect(plan).not.toContainText('$')
+    await expect(plan).not.toContainText(/cost/i)
     expect(mock.requests()[0].body).toMatchObject({ action: 'plan', level: 'yks', language: 'tr', text: TEXT })
 
     await page.getByRole('button', { name: 'Write the lesson' }).click()
@@ -176,7 +177,8 @@ test.describe('Audio Lesson — create, list and edit', () => {
     await expect(page.locator('[data-purpose="coverage-summary"]')).toHaveText('4/4 key points covered')
     await expect(page.getByText('Every line was fact-checked against your text.')).toBeVisible()
     await expect(page.getByText('About 6:01 · 812 words')).toBeVisible()
-    await expect(page.locator('[data-purpose="lesson-part-cost"]')).toContainText('$0.047')
+    await expect(page.locator('[data-purpose="lesson-part-cost"]')).toHaveCount(0)
+    await expect(page.locator('[data-purpose="lesson-total-cost"]')).toHaveCount(0)
     await expect(page.locator('[data-purpose="script-line"]').first()).toContainText('Teacher')
     await page.locator('[data-purpose="coverage-summary"]').click()
     await expect(page.locator('[data-purpose="key-point-list"] li').first()).toContainText('Taught in: All about K1')
@@ -186,7 +188,7 @@ test.describe('Audio Lesson — create, list and edit', () => {
     await expect(row).toHaveCount(1)
     await expect(row).toContainText('Light and sugar')
     await expect(row).toContainText('Script ready')
-    await expect(row).toContainText('1 episode · about 6 min')
+    await expect(row).toContainText('1 episode')
     await expect(row).toContainText('Teacher and student')
 
     const search = page.getByRole('textbox', { name: 'Search lessons...' })
@@ -211,7 +213,6 @@ test.describe('Audio Lesson — create, list and edit', () => {
     await page.getByRole('radio', { name: 'Fun' }).click()
     await chooseOption(page, 'Output Language:', 'Türkçe')
     await page.getByRole('button', { name: 'Plan the lesson' }).click()
-    await expect(page.getByText('Key points reused from earlier, at no extra cost.')).toBeVisible()
     await expect(page.locator('[data-purpose="lesson-existing"]')).toBeVisible()
     expect(mock.requests().filter((entry) => entry.action === 'plan')).toHaveLength(1)
     await page.locator('[data-purpose="lesson-existing"]').getByRole('link', { name: 'Open it' }).click()
@@ -306,7 +307,6 @@ test.describe('Audio Lesson — series', () => {
     await startNewLesson(page)
     await page.getByRole('button', { name: 'Plan the lesson' }).click()
     await expect(page.locator('[data-purpose="lesson-plan"]')).toContainText('This text will be a 2-episode series')
-    await expect(page.locator('[data-purpose="lesson-cost-estimate"]')).toContainText('per episode')
     await page.getByRole('button', { name: '9 key points' }).click()
     await expect(page.locator('[data-purpose="lesson-plan"]')).toContainText('Key point 9 about light')
     await page.getByRole('button', { name: 'Write part 1' }).click()
@@ -341,7 +341,7 @@ test.describe('Audio Lesson — series', () => {
     await expect(page.getByText('Part 2 of 4')).toBeVisible()
     expect(mock.requests().filter((entry) => entry.action === 'script').map((entry) => entry.body.part)).toEqual([1, 2])
     await page.getByRole('link', { name: 'Back to lessons' }).click()
-    await expect(page.locator('[data-purpose="lesson-row"]')).toContainText('4 episodes · about 6 min each')
+    await expect(page.locator('[data-purpose="lesson-row"]')).toContainText('4 episodes')
   })
 })
 
@@ -443,7 +443,8 @@ test.describe('Audio Lesson — shared owner gate', () => {
     await page.getByRole('button', { name: 'Write the lesson' }).click()
     await expect(page).toHaveURL(/\/lessons\/[\w-]+$/)
     await page.getByRole('link', { name: 'Back to lessons' }).click()
-    await expect(page.getByRole('button', { name: 'Lock' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Lock' })).toHaveCount(0) // owner controls live on the owner page only
+    await expect(page.locator('main')).not.toContainText('$')
 
     // Songs: the same stored code means no lock card in the song panel.
     await page.goto('/songs')
@@ -453,10 +454,12 @@ test.describe('Audio Lesson — shared owner gate', () => {
     await expect(page.getByRole('button', { name: 'Write lyrics' })).toBeVisible()
     await page.keyboard.press('Escape')
 
-    // Lock clears it for both.
+    // The owner page (no link anywhere) shows spend and the lock; Lock clears the code for both features.
+    await page.goto('/owner')
+    await expect(page.locator('[data-purpose="owner-month-spend"]')).toContainText('This month: $')
     await page.getByRole('button', { name: 'Lock' }).click()
-    await page.goto('/lessons')
-    await expect(page.getByRole('button', { name: 'Lock' })).toHaveCount(0)
+    await expect(page.locator('[data-purpose="owner-access-gate"]')).toBeVisible()
+    await expect(page.locator('[data-purpose="owner-spend"]')).toHaveCount(0)
   })
 })
 

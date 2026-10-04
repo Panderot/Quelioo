@@ -218,27 +218,29 @@ test('20 questions are written in two batches of 10 with distinct facts', async 
   expect(calls.filter((call) => call.kind === 'review')).toHaveLength(1) // one review over the combined quiz
 })
 
-test('Auto: every list item gets a question; a missed item is written by the missing-facts pass', async () => {
+test('Auto: a list is ONE question that needs all its items; a missed one is written by the missing-facts pass', async () => {
   const facts = [plannedFact('Tanım', 'Fotosentez ışıkla besin üretimidir', 1), plannedFact('Girdiler', 'Fotosentez su, karbondioksit ve ışık ister', 2, ['su', 'karbondioksit', 'ışık'])]
   const text = 'Fotosentez, yeşil bitkilerin ışık enerjisini kullanarak kendi besinlerini üretmesidir. Fotosentez için su, karbondioksit ve ışık gerekir; bu üç girdiden biri eksik olursa süreç durur. Bu konu çok önemlidir ve her öğrenci bunu dikkatle, sabırla ve tekrar ederek öğrenmelidir.'
   let writes = 0
+  const listQuestion = {
+    id: '2',
+    type: 'short-answer',
+    question: 'Bitkinin besin üretebilmesi için gereken üç girdiyi sayınız.',
+    answer: 'su, karbondioksit ve ışık',
+    acceptableAnswers: ['su, karbondioksit ve ışık'],
+    evidence: 'Fotosentez için su, karbondioksit ve ışık gerekir',
+    explanation: '',
+    estimatedSeconds: 40,
+    factIds: [2],
+  }
   const calls = stubOpenAi((call) => {
     if (call.kind === 'plan') return { facts, noTestable: [3] }
     if (call.kind === 'write') {
       writes += 1
-      if (writes === 1) {
-        // The first batch misses the last slot ("ışık").
-        return {
-          title: 'T',
-          questions: [
-            fill('1', 'Yeşil bitkilerin besin üretme sürecine ___ denir.', 'fotosentez', [1]),
-            fill('2', 'Bitkinin topraktan aldığı sıvı girdi ___ olarak adlandırılır.', 'su', [2]),
-            fill('3', 'Havadan alınan gaz girdi ___ olarak adlandırılır.', 'karbondioksit', [2]),
-          ],
-        }
-      }
-      if (writes <= 3) return { title: 'T', questions: [] } // the in-batch retry fails too
-      return { title: 'T', questions: [fill('4', 'Güneşten gelen ve besin üretimi için gereken girdi ___ olarak adlandırılır.', 'ışık', [2])] }
+      // The first batch misses the list question; the in-batch retry fails too.
+      if (writes === 1) return { title: 'T', questions: [fill('1', 'Yeşil bitkilerin besin üretme sürecine ___ denir.', 'fotosentez', [1])] }
+      if (writes <= 3) return { title: 'T', questions: [] }
+      return { title: 'T', questions: [listQuestion] }
     }
     if (call.kind === 'review') return { flags: [] }
     return 500 // coverage verification unavailable: the claims stay
@@ -246,15 +248,15 @@ test('Auto: every list item gets a question; a missed item is written by the mis
   let metrics: GenerateMetrics | undefined
   const { status, body } = await handleGenerateRequest({ ...basePayload, text, questionCount: 'auto' }, { onMetrics: (value) => (metrics = value) })
   expect(status).toBe(200)
-  const result = body as { questions: { answer: string; factIds: number[]; factItems?: Record<string, number[]> }[]; coverage: { facts: unknown[] } }
-  expect(result.questions.map((question) => question.answer)).toEqual(['fotosentez', 'su', 'karbondioksit', 'ışık'])
-  expect(result.questions.map((question) => question.factItems ?? null)).toEqual([null, { 2: [0] }, { 2: [1] }, { 2: [2] }])
+  const result = body as { questions: { answer: string; type: string; factIds: number[]; factItems?: Record<string, number[]> }[]; coverage: { facts: unknown[] } }
+  expect(result.questions.map((question) => question.type)).toEqual(['fill-blanks', 'short-answer'])
+  expect(result.questions.map((question) => question.factItems ?? null)).toEqual([null, { 2: [0, 1, 2] }]) // all three items in one question
   expect(result.coverage.facts).toHaveLength(2)
   expect(metrics).toMatchObject({ facts: 2, coveredBefore: 1, coveredAfter: 2, missingAdded: 1 })
-  // The first write asked for one question per item, each told not to name the other items.
+  // The write asked for ONE question with ALL items, not one per item.
   const first = calls.find((call) => call.kind === 'write')!.text
-  expect(first).toContain('only item 3:')
-  expect(first).toContain('never names the list')
+  expect(first).toContain('short-answer')
+  expect(first).not.toContain('only item')
 })
 
 test('cover_missing: only the missing questions, and an existing question that contains the new answer is reworded', async () => {
@@ -263,7 +265,7 @@ test('cover_missing: only the missing questions, and an existing question that c
     { id: 2, label: 'Girdiler', statement: 'Fotosentez su ve ışık ister', span: 'y', importance: 'core', position: 0.5, items: ['su', 'ışık'] },
   ]
   const calls = stubOpenAi((call) => {
-    if (call.kind === 'write') return { title: 'T', questions: [fill('n', 'Bitkinin topraktan aldığı sıvı girdi ___ olarak adlandırılır.', 'su', [2])] }
+    if (call.kind === 'write') return { title: 'T', questions: [{ ...fill('n', 'Bitkinin topraktan aldığı sıvı girdi hangisidir?', 'su', [2]), type: 'short-answer', evidence: 'su' }] }
     if (call.kind === 'rewrite') return { question: fill('r', 'Yeşil bitkilerin kendi besinini üretme sürecine ___ denir.', 'fotosentez') }
     return 500
   })

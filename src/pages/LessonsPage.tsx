@@ -5,13 +5,12 @@ import { useTranslation } from 'react-i18next'
 import { getLessonStatus } from '../api/lesson'
 import UndoToast from '../components/flashcards/UndoToast'
 import NewLessonPanel from '../components/lessons/NewLessonPanel'
-import { HeadphonesIcon, LockIcon, SearchIcon, TrashIcon } from '../components/icons'
+import { formatClock } from '../lib/lesson'
+import { HeadphonesIcon, SearchIcon, TrashIcon } from '../components/icons'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { formatUsd } from '../lib/lesson'
 import { lessonLines, segmentKey, voiceFor } from '../lib/lessonAudio'
-import { deleteLesson, getAllLessons, isLessonStoragePersistent, lessonStatus, monthLessonSpendUsd, pruneSegments, putLesson, subscribeLessons } from '../lib/lessonStorage'
+import { deleteLesson, getAllLessons, isLessonStoragePersistent, lessonDuration, lessonStatus, pruneSegments, putLesson, subscribeLessons } from '../lib/lessonStorage'
 import type { StoredLesson } from '../lib/lessonStorage'
-import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { useSearchParamState } from '../hooks/useSearchParamState'
 
 function formatDate(iso: string, locale: string): string {
@@ -30,8 +29,6 @@ export default function LessonsPage() {
 
   const [lessons, setLessons] = useState<StoredLesson[] | null>(null)
   const [requiresAccessCode, setRequiresAccessCode] = useState(true)
-  const [monthlyBudget, setMonthlyBudget] = useState<number | null>(null)
-  const [hasAccessCode, setHasAccessCode] = useState(() => Boolean(getStoredOwnerAccessCode()))
   const [newOpen, setNewOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [search, setSearch] = useSearchParamState('q')
@@ -46,7 +43,6 @@ export default function LessonsPage() {
     void getLessonStatus().then((status) => {
       if (cancelled) return
       setRequiresAccessCode(status.requiresAccessCode)
-      setMonthlyBudget(status.monthlyBudgetUsd)
     })
     // Recorded audio that no saved line uses any more (edited lines, deleted lessons) is removed.
     void getAllLessons().then((all) => {
@@ -90,15 +86,7 @@ export default function LessonsPage() {
     await putLesson(lesson)
   }
 
-  const handleLock = () => {
-    clearStoredOwnerAccessCode()
-    setHasAccessCode(false)
-  }
-
-  const handleBusyChange = useCallback((value: boolean) => {
-    setBusy(value)
-    if (!value) setHasAccessCode(Boolean(getStoredOwnerAccessCode()))
-  }, [])
+  const handleBusyChange = useCallback((value: boolean) => setBusy(value), [])
 
   const newLessonButton = (className: string) => (
     <button type="button" onClick={() => setNewOpen(true)} className={className}>
@@ -113,25 +101,6 @@ export default function LessonsPage() {
         <div className="space-y-2">
           <h1 className="font-serif text-2xl leading-snug font-semibold tracking-tight text-navy lg:text-3xl">{t('lessons.title')}</h1>
           <p className="text-sm font-normal text-muted">{t('lessons.subtitle')}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-        {(hasAccessCode || !requiresAccessCode) && (
-          <p data-purpose="lessons-month-spend" className="text-xs text-muted">
-            {monthlyBudget !== null
-              ? t('lessons.monthSpendBudget', { cost: formatUsd(monthLessonSpendUsd()), budget: formatUsd(monthlyBudget) })
-              : t('lessons.monthSpend', { cost: formatUsd(monthLessonSpendUsd()) })}
-          </p>
-        )}
-        {hasAccessCode && (
-          <button
-            type="button"
-            onClick={handleLock}
-            className="flex items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-error/40 hover:text-error"
-          >
-            <LockIcon className="h-3.5 w-3.5" />
-            {t('ownerAccess.lock')}
-          </button>
-        )}
         </div>
       </section>
 
@@ -173,6 +142,7 @@ export default function LessonsPage() {
         <ul data-purpose="lessons-list" className="divide-y divide-warm-border rounded-[14px] border border-warm-border bg-card">
           {filtered.map((lesson) => {
             const status = lessonStatus(lesson)
+            const duration = lessonDuration(lesson)
             const source = lesson.sourceLabel ? `${t(`lessons.sourceKinds.${lesson.sourceKind}`)}: ${lesson.sourceLabel}` : t(`lessons.sourceKinds.${lesson.sourceKind}`)
             return (
               <li key={lesson.id} data-purpose="lesson-row" className="space-y-2 p-4 md:p-5">
@@ -183,7 +153,7 @@ export default function LessonsPage() {
                     </Link>
                     <p className="truncate text-xs text-muted">{source}</p>
                     <p className="text-xs text-muted">
-                      {[t('lessons.row.episodes', { count: lesson.episodes.length }), t(`lessons.styles.${lesson.options.style}`), formatDate(lesson.createdAt, i18n.language)].join(' • ')}
+                      {[t('lessons.row.episodes', { count: lesson.episodes.length }), t(`lessons.styles.${lesson.options.style}`), ...(duration ? [t(duration.exact ? 'lessons.row.duration' : 'lessons.row.durationApprox', { time: formatClock(duration.seconds) })] : []), formatDate(lesson.createdAt, i18n.language)].join(' • ')}
                     </p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${status === 'audio' ? 'bg-success/10 text-success' : 'bg-amber/15 text-amber-text'}`}>

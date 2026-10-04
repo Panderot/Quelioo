@@ -9,6 +9,7 @@
     "lint": "eslint src",
     "preview": "vite preview",
     "check:llm": "tsx scripts/check-llm.ts",
+    "test:each": "node scripts/test-each.mjs",
     "test:e2e": "playwright test --project=desktop --project=mobile",
     "test:e2e:quick": "playwright test --project=desktop --only-changed",
     "test:cross": "playwright test --project=firefox --project=webkit --workers=2",
@@ -16,6 +17,7 @@
     "test:live": "playwright test --config=playwright.live.config.ts"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@fontsource-variable/fraunces": "^5.3.0",
     "@fontsource-variable/noto-sans-armenian": "^5.3.0",
     "@fontsource-variable/noto-serif-armenian": "^5.3.0",

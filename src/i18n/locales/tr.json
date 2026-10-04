@@ -863,14 +863,16 @@
     "deletedUndo": "Ders silindi.",
     "empty": {
       "title": "Henüz ders yok",
-      "subtitle": "Bir metni, testi ya da çözümü 6 dakikalık bir derse dönüştür."
+      "subtitle": "Bir metni, testi ya da çözümü kısa bir sesli derse dönüştür."
     },
     "row": {
-      "episodes_one": "1 bölüm · yaklaşık 6 dk",
-      "episodes_other": "{{count}} bölüm · her biri yaklaşık 6 dk",
+      "episodes_one": "1 bölüm",
+      "episodes_other": "{{count}} bölüm",
       "open": "Aç",
       "delete": "Sil",
-      "confirmDelete": "Bu ders silinsin mi?"
+      "confirmDelete": "Bu ders silinsin mi?",
+      "duration": "{{time}}",
+      "durationApprox": "yaklaşık {{time}}"
     },
     "status": {
       "none": "Planlandı",
@@ -932,7 +934,7 @@
       "clearSource": "Kendi metnimi kullan",
       "optionsEyebrow": "Ders seçenekleri",
       "lengthLabel": "Uzunluk",
-      "lengthValue": "Bölüm başına yaklaşık 6 dakika",
+      "lengthValue": "Uzunluk metnine göre değişir (bölüm başına en fazla yaklaşık 6 dakika)",
       "styleLabel": "Biçim",
       "levelLabel": "Seviye",
       "toneLabel": "Ton",
@@ -943,14 +945,11 @@
     },
     "plan": {
       "heading": "Ders planı",
-      "single": "Bu metin 6 dakikalık tek bir bölüm olacak",
+      "single": "Bu metin yaklaşık {{minutes}} dakikalık tek bir bölüm olacak",
       "series": "Bu metin {{count}} bölümlük bir seri olacak",
       "keyPoints_one": "{{count}} ana bilgi",
       "keyPoints_other": "{{count}} ana bilgi",
-      "costSingle": "Tahmini maliyet: yaklaşık {{part}}",
-      "costSeries": "Tahmini maliyet: bölüm başına yaklaşık {{part}}, serinin tamamı için {{total}}",
       "onDemand": "Sonraki her bölüm yalnızca sen istediğinde yazılır.",
-      "reusedKeyPoints": "Ana bilgiler daha önce çıkarılmıştı; ek maliyet yok.",
       "existing": "Bu metinden bu seçeneklerle zaten bir ders yaptın.",
       "openExisting": "Onu aç",
       "createAnyway": "Yine de yenisini yaz",
@@ -985,14 +984,12 @@
       "partTab": "{{n}}. bölüm",
       "partOf": "{{n}}. bölüm / {{total}}",
       "notWrittenShort": "yazılmadı",
-      "notWrittenYet": "{{n}}. bölüm henüz yazılmadı. Her bölüm yalnızca sen istediğinde yazılır; böylece dinlemeyeceğin bölümlere hiç ödeme yapmazsın.",
+      "notWrittenYet": "{{n}}. bölüm henüz yazılmadı. Her bölüm yalnızca sen istediğinde yazılır.",
       "preparePart": "{{n}}. bölümü hazırla",
       "prepareNext": "Sonraki bölümü hazırla ({{n}})",
       "goToPart": "{{n}}. bölüme geç",
       "preparing": "{{n}}. bölüm yazılıyor ve her satır kontrol ediliyor...",
       "duration": "Yaklaşık {{time}} · {{words}} kelime",
-      "cost": "Metin maliyeti: {{cost}} · girdinin %{{share}} kadarı önbellekten",
-      "totalCost": "Şimdiye kadarki gerçek maliyet: {{cost}}",
       "coverage": "{{n}}/{{m}} ana bilgi anlatıldı",
       "taughtIn": "Anlatıldığı yer: {{where}}",
       "notTaught": "henüz anlatılmadı",
@@ -1021,10 +1018,10 @@
       "moveUp": "Yukarı taşı",
       "moveDown": "Aşağı taşı",
       "pauseTag": "duraklama",
-      "editedTag": "düzenlendi"
+      "editedTag": "düzenlendi",
+      "durationExact": "{{time}} · {{words}} kelime",
+      "issueRepeat": "Bu satır daha önce söylenenin neredeyse aynısı."
     },
-    "monthSpend": "Bu ay: {{cost}}",
-    "monthSpendBudget": "Bu ay: {{cost}} / {{budget}}",
     "voices": {
       "alloy": "Alloy",
       "ash": "Ash",
@@ -1048,8 +1045,8 @@
       "updateHelp_one": "{{count}} satırın henüz sesi yok (yeni, değişmiş ya da yarım kalmış). Yalnızca bu satır kaydedilir.",
       "updateHelp_other": "{{count}} satırın henüz sesi yok (yeni, değişmiş ya da yarım kalmış). Yalnızca bu satırlar kaydedilir.",
       "preview": "{{voice}} sesini dinle",
-      "estimate_one": "Yaklaşık {{time}} ses. {{count}} satırı kaydetmek yaklaşık {{cost}} tutar.",
-      "estimate_other": "Yaklaşık {{time}} ses. {{count}} satırı kaydetmek yaklaşık {{cost}} tutar.",
+      "estimate_one": "Yaklaşık {{time}} ses. {{count}} satır kaydedilecek.",
+      "estimate_other": "Yaklaşık {{time}} ses. {{count}} satır kaydedilecek.",
       "checkFirst": "Düzenlemelerin önce metnine göre kontrol edilir.",
       "record": "Sesi kaydet",
       "updateAudio_one": "Sesi güncelle ({{count}} satır)",
@@ -1059,7 +1056,6 @@
       "linesFailed_one": "{{count}} satır kaydedilemedi.",
       "linesFailed_other": "{{count}} satır kaydedilemedi.",
       "single": "Ders",
-      "cost": "Ses maliyeti: {{cost}}",
       "unknown": "Harf harf okundu (gerekirse telaffuz listesine ekle): {{list}}",
       "editScript": "Metni düzenle",
       "hideEditor": "Metin düzenleyiciyi gizle"
@@ -1095,5 +1091,11 @@
     "adding": "Sorular ekleniyor…",
     "newQuizHint": "Bu quizde yeni soruya yer kalmadı; sorular yeni bir quize eklenecek.",
     "close": "Kapat"
+  },
+  "ownerPage": {
+    "title": "Sahip",
+    "subtitle": "Bu cihazdaki sesli ders harcamaları. Öğrenciler bu sayfayı görmez.",
+    "monthSpend": "Bu ay: {{cost}}",
+    "monthSpendBudget": "Bu ay: {{cost}} / {{budget}}"
   }
 }

@@ -478,7 +478,10 @@ test('access gate: "Lock" forgets the stored code; the song list stays visible w
   await page.goto('/songs?lng=en')
   await expect(page.getByText('Visible While Locked')).toBeVisible()
 
+  await expect(page.getByRole('button', { name: 'Lock' })).toHaveCount(0) // owner controls live on /owner only
+  await page.goto('/owner?lng=en')
   await page.getByRole('button', { name: 'Lock' }).click()
+  await page.goto('/songs?lng=en')
   await expect(page.getByText('Visible While Locked')).toBeVisible() // the list itself is never gated
   expect(await page.evaluate(() => localStorage.getItem('quelio.musicAccessCode.v1'))).toBeNull()
 

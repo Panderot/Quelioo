@@ -863,14 +863,16 @@
     "deletedUndo": "Lesson deleted.",
     "empty": {
       "title": "No lessons yet",
-      "subtitle": "Turn a text, a quiz or a solution into a 6-minute lesson."
+      "subtitle": "Turn a text, a quiz or a solution into a short audio lesson."
     },
     "row": {
-      "episodes_one": "1 episode · about 6 min",
-      "episodes_other": "{{count}} episodes · about 6 min each",
+      "episodes_one": "1 episode",
+      "episodes_other": "{{count}} episodes",
       "open": "Open",
       "delete": "Delete",
-      "confirmDelete": "Delete this lesson?"
+      "confirmDelete": "Delete this lesson?",
+      "duration": "{{time}}",
+      "durationApprox": "about {{time}}"
     },
     "status": {
       "none": "Planned",
@@ -932,7 +934,7 @@
       "clearSource": "Use my own text",
       "optionsEyebrow": "Lesson options",
       "lengthLabel": "Length",
-      "lengthValue": "About 6 minutes per episode",
+      "lengthValue": "Length follows your text (up to about 6 minutes per episode)",
       "styleLabel": "Style",
       "levelLabel": "Level",
       "toneLabel": "Tone",
@@ -943,14 +945,11 @@
     },
     "plan": {
       "heading": "Lesson plan",
-      "single": "This text will be one 6-minute episode",
+      "single": "This text will be one episode of about {{minutes}} minutes",
       "series": "This text will be a {{count}}-episode series",
       "keyPoints_one": "{{count}} key point",
       "keyPoints_other": "{{count}} key points",
-      "costSingle": "Estimated cost: about {{part}}",
-      "costSeries": "Estimated cost: about {{part}} per episode, {{total}} for the whole series",
       "onDemand": "Each later part is written only when you ask for it.",
-      "reusedKeyPoints": "Key points reused from earlier, at no extra cost.",
       "existing": "You already made a lesson from this text with these options.",
       "openExisting": "Open it",
       "createAnyway": "Write a new one anyway",
@@ -985,14 +984,12 @@
       "partTab": "Part {{n}}",
       "partOf": "Part {{n}} of {{total}}",
       "notWrittenShort": "not written",
-      "notWrittenYet": "Part {{n}} isn't written yet. Each part is written only when you ask, so you never pay for parts you don't listen to.",
+      "notWrittenYet": "Part {{n}} isn't written yet. Each part is written only when you ask for it.",
       "preparePart": "Prepare part {{n}}",
       "prepareNext": "Prepare next part ({{n}})",
       "goToPart": "Go to part {{n}}",
       "preparing": "Writing part {{n}} and checking every line...",
       "duration": "About {{time}} · {{words}} words",
-      "cost": "Script cost: {{cost}} · {{share}}% of input from cache",
-      "totalCost": "Real cost so far: {{cost}}",
       "coverage": "{{n}}/{{m}} key points covered",
       "taughtIn": "Taught in: {{where}}",
       "notTaught": "not covered yet",
@@ -1021,10 +1018,10 @@
       "moveUp": "Move up",
       "moveDown": "Move down",
       "pauseTag": "pause",
-      "editedTag": "edited"
+      "editedTag": "edited",
+      "durationExact": "{{time}} · {{words}} words",
+      "issueRepeat": "This line repeats an earlier line almost word for word."
     },
-    "monthSpend": "This month: {{cost}}",
-    "monthSpendBudget": "This month: {{cost}} of {{budget}}",
     "voices": {
       "alloy": "Alloy",
       "ash": "Ash",
@@ -1048,8 +1045,8 @@
       "updateHelp_one": "{{count}} line has no audio yet (new, changed or not finished). Only that line is recorded.",
       "updateHelp_other": "{{count}} lines have no audio yet (new, changed or not finished). Only those lines are recorded.",
       "preview": "Listen to {{voice}}",
-      "estimate_one": "About {{time}} of audio. Recording {{count}} line costs about {{cost}}.",
-      "estimate_other": "About {{time}} of audio. Recording {{count}} lines costs about {{cost}}.",
+      "estimate_one": "About {{time}} of audio. {{count}} line will be recorded.",
+      "estimate_other": "About {{time}} of audio. {{count}} lines will be recorded.",
       "checkFirst": "Your edits are checked against your text first.",
       "record": "Record audio",
       "updateAudio_one": "Update audio ({{count}} line)",
@@ -1059,7 +1056,6 @@
       "linesFailed_one": "{{count}} line couldn't be recorded.",
       "linesFailed_other": "{{count}} lines couldn't be recorded.",
       "single": "Lesson",
-      "cost": "Audio cost: {{cost}}",
       "unknown": "Spelled out letter by letter (add them to the pronunciation list if needed): {{list}}",
       "editScript": "Edit the script",
       "hideEditor": "Hide the script editor"
@@ -1095,5 +1091,11 @@
     "adding": "Adding questions…",
     "newQuizHint": "This quiz has no room for more questions, so they go into a new quiz.",
     "close": "Close"
+  },
+  "ownerPage": {
+    "title": "Owner",
+    "subtitle": "Spending for the audio lessons on this device. Students never see this page.",
+    "monthSpend": "This month: {{cost}}",
+    "monthSpendBudget": "This month: {{cost}} of {{budget}}"
   }
 }

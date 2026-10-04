@@ -21,7 +21,8 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: `npx vite --port ${PORT} --strictPort`,
+    // Direct node (no npx/shell wrapper): one process that Playwright can kill cleanly on Windows.
+    command: `node node_modules/vite/bin/vite.js --port ${PORT} --strictPort`,
     url: BASE_URL,
     reuseExistingServer: true,
     env: { QUELIO_NO_HMR: '1' },

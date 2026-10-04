@@ -84,14 +84,20 @@ test.describe('plan validation and sentence coverage', () => {
 })
 
 test.describe('slot assignment per type (Auto)', () => {
-  test('single-fact types: one question per fact, one per list item', () => {
+  test('single-fact types: one question per fact; a list is ONE question that needs all its items', () => {
     for (const type of ['mcq', 'true-false', 'fill-blanks'] as const) {
       const { slots, uncoveredFactIds } = planSlots(PLAN, type, 'auto')
-      expect(slots).toHaveLength(3 + 3 + 2 + 4) // 3 single facts + 3, 2 and 4 list items
+      expect(slots).toHaveLength(6) // the plan's 6 facts, lists included (the old split asked 12)
       expect(uncoveredFactIds).toEqual([])
-      expect(slots.filter((slot) => slot.factIds[0] === 5).map((slot) => slot.items?.[5])).toEqual([[0], [1], [2], [3]])
-      expect(slots.every((slot) => slot.type === type && slot.factIds.length === 1)).toBe(true)
+      expect(slots.find((slot) => slot.factIds[0] === 5)).toEqual({ type: 'short-answer', factIds: [5], items: { 5: [0, 1, 2, 3] } })
+      expect(slots.filter((slot) => !slot.items).every((slot) => slot.type === type && slot.factIds.length === 1)).toBe(true)
     }
+  })
+
+  test('a fixed count may still spread a list over several questions when there is room', () => {
+    const { slots } = planSlots(PLAN, 'mcq', 12)
+    expect(slots).toHaveLength(12)
+    expect(slots.filter((slot) => slot.factIds[0] === 5).map((slot) => slot.items?.[5])).toEqual([[0], [1], [2], [3]])
   })
 
   test('a fixed count spreads over different facts before a list fact takes several questions', () => {
@@ -100,12 +106,15 @@ test.describe('slot assignment per type (Auto)', () => {
     expect(slots.map((slot) => slot.factIds[0])).toEqual([2, 3, 4, 5, 6])
   })
 
-  test('a list longer than MAX_LIST_ITEMS is tested in part (shown as partly covered)', () => {
+  test('a fixed count tests a list longer than MAX_LIST_ITEMS in part (shown as partly covered); Auto asks it all in a few questions', () => {
     const long = fact(1, { items: Array.from({ length: MAX_LIST_ITEMS + 2 }, (_, index) => `item ${index}`) })
-    const slots = planSlots([long], 'mcq', 'auto').slots
+    const slots = planSlots([long], 'mcq', 30 - 20).slots
     expect(slots).toHaveLength(MAX_LIST_ITEMS)
     const questions = slots.map((slot, index) => q(`q${index}`, slot.factIds, { 1: slot.items![1] }))
     expect(computeCoverage({ version: 1, facts: [long] }, questions).rows[0].status).toBe('partial')
+    const auto = planSlots([long], 'mcq', 'auto').slots
+    expect(auto).toHaveLength(2) // 8 items: two short answers of 4, every item asked
+    expect(auto.flatMap((slot) => slot.items![1]).sort()).toEqual([0, 1, 2, 3, 4, 5, 6, 7])
   })
 
   test('matching: one pair per fact or list item, 3-6 pairs per question', () => {
@@ -176,7 +185,7 @@ test.describe('counts', () => {
 
   test('the words-per-fact heuristic estimates the Auto count before the plan exists', () => {
     expect(WORDS_PER_FACT).toBeGreaterThan(4)
-    expect(estimateAutoQuestionCount(75, 'fill-blanks')).toBe(Math.round(Math.round(75 / WORDS_PER_FACT) * 1.5))
+    expect(estimateAutoQuestionCount(75, 'fill-blanks')).toBe(Math.round(75 / WORDS_PER_FACT))
     expect(estimateAutoQuestionCount(75, 'matching')).toBeLessThan(estimateAutoQuestionCount(75, 'mcq'))
     expect(estimateAutoQuestionCount(5000, 'mcq')).toBe(MAX_QUESTION_COUNT)
     expect(estimateAutoQuestionCount(10, 'mcq')).toBeGreaterThanOrEqual(1)

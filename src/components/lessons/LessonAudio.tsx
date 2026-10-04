@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { LessonApiError, getLessonStatus, speakLessonLines } from '../../api/lesson'
 import type { LessonClientErrorCode } from '../../api/lesson'
-import { LESSON_SPEAKERS, formatClock, formatUsd } from '../../lib/lesson'
+import { LESSON_SPEAKERS, formatClock } from '../../lib/lesson'
 import type { ScriptLine } from '../../lib/lesson'
 import {
   PAUSE_SECONDS,
@@ -13,6 +13,7 @@ import {
   TTS_VOICES,
   estimateSpeechCostUsd,
   estimateSpeechSeconds,
+  joinedAudioSeconds,
   lessonLines,
   segmentKey,
   spokenText,
@@ -108,9 +109,17 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
     }
   }, [complete, segments, lines, keys])
 
+  const playerTag = lines.map((line) => `${line.id}:${keys.get(line.id)}:${line.pause ? 1 : 0}`).join('|')
+  // The real length of the joined file is stored (and shown) once the audio exists.
+  const audioSeconds = audioBytes && audioBytes.tag === playerTag ? Math.round(joinedAudioSeconds(lines, audioBytes.bytes) * 10) / 10 : null
+  useEffect(() => {
+    if (!complete || audioSeconds === null || audioSeconds <= 0 || Math.abs((episode.audioSeconds ?? 0) - audioSeconds) < 0.05) return
+    void onSave({ ...lesson, episodes: lesson.episodes.map((entry) => (entry.part === episode.part ? { ...entry, audioSeconds } : entry)) })
+  }, [complete, audioSeconds, episode.audioSeconds, episode.part, lesson, onSave])
+
   const missingChars = missingLines.reduce((sum, line) => sum + spokenText(line, lesson.options.language).text.length, 0)
   const totalChars = lines.reduce((sum, line) => sum + spokenText(line, lesson.options.language).text.length, 0)
-  const estimatedTotalSeconds = estimateSpeechSeconds(totalChars) + lines.filter((line) => line.pause).length * PAUSE_SECONDS
+  const estimatedTotalSeconds = episode.script?.estimatedSeconds ?? estimateSpeechSeconds(totalChars) + lines.filter((line) => line.pause).length * PAUSE_SECONDS
 
   const saveEpisode = useCallback(
     (base: StoredLesson, change: (entry: StoredEpisode) => StoredEpisode) => onSave({ ...base, episodes: base.episodes.map((entry) => (entry.part === episode.part ? change(entry) : entry)) }),
@@ -163,7 +172,7 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
         const batch = batches[next++]
         try {
           const result = await speakLessonLines(
-            { lessonKey: `${base.id}:${episode.part}`, style: base.options.style, language: base.options.language, voices, lines: batch.map(({ id, speaker, text }) => ({ id, speaker, text })) },
+            { lessonKey: `${base.id}:${episode.part}`, style: base.options.style, language: base.options.language, voices, lines: batch.map(({ id, speaker, text, delivery }) => ({ id, speaker, text, ...(delivery ? { delivery } : {}) })) },
             controller.signal,
           )
           for (const segment of result.segments) {
@@ -222,7 +231,6 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
 
   if (segments === null) return null
 
-  const playerTag = lines.map((line) => `${line.id}:${keys.get(line.id)}:${line.pause ? 1 : 0}`).join('|')
   const partLabel = totalParts > 1 ? t('lessons.detail.partTab', { n: episode.part }) : t('lessons.audio.single')
 
   return (
@@ -265,7 +273,7 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
           )}
           {recordedCount > 0 && <p className="text-sm text-ink">{t('lessons.audio.updateHelp', { count: missingLines.length })}</p>}
           <p data-purpose="audio-estimate" className="text-xs text-muted">
-            {t('lessons.audio.estimate', { time: formatClock(estimatedTotalSeconds), cost: formatUsd(estimateSpeechCostUsd(missingChars)), count: missingLines.length })}
+            {t('lessons.audio.estimate', { time: formatClock(estimatedTotalSeconds), count: missingLines.length })}
           </p>
           {episode.pendingCheck && <p className="text-xs text-muted">{t('lessons.audio.checkFirst')}</p>}
 
@@ -320,7 +328,6 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
       )}
       {complete && isOwnerView && (
         <div className="space-y-1 text-xs text-muted">
-          {episode.audioCostUsd !== undefined && <p data-purpose="audio-cost">{t('lessons.audio.cost', { cost: formatUsd(episode.audioCostUsd) })}</p>}
           {episode.unknownAbbreviations && episode.unknownAbbreviations.length > 0 && <p data-purpose="unknown-abbreviations">{t('lessons.audio.unknown', { list: episode.unknownAbbreviations.join(', ') })}</p>}
         </div>
       )}

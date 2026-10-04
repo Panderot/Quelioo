@@ -71,6 +71,7 @@ export default function ScriptEditor({ sections, style, part, onChange, disabled
     const parsed = parseLineIssue(issue)
     if (parsed.kind === 'symbols') return t('lessons.detail.issueSymbols')
     if (parsed.kind === 'long') return t('lessons.detail.issueLong')
+    if (parsed.kind === 'repeat') return t('lessons.detail.issueRepeat')
     if (parsed.kind === 'calc') return t('lessons.detail.issueCalc', { detail: parsed.detail })
     return parsed.detail
   }

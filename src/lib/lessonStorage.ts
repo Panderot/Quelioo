@@ -27,6 +27,8 @@ export interface StoredEpisode extends EpisodePlan {
   cachedShare: number | null
   /** Every line of this part has recorded audio for its current text and voices. */
   hasAudio?: boolean
+  /** Real length of the joined audio file in seconds (frames plus pause silences); set once every line has audio. */
+  audioSeconds?: number
   /** The student changed the script since its last check; it is re-checked before the next step. */
   pendingCheck?: boolean
   /** The student approved the script; only approved scripts are recorded. */
@@ -109,6 +111,7 @@ function withDefaults(raw: unknown): StoredLesson | null {
       costUsd: typeof episode.costUsd === 'number' ? episode.costUsd : null,
       cachedShare: typeof episode.cachedShare === 'number' ? episode.cachedShare : null,
       ...(episode.hasAudio === true ? { hasAudio: true } : {}),
+      ...(episode.hasAudio === true && typeof episode.audioSeconds === 'number' && episode.audioSeconds > 0 ? { audioSeconds: episode.audioSeconds } : {}),
       ...(episode.pendingCheck === true ? { pendingCheck: true } : {}),
       ...(episode.approved === true ? { approved: true } : {}),
       ...(isRecord(episode.voices) ? { voices: episode.voices as Record<string, string> } : {}),
@@ -272,6 +275,17 @@ export async function putCachedPlan(plan: CachedPlan): Promise<void> {
 export function lessonStatus(lesson: StoredLesson): 'audio' | 'script' | 'none' {
   if (lesson.episodes.length > 0 && lesson.episodes.every((episode) => episode.hasAudio)) return 'audio'
   return lesson.episodes.some((episode) => episode.script) ? 'script' : 'none'
+}
+
+/** Total listening time of a lesson: the real length of the audio files when every written part has
+ * audio, otherwise the estimate of the written parts; null while nothing is written. */
+export function lessonDuration(lesson: StoredLesson): { seconds: number; exact: boolean } | null {
+  const written = lesson.episodes.filter((episode) => episode.script)
+  if (written.length === 0) return null
+  if (written.every((episode) => episode.hasAudio && typeof episode.audioSeconds === 'number')) {
+    return { seconds: written.reduce((sum, episode) => sum + (episode.audioSeconds ?? 0), 0), exact: true }
+  }
+  return { seconds: written.reduce((sum, episode) => sum + (episode.script?.estimatedSeconds ?? 0), 0), exact: false }
 }
 
 export function lessonCostUsd(lesson: StoredLesson): number {

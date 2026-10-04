@@ -43,10 +43,26 @@ export interface EpisodePlan {
   keyPointIds: string[]
 }
 
+/** How a line is delivered by the voice; the script writer tags every line, the speech call passes it on. */
+export const DELIVERY_HINTS = ['question', 'warm', 'surprised', 'encouraging', 'slow', 'playful'] as const
+export type DeliveryHint = (typeof DELIVERY_HINTS)[number]
+
+export function isDeliveryHint(value: unknown): value is DeliveryHint {
+  return typeof value === 'string' && (DELIVERY_HINTS as readonly string[]).includes(value)
+}
+
+/** A line that asks something always sounds like a question, whatever the writer tagged. */
+export function effectiveDelivery(line: { text: string; delivery?: string }): DeliveryHint {
+  if (/[?？]\s*$/.test(line.text)) return 'question'
+  return isDeliveryHint(line.delivery) && line.delivery !== 'question' ? line.delivery : 'warm'
+}
+
 export interface ScriptLine {
   id: string
   speaker: string
   text: string
+  /** Delivery hint for the voice (absent in older lessons: warm). */
+  delivery?: DeliveryHint
   /** The listener is asked to think here: the player leaves a short silence after this line. */
   pause?: boolean
   /** Why the fact check (or a speakability rule) flagged this line; absent when it passed. */
@@ -106,39 +122,80 @@ export const MAX_LESSON_TITLE_CHARS = 120
 /** A line longer than this can't be said in one breath. */
 export const MAX_WORDS_PER_LINE = 32
 
-/** Every episode is about 6 minutes. */
-export const TARGET_EPISODE_SECONDS = 360
-export const MIN_EPISODE_SECONDS = 330
-export const MAX_EPISODE_SECONDS = 390
+/** The longest an episode gets (a long source becomes a series of these). */
+export const MAX_EPISODE_SECONDS_TARGET = 360
+/** The shortest lesson, however small the source. */
+export const MIN_EPISODE_SECONDS_TARGET = 120
+/** Lesson seconds: a base for the opening and closing plus this much per source word, so the lesson
+ * length follows the source (45 words ~ 2.3 minutes, 100 words ~ 4.2, 155+ words the 6-minute maximum). */
+const BASE_LESSON_SECONDS = 50
+const SECONDS_PER_SOURCE_WORD = 2
+/** Every part of a series is a full-length episode. */
+export const TARGET_EPISODE_SECONDS = MAX_EPISODE_SECONDS_TARGET
 
-/** Measured speaking rates of the lesson TTS voices (gpt-4o-mini-tts with the per-speaker style
- * instruction): Turkish ~101 words/min (measured 101.1 and 102.6) (long agglutinative words), English ~150, Western Armenian ~107.
- * Re-measure when TTS_MODEL changes. */
-const WORDS_PER_MINUTE: Record<string, number> = { tr: 101, en: 150, hyw: 107 }
-const DEFAULT_WORDS_PER_MINUTE = 140
-
-function wordsPerMinute(language: string): number {
-  return WORDS_PER_MINUTE[language] ?? DEFAULT_WORDS_PER_MINUTE
+/** Target length of one episode in seconds. A series (more than one part) always uses full episodes. */
+export function episodeTargetSeconds(params: { sourceWords: number; episodes: number }): number {
+  if (params.episodes > 1) return MAX_EPISODE_SECONDS_TARGET
+  const raw = BASE_LESSON_SECONDS + params.sourceWords * SECONDS_PER_SOURCE_WORD
+  return Math.round(Math.max(MIN_EPISODE_SECONDS_TARGET, Math.min(MAX_EPISODE_SECONDS_TARGET, raw)) / 10) * 10
 }
 
+/** Allowed band around the target: the estimate may be this far off before the script is tightened or expanded. */
+export function episodeSecondsBand(target: number): { min: number; max: number } {
+  const slack = Math.max(15, Math.round(target * 0.09))
+  return { min: target - slack, max: target + slack }
+}
+
+/** A short lesson skips the "explain it simply" section: at that length it would only repeat the recap. */
+export const MIN_SECONDS_FOR_FEYNMAN = 300
+
+/** Measured timing of the lesson TTS voices (gpt-4o-mini-tts with the per-speaker style instruction and
+ * the per-line delivery hint): seconds per spoken word plus the silence every line carries (the voice's
+ * lead-in and tail), fitted on real recordings of 14 lines per language and on four whole lessons
+ * (Turkish: 821 words, 9 pauses and about 75 lines ran 8:46; 253-263 words in 33-38 lines ran about 3:03).
+ * Re-measure when TTS_MODEL changes. */
+const SPEECH_TIMING: Record<string, { secondsPerWord: number; lineGap: number }> = {
+  tr: { secondsPerWord: 0.52, lineGap: 0.95 },
+  en: { secondsPerWord: 0.3, lineGap: 1.1 },
+  hyw: { secondsPerWord: 0.5, lineGap: 1.15 },
+}
+const DEFAULT_TIMING = { secondsPerWord: 0.4, lineGap: 1 }
+/** A typical line is this many words long (used to turn a time target into a word budget). */
+const TYPICAL_WORDS_PER_LINE = 9
+
+function timingFor(language: string) {
+  return SPEECH_TIMING[language] ?? DEFAULT_TIMING
+}
+
+/** The concrete language of a lesson: 'auto' is decided from the source text (an unknown language
+ * would otherwise fall back to the default speaking rate and misjudge the length by 40 percent). */
+export function resolveLessonLanguage(language: string, sample: string): string {
+  if (language !== 'auto') return language
+  if (/[çğışöüÇĞİŞÖÜ]/.test(sample)) return 'tr'
+  if (/[԰-֏]/.test(sample)) return 'hyw'
+  return 'en'
+}
+
+/** Spoken words that fill `seconds` of speech (silences after pause lines already taken off). */
 export function wordsForSeconds(language: string, seconds: number): number {
-  return Math.round((seconds / 60) * wordsPerMinute(language))
+  const timing = timingFor(language)
+  return Math.round(seconds / (timing.secondsPerWord + timing.lineGap / TYPICAL_WORDS_PER_LINE))
 }
 
 /** Silence the player leaves after a "pause" line (the listener thinks before the answer). */
-export const PAUSE_SECONDS = 2.5
-/** Pause lines a typical episode has; their silence is part of the 6 minutes. */
-export const EXPECTED_PAUSES = 8
+export const PAUSE_SECONDS = 3
 
-/** Length of an episode as heard: spoken words plus the silences after pause lines. */
+/** Length of an episode as heard: spoken words, the silence every line carries and the pauses after pause lines. */
 export function episodeSeconds(sections: ScriptSection[], language: string, countWords: (text: string) => number): number {
   const lines = sections.flatMap((section) => section.lines)
   const words = lines.reduce((sum, line) => sum + countWords(line.text), 0)
-  return secondsForWords(language, words) + Math.round(lines.filter((line) => line.pause).length * PAUSE_SECONDS)
+  return secondsForWords(language, words, lines.length) + Math.round(lines.filter((line) => line.pause).length * PAUSE_SECONDS)
 }
 
-export function secondsForWords(language: string, words: number): number {
-  return Math.round((words / wordsPerMinute(language)) * 60)
+/** Seconds of speech for `words` words said in `lines` lines (default: typical lines), pauses not included. */
+export function secondsForWords(language: string, words: number, lines = Math.max(1, Math.round(words / TYPICAL_WORDS_PER_LINE))): number {
+  const timing = timingFor(language)
+  return Math.round(words * timing.secondsPerWord + lines * timing.lineGap)
 }
 
 /** Episodes needed for this many key points (about 4-5 per 6-minute episode). */
@@ -207,14 +264,6 @@ export function usageCostUsd(usage: TokenUsage): number {
   return (uncached * price.input + usage.cacheWriteTokens * price.input * 1.25 + usage.cachedTokens * price.cached + usage.outputTokens * price.output) / 1_000_000
 }
 
-/** Rough pre-generation estimate for one episode script (write + one check + small rewrite). */
-export function estimateEpisodeCostUsd(sourceChars: number): number {
-  const sourceTokens = Math.min(sourceChars, 80_000) / 3.5
-  const write = usageCostUsd({ model: LESSON_MODELS.writer, inputTokens: 4500 + sourceTokens, cachedTokens: 0, cacheWriteTokens: 0, outputTokens: 4500 })
-  const check = usageCostUsd({ model: LESSON_MODELS.checker, inputTokens: 5000 + sourceTokens, cachedTokens: 0, cacheWriteTokens: 0, outputTokens: 2500 })
-  return write + 2 * check
-}
-
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -277,10 +326,11 @@ export function formatUsd(value: number): string {
 }
 
 /** Issue codes the server attaches to a flagged line: "speak:symbols", "speak:long", "calc:<detail>" or "<problem>:<reason>". */
-export function parseLineIssue(issue: string): { kind: 'symbols' | 'long' | 'calc' | 'fact'; detail: string } {
+export function parseLineIssue(issue: string): { kind: 'symbols' | 'long' | 'calc' | 'repeat' | 'fact'; detail: string } {
   const [head, ...rest] = issue.split(':')
   const detail = rest.join(':').trim()
   if (head === 'speak') return { kind: detail === 'long' ? 'long' : 'symbols', detail: '' }
   if (head === 'calc') return { kind: 'calc', detail }
+  if (head === 'repeat') return { kind: 'repeat', detail: '' }
   return { kind: 'fact', detail }
 }

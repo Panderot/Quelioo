@@ -9,14 +9,13 @@ import { buildSongFactPlan, buildSongKeyFacts } from '../lib/songFacts'
 import { isSectionTagLine, localizeSectionTags } from '../lib/songTags'
 import { MAX_SOURCE_EXCERPT_CHARS, SONG_TONES } from '../lib/song'
 import type { SongTone } from '../lib/song'
-import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { measureAudioDuration } from '../lib/audioDuration'
 import { deleteSong, getAllSongs, orderSongsForList, saveSong, updateSongDuration } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import { remainingSongSecondsToday } from '../lib/songCostGuard'
 import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
 import SongPanel from '../components/SongPanel'
-import { ArchiveIcon, ChevronDownIcon, DownloadIcon, LockIcon, MusicNoteIcon, PauseIcon, PlayIcon, SearchIcon, TrashIcon } from '../components/icons'
+import { ArchiveIcon, ChevronDownIcon, DownloadIcon, MusicNoteIcon, PauseIcon, PlayIcon, SearchIcon, TrashIcon } from '../components/icons'
 import { useOnPageReturn } from '../hooks/usePageActive'
 import { useSearchParamState } from '../hooks/useSearchParamState'
 
@@ -62,7 +61,6 @@ export default function SongsPage() {
   // Archive entries aren't needed live — read on mount and whenever the user comes back to this
   // page, to know which quizzes still exist (for "open quiz" vs "Quiz deleted") and for the picker.
   const [archiveEntries, setArchiveEntries] = useState<ArchiveEntry[]>(getArchiveEntries)
-  const [hasAccessCode, setHasAccessCode] = useState(() => Boolean(getStoredOwnerAccessCode()))
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerSearch, setPickerSearch] = useState('')
@@ -234,11 +232,6 @@ export default function SongsPage() {
     setDeleted(null)
   }
 
-  const handleLock = () => {
-    clearStoredOwnerAccessCode()
-    setHasAccessCode(false)
-  }
-
   return (
     <>
       <section data-purpose="page-intro" className="flex flex-wrap items-start justify-between gap-3">
@@ -247,16 +240,6 @@ export default function SongsPage() {
           <p className="text-sm font-normal text-muted">{t('songsPage.subtitle')}</p>
         </div>
         <div className="flex items-center gap-3">
-          {hasAccessCode && (
-            <button
-              type="button"
-              onClick={handleLock}
-              className="flex items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-error/40 hover:text-error"
-            >
-              <LockIcon className="h-3.5 w-3.5" />
-              {t('ownerAccess.lock')}
-            </button>
-          )}
           <p className="text-xs font-medium text-muted">{t('songsPage.minutesLeftToday', { count: minutesLeftToday })}</p>
         </div>
       </section>

@@ -14,6 +14,7 @@ import FlashcardStudyPage from './pages/FlashcardStudyPage'
 import LessonPage from './pages/LessonPage'
 import LessonsPage from './pages/LessonsPage'
 import NotFoundPage from './pages/NotFoundPage'
+import OwnerPage from './pages/OwnerPage'
 import SolvePage from './pages/SolvePage'
 import SongsPage from './pages/SongsPage'
 
@@ -57,6 +58,7 @@ export default function App() {
             {KEPT_ROUTES.map(({ path }) => (
               <Route key={path} path={path} element={null} />
             ))}
+            <Route path="/owner" element={<OwnerPage />} />
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/solutions/:id" element={<ArchiveSolutionPage />} />
             <Route path="/flashcards/:deckId/study" element={<FlashcardStudyPage />} />

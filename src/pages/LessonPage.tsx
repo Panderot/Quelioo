@@ -9,9 +9,9 @@ import LessonAudio from '../components/lessons/LessonAudio'
 import ScriptEditor from '../components/lessons/ScriptEditor'
 import { CheckIcon, ChevronDownIcon, SpinnerIcon, WarningIcon } from '../components/icons'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { episodeSeconds, formatClock, formatUsd, scriptWordCount } from '../lib/lesson'
+import { episodeSeconds, formatClock, scriptWordCount } from '../lib/lesson'
 import type { ScriptSection } from '../lib/lesson'
-import { addLessonSpend, getLesson, lessonCostUsd, putLesson } from '../lib/lessonStorage'
+import { addLessonSpend, getLesson, putLesson } from '../lib/lessonStorage'
 import type { StoredEpisode, StoredLesson } from '../lib/lessonStorage'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { countWords } from '../lib/textStats'
@@ -235,7 +235,6 @@ export default function LessonPage() {
         <p className="text-sm text-muted">
           {[t(`lessons.styles.${current.options.style}`), t(`lessons.levels.${current.options.level}`), t(`lessons.tones.${current.options.tone}`), t('lessons.row.episodes', { count: total })].join(' • ')}
         </p>
-        {isOwnerView && <p data-purpose="lesson-total-cost" className="text-xs text-muted">{t('lessons.detail.totalCost', { cost: formatUsd(lessonCostUsd(current)) })}</p>}
       </section>
 
       {total > 1 && (
@@ -313,10 +312,7 @@ export default function LessonPage() {
             {total > 1 && <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('lessons.detail.partOf', { n: episode.part, total })}</p>}
             <p className="font-serif text-lg font-semibold text-navy">{script.title}</p>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-              <span>{t('lessons.detail.duration', { time: formatClock(script.estimatedSeconds), words: script.wordCount.toLocaleString() })}</span>
-              {isOwnerView && episode.costUsd !== null && (
-                <span data-purpose="lesson-part-cost">{t('lessons.detail.cost', { cost: formatUsd(episode.costUsd), share: Math.round((episode.cachedShare ?? 0) * 100) })}</span>
-              )}
+              <span data-purpose="lesson-duration">{episode.hasAudio && episode.audioSeconds ? t('lessons.detail.durationExact', { time: formatClock(episode.audioSeconds), words: script.wordCount.toLocaleString() }) : t('lessons.detail.duration', { time: formatClock(script.estimatedSeconds), words: script.wordCount.toLocaleString() })}</span>
             </div>
 
             <button

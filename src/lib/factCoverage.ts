@@ -88,11 +88,23 @@ function slotOf(type: QuizQuestionType, parts: { id: number; items?: number[] }[
   return Object.keys(items).length > 0 ? { type, factIds, items } : { type, factIds }
 }
 
-/** One question per fact; a list fact one question per item (at most MAX_LIST_ITEMS). */
-function packSingle(entries: FactEntry[], type: QuizQuestionType): QuestionSlot[] {
-  return entries.flatMap((entry) =>
-    isListFact(entry.fact) ? entryItems(entry).slice(0, MAX_LIST_ITEMS).map((item) => slotOf(type, [{ id: entry.fact.id, items: [item] }])) : [slotOf(type, [{ id: entry.fact.id }])],
-  )
+/** How a list fact is asked: `split` one question per item (a fixed count with room), `whole` one question
+ * that needs ALL items (Auto: a short-answer question, the single-answer types cannot ask a list). */
+export type ListMode = 'split' | 'whole'
+
+/** One question per fact; a list fact one question per item (at most MAX_LIST_ITEMS), or in `whole` mode
+ * one short-answer question per MAX_ALL_ITEMS items that needs every one of them. */
+function packSingle(entries: FactEntry[], type: QuizQuestionType, listMode: ListMode): QuestionSlot[] {
+  return entries.flatMap((entry) => {
+    if (!isListFact(entry.fact)) return [slotOf(type, [{ id: entry.fact.id }])]
+    const items = entryItems(entry)
+    if (listMode === 'whole') {
+      const chunks = Math.ceil(items.length / MAX_ALL_ITEMS)
+      const size = Math.ceil(items.length / chunks)
+      return Array.from({ length: chunks }, (_, index) => slotOf('short-answer', [{ id: entry.fact.id, items: items.slice(index * size, (index + 1) * size) }]))
+    }
+    return items.slice(0, MAX_LIST_ITEMS).map((item) => slotOf(type, [{ id: entry.fact.id, items: [item] }]))
+  })
 }
 
 /** A list fact is one question that needs all its items; two neighbouring facts of the same topic share one. */
@@ -196,10 +208,10 @@ function packMixed(entries: FactEntry[]): QuestionSlot[] {
 }
 
 /** Question slots that cover `entries` (in the given order) with the question type. */
-export function packEntries(entries: FactEntry[], questionType: QuestionType): QuestionSlot[] {
+export function packEntries(entries: FactEntry[], questionType: QuestionType, listMode: ListMode = 'split'): QuestionSlot[] {
   if (entries.length === 0) return []
   if (questionType === 'mixed') return packMixed(entries)
-  if (SINGLE_TYPES.has(questionType)) return packSingle(entries, questionType)
+  if (SINGLE_TYPES.has(questionType)) return packSingle(entries, questionType, listMode)
   if (questionType === 'short-answer') return packShort(entries)
   if (questionType === 'open-ended') return packOpen(entries)
   return packMatching(entries)
@@ -271,7 +283,9 @@ export interface SlotPlan {
 export function planSlots(facts: PlannedFact[], questionType: QuestionType, target: number | 'auto', focusShare = 0.7): SlotPlan {
   const limit = target === 'auto' ? MAX_QUESTION_COUNT : Math.max(1, Math.min(target, MAX_QUESTION_COUNT))
   const byPosition = (list: PlannedFact[]) => [...list].sort((a, b) => a.position - b.position || a.id - b.id)
-  const pack = (list: PlannedFact[]) => packEntries(byPosition(list).map((fact) => ({ fact })), questionType)
+  // Auto asks a list with one question that needs all its items; a fixed count may spread the items.
+  const listMode: ListMode = target === 'auto' ? 'whole' : 'split'
+  const pack = (list: PlannedFact[]) => packEntries(byPosition(list).map((fact) => ({ fact })), questionType, listMode)
   let chosen: PlannedFact[] = []
   if (pack(facts).length <= limit) {
     chosen = facts
@@ -359,18 +373,18 @@ export function missingEntries(coverage: QuizCoverage, questions: QuizQuestion[]
 }
 
 /** How many questions of the type the missing facts need. */
-export function slotsNeededFor(entries: FactEntry[], questionType: QuestionType): number {
-  return packEntries(entries, questionType).length
+export function slotsNeededFor(entries: FactEntry[], questionType: QuestionType, listMode: ListMode = 'split'): number {
+  return packEntries(entries, questionType, listMode).length
 }
 
 /** Pre-generation guess of an Auto quiz's size from the word count (before the plan exists). */
 export function estimateAutoQuestionCount(wordCount: number, questionType: QuestionType): number {
   const facts = Math.max(3, Math.round(wordCount / WORDS_PER_FACT))
-  // Questions per fact measured on real plans (list facts take one question per item).
+  // Questions per fact (a list is one question that needs all its items).
   const perFact: Record<QuestionType, number> = {
-    mcq: 1.5,
-    'true-false': 1.5,
-    'fill-blanks': 1.5,
+    mcq: 1,
+    'true-false': 1,
+    'fill-blanks': 1,
     'short-answer': 1,
     'open-ended': 0.8,
     matching: 0.45,

@@ -162,7 +162,7 @@ async function mockLessonApi(
 
 /** Exact lengths: MP3 frames are 24 ms, so a "2 s" clip is 83 frames and a 2.5 s pause 104 frames. */
 const LINE_EXACT = mp3DurationSeconds(tinyMp3(LINE_SECONDS))
-const PAUSE_EXACT = (104 * 576) / 24000
+const PAUSE_EXACT = (125 * 576) / 24000
 const TOTAL_SECONDS = LINES.length * LINE_EXACT + 2 * PAUSE_EXACT // two pause lines
 
 test.describe('Audio Lesson — voices and recording', () => {
@@ -176,7 +176,7 @@ test.describe('Audio Lesson — voices and recording', () => {
     const voices = page.locator('[data-purpose="lesson-voices"]')
     await expect(voices.getByRole('button', { name: 'Host A' })).toContainText('Marin')
     await expect(voices.getByRole('button', { name: 'Host B' })).toContainText('Cedar')
-    await expect(page.locator('[data-purpose="audio-estimate"]')).toContainText(`Recording ${LINES.length} lines costs about $0.0`)
+    await expect(page.locator('[data-purpose="audio-estimate"]')).toContainText(`${LINES.length} lines will be recorded.`)
 
     await voices.getByRole('button', { name: 'Listen to Cedar' }).click()
     const previewSrc = await voices.locator('audio').evaluate((audio: HTMLAudioElement) => audio.src)
@@ -195,8 +195,14 @@ test.describe('Audio Lesson — voices and recording', () => {
     expect(requests.flatMap((request) => request.lines.map((line) => line.id)).sort()).toEqual(LINES.map((line) => line.id).sort())
     expect(requests[0].voices).toEqual({ hostA: 'marin', hostB: 'shimmer' })
     await expect(page.locator('[data-purpose="player-time"]')).toHaveText(`0:00 / 0:${String(Math.round(TOTAL_SECONDS)).padStart(2, '0')}`)
+    // Once the audio exists every duration shown is the file's real length (the same as the player's), never an estimate.
+    const real = `0:${String(Math.round(TOTAL_SECONDS)).padStart(2, '0')}`
+    await expect(page.locator('[data-purpose="lesson-duration"]')).toContainText(`${real} ·`)
+    await expect(page.locator('[data-purpose="lesson-duration"]')).not.toContainText('About')
     await page.getByRole('link', { name: 'Back to lessons' }).click()
     await expect(page.locator('[data-purpose="lesson-row"]')).toContainText('Audio ready')
+    await expect(page.locator('[data-purpose="lesson-row"]')).toContainText(real)
+    await expect(page.locator('[data-purpose="lesson-row"]')).not.toContainText('about')
   })
 
   test('progress, cancel, resume after reload without recording a line twice', async ({ page }) => {

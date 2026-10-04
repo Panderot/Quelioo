@@ -1,5 +1,6 @@
 import { isRecord } from '../lib/lesson'
 import type {
+  DeliveryHint,
   EpisodePlan,
   KeyPoint,
   LessonCheckResponse,
@@ -154,7 +155,7 @@ function base64ToBytes(value: string): Uint8Array {
 
 /** Records one small batch of lines (one MP3 segment per line). */
 export async function speakLessonLines(
-  payload: { lessonKey: string; style: LessonOptions['style']; language: string; voices: Record<string, string>; lines: { id: string; speaker: string; text: string }[] },
+  payload: { lessonKey: string; style: LessonOptions['style']; language: string; voices: Record<string, string>; lines: { id: string; speaker: string; text: string; delivery?: DeliveryHint }[] },
   signal?: AbortSignal,
 ): Promise<SpeakResult> {
   const json = await postLesson({ action: 'speak', ...payload }, signal)

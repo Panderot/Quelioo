@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto'
 
 import { cleanString, isRecord } from './llm-json.js'
-import { LESSON_SPEAKERS, isLessonStyle } from '../../src/lib/lesson.js'
-import type { LessonErrorCode } from '../../src/lib/lesson.js'
+import { encodeMp3 } from './mp3-encode.js'
+import { LESSON_SPEAKERS, effectiveDelivery, isDeliveryHint, isLessonStyle } from '../../src/lib/lesson.js'
+import type { DeliveryHint, LessonErrorCode } from '../../src/lib/lesson.js'
+import { floatToPcm16, normalizeLoudness, pcm16ToFloat, truePeakDb } from '../../src/lib/loudness.js'
+import { MIN_QUESTION_RISE_SEMITONES, endRiseSemitones } from '../../src/lib/pitch.js'
 import {
   DAILY_AUDIO_SECONDS_CAP,
   DAILY_LESSON_CAP,
@@ -11,7 +14,7 @@ import {
   TTS_MODEL,
   estimateSpeechCostUsd,
   estimateSpeechSeconds,
-  speakerInstruction,
+  lineInstruction,
   spokenText,
   voiceFor,
 } from '../../src/lib/lessonAudio.js'
@@ -110,9 +113,15 @@ export function recordSpend(usd: number) {
 // ---------------------------------------------------------------------------
 
 interface TtsResult {
-  audio: Uint8Array
+  /** Raw 16-bit PCM of the line (24 kHz mono), before loudness normalization. */
+  pcm: Uint8Array
   costUsd: number
 }
+
+/** gpt-4o-mini-tts raw output: 24 kHz, 16-bit, mono. */
+const PCM_SAMPLE_RATE = 24_000
+/** Added to the instruction when a question came back flat and is spoken once more. */
+const FLAT_QUESTION_NOTE = ' The previous attempt sounded flat: exaggerate the rising pitch on the last word of this question.'
 
 async function callTts(params: { text: string; voice: string; instructions: string }): Promise<TtsResult | null> {
   const apiKey = process.env.OPENAI_API_KEY
@@ -127,7 +136,8 @@ async function callTts(params: { text: string; voice: string; instructions: stri
         model: TTS_MODEL,
         voice: params.voice,
         input: params.text,
-        response_format: 'mp3',
+        // Raw PCM so the line can be measured and brought to the target loudness before it is encoded.
+        response_format: 'pcm',
         instructions: params.instructions,
         // The token-billed model reports usage only in the SSE stream.
         stream_format: 'sse',
@@ -150,8 +160,8 @@ async function callTts(params: { text: string; voice: string; instructions: stri
         inputTokens = event.usage.input_tokens ?? 0
       }
     }
-    const audio = Uint8Array.from(Buffer.concat(chunks))
-    return audio.length > 0 ? { audio, costUsd: (outputTokens * 12 + inputTokens * 0.6) / 1_000_000 } : null
+    const pcm = Uint8Array.from(Buffer.concat(chunks))
+    return pcm.length >= 2 ? { pcm, costUsd: (outputTokens * 12 + inputTokens * 0.6) / 1_000_000 } : null
   } catch (error) {
     console.log(`lesson: tts error=${error instanceof Error ? error.name : 'unknown'}`)
     return null
@@ -164,6 +174,7 @@ interface SpeakLine {
   id: string
   speaker: string
   text: string
+  delivery?: DeliveryHint
 }
 
 export function parseSpeakRequest(payload: Record<string, unknown>):
@@ -179,7 +190,7 @@ export function parseSpeakRequest(payload: Record<string, unknown>):
     if (typeof entry.text !== 'string' || entry.text.length > MAX_SPEAK_LINE_CHARS) return 'too_long'
     const text = cleanString(entry.text, MAX_SPEAK_LINE_CHARS)
     if (!text) return 'bad_type'
-    parsed.push({ id: entry.id.slice(0, 40), speaker: entry.speaker, text })
+    parsed.push({ id: entry.id.slice(0, 40), speaker: entry.speaker, text, ...(isDeliveryHint(entry.delivery) ? { delivery: entry.delivery } : {}) })
   }
   const voiceMap: Record<string, string> = {}
   for (const speaker of speakers) voiceMap[speaker] = voiceFor(speaker, isRecord(voices) ? (voices as Record<string, string>) : undefined)
@@ -209,16 +220,35 @@ export async function speakBatch(
     while (next < prepared.length) {
       const line = prepared[next++]
       const voice = request.voices[line.speaker]
-      const instructions = speakerInstruction(line.speaker, request.language)
+      const instructions = lineInstruction(line, request.language)
       const result = (await callTts({ text: line.spoken, voice, instructions })) ?? (await callTts({ text: line.spoken, voice, instructions }))
       if (!result) {
         failed.push(line.id)
         continue
       }
-      const durationSeconds = mp3DurationSeconds(result.audio)
-      costUsd += result.costUsd
+      let samples = pcm16ToFloat(result.pcm)
+      let lineCost = result.costUsd
+      // A question must sound like one: when the pitch does not rise at the end, it is spoken once more and the better take is kept.
+      if (effectiveDelivery(line) === 'question') {
+        const rise = endRiseSemitones(samples, PCM_SAMPLE_RATE)
+        if (rise !== null && rise < MIN_QUESTION_RISE_SEMITONES) {
+          const again = await callTts({ text: line.spoken, voice, instructions: `${instructions}${FLAT_QUESTION_NOTE}` })
+          if (again) {
+            lineCost += again.costUsd
+            const retakeSamples = pcm16ToFloat(again.pcm)
+            const retakeRise = endRiseSemitones(retakeSamples, PCM_SAMPLE_RATE)
+            if (retakeRise !== null && retakeRise > rise) samples = retakeSamples
+            console.log(`lesson: speak question riseFirst=${rise.toFixed(1)} riseRetake=${retakeRise === null ? 'n/a' : retakeRise.toFixed(1)}`)
+          }
+        }
+      }
+      const normalized = normalizeLoudness(samples, PCM_SAMPLE_RATE)
+      const audio = encodeMp3(floatToPcm16(normalized.samples), PCM_SAMPLE_RATE)
+      const durationSeconds = mp3DurationSeconds(audio)
+      costUsd += lineCost
       seconds += durationSeconds
-      segments.push({ id: line.id, audio: Buffer.from(result.audio).toString('base64'), durationSeconds: Math.round(durationSeconds * 1000) / 1000 })
+      console.log(`lesson: speak line lufsBefore=${normalized.beforeLufs.toFixed(1)} gainDb=${normalized.gainDb.toFixed(1)} peakDb=${truePeakDb(normalized.samples).toFixed(1)}`)
+      segments.push({ id: line.id, audio: Buffer.from(audio).toString('base64'), durationSeconds: Math.round(durationSeconds * 1000) / 1000 })
     }
   }
   await Promise.all(Array.from({ length: Math.min(TTS_PARALLEL, prepared.length) }, worker))

@@ -9,7 +9,7 @@ import type { LessonClientErrorCode } from '../../api/lesson'
 import { getArchiveEntries } from '../../lib/archive'
 import { extractTextFromFile, FileExtractionError } from '../../lib/fileExtraction'
 import type { FileErrorCode } from '../../lib/fileExtraction'
-import { LESSON_LEVELS, LESSON_STYLES, LESSON_TONES, estimateEpisodeCostUsd, formatUsd } from '../../lib/lesson'
+import { LESSON_LEVELS, LESSON_STYLES, LESSON_TONES, episodeTargetSeconds } from '../../lib/lesson'
 import type { EpisodePlan, KeyPoint, LessonLevel, LessonOptions, LessonStyle, LessonTone } from '../../lib/lesson'
 import { addLessonSpend, createLessonId, getCachedPlan, lessonSourceHash, planCacheKey, putCachedPlan, putLesson } from '../../lib/lessonStorage'
 import type { LessonSourceKind, StoredLesson } from '../../lib/lessonStorage'
@@ -272,7 +272,6 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
 
   const resolvedForPlan = plan ? source() : null
   const existing = resolvedForPlan ? lessons.find((lesson) => lesson.sourceHash === lessonSourceHash(resolvedForPlan.text, options)) : undefined
-  const partCost = resolvedForPlan ? estimateEpisodeCostUsd(resolvedForPlan.text.length) : 0
   const busy = step === 'planning' || step === 'writing'
 
   const filteredQuizzes = archiveEntries.filter((entry) => !pickerSearch.trim() || entry.title.toLowerCase().includes(pickerSearch.trim().toLowerCase()))
@@ -536,7 +535,7 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
           <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('lessons.plan.heading')}</p>
           <div className="space-y-1">
             <p className="font-serif text-lg font-semibold text-navy">
-              {plan.episodes.length > 1 ? t('lessons.plan.series', { count: plan.episodes.length }) : t('lessons.plan.single')}
+              {plan.episodes.length > 1 ? t('lessons.plan.series', { count: plan.episodes.length }) : t('lessons.plan.single', { minutes: Math.max(2, Math.round(episodeTargetSeconds({ sourceWords: countWords(resolvedForPlan?.text ?? ''), episodes: 1 }) / 60)) })}
             </p>
             <button
               type="button"
@@ -562,13 +561,7 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
               ))}
             </ol>
           )}
-          <p data-purpose="lesson-cost-estimate" className="text-xs text-muted">
-            {plan.episodes.length > 1
-              ? t('lessons.plan.costSeries', { part: formatUsd(partCost), total: formatUsd(partCost * plan.episodes.length) })
-              : t('lessons.plan.costSingle', { part: formatUsd(partCost) })}
-          </p>
           {plan.episodes.length > 1 && <p className="text-xs text-muted">{t('lessons.plan.onDemand')}</p>}
-          {plan.reused && <p className="text-xs text-muted">{t('lessons.plan.reusedKeyPoints')}</p>}
 
           {existing && step === 'plan' && (
             <div data-purpose="lesson-existing" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber/40 bg-amber/10 px-4 py-3 text-xs">

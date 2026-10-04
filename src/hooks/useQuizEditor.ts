@@ -224,7 +224,7 @@ export function useQuizEditor({
       focusSnippets,
     }
     try {
-      if (current.questions.length + slotsNeededFor(missing, questionType as QuestionType) <= MAX_QUESTION_COUNT) {
+      if (current.questions.length + slotsNeededFor(missing, questionType as QuestionType, 'whole') <= MAX_QUESTION_COUNT) {
         const result = await coverMissingFacts({
           ...common,
           otherQuestions: current.questions.map(otherQuestionOf),
