@@ -646,8 +646,8 @@
     "noMatches": "Որոնումիդ համապատասխանող տրցակ չկայ։",
     "backToDecks": "Վերադառնալ տրցակներուն",
     "nav": {
-      "dueToday_one": "Այսօր {{count}} քարտ կը սպասէ",
-      "dueToday_other": "Այսօր {{count}} քարտ կը սպասէ"
+      "dueToday_one": "Այսօր {{count}} քարտ կրկնութեան կը սպասէ",
+      "dueToday_other": "Այսօր {{count}} քարտ կրկնութեան կը սպասէ"
     },
     "common": {
       "cancel": "Չեղարկել",
@@ -669,14 +669,17 @@
       "irregularVerbs": "Անգլերէնի անկանոն բայեր",
       "turkeyGeography": "Թուրքիոյ աշխարհագրութիւնը",
       "reforms": "Թրքական պատմութիւն՝ բարեփոխումներ",
-      "yds": "YDS՝ յաճախակի բառեր"
+      "yds": "YDS՝ յաճախակի բառեր",
+      "added_one": "{{count}} օրինակ տրցակ աւելցաւ",
+      "added_other": "{{count}} օրինակ տրցակ աւելցաւ",
+      "allAdded": "Բոլոր օրինակ տրցակները արդէն ցանկիդ մէջ են։"
     },
     "list": {
       "cards_one": "{{count}} քարտ",
       "cards_other": "{{count}} քարտ",
       "learned": "{{count}} սորված",
-      "dueToday_one": "այսօր {{count}} քարտ կը սպասէ կրկնութեան",
-      "dueToday_other": "այսօր {{count}} քարտ կը սպասէ կրկնութեան",
+      "dueToday_one": "Այսօր {{count}} քարտ կրկնութեան կը սպասէ",
+      "dueToday_other": "Այսօր {{count}} քարտ կրկնութեան կը սպասէ",
       "study": "Սորվիլ · {{count}}",
       "studyLabel": "Սորվիլ «{{name}}», {{count}} կը սպասէ",
       "edit": "Խմբագրել",

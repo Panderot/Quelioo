@@ -23,7 +23,7 @@ test.describe('Flashcards — sample decks', () => {
     for (const name of ['Fotosentez', 'Hücre organelleri', 'Üslü sayılar', 'İngilizce düzensiz fiiller', 'Türkiye coğrafyası', 'Türk tarihi: inkılaplar', 'YDS sık kelimeler']) {
       await expect(rows(page).filter({ hasText: name })).toHaveCount(1)
     }
-    await expect(rows(page).filter({ hasText: 'Türk tarihi: inkılaplar' })).toContainText('10 kart · 0 öğrenildi · bugün 10 kart tekrar bekliyor')
+    await expect(rows(page).filter({ hasText: 'Türk tarihi: inkılaplar' })).toContainText('10 kart · 0 öğrenildi · Bugün 10 kart tekrar bekliyor')
     // Nothing left to add: the button is gone, so no click can duplicate a deck.
     await expect(page.getByRole('button', { name: 'Örnek desteler ekle' })).toHaveCount(0)
 
@@ -62,6 +62,7 @@ test.describe('Flashcards — sample decks', () => {
     await expect(rows(page)).toHaveCount(3)
     await page.getByRole('button', { name: 'Örnek desteler ekle' }).click()
     await expect(rows(page)).toHaveCount(8)
+    await expect(page.locator('[data-purpose="samples-notice"]')).toHaveText('5 örnek deste eklendi')
     // The old Turkish history deck was not replaced: still one deck of that name, with its one card.
     await expect(rows(page).filter({ hasText: 'Türk tarihi: inkılaplar' })).toHaveCount(1)
     await expect(rows(page).filter({ hasText: 'Türk tarihi: inkılaplar' })).toContainText('1 kart')
@@ -113,7 +114,7 @@ test.describe('Flashcards — wording and card stages', () => {
     await seed(page, [{ id: 'deck-t', name: 'Aşamalar', cards: [{ id: 't1', front: 'a?', back: 'b' }, { id: 't2', front: 'c?', back: 'd', box: 2, reviews: 1, due: NOW.getTime() + 86_400_000 }] }], '/flashcards/deck-t')
     await expect(page.locator('[data-purpose="card-row"] span[title]')).toHaveText(['Yeni', 'Öğrenildi'])
     await page.goto('/flashcards')
-    await expect(rows(page)).toContainText('2 kart · 1 öğrenildi · bugün 1 kart tekrar bekliyor')
+    await expect(rows(page)).toContainText('2 kart · 1 öğrenildi · Bugün 1 kart tekrar bekliyor')
   })
 })
 

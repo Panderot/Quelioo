@@ -54,7 +54,7 @@ test.describe('Flashcards — decks', () => {
     await seed(page, [THREE_NEW])
     const badge = page.locator('[data-purpose="flashcards-due-badge"]')
     await expect(badge.locator('[aria-hidden]')).toHaveText('3')
-    await expect(sidebar.getByRole('link', { name: /Flashcards.*3 cards due today/ })).toBeVisible()
+    await expect(sidebar.getByRole('link', { name: /Flashcards.*3 cards to review today/ })).toBeVisible()
 
     // Grading a card updates the badge live.
     await page.getByRole('link', { name: 'Study Capitals, 3 due' }).click()
@@ -71,7 +71,7 @@ test.describe('Flashcards — decks', () => {
     const rows = page.locator('[data-purpose="deck-row"]')
     await expect(rows).toHaveCount(7)
     await expect(page.getByRole('button', { name: 'Örnek desteler ekle' })).toHaveCount(0)
-    await expect(rows.filter({ hasText: 'Türk tarihi: inkılaplar' })).toContainText('10 kart · 0 öğrenildi · bugün 10 kart tekrar bekliyor')
+    await expect(rows.filter({ hasText: 'Türk tarihi: inkılaplar' })).toContainText('10 kart · 0 öğrenildi · Bugün 10 kart tekrar bekliyor')
 
     await page.getByRole('searchbox', { name: 'Destelerde ara' }).fill('coğrafya')
     await expect(rows).toHaveCount(1)
@@ -243,7 +243,7 @@ test.describe('Flashcards — study', () => {
     await expect(summary.locator('[data-purpose="next-due"]')).toHaveText('Next review: tomorrow')
     await expect(summary.getByRole('button', { name: 'Study again' })).toHaveCount(0)
     await summary.getByRole('link', { name: 'Back to decks' }).click()
-    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('3 cards · 3 learned · 0 cards to review today')
+    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('3 cards · 3 learned')
   })
 
   test('@cross keyboard: Space flips, arrows and 1/2 grade only after flipping, Esc exits', async ({ page }) => {

@@ -646,8 +646,8 @@
     "noMatches": "No decks match your search.",
     "backToDecks": "Back to decks",
     "nav": {
-      "dueToday_one": "{{count}} card due today",
-      "dueToday_other": "{{count}} cards due today"
+      "dueToday_one": "{{count}} card to review today",
+      "dueToday_other": "{{count}} cards to review today"
     },
     "common": {
       "cancel": "Cancel",
@@ -669,7 +669,10 @@
       "irregularVerbs": "English irregular verbs",
       "turkeyGeography": "Geography of Turkey",
       "reforms": "Turkish history: reforms",
-      "yds": "YDS common words"
+      "yds": "YDS common words",
+      "added_one": "{{count}} sample deck added",
+      "added_other": "{{count}} sample decks added",
+      "allAdded": "All sample decks are already in your list."
     },
     "list": {
       "cards_one": "{{count}} card",

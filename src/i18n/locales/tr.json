@@ -646,8 +646,8 @@
     "noMatches": "Aramanla eşleşen deste yok.",
     "backToDecks": "Destelere dön",
     "nav": {
-      "dueToday_one": "Bugün {{count}} kart sırada",
-      "dueToday_other": "Bugün {{count}} kart sırada"
+      "dueToday_one": "Bugün {{count}} kart tekrar bekliyor",
+      "dueToday_other": "Bugün {{count}} kart tekrar bekliyor"
     },
     "common": {
       "cancel": "Vazgeç",
@@ -669,16 +669,19 @@
       "irregularVerbs": "İngilizce düzensiz fiiller",
       "turkeyGeography": "Türkiye coğrafyası",
       "reforms": "Türk tarihi: inkılaplar",
-      "yds": "YDS sık kelimeler"
+      "yds": "YDS sık kelimeler",
+      "added_one": "{{count}} örnek deste eklendi",
+      "added_other": "{{count}} örnek deste eklendi",
+      "allAdded": "Tüm örnek desteler zaten listende."
     },
     "list": {
       "cards_one": "{{count}} kart",
       "cards_other": "{{count}} kart",
       "learned": "{{count}} öğrenildi",
-      "dueToday_one": "bugün {{count}} kart tekrar bekliyor",
-      "dueToday_other": "bugün {{count}} kart tekrar bekliyor",
+      "dueToday_one": "Bugün {{count}} kart tekrar bekliyor",
+      "dueToday_other": "Bugün {{count}} kart tekrar bekliyor",
       "study": "Çalış · {{count}}",
-      "studyLabel": "{{name}} destesini çalış, {{count}} sırada",
+      "studyLabel": "{{name}} destesini çalış, {{count}} kart tekrar bekliyor",
       "edit": "Düzenle",
       "editLabel": "{{name}} destesini düzenle",
       "ringLabel": "{{total}} kartın {{mastered}} tanesi kalıcı"
@@ -785,7 +788,7 @@
       "inDays_one": "{{count}} gün sonra",
       "inDays_other": "{{count}} gün sonra",
       "none": "planlanmış kart yok",
-      "dueNow": "Şu an sırada kart var."
+      "dueNow": "Şu an tekrar bekleyen kart var."
     },
     "generate": {
       "title": "Yapay zekâ ile kart üret",

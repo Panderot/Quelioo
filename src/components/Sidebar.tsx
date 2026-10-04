@@ -53,7 +53,7 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
         <span className="truncate md:hidden lg:inline">{t(item.labelKey)}</span>
       </span>
       {item.key === 'flashcards' && dueToday > 0 && (
-        <span data-purpose="flashcards-due-badge" className="text-xs font-semibold text-paper/60 md:hidden lg:inline">
+        <span data-purpose="flashcards-due-badge" title={t('flashcards.nav.dueToday', { count: dueToday })} className="text-xs font-semibold text-paper/60 md:hidden lg:inline">
           <span aria-hidden>{dueToday}</span>
           <span className="sr-only">{t('flashcards.nav.dueToday', { count: dueToday })}</span>
         </span>

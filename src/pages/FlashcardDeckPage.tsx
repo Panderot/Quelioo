@@ -250,7 +250,7 @@ export default function FlashcardDeckPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1">
             <h1 className="font-serif text-2xl leading-snug font-semibold tracking-tight break-words text-navy lg:text-3xl">{deck.name || t('flashcards.untitledDeck')}</h1>
-            <p className="text-sm text-muted">{[t('flashcards.list.cards', { count: cards.length }), t('flashcards.list.dueToday', { count: dueCount })].join(' · ')}</p>
+            <p className="text-sm text-muted">{[t('flashcards.list.cards', { count: cards.length }), ...(dueCount > 0 ? [t('flashcards.list.dueToday', { count: dueCount })] : [])].join(' · ')}</p>
           </div>
           <Link
             to={`/flashcards/${deck.id}/study`}

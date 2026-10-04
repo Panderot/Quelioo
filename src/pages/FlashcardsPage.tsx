@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -45,12 +45,15 @@ export default function FlashcardsPage() {
 
   // Only samples that are not in the list yet: a second click never duplicates, a deleted one comes back.
   const missingSamples = missingSampleKeys(state.decks)
+  const [sampleNotice, setSampleNotice] = useState<string | null>(null)
 
   const handleAddSamples = () => {
-    for (const key of missingSampleKeys(state.decks)) {
+    const keys = missingSampleKeys(state.decks)
+    for (const key of keys) {
       const deck = createDeck({ name: t(`flashcards.samples.${key}`), source: 'manual', sourceRef: `${SAMPLE_REF_PREFIX}${key}`, language: i18n.language })
       addCards(deck.id, sampleDeckCards(key, i18n.language))
     }
+    setSampleNotice(keys.length > 0 ? t('flashcards.samples.added', { count: keys.length }) : t('flashcards.samples.allAdded'))
   }
 
   return (
@@ -60,6 +63,7 @@ export default function FlashcardsPage() {
           <h1 className="font-serif text-2xl leading-snug font-semibold tracking-tight text-navy lg:text-3xl">{t('flashcards.title')}</h1>
           <p className="text-sm font-normal text-muted">{t('flashcards.subtitle')}</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={handleNewDeck}
@@ -69,7 +73,23 @@ export default function FlashcardsPage() {
           <PlusIcon className="h-4 w-4" />
           {t('flashcards.newDeck')}
         </button>
+        {state.loaded && state.decks.length > 0 && missingSamples.length > 0 && (
+          <button
+            type="button"
+            data-purpose="add-samples"
+            onClick={handleAddSamples}
+            className="flex h-11 items-center rounded-xl border border-warm-border px-4 text-sm font-semibold text-ink hover:border-focus-neutral"
+          >
+            {t('flashcards.samples.add')}
+          </button>
+        )}
+        </div>
       </section>
+      {sampleNotice && (
+        <p role="status" data-purpose="samples-notice" className="text-xs font-semibold text-muted">
+          {sampleNotice}
+        </p>
+      )}
 
       <StorageNote state={state} />
 
@@ -119,7 +139,7 @@ export default function FlashcardsPage() {
                         {name}
                       </Link>
                       <p className="text-xs text-muted">
-                        {[t('flashcards.list.cards', { count: total }), t('flashcards.list.learned', { count: learned }), t('flashcards.list.dueToday', { count: due })].join(' · ')}
+                        {[t('flashcards.list.cards', { count: total }), t('flashcards.list.learned', { count: learned }), ...(due > 0 ? [t('flashcards.list.dueToday', { count: due })] : [])].join(' · ')}
                       </p>
                     </div>
                     <div className="flex w-full gap-2 sm:w-auto">
@@ -148,11 +168,6 @@ export default function FlashcardsPage() {
         </>
       )}
 
-      {state.loaded && state.decks.length > 0 && missingSamples.length > 0 && (
-        <button type="button" data-purpose="add-samples" onClick={handleAddSamples} className="self-start text-xs font-semibold text-amber-text hover:underline">
-          {t('flashcards.samples.add')}
-        </button>
-      )}
 
       {state.deletedDeck && (
         <UndoToast
