@@ -55,6 +55,14 @@ export function resetProgress(now: number): SrsProgress {
   return { box: 1, due: now, lapses: 0, reviews: 0, lastReviewedAt: null, introducedAt: null }
 }
 
+export type CardStage = 'new' | 'learning' | 'learned'
+
+/** Student-facing stage of a card (never graded → new; missed or just seen → learning; known at least once → learned). */
+export function cardStage(card: Pick<SrsCard, 'box' | 'reviews'>): CardStage {
+  if (card.reviews === 0) return 'new'
+  return card.box >= 2 ? 'learned' : 'learning'
+}
+
 /** A card with an empty side can't be studied. */
 export function isStudyable(card: Pick<SrsCard, 'front' | 'back'>): boolean {
   return card.front.trim() !== '' && card.back.trim() !== ''

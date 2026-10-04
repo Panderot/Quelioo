@@ -12,6 +12,10 @@ export interface DraftCard {
 export interface CardLabels {
   trueLabel: string
   falseLabel: string
+  /** Starts a true/false card's front so it reads as a question ("True or false:"). */
+  trueFalsePrefix: string
+  /** Starts a matching card's front, followed by the term ("What matches:"). */
+  matchPrefix: string
 }
 
 const clip = (text: string, max: number) => {
@@ -33,7 +37,7 @@ function questionToCards(question: QuizQuestion, labels: CardLabels): DraftCard[
       break
     case 'true-false': {
       const verdict = question.answerBool ? labels.trueLabel : labels.falseLabel
-      cards = [card(question.question, question.explanation.trim() ? `${verdict} — ${question.explanation.trim()}` : verdict)]
+      cards = [card(`${labels.trueFalsePrefix} ${question.question}`, question.explanation.trim() ? `${verdict} — ${question.explanation.trim()}` : verdict)]
       break
     }
     case 'fill-blanks':
@@ -41,7 +45,7 @@ function questionToCards(question: QuizQuestion, labels: CardLabels): DraftCard[
       cards = [card(question.question, question.answer)]
       break
     case 'matching':
-      cards = question.pairs.map((pair) => card(pair.left, pair.right))
+      cards = question.pairs.map((pair) => card(`${labels.matchPrefix} ${pair.left}`, pair.right))
       break
     case 'open-ended':
       cards = [card(question.question, getKeyPoints(question).map((point) => `• ${point}`).join('\n'))]

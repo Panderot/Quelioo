@@ -1,0 +1,11 @@
+front,back
+Aynı tabanlı üslü sayılar çarpılırken üsler ne yapılır?,Toplanır: aᵐ · aⁿ = aᵐ⁺ⁿ
+Aynı tabanlı üslü sayılar bölünürken üsler ne yapılır?,Çıkarılır: aᵐ / aⁿ = aᵐ⁻ⁿ
+Üssün üssü nasıl hesaplanır?,Üsler çarpılır: (aᵐ)ⁿ = aᵐ·ⁿ
+Sıfırdan farklı bir sayının sıfırıncı kuvveti kaçtır?,1 (a⁰ = 1)
+Negatif üs ne anlama gelir?,Sayının tersi alınır: a⁻ⁿ = 1 / aⁿ
+(−2)³ kaçtır?,−8 (negatif sayının tek kuvveti negatiftir)
+(−2)⁴ kaçtır?,16 (negatif sayının çift kuvveti pozitiftir)
+−2⁴ kaçtır?,−16 (üs yalnızca 2'ye uygulanır)
+4³ kaçtır?,64 (4 · 4 · 4). 4 · 3 değildir.
+2⁵ · 4³ / 8³ kaçtır?,4 (hepsi 2 tabanına çevrilir: 2⁵ · 2⁶ / 2⁹ = 2²)

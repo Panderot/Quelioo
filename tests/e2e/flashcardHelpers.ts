@@ -14,6 +14,7 @@ export interface SeedDeck {
   id: string
   name: string
   newPerDay?: number
+  sourceRef?: string
   cards: SeedCard[]
 }
 
@@ -34,7 +35,7 @@ export async function seed(page: Page, decks: SeedDeck[], path?: string) {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(['decks', 'cards'], 'readwrite')
       input.forEach((deck, deckIndex) => {
-        tx.objectStore('decks').put({ id: deck.id, name: deck.name, description: '', source: 'manual', sourceRef: null, language: 'en', newPerDay: deck.newPerDay ?? 20, createdAt: now - deckIndex, updatedAt: now - deckIndex })
+        tx.objectStore('decks').put({ id: deck.id, name: deck.name, description: '', source: 'manual', sourceRef: deck.sourceRef ?? null, language: 'en', newPerDay: deck.newPerDay ?? 20, createdAt: now - deckIndex, updatedAt: now - deckIndex })
         deck.cards.forEach((card, index) =>
           tx.objectStore('cards').put({
             id: card.id,

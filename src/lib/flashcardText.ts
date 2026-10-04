@@ -85,14 +85,23 @@ function detectDelimiter(text: string): ',' | ';' {
   return semicolons > commas ? ';' : ','
 }
 
-/** RFC 4180 parser: quoted fields, doubled quotes, delimiters and newlines inside quotes, CRLF. */
-export function parseCsvRows(input: string): string[][] {
+/** RFC 4180 parser: quoted fields, doubled quotes, delimiters and newlines inside quotes, CRLF.
+ * Each row carries the 1-based line where it starts, so errors can point at the file. */
+export function parseCsvRowsWithLines(input: string): { cells: string[]; line: number }[] {
   const text = input.replace(/^\uFEFF/, '')
   const delimiter = detectDelimiter(text)
-  const rows: string[][] = []
+  const rows: { cells: string[]; line: number }[] = []
   let row: string[] = []
   let field = ''
   let inQuotes = false
+  let line = 1
+  let rowLine = 1
+  const endRow = () => {
+    row.push(field)
+    rows.push({ cells: row, line: rowLine })
+    row = []
+    field = ''
+  }
   for (let i = 0; i < text.length; i++) {
     const char = text[i]
     if (inQuotes) {
@@ -100,43 +109,82 @@ export function parseCsvRows(input: string): string[][] {
         field += '"'
         i++
       } else if (char === '"') inQuotes = false
-      else field += char
+      else {
+        if (char === '\n') line++
+        field += char
+      }
     } else if (char === '"' && field === '') inQuotes = true
     else if (char === delimiter) {
       row.push(field)
       field = ''
     } else if (char === '\n' || char === '\r') {
       if (char === '\r' && text[i + 1] === '\n') i++
-      row.push(field)
-      rows.push(row)
-      row = []
-      field = ''
+      endRow()
+      line++
+      rowLine = line
     } else field += char
   }
-  if (field !== '' || row.length > 0) {
-    row.push(field)
-    rows.push(row)
-  }
-  return rows.filter((cells) => cells.some((cell) => cell.trim() !== ''))
+  if (field !== '' || row.length > 0) endRow()
+  return rows.filter(({ cells }) => cells.some((cell) => cell.trim() !== ''))
 }
+
+export function parseCsvRows(input: string): string[][] {
+  return parseCsvRowsWithLines(input).map(({ cells }) => cells)
+}
+
+export const MAX_IMPORT_CARDS = 500
+
+export type CsvErrorCode = 'empty' | 'columns' | 'too_many'
 
 export interface CsvImport {
   cards: { front: string; back: string }[]
+  /** Rows with an empty or too long side. */
   skipped: number
+  /** Rows whose front repeats an earlier row or an existing card. */
+  duplicates: number
+  /** A problem that stops the whole import; `line` is the 1-based file line it was found on. */
+  error: { code: CsvErrorCode; line?: number } | null
 }
 
-/** First two columns become front/back; an optional front,back header row is skipped. */
-export function csvToCards(input: string): CsvImport {
-  const rows = parseCsvRows(input)
-  const first = rows[0]
-  if (first && first[0]?.trim().toLowerCase() === CSV_HEADER[0] && first[1]?.trim().toLowerCase() === CSV_HEADER[1]) rows.shift()
+const FRONT_HEADERS = ['front', 'ön', 'soru', 'question']
+const BACK_HEADERS = ['back', 'arka', 'cevap', 'answer']
+
+/** Trailing empty cells (Excel pads rows) don't count as columns. */
+function trimTrailingEmpty(cells: string[]): string[] {
+  let end = cells.length
+  while (end > 2 && cells[end - 1].trim() === '') end--
+  return cells.slice(0, end)
+}
+
+function isHeaderRow(cells: string[]): boolean {
+  if (cells.length !== 2) return false
+  const [front, back] = cells.map((cell) => cell.trim().toLowerCase())
+  return FRONT_HEADERS.includes(front) && BACK_HEADERS.includes(back)
+}
+
+/** Two columns become front/back. A front,back / ön,arka / soru,cevap header is optional (any case).
+ * `existingFronts` are normalized fronts already in the deck; exact repeats are left out. */
+export function csvToCards(input: string, existingFronts: Set<string> = new Set()): CsvImport {
+  const fail = (code: CsvErrorCode, line?: number): CsvImport => ({ cards: [], skipped: 0, duplicates: 0, error: { code, line } })
+  const rows = parseCsvRowsWithLines(input).map(({ cells, line }) => ({ cells: trimTrailingEmpty(cells), line }))
+  if (rows.length > 0 && isHeaderRow(rows[0].cells)) rows.shift()
+  if (rows.length === 0) return fail('empty')
+  const wrong = rows.find(({ cells }) => cells.length !== 2)
+  if (wrong) return fail('columns', wrong.line)
+  const seen = new Set(existingFronts)
   const cards: { front: string; back: string }[] = []
   let skipped = 0
-  for (const cells of rows) {
-    const front = (cells[0] ?? '').trim()
-    const back = (cells[1] ?? '').trim()
+  let duplicates = 0
+  for (const { cells } of rows) {
+    const front = cells[0].trim()
+    const back = cells[1].trim()
     if (validate(front, back)) skipped++
-    else cards.push({ front, back })
+    else if (seen.has(normalizeFront(front))) duplicates++
+    else {
+      seen.add(normalizeFront(front))
+      cards.push({ front, back })
+    }
   }
-  return { cards, skipped }
+  if (cards.length > MAX_IMPORT_CARDS) return fail('too_many', rows[MAX_IMPORT_CARDS].line)
+  return { cards, skipped, duplicates, error: null }
 }

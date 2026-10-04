@@ -2,11 +2,11 @@ import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { SAMPLE_DECK_KEYS, SAMPLE_REF_PREFIX, sampleDeckCards } from '../data/sampleDecks'
+import { SAMPLE_REF_PREFIX, missingSampleKeys, sampleDeckCards } from '../data/sampleDecks'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useNow } from '../hooks/useNow'
 import { addCards, cardsForDeck, createDeck, dismissDeletedDeck, dueCountForDeck, undoDeleteDeck, useFlashcards } from '../lib/flashcardStorage'
-import { MASTERED_BOX } from '../lib/srs'
+import { MASTERED_BOX, cardStage } from '../lib/srs'
 import ProgressRing from '../components/flashcards/ProgressRing'
 import StorageNote from '../components/flashcards/StorageNote'
 import UndoToast from '../components/flashcards/UndoToast'
@@ -30,7 +30,7 @@ export default function FlashcardsPage() {
         return {
           deck,
           total: cards.length,
-          learned: cards.filter((card) => card.reviews > 0 && card.box >= 2).length,
+          learned: cards.filter((card) => cardStage(card) === 'learned').length,
           mastered: cards.filter((card) => card.box >= MASTERED_BOX).length,
           due: dueCountForDeck(deck, state.cards, now),
         }
@@ -43,14 +43,15 @@ export default function FlashcardsPage() {
     navigate(`/flashcards/${deck.id}`, { state: { focusName: true } })
   }
 
+  // Only samples that are not in the list yet: a second click never duplicates, a deleted one comes back.
+  const missingSamples = missingSampleKeys(state.decks)
+
   const handleAddSamples = () => {
-    for (const key of SAMPLE_DECK_KEYS) {
+    for (const key of missingSampleKeys(state.decks)) {
       const deck = createDeck({ name: t(`flashcards.samples.${key}`), source: 'manual', sourceRef: `${SAMPLE_REF_PREFIX}${key}`, language: i18n.language })
       addCards(deck.id, sampleDeckCards(key, i18n.language))
     }
   }
-
-  const hasSamples = state.decks.some((deck) => deck.sourceRef?.startsWith(SAMPLE_REF_PREFIX))
 
   return (
     <>
@@ -83,11 +84,9 @@ export default function FlashcardsPage() {
             <button type="button" onClick={handleNewDeck} className="rounded-xl border-2 border-navy px-4 py-2 text-xs font-bold text-navy hover:bg-navy/5">
               {t('flashcards.newDeck')}
             </button>
-            {!hasSamples && (
-              <button type="button" onClick={handleAddSamples} className="rounded-xl border border-warm-border px-4 py-2 text-xs font-semibold text-ink hover:border-focus-neutral">
-                {t('flashcards.samples.add')}
-              </button>
-            )}
+            <button type="button" onClick={handleAddSamples} className="rounded-xl border border-warm-border px-4 py-2 text-xs font-semibold text-ink hover:border-focus-neutral">
+              {t('flashcards.samples.add')}
+            </button>
           </div>
         </div>
       )}
@@ -147,6 +146,12 @@ export default function FlashcardsPage() {
             </ul>
           )}
         </>
+      )}
+
+      {state.loaded && state.decks.length > 0 && missingSamples.length > 0 && (
+        <button type="button" data-purpose="add-samples" onClick={handleAddSamples} className="self-start text-xs font-semibold text-amber-text hover:underline">
+          {t('flashcards.samples.add')}
+        </button>
       )}
 
       {state.deletedDeck && (

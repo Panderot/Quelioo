@@ -17,6 +17,8 @@ import {
 } from '../../src/lib/srs'
 import type { LeitnerBox, SrsCard } from '../../src/lib/srs'
 import { cardsToCsv, csvToCards, duplicateFrontIds, parseBulkLines, parseCsvRows } from '../../src/lib/flashcardText'
+import { readdirSync, readFileSync } from 'node:fs'
+import { SAMPLE_DECK_KEYS, missingSampleKeys, sampleDeckCards } from '../../src/data/sampleDecks'
 
 // Pure unit tests (no browser). Times are local: 2026-03-10 14:00 in the runner's time zone.
 const NOW = new Date(2026, 2, 10, 14, 0, 0).getTime()
@@ -183,11 +185,97 @@ test.describe('flashcard text formats', () => {
     ]
     const csv = cardsToCsv(cards)
     expect(csv.startsWith('﻿front,back\r\n')).toBe(true)
-    expect(csvToCards(csv)).toEqual({ cards, skipped: 0 })
+    expect(csvToCards(csv)).toEqual({ cards, skipped: 0, duplicates: 0, error: null })
   })
 
   test('CSV import: semicolon delimiter, no header, skipped rows counted', () => {
     expect(parseCsvRows('a;"b;c"\r\nd;e')).toEqual([['a', 'b;c'], ['d', 'e']])
-    expect(csvToCards('elma,apple\n,missing front\nonly one column\n')).toEqual({ cards: [{ front: 'elma', back: 'apple' }], skipped: 2 })
+    expect(csvToCards('elma,apple\n,missing front\n')).toEqual({ cards: [{ front: 'elma', back: 'apple' }], skipped: 1, duplicates: 0, error: null })
+    expect(csvToCards('elma;apple\nkitap;book\n').cards).toEqual([{ front: 'elma', back: 'apple' }, { front: 'kitap', back: 'book' }])
+  })
+
+  test('CSV import: headers front/back, ön/arka, soru/cevap in any case, with a BOM', () => {
+    for (const header of ['front,back', 'FRONT,BACK', 'Ön,Arka', 'ÖN;ARKA', 'Soru;Cevap', 'SORU,CEVAP', '\uFEFFfront,back']) {
+      const delimiter = header.includes(';') ? ';' : ','
+      expect(csvToCards(`${header}\r\nelma${delimiter}apple\r\n`), header).toEqual({ cards: [{ front: 'elma', back: 'apple' }], skipped: 0, duplicates: 0, error: null })
+    }
+    // Without a header, two columns are cards: the first row is not dropped.
+    expect(csvToCards('elma,apple\npen,kalem').cards).toHaveLength(2)
+  })
+
+  test('CSV import: quoted commas, quotes and line breaks; Turkish and Armenian text', () => {
+    const csv = '"Soru, virgüllü","Cevap ""tırnaklı"""\r\n"çok\r\nsatır",Բարեւ\r\n'
+    expect(csvToCards(csv).cards).toEqual([
+      { front: 'Soru, virgüllü', back: 'Cevap "tırnaklı"' },
+      { front: 'çok\r\nsatır', back: 'Բարեւ' },
+    ])
+  })
+
+  test('CSV import: clear errors with line numbers, trailing empty cells tolerated, duplicates skipped', () => {
+    expect(csvToCards('').error).toEqual({ code: 'empty', line: undefined })
+    expect(csvToCards('front,back\r\n').error?.code).toBe('empty')
+    expect(csvToCards('a,b\nc,d,e\nf,g\n').error).toEqual({ code: 'columns', line: 2 })
+    expect(csvToCards('a,b\n\nonly one\n').error).toEqual({ code: 'columns', line: 3 })
+    expect(csvToCards('a,b,,\nc,d,\n').cards).toHaveLength(2)
+    const many = Array.from({ length: 501 }, (_, i) => `q${i},a${i}`).join('\n')
+    expect(csvToCards(many).error?.code).toBe('too_many')
+    const result = csvToCards('Elma,apple\nelma ,again\nkitap,book\n', new Set(['kitap']))
+    expect(result.cards).toEqual([{ front: 'Elma', back: 'apple' }])
+    expect(result.duplicates).toBe(2)
+  })
+
+  test('the six sample CSV files import with every front a question and survive export then import', () => {
+    const dir = 'tests/fixtures/cards'
+    const files = readdirSync(dir).filter((name) => name.endsWith('.csv'))
+    expect(files).toHaveLength(6)
+    for (const name of files) {
+      const imported = csvToCards(readFileSync(`${dir}/${name}`, 'utf-8'))
+      expect(imported.error, name).toBeNull()
+      expect(imported.skipped + imported.duplicates, name).toBe(0)
+      expect(imported.cards.length, name).toBeGreaterThanOrEqual(9)
+      for (const entry of imported.cards) expect(entry.front, name).toMatch(/[?]$/)
+      expect(csvToCards(cardsToCsv(imported.cards)).cards, name).toEqual(imported.cards)
+    }
+  })
+})
+
+test.describe('sample decks', () => {
+  test('every deck has a Turkish and an English version with question fronts and no duplicates', () => {
+    expect(SAMPLE_DECK_KEYS).toEqual(['photosynthesis', 'organelles', 'exponents', 'irregularVerbs', 'turkeyGeography', 'reforms', 'yds'])
+    for (const key of SAMPLE_DECK_KEYS) {
+      for (const language of ['tr', 'en', 'hyw']) {
+        const cards = sampleDeckCards(key, language)
+        expect(cards.length, `${key} ${language}`).toBeGreaterThanOrEqual(8)
+        for (const entry of cards) {
+          expect(entry.front, `${key} ${language}`).toMatch(/\?$/)
+          expect(entry.back.trim(), `${key} ${language}`).not.toBe('')
+        }
+        expect(new Set(cards.map((entry) => entry.front)).size, `${key} ${language}`).toBe(cards.length)
+      }
+      expect(sampleDeckCards(key, 'hyw')).toEqual(sampleDeckCards(key, 'en'))
+    }
+  })
+
+  test('Turkish samples match the six CSV files', () => {
+    const files: Record<string, string> = {
+      photosynthesis: 'fotosentez',
+      organelles: 'hucre-organelleri',
+      exponents: 'uslu-sayilar',
+      irregularVerbs: 'ingilizce-duzensiz-fiiller',
+      turkeyGeography: 'turkiye-cografyasi',
+      reforms: 'turk-tarihi-inkilaplar',
+    }
+    for (const [key, file] of Object.entries(files)) {
+      const csv = csvToCards(readFileSync(`tests/fixtures/cards/${file}.csv`, 'utf-8')).cards
+      expect(sampleDeckCards(key as (typeof SAMPLE_DECK_KEYS)[number], 'tr'), key).toEqual(csv)
+    }
+  })
+
+  test('missingSampleKeys only lists samples without a deck, so old sample decks are never duplicated', () => {
+    expect(missingSampleKeys([])).toHaveLength(7)
+    // Decks from the first release (kpssGeography, reforms, yds) stay as they are.
+    const old = [{ sourceRef: 'sample:kpssGeography' }, { sourceRef: 'sample:reforms' }, { sourceRef: 'sample:yds' }, { sourceRef: null }]
+    expect(missingSampleKeys(old)).toEqual(['photosynthesis', 'organelles', 'exponents', 'irregularVerbs', 'turkeyGeography'])
+    expect(missingSampleKeys(SAMPLE_DECK_KEYS.map((key) => ({ sourceRef: `sample:${key}` })))).toEqual([])
   })
 })

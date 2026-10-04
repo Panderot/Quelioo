@@ -256,7 +256,12 @@ export default function QuizResultView({
   const recordFirstAttempt = (questionId: string) => (correct: boolean) =>
     setFirstAttempts((current) => (questionId in current ? current : { ...current, [questionId]: correct }))
 
-  const cardLabels = { trueLabel: t('create.result.trueLabel'), falseLabel: t('create.result.falseLabel') }
+  const cardLabels = {
+    trueLabel: t('create.result.trueLabel'),
+    falseLabel: t('create.result.falseLabel'),
+    trueFalsePrefix: t('flashcards.convert.trueFalsePrefix'),
+    matchPrefix: t('flashcards.convert.matchPrefix'),
+  }
   const mistakeIds = new Set(quiz.questions.filter((question) => firstAttempts[question.id] === false).map((question) => question.id))
   const mistakesRef = `${quizId}#mistakes`
 

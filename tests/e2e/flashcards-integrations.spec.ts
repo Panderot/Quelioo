@@ -23,13 +23,13 @@ const ENTRY = {
 /** Every question type of SAMPLE_QUIZ (a Mixed quiz), converted without AI. */
 const EXPECTED_CARDS = [
   ['Which gas do plants absorb during photosynthesis?', 'Carbon dioxide'],
-  ['The Great Wall of China is visible from space with the naked eye.', 'False — This is a common myth; it is not visible without aid.'],
+  ['True or false: The Great Wall of China is visible from space with the naked eye.', 'False — This is a common myth; it is not visible without aid.'],
   ['Water boils at ______ degrees Celsius at sea level.', '100'],
   ['Name the largest planet in our solar system.', 'Jupiter'],
-  ['Mercury', 'First from the sun'],
-  ['Venus', 'Second from the sun'],
-  ['Earth', 'Third from the sun'],
-  ['Mars', 'Fourth from the sun'],
+  ['What matches: Mercury', 'First from the sun'],
+  ['What matches: Venus', 'Second from the sun'],
+  ['What matches: Earth', 'Third from the sun'],
+  ['What matches: Mars', 'Fourth from the sun'],
   ['Explain why the sky appears blue during the day.', '• Sunlight is scattered by the atmosphere\n• Blue light scatters more because of its shorter wavelength'],
 ]
 
@@ -90,7 +90,7 @@ test.describe('Flashcards from a quiz', () => {
     expect(stored.decks).toEqual([expect.objectContaining({ name: 'Sample Quiz', source: 'quiz', sourceRef: ENTRY.id })])
     expect(stored.cards).toHaveLength(8)
     expect(stored.cards.map((card) => card.back)).toContain('100 °C')
-    expect(stored.cards.map((card) => card.front)).not.toContain('Mercury')
+    expect(stored.cards.map((card) => card.front)).not.toContain('What matches: Mercury')
 
     await dialog(page).getByRole('link', { name: 'Open deck' }).click()
     await expect(page.getByRole('heading', { name: 'Sample Quiz', level: 1 })).toBeVisible()
@@ -105,7 +105,7 @@ test.describe('Flashcards from a quiz', () => {
         name: 'Sample Quiz',
         cards: [
           { id: 'o1', front: 'Which gas do plants absorb during photosynthesis?', back: 'Carbon dioxide' },
-          { id: 'o2', front: 'Mercury', back: 'First from the sun' },
+          { id: 'o2', front: 'What matches: Mercury', back: 'First from the sun' },
         ],
       },
     ], '/flashcards')
@@ -143,7 +143,7 @@ test.describe('Flashcards from a quiz', () => {
     await seedArchive([ENTRY])
     await page.goto('/flashcards?lng=en')
     await seed(page, [
-      { id: 'deck-a', name: 'Astronomy', cards: [{ id: 'a1', front: 'Mars', back: 'Red planet' }] },
+      { id: 'deck-a', name: 'Astronomy', cards: [{ id: 'a1', front: 'What matches: Mars', back: 'Red planet' }] },
       { id: 'deck-b', name: 'Biology', cards: [] },
     ], `/archive/${ENTRY.id}?lng=en`)
     await more(page).click()
@@ -197,7 +197,7 @@ test.describe('Flashcards from my mistakes', () => {
     expect(stored.cards).toHaveLength(1)
 
     await page.goto('/flashcards?lng=en')
-    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('1 card · 0 learned · 1 due today')
+    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('1 card · 0 learned · 1 card to review today')
   })
 
   test('Study Mode summary offers the mistakes deck once every question is answered', async ({ page, seedArchive }) => {

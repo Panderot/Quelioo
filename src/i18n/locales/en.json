@@ -663,15 +663,20 @@
     },
     "samples": {
       "add": "Add sample decks",
-      "yds": "YDS common words",
-      "kpssGeography": "KPSS geography",
-      "reforms": "Turkish history reforms"
+      "photosynthesis": "Photosynthesis",
+      "organelles": "Cell organelles",
+      "exponents": "Exponents",
+      "irregularVerbs": "English irregular verbs",
+      "turkeyGeography": "Geography of Turkey",
+      "reforms": "Turkish history: reforms",
+      "yds": "YDS common words"
     },
     "list": {
       "cards_one": "{{count}} card",
       "cards_other": "{{count}} cards",
       "learned": "{{count}} learned",
-      "dueToday": "{{count}} due today",
+      "dueToday_one": "{{count}} card to review today",
+      "dueToday_other": "{{count}} cards to review today",
       "study": "Study · {{count}}",
       "studyLabel": "Study {{name}}, {{count}} due",
       "edit": "Edit",
@@ -687,7 +692,7 @@
       "deleted": "Deck “{{name}}” deleted",
       "reset": "Reset progress",
       "resetTitle": "Reset progress for this deck?",
-      "resetBody": "Every card goes back to box 1 and is due today. The cards themselves stay as they are.",
+      "resetBody": "Every card becomes “New” and is due today. The cards themselves stay as they are.",
       "resetDone": "Progress reset."
     },
     "editor": {
@@ -698,7 +703,12 @@
       "addCard": "Add card",
       "noCards": "No cards yet. Add one or paste several at once.",
       "cardNumber": "Card {{number}}",
-      "box": "Box {{box}}",
+      "stage": {
+        "new": "New",
+        "learning": "Learning",
+        "learned": "Learned"
+      },
+      "stageHint": "Cards you know come back less often; cards you miss come back sooner.",
       "deleteCard": "Delete card {{number}}",
       "frontLabel": "Front of card {{number}}",
       "backLabel": "Back of card {{number}}",
@@ -731,7 +741,16 @@
       "imported_other": "Imported {{count}} cards.",
       "skipped_one": "{{count}} row skipped (empty side or too long).",
       "skipped_other": "{{count}} rows skipped (empty side or too long).",
-      "tooLarge": "That file is too large (max 2 MB)."
+      "tooLarge": "The file is too large (2 MB at most).",
+      "previewTitle_one": "{{count}} card will be added",
+      "previewTitle_other": "{{count}} cards will be added",
+      "duplicates_one": "{{count}} duplicate card left out.",
+      "duplicates_other": "{{count}} duplicate cards left out.",
+      "errors": {
+        "empty": "The file is empty. Choose a CSV with “front, back” on every line.",
+        "columns": "Line {{line}} does not have two columns. Every line needs exactly a front and a back.",
+        "too_many": "At most {{max}} cards can be imported at once (the limit was passed on line {{line}})."
+      }
     },
     "study": {
       "tabTitle": "Study: {{name}}",
@@ -836,6 +855,8 @@
       "added_one": "Added {{count}} card to “{{name}}”.",
       "added_other": "Added {{count}} cards to “{{name}}”.",
       "openDeck": "Open deck",
+      "trueFalsePrefix": "True or false:",
+      "matchPrefix": "What matches:",
       "close": "Close"
     },
     "mistakes": {

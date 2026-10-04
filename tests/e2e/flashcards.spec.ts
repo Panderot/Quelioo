@@ -63,19 +63,19 @@ test.describe('Flashcards — decks', () => {
     await expect(badge.locator('[aria-hidden]')).toHaveText('2')
   })
 
-  test('empty state adds three sample decks once; search and sort by due', async ({ page }) => {
+  test('empty state adds the seven sample decks once; search and sort by due', async ({ page }) => {
     await open(page, '/flashcards?lng=tr')
     await expect(page.getByRole('heading', { name: 'Kartlar' })).toBeVisible()
     await expect(page.getByText('Bir kere öğren, kalıcı hatırla')).toBeVisible()
     await page.getByRole('button', { name: 'Örnek desteler ekle' }).click()
     const rows = page.locator('[data-purpose="deck-row"]')
-    await expect(rows).toHaveCount(3)
+    await expect(rows).toHaveCount(7)
     await expect(page.getByRole('button', { name: 'Örnek desteler ekle' })).toHaveCount(0)
-    await expect(rows.filter({ hasText: 'Türk tarihi: inkılaplar' })).toContainText('9 kart · 0 öğrenildi · bugün 9 sırada')
+    await expect(rows.filter({ hasText: 'Türk tarihi: inkılaplar' })).toContainText('10 kart · 0 öğrenildi · bugün 10 kart tekrar bekliyor')
 
-    await page.getByRole('searchbox', { name: 'Destelerde ara' }).fill('kpss')
+    await page.getByRole('searchbox', { name: 'Destelerde ara' }).fill('coğrafya')
     await expect(rows).toHaveCount(1)
-    await expect(rows.first()).toContainText('KPSS coğrafya')
+    await expect(rows.first()).toContainText('Türkiye coğrafyası')
     await page.getByRole('searchbox', { name: 'Destelerde ara' }).fill('zzz')
     await expect(page.getByText('Aramanla eşleşen deste yok.')).toBeVisible()
   })
@@ -162,6 +162,9 @@ test.describe('Flashcards — decks', () => {
 
     await page.goto('/flashcards/deck-empty')
     await page.locator('[data-purpose="csv-input"]').setInputFiles({ name: 'deck.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf-8') })
+    await expect(page.locator('[data-purpose="csv-preview"]')).toContainText('3 cards will be added')
+    await expect(page.getByLabel('Front of card 1')).toHaveCount(0)
+    await page.locator('[data-purpose="csv-preview"]').getByRole('button', { name: 'Add 3 cards' }).click()
     await expect(page.getByText('Imported 3 cards.')).toBeVisible()
     await expect(page.getByLabel('Front of card 2')).toHaveValue('Բարեւ')
     await expect(page.getByLabel('Back of card 2')).toHaveValue('Merhaba, "selam"; hello')
@@ -200,7 +203,7 @@ test.describe('Flashcards — decks', () => {
     await open(page, '/flashcards?lng=en')
     await expect(page.locator('[data-purpose="flashcards-storage-note"]')).toContainText('this session lives only in this tab')
     await page.getByRole('button', { name: 'Add sample decks' }).click()
-    await expect(page.locator('[data-purpose="deck-row"]')).toHaveCount(3)
+    await expect(page.locator('[data-purpose="deck-row"]')).toHaveCount(7)
   })
 })
 
@@ -240,7 +243,7 @@ test.describe('Flashcards — study', () => {
     await expect(summary.locator('[data-purpose="next-due"]')).toHaveText('Next review: tomorrow')
     await expect(summary.getByRole('button', { name: 'Study again' })).toHaveCount(0)
     await summary.getByRole('link', { name: 'Back to decks' }).click()
-    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('3 cards · 3 learned · 0 due today')
+    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('3 cards · 3 learned · 0 cards to review today')
   })
 
   test('@cross keyboard: Space flips, arrows and 1/2 grade only after flipping, Esc exits', async ({ page }) => {
@@ -327,7 +330,7 @@ test.describe('Flashcards — study', () => {
   test('daily new-card limit from the deck setting', async ({ page }) => {
     await open(page, '/flashcards?lng=en')
     await seed(page, [{ id: 'deck-many', name: 'Many', newPerDay: 5, cards: Array.from({ length: 8 }, (_, i) => ({ id: `m${i}`, front: `q${i}`, back: `a${i}` })) }])
-    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('8 cards · 0 learned · 5 due today')
+    await expect(page.locator('[data-purpose="deck-row"]')).toContainText('8 cards · 0 learned · 5 cards to review today')
     await page.goto('/flashcards/deck-many')
     await page.getByRole('button', { name: 'New cards per day' }).click()
     await page.getByRole('option', { name: '10', exact: true }).click()

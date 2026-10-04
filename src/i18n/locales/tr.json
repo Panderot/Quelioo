@@ -663,15 +663,20 @@
     },
     "samples": {
       "add": "Örnek desteler ekle",
-      "yds": "YDS sık kelimeler",
-      "kpssGeography": "KPSS coğrafya",
-      "reforms": "Türk tarihi: inkılaplar"
+      "photosynthesis": "Fotosentez",
+      "organelles": "Hücre organelleri",
+      "exponents": "Üslü sayılar",
+      "irregularVerbs": "İngilizce düzensiz fiiller",
+      "turkeyGeography": "Türkiye coğrafyası",
+      "reforms": "Türk tarihi: inkılaplar",
+      "yds": "YDS sık kelimeler"
     },
     "list": {
       "cards_one": "{{count}} kart",
       "cards_other": "{{count}} kart",
       "learned": "{{count}} öğrenildi",
-      "dueToday": "bugün {{count}} sırada",
+      "dueToday_one": "bugün {{count}} kart tekrar bekliyor",
+      "dueToday_other": "bugün {{count}} kart tekrar bekliyor",
       "study": "Çalış · {{count}}",
       "studyLabel": "{{name}} destesini çalış, {{count}} sırada",
       "edit": "Düzenle",
@@ -687,7 +692,7 @@
       "deleted": "“{{name}}” destesi silindi",
       "reset": "İlerlemeyi sıfırla",
       "resetTitle": "Bu destenin ilerlemesi sıfırlansın mı?",
-      "resetBody": "Tüm kartlar 1. kutuya döner ve bugün sıraya girer. Kartların içeriği değişmez.",
+      "resetBody": "Tüm kartlar “Yeni” olur ve bugün tekrar bekler. Kartların içeriği değişmez.",
       "resetDone": "İlerleme sıfırlandı."
     },
     "editor": {
@@ -698,7 +703,12 @@
       "addCard": "Kart ekle",
       "noCards": "Henüz kart yok. Bir tane ekle ya da birden çok kartı yapıştır.",
       "cardNumber": "Kart {{number}}",
-      "box": "Kutu {{box}}",
+      "stage": {
+        "new": "Yeni",
+        "learning": "Öğreniliyor",
+        "learned": "Öğrenildi"
+      },
+      "stageHint": "Bildiğin kartlar daha seyrek, bilmediklerin daha sık karşına gelir.",
       "deleteCard": "{{number}}. kartı sil",
       "frontLabel": "{{number}}. kartın ön yüzü",
       "backLabel": "{{number}}. kartın arka yüzü",
@@ -731,7 +741,16 @@
       "imported_other": "{{count}} kart içe aktarıldı.",
       "skipped_one": "{{count}} satır atlandı (boş yüz ya da çok uzun).",
       "skipped_other": "{{count}} satır atlandı (boş yüz ya da çok uzun).",
-      "tooLarge": "Dosya çok büyük (en fazla 2 MB)."
+      "tooLarge": "Dosya çok büyük (en fazla 2 MB).",
+      "previewTitle_one": "{{count}} kart eklenecek",
+      "previewTitle_other": "{{count}} kart eklenecek",
+      "duplicates_one": "{{count}} aynı kart atlandı.",
+      "duplicates_other": "{{count}} aynı kart atlandı.",
+      "errors": {
+        "empty": "Dosya boş. Her satırda “ön yüz, arka yüz” olan bir CSV seç.",
+        "columns": "{{line}}. satırda iki sütun yok. Her satırda tam olarak ön ve arka yüz olmalı.",
+        "too_many": "Bir seferde en fazla {{max}} kart eklenebilir (sınır {{line}}. satırda aşıldı)."
+      }
     },
     "study": {
       "tabTitle": "Çalış: {{name}}",
@@ -836,6 +855,8 @@
       "added_one": "“{{name}}” destesine {{count}} kart eklendi.",
       "added_other": "“{{name}}” destesine {{count}} kart eklendi.",
       "openDeck": "Desteyi aç",
+      "trueFalsePrefix": "Doğru mu, yanlış mı:",
+      "matchPrefix": "Eşleşmesi nedir:",
       "close": "Kapat"
     },
     "mistakes": {

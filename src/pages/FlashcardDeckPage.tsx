@@ -9,6 +9,7 @@ import { addCards, cardsForDeck, deleteCard, deleteDeck, dueCountForDeck, resetD
 import type { Card } from '../lib/flashcardStorage'
 import {
   MAX_BACK_CHARS,
+  MAX_IMPORT_CARDS,
   MAX_DECK_DESCRIPTION_CHARS,
   MAX_DECK_NAME_CHARS,
   MAX_FRONT_CHARS,
@@ -18,7 +19,8 @@ import {
   normalizeFront,
   parseBulkLines,
 } from '../lib/flashcardText'
-import { isStudyable } from '../lib/srs'
+import type { CsvImport } from '../lib/flashcardText'
+import { cardStage, isStudyable } from '../lib/srs'
 import AutosaveField from '../components/flashcards/AutosaveField'
 import MathText from '../components/MathText'
 import { mathToPlainText } from '../lib/mathPlain'
@@ -61,7 +63,9 @@ function CardRow({ card, index, duplicate, autoFocus, onDelete }: CardRowProps) 
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-bold text-muted">{t('flashcards.editor.cardNumber', { number: index + 1 })}</span>
         <span className="flex items-center gap-2">
-          <span className="rounded-full bg-amber/15 px-2 py-0.5 text-[11px] font-bold text-amber-text">{t('flashcards.editor.box', { box: card.box })}</span>
+          <span title={t('flashcards.editor.stageHint')} className="rounded-full bg-amber/15 px-2 py-0.5 text-[11px] font-bold text-amber-text">
+            {t(`flashcards.editor.stage.${cardStage(card)}`)}
+          </span>
           <button
             type="button"
             onClick={() => onDelete(card)}
@@ -136,6 +140,8 @@ export default function FlashcardDeckPage() {
   const [generatorOpen, setGeneratorOpen] = useState<boolean | null>(null)
   const [bulkText, setBulkText] = useState('')
   const [status, setStatus] = useState('')
+  // A parsed CSV waits here until the student confirms; nothing is added before that.
+  const [csvPreview, setCsvPreview] = useState<CsvImport | null>(null)
 
   // Arriving from "New deck": select the placeholder name, then drop the flag so a reload doesn't repeat it.
   const focusName = Boolean((location.state as { focusName?: boolean } | null)?.focusName)
@@ -214,12 +220,25 @@ export default function FlashcardDeckPage() {
       setStatus(t('flashcards.csv.tooLarge'))
       return
     }
-    const { cards: imported, skipped } = csvToCards(await file.text())
+    const result = csvToCards(await file.text(), existingFronts)
+    if (result.error) {
+      setCsvPreview(null)
+      setStatus(t(`flashcards.csv.errors.${result.error.code}`, { line: result.error.line, max: MAX_IMPORT_CARDS }))
+      return
+    }
+    setStatus('')
+    setCsvPreview(result)
+  }
+
+  const handleConfirmImport = () => {
+    if (!csvPreview) return
     keepGeneratorVisibility()
-    addCards(deck.id, imported)
-    const parts = [t('flashcards.csv.imported', { count: imported.length })]
-    if (skipped > 0) parts.push(t('flashcards.csv.skipped', { count: skipped }))
+    addCards(deck.id, csvPreview.cards)
+    const parts = [t('flashcards.csv.imported', { count: csvPreview.cards.length })]
+    if (csvPreview.duplicates > 0) parts.push(t('flashcards.csv.duplicates', { count: csvPreview.duplicates }))
+    if (csvPreview.skipped > 0) parts.push(t('flashcards.csv.skipped', { count: csvPreview.skipped }))
     setStatus(parts.join(' '))
+    setCsvPreview(null)
   }
 
   return (
@@ -315,6 +334,45 @@ export default function FlashcardDeckPage() {
       <p role="status" className={status ? 'text-xs font-semibold text-success' : 'sr-only'}>
         {status}
       </p>
+
+      {csvPreview && (
+        <section data-purpose="csv-preview" className="space-y-3 rounded-[14px] border border-warm-border bg-card p-5">
+          <p className="text-sm font-semibold text-ink">{t('flashcards.csv.previewTitle', { count: csvPreview.cards.length })}</p>
+          {(csvPreview.duplicates > 0 || csvPreview.skipped > 0) && (
+            <p className="text-xs text-muted">
+              {[
+                csvPreview.duplicates > 0 ? t('flashcards.csv.duplicates', { count: csvPreview.duplicates }) : '',
+                csvPreview.skipped > 0 ? t('flashcards.csv.skipped', { count: csvPreview.skipped }) : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            </p>
+          )}
+          {csvPreview.cards.length > 0 && (
+            <ul data-purpose="csv-preview-list" aria-label={t('flashcards.bulk.preview')} className="max-h-64 divide-y divide-warm-border overflow-y-auto rounded-xl border border-warm-border">
+              {csvPreview.cards.map((entry, index) => (
+                <li key={index} className="grid gap-1 px-3 py-2 text-xs text-ink sm:grid-cols-2">
+                  <span className="break-words"><MathText text={entry.front} /></span>
+                  <span className="break-words text-muted"><MathText text={entry.back} /></span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={handleConfirmImport}
+              disabled={csvPreview.cards.length === 0}
+              className="rounded-xl border-2 border-navy px-4 py-2 text-xs font-bold text-navy hover:bg-navy/5 disabled:opacity-50"
+            >
+              {t('flashcards.bulk.add', { count: csvPreview.cards.length })}
+            </button>
+            <button type="button" onClick={() => setCsvPreview(null)} className={outlineButton}>
+              {t('flashcards.common.cancel')}
+            </button>
+          </div>
+        </section>
+      )}
 
       {showGenerator && <CardGeneratorPanel deckFronts={cards.map((card) => card.front)} emphasis={cards.length === 0 ? 'primary' : 'secondary'} onAdd={handleGenerated} />}
 
