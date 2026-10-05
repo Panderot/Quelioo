@@ -155,6 +155,12 @@ function loadFlashcards(): Promise<void> {
       const validDecks = decks.map(deckWithDefaults).filter((deck): deck is Deck => deck !== null)
       const deckIds = new Set(validDecks.map((deck) => deck.id))
       const validCards = cards.map(cardWithDefaults).filter((card): card is Card => card !== null && deckIds.has(card.deckId))
+      // A blank deck left over from an earlier visit (the tab was closed before it was named) is dropped for good.
+      const blankIds = validDecks.filter((deck) => isBlankDeck(deck, validCards) && !state.decks.some((entry) => entry.id === deck.id)).map((deck) => deck.id)
+      if (blankIds.length > 0) {
+        validDecks.splice(0, validDecks.length, ...validDecks.filter((deck) => !blankIds.includes(deck.id)))
+        persist({ deleteDecks: blankIds })
+      }
       // Merge rather than replace, in case something was created before the load finished.
       const known = (ids: Set<string>) => (entry: { id: string }) => !ids.has(entry.id)
       setState({
@@ -231,6 +237,16 @@ export function createDeck(input: Pick<Deck, 'name'> & Partial<Pick<Deck, 'descr
   setState({ decks: [...state.decks, deck] })
   persist({ putDecks: [deck] })
   return deck
+}
+
+const isBlankDeck = (deck: Deck, cards: Card[]) => deck.name.trim() === '' && deck.description.trim() === '' && deck.source === 'manual' && !cards.some((card) => card.deckId === deck.id)
+
+/** Removes a deck the student created with "New deck" and left untouched (no name, no description, no cards). A deck with cards is never removed. */
+export function discardBlankDeck(deckId: string) {
+  const deck = state.decks.find((entry) => entry.id === deckId)
+  if (!deck || !isBlankDeck(deck, state.cards)) return
+  setState({ decks: state.decks.filter((entry) => entry.id !== deckId) })
+  persist({ deleteDecks: [deckId] })
 }
 
 export function updateDeck(deckId: string, patch: Partial<Pick<Deck, 'name' | 'description' | 'newPerDay'>>) {

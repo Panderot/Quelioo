@@ -204,7 +204,7 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
             <p className="text-xs font-bold tracking-wide text-muted uppercase">{t('flashcards.summary.toRepeat', { count: summary.toRepeat.length })}</p>
             <ul data-purpose="summary-repeat" className="space-y-1">
               {summary.toRepeat.map((id) => (
-                <li key={id} className="rounded-lg border border-warm-border bg-paper px-3 py-2 text-sm text-ink">
+                <li key={id} dir="auto" className="rounded-lg border border-warm-border bg-paper px-3 py-2 text-sm text-ink">
                   <MathText text={(cards.find((card) => card.id === id) ?? snapshot.get(id))?.front ?? ''} />
                 </li>
               ))}
@@ -277,7 +277,7 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
               className="flashcard-face flashcard-front flex flex-col overflow-y-auto rounded-2xl border border-warm-border bg-card p-6"
             >
               <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('flashcards.study.front')}</span>
-              <span className="my-auto block py-4 text-center font-serif text-xl break-words text-navy md:text-2xl">
+              <span dir="auto" className="my-auto block py-4 text-center font-serif text-xl break-words text-navy md:text-2xl">
                 <MathText text={current.front} />
               </span>
             </span>
@@ -287,7 +287,7 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
               className="flashcard-face flashcard-back flex flex-col overflow-y-auto rounded-2xl border-2 border-amber/60 bg-card p-6"
             >
               <span className="text-[11px] font-bold tracking-wide text-amber-text uppercase">{t('flashcards.study.back')}</span>
-              <span className="my-auto block py-4 text-center text-lg break-words whitespace-pre-line text-ink md:text-xl">
+              <span dir="auto" className="my-auto block py-4 text-center text-lg break-words whitespace-pre-line text-ink md:text-xl">
                 <MathText text={current.back} />
               </span>
             </span>

@@ -155,8 +155,8 @@ test.describe('srs: session', () => {
 })
 
 test.describe('flashcard text formats', () => {
-  test('bulk lines: ";" or tab, invalid lines flagged', () => {
-    const lines = parseBulkLines('cat ; kedi\ndog\tköpek; dost\n\nno separator here\n ; empty front\n' + 'x'.repeat(301) + ';long')
+  test('bulk lines: one separator for the whole paste, invalid lines flagged', () => {
+    const lines = parseBulkLines('cat ; kedi\ndog ; köpek; dost\n\nno separator here\n ; empty front\n' + 'x'.repeat(301) + ';long')
     expect(lines.map((line) => [line.line, line.front, line.back, line.error])).toEqual([
       [1, 'cat', 'kedi', null],
       [2, 'dog', 'köpek; dost', null],
@@ -184,7 +184,7 @@ test.describe('flashcard text formats', () => {
       { front: 'çok\nsatırlı', back: 'ığüşöç İĞÜŞÖÇ' },
     ]
     const csv = cardsToCsv(cards)
-    expect(csv.startsWith('﻿front,back\r\n')).toBe(true)
+    expect(csv.startsWith('﻿front;back\r\n')).toBe(true)
     expect(csvToCards(csv)).toEqual({ cards, skipped: 0, duplicates: 0, error: null })
   })
 
@@ -214,7 +214,7 @@ test.describe('flashcard text formats', () => {
   test('CSV import: clear errors with line numbers, trailing empty cells tolerated, duplicates skipped', () => {
     expect(csvToCards('').error).toEqual({ code: 'empty', line: undefined })
     expect(csvToCards('front,back\r\n').error?.code).toBe('empty')
-    expect(csvToCards('a,b\nc,d,e\nf,g\n').error).toEqual({ code: 'columns', line: 2 })
+    expect(csvToCards('a,b\nc,d,e\nf,g\n').cards).toHaveLength(3)
     expect(csvToCards('a,b\n\nonly one\n').error).toEqual({ code: 'columns', line: 3 })
     expect(csvToCards('a,b,,\nc,d,\n').cards).toHaveLength(2)
     const many = Array.from({ length: 501 }, (_, i) => `q${i},a${i}`).join('\n')

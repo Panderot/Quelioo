@@ -26,7 +26,7 @@
       "maxDuration": 90
     },
     "api/cards.ts": {
-      "maxDuration": 120
+      "maxDuration": 180
     },
     "api/solve.ts": {
       "maxDuration": 90

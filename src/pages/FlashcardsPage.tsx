@@ -39,7 +39,7 @@ export default function FlashcardsPage() {
   }, [state.decks, state.cards, search, now, t])
 
   const handleNewDeck = () => {
-    const deck = createDeck({ name: t('flashcards.untitledDeck'), language: i18n.language })
+    const deck = createDeck({ name: '', language: i18n.language })
     navigate(`/flashcards/${deck.id}`, { state: { focusName: true } })
   }
 
@@ -143,6 +143,11 @@ export default function FlashcardsPage() {
                       </p>
                     </div>
                     <div className="flex w-full gap-2 sm:w-auto">
+                      {total === 0 ? (
+                        <span aria-disabled="true" title={t('flashcards.list.studyEmpty')} className="flex-1 cursor-not-allowed rounded-xl border border-warm-border px-4 py-2 text-center text-xs font-bold text-muted opacity-60 sm:flex-none">
+                          {t('flashcards.list.study', { count: 0 })}
+                        </span>
+                      ) : (
                       <Link
                         to={`/flashcards/${deck.id}/study`}
                         aria-label={t('flashcards.list.studyLabel', { name, count: due })}
@@ -152,6 +157,7 @@ export default function FlashcardsPage() {
                       >
                         {t('flashcards.list.study', { count: due })}
                       </Link>
+                      )}
                       <Link
                         to={`/flashcards/${deck.id}`}
                         aria-label={t('flashcards.list.editLabel', { name })}

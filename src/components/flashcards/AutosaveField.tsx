@@ -63,6 +63,7 @@ export default function AutosaveField({ value, onCommit, label, maxLength, multi
     'aria-invalid': invalid || undefined,
     'aria-describedby': describedBy,
     'data-purpose': dataPurpose,
+    dir: 'auto' as const,
     placeholder,
     ref: inputRef,
   }

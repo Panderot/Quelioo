@@ -6,6 +6,7 @@ export type CardsErrorCode =
   | 'too_large'
   | 'too_short'
   | 'too_long'
+  | 'same_language'
   | 'upstream'
   | 'parse'
   | 'model'
@@ -20,10 +21,12 @@ export interface CardsRequestPayload {
   text?: string
   topic?: string
   level?: CardLevel
-  /** Ignored for "solution". */
-  count?: number
+  /** Ignored for "solution"; "auto" (text only) writes one card per main fact. */
+  count?: number | 'auto'
   style?: CardStyle
   language: string
+  /** The app's language, used when the source does not reveal its own. */
+  uiLanguage?: string
   /** Fronts already in the target deck, so new cards don't repeat them. */
   avoid: string[]
 }
@@ -32,9 +35,11 @@ export interface GeneratedCards {
   cards: { front: string; back: string }[]
   /** Topic mode: doubtful cards the verification call removed. */
   removed: number
+  /** Cards the request aimed for; fewer came back when the content supports no more distinct cards. */
+  requested: number
 }
 
-const KNOWN: ReadonlySet<string> = new Set(['bad_type', 'too_large', 'too_short', 'too_long', 'upstream', 'parse', 'model', 'not_configured', 'rate_limited', 'unverified'])
+const KNOWN: ReadonlySet<string> = new Set(['bad_type', 'too_large', 'too_short', 'too_long', 'same_language', 'upstream', 'parse', 'model', 'not_configured', 'rate_limited', 'unverified'])
 
 export async function generateCards(payload: CardsRequestPayload, signal?: AbortSignal): Promise<GeneratedCards> {
   let body: Record<string, unknown>
@@ -52,5 +57,5 @@ export async function generateCards(payload: CardsRequestPayload, signal?: Abort
       )
     : []
   if (cards.length === 0) throw new SolveExtraApiError<CardsErrorCode>('parse')
-  return { cards: cards.map(({ front, back }) => ({ front, back })), removed: typeof body.removed === 'number' ? body.removed : 0 }
+  return { cards: cards.map(({ front, back }) => ({ front, back })), removed: typeof body.removed === 'number' ? body.removed : 0, requested: typeof body.requested === 'number' ? body.requested : cards.length }
 }

@@ -87,7 +87,7 @@ export default function SolutionView({
   className = '',
   children,
 }: SolutionViewProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const switchLabelId = useId()
   const stepCount = result.steps.length
@@ -179,8 +179,8 @@ export default function SolutionView({
   const [flashcardsOpen, setFlashcardsOpen] = useState(false)
   const generateSolutionCards = useCallback(
     (signal: AbortSignal) =>
-      generateCards({ mode: 'solution', text: solutionSourceText(result), language: 'auto', avoid: [] }, signal),
-    [result],
+      generateCards({ mode: 'solution', text: solutionSourceText(result), language: 'auto', uiLanguage: i18n.language, avoid: [] }, signal),
+    [result, i18n.language],
   )
 
   return (

@@ -12,6 +12,8 @@ interface OutputLanguageSelectProps {
   labelledBy: string
   value: string
   onChange: (code: string) => void
+  /** "param" matches the app's other option selects (44px, white, 14px); "boxed" is the compact quiz-form look. */
+  variant?: 'boxed' | 'param'
 }
 
 interface Entry {
@@ -40,7 +42,12 @@ function buildSearchText(language: OutputLanguage): string {
   return normalizeForSearch([language.nativeName, language.englishName, language.trAlias].filter(Boolean).join(' '))
 }
 
-export default function OutputLanguageSelect({ id, labelledBy, value, onChange }: OutputLanguageSelectProps) {
+const TRIGGER_CLASSES = {
+  boxed: 'flex w-full items-center justify-between gap-2.5 rounded-lg border border-warm-border bg-paper py-1.5 pr-3 pl-3 text-left text-xs font-semibold text-ink transition-colors hover:border-focus-neutral focus:outline-none',
+  param: 'flex h-11 w-full items-center justify-between gap-3.5 rounded-[10px] border border-warm-border bg-card pr-4 pl-4 text-left text-sm font-semibold text-ink transition-colors hover:border-focus-neutral focus:outline-none',
+}
+
+export default function OutputLanguageSelect({ id, labelledBy, value, onChange, variant = 'boxed' }: OutputLanguageSelectProps) {
   const { t } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -243,10 +250,10 @@ export default function OutputLanguageSelect({ id, labelledBy, value, onChange }
         aria-activedescendant={mounted ? `${id}-option-${highlightedIndex}` : undefined}
         onClick={() => (isOpen ? closeMenu(false) : openMenu())}
         onKeyDown={handleTriggerKeyDown}
-        className="flex w-full items-center justify-between gap-2.5 rounded-lg border border-warm-border bg-paper py-1.5 pr-3 pl-3 text-left text-xs font-semibold text-ink transition-colors hover:border-focus-neutral focus:outline-none"
+        className={TRIGGER_CLASSES[variant]}
       >
         <span className="min-w-0 flex-1 truncate">{selected?.displayName ?? autoLabel}</span>
-        <ChevronDownIcon className={`h-3 w-3 shrink-0 text-muted transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDownIcon className={`${variant === 'param' ? 'h-3.5 w-3.5' : 'h-3 w-3'} shrink-0 text-muted transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {mounted &&

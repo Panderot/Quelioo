@@ -684,7 +684,8 @@
       "studyLabel": "Study {{name}}, {{count}} due",
       "edit": "Edit",
       "editLabel": "Edit {{name}}",
-      "ringLabel": "{{mastered}} of {{total}} cards mastered"
+      "ringLabel": "{{mastered}} of {{total}} cards mastered",
+      "studyEmpty": "Add cards to this deck first."
     },
     "deck": {
       "notFound": "This deck doesn't exist anymore.",
@@ -724,18 +725,21 @@
     "bulk": {
       "open": "Paste many cards",
       "title": "Paste cards, one per line",
-      "help": "Write “front ; back”, or separate front and back with a tab (as when copying from a spreadsheet).",
+      "help": "One card per line: “front ; back”, a tab (as copied from a spreadsheet), “front | back” or “front - back”.",
       "preview": "Preview",
       "line": "Line {{number}}",
       "errors": {
-        "no_separator": "No “;” or tab:",
+        "no_separator": "No separator (; tab | or “ - ”):",
         "empty_side": "One side is empty:",
         "too_long": "Too long (front 300, back 600 characters):"
       },
       "add_one": "Add {{count}} card",
       "add_other": "Add {{count}} cards",
       "added_one": "Added {{count}} card.",
-      "added_other": "Added {{count}} cards."
+      "added_other": "Added {{count}} cards.",
+      "duplicatesSkipped_one": "{{count}} card already in the deck was skipped.",
+      "duplicatesSkipped_other": "{{count}} cards already in the deck were skipped.",
+      "alreadyHere": "Already in the deck — skipped"
     },
     "csv": {
       "export": "Export CSV",
@@ -753,7 +757,9 @@
         "empty": "The file is empty. Choose a CSV with “front, back” on every line.",
         "columns": "Line {{line}} does not have two columns. Every line needs exactly a front and a back.",
         "too_many": "At most {{max}} cards can be imported at once (the limit was passed on line {{line}})."
-      }
+      },
+      "extraColumns_one": "{{count}} extra column is ignored.",
+      "extraColumns_other": "{{count}} extra columns are ignored."
     },
     "study": {
       "tabTitle": "Study: {{name}}",
@@ -833,7 +839,8 @@
         "not_configured": "Card generation isn't set up on this server yet.",
         "rate_limited": "You've generated a lot of cards this hour. Please try again later.",
         "unverified": "None of the cards passed the fact check. Try a more specific topic.",
-        "network": "Couldn't reach the server. Check your connection and try again."
+        "network": "Couldn't reach the server. Check your connection and try again.",
+        "same_language": "The output language is the text's own language; choose another one."
       },
       "reviewTitle": "Review the cards",
       "reviewHelp": "Edit or untick cards before adding them. Nothing is saved until you add.",
@@ -842,7 +849,13 @@
       "include": "Include card {{number}}",
       "add_one": "Add {{count}} card",
       "add_other": "Add {{count}} cards",
-      "discard": "Discard"
+      "discard": "Discard",
+      "countAuto": "Automatic (cover the whole text)",
+      "sameLanguage": "The output language is the text's own language. Choose a different output language for foreign-word cards.",
+      "fewer_one": "Only {{count}} distinct card could be made from this text.",
+      "fewer_other": "Only {{count}} distinct cards could be made from this text.",
+      "fewerTopic_one": "Only {{count}} distinct card could be made on this topic.",
+      "fewerTopic_other": "Only {{count}} distinct cards could be made on this topic."
     },
     "convert": {
       "action": "Turn into flashcards",

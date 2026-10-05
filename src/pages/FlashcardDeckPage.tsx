@@ -4,8 +4,9 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useIsPageActive } from '../hooks/usePageActive'
 import { useNow } from '../hooks/useNow'
-import { addCards, cardsForDeck, deleteCard, deleteDeck, dueCountForDeck, resetDeckProgress, restoreCard, updateCard, updateDeck, useFlashcards } from '../lib/flashcardStorage'
+import { addCards, cardsForDeck, deleteCard, deleteDeck, discardBlankDeck, dueCountForDeck, resetDeckProgress, restoreCard, updateCard, updateDeck, useFlashcards } from '../lib/flashcardStorage'
 import type { Card } from '../lib/flashcardStorage'
 import {
   MAX_BACK_CHARS,
@@ -13,13 +14,16 @@ import {
   MAX_DECK_DESCRIPTION_CHARS,
   MAX_DECK_NAME_CHARS,
   MAX_FRONT_CHARS,
+  analyzeCsv,
+  cardKey,
   cardsToCsv,
-  csvToCards,
+  decodeCsvBytes,
   duplicateFrontIds,
   normalizeFront,
-  parseBulkLines,
+  parseBulk,
+  planBulkAdd,
 } from '../lib/flashcardText'
-import type { CsvImport } from '../lib/flashcardText'
+import type { CsvAnalysis } from '../lib/flashcardText'
 import { cardStage, isStudyable } from '../lib/srs'
 import AutosaveField from '../components/flashcards/AutosaveField'
 import MathText from '../components/MathText'
@@ -141,11 +145,19 @@ export default function FlashcardDeckPage() {
   const [bulkText, setBulkText] = useState('')
   const [status, setStatus] = useState('')
   // A parsed CSV waits here until the student confirms; nothing is added before that.
-  const [csvPreview, setCsvPreview] = useState<CsvImport | null>(null)
+  const [csvPreview, setCsvPreview] = useState<CsvAnalysis | null>(null)
 
   // Arriving from "New deck": select the placeholder name, then drop the flag so a reload doesn't repeat it.
   const focusName = Boolean((location.state as { focusName?: boolean } | null)?.focusName)
   const deckExists = Boolean(deck)
+  // A deck made with "New deck" and left without a name or cards disappears when the student leaves it.
+  const pageActive = useIsPageActive()
+  const visited = useRef<{ id: string; active: boolean } | null>(null)
+  useEffect(() => {
+    const before = visited.current
+    if (before && (before.id !== deckId || (before.active && !pageActive))) discardBlankDeck(before.id)
+    visited.current = { id: deckId, active: pageActive }
+  }, [deckId, pageActive])
   useEffect(() => {
     if (!focusName || !deckExists) return
     nameRef.current?.focus()
@@ -153,8 +165,10 @@ export default function FlashcardDeckPage() {
     navigate(location.pathname, { replace: true, state: null })
   }, [focusName, deckExists, navigate, location.pathname])
 
-  const bulkLines = useMemo(() => parseBulkLines(bulkText), [bulkText])
-  const validBulk = bulkLines.filter((line) => line.error === null)
+  const bulkLines = useMemo(() => parseBulk(bulkText).lines, [bulkText])
+  const existingKeys = useMemo(() => new Set(cards.map((card) => cardKey(card.front, card.back))), [cards])
+  // Live count: valid lines minus cards already in the deck (same front and back) and repeats within the paste.
+  const bulkPlan = useMemo(() => planBulkAdd(bulkLines, existingKeys), [bulkLines, existingKeys])
   const existingFronts = useMemo(() => new Set(cards.map((card) => normalizeFront(card.front)).filter(Boolean)), [cards])
 
   if (!state.loaded) return null
@@ -183,8 +197,8 @@ export default function FlashcardDeckPage() {
 
   const handleBulkAdd = () => {
     keepGeneratorVisibility()
-    const added = addCards(deck.id, validBulk.map(({ front, back }) => ({ front, back })))
-    setStatus(t('flashcards.bulk.added', { count: added.length }))
+    const added = addCards(deck.id, bulkPlan.cards)
+    setStatus([t('flashcards.bulk.added', { count: added.length }), bulkPlan.duplicates > 0 ? t('flashcards.bulk.duplicatesSkipped', { count: bulkPlan.duplicates }) : ''].filter(Boolean).join(' '))
     setBulkText('')
     setBulkOpen(false)
   }
@@ -220,7 +234,7 @@ export default function FlashcardDeckPage() {
       setStatus(t('flashcards.csv.tooLarge'))
       return
     }
-    const result = csvToCards(await file.text(), existingFronts)
+    const result = analyzeCsv(decodeCsvBytes(await file.arrayBuffer()), existingFronts)
     if (result.error) {
       setCsvPreview(null)
       setStatus(t(`flashcards.csv.errors.${result.error.code}`, { line: result.error.line, max: MAX_IMPORT_CARDS }))
@@ -252,12 +266,18 @@ export default function FlashcardDeckPage() {
             <h1 className="font-serif text-2xl leading-snug font-semibold tracking-tight break-words text-navy lg:text-3xl">{deck.name || t('flashcards.untitledDeck')}</h1>
             <p className="text-sm text-muted">{[t('flashcards.list.cards', { count: cards.length }), ...(dueCount > 0 ? [t('flashcards.list.dueToday', { count: dueCount })] : [])].join(' · ')}</p>
           </div>
-          <Link
-            to={`/flashcards/${deck.id}/study`}
-            className={`rounded-xl px-5 py-2.5 text-sm font-bold ${dueCount > 0 ? 'border-2 border-navy text-navy hover:bg-navy/5' : 'border border-warm-border text-ink hover:border-focus-neutral'}`}
-          >
-            {t('flashcards.list.study', { count: dueCount })}
-          </Link>
+          {cards.length === 0 ? (
+            <span aria-disabled="true" title={t('flashcards.list.studyEmpty')} className="cursor-not-allowed rounded-xl border border-warm-border px-5 py-2.5 text-sm font-bold text-muted opacity-60">
+              {t('flashcards.list.study', { count: 0 })}
+            </span>
+          ) : (
+            <Link
+              to={`/flashcards/${deck.id}/study`}
+              className={`rounded-xl px-5 py-2.5 text-sm font-bold ${dueCount > 0 ? 'border-2 border-navy text-navy hover:bg-navy/5' : 'border border-warm-border text-ink hover:border-focus-neutral'}`}
+            >
+              {t('flashcards.list.study', { count: dueCount })}
+            </Link>
+          )}
         </div>
       </section>
 
@@ -273,6 +293,7 @@ export default function FlashcardDeckPage() {
             onCommit={(name) => updateDeck(deck.id, { name })}
             label={t('flashcards.editor.nameLabel')}
             maxLength={MAX_DECK_NAME_CHARS}
+            placeholder={t('flashcards.untitledDeck')}
             dataPurpose="deck-name"
           />
         </label>
@@ -338,11 +359,12 @@ export default function FlashcardDeckPage() {
       {csvPreview && (
         <section data-purpose="csv-preview" className="space-y-3 rounded-[14px] border border-warm-border bg-card p-5">
           <p className="text-sm font-semibold text-ink">{t('flashcards.csv.previewTitle', { count: csvPreview.cards.length })}</p>
-          {(csvPreview.duplicates > 0 || csvPreview.skipped > 0) && (
+          {(csvPreview.duplicates > 0 || csvPreview.skipped > 0 || csvPreview.extraColumns > 0) && (
             <p className="text-xs text-muted">
               {[
                 csvPreview.duplicates > 0 ? t('flashcards.csv.duplicates', { count: csvPreview.duplicates }) : '',
                 csvPreview.skipped > 0 ? t('flashcards.csv.skipped', { count: csvPreview.skipped }) : '',
+                csvPreview.extraColumns > 0 ? t('flashcards.csv.extraColumns', { count: csvPreview.extraColumns }) : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
@@ -352,8 +374,8 @@ export default function FlashcardDeckPage() {
             <ul data-purpose="csv-preview-list" aria-label={t('flashcards.bulk.preview')} className="max-h-64 divide-y divide-warm-border overflow-y-auto rounded-xl border border-warm-border">
               {csvPreview.cards.map((entry, index) => (
                 <li key={index} className="grid gap-1 px-3 py-2 text-xs text-ink sm:grid-cols-2">
-                  <span className="break-words"><MathText text={entry.front} /></span>
-                  <span className="break-words text-muted"><MathText text={entry.back} /></span>
+                  <span dir="auto" className="break-words"><MathText text={entry.front} /></span>
+                  <span dir="auto" className="break-words text-muted"><MathText text={entry.back} /></span>
                 </li>
               ))}
             </ul>
@@ -374,7 +396,7 @@ export default function FlashcardDeckPage() {
         </section>
       )}
 
-      {showGenerator && <CardGeneratorPanel deckFronts={cards.map((card) => card.front)} emphasis={cards.length === 0 ? 'primary' : 'secondary'} onAdd={handleGenerated} />}
+      {showGenerator && <CardGeneratorPanel key={deck.id} deckFronts={cards.map((card) => card.front)} emphasis={cards.length === 0 ? 'primary' : 'secondary'} onAdd={handleGenerated} />}
 
       {bulkOpen && (
         <section data-purpose="bulk-add" className="space-y-3 rounded-[14px] border border-warm-border bg-card p-5">
@@ -391,8 +413,12 @@ export default function FlashcardDeckPage() {
           </label>
           {bulkLines.length > 0 && (
             <ul data-purpose="bulk-preview" aria-label={t('flashcards.bulk.preview')} className="max-h-64 divide-y divide-warm-border overflow-y-auto rounded-xl border border-warm-border">
-              {bulkLines.map((line) => {
-                const duplicate = line.error === null && (existingFronts.has(normalizeFront(line.front)) || validBulk.some((other) => other !== line && normalizeFront(other.front) === normalizeFront(line.front)))
+              {bulkLines.map((line, index) => {
+                const key = cardKey(line.front, line.back)
+                const earlier = (match: (other: (typeof bulkLines)[number]) => boolean) => bulkLines.some((other, otherIndex) => otherIndex < index && other.error === null && match(other))
+                const skipped = line.error === null && (existingKeys.has(key) || earlier((other) => cardKey(other.front, other.back) === key))
+                // Same front with a different back is allowed (a second meaning) but flagged.
+                const sameFront = line.error === null && !skipped && (existingFronts.has(normalizeFront(line.front)) || earlier((other) => normalizeFront(other.front) === normalizeFront(line.front)))
                 return (
                   <li
                     key={line.line}
@@ -407,10 +433,11 @@ export default function FlashcardDeckPage() {
                       </span>
                     ) : (
                       <>
-                        <span className="break-words"><MathText text={line.front} /></span>
+                        <span dir="auto" className="break-words"><MathText text={line.front} /></span>
                         <span className="break-words text-muted">
                           <MathText text={line.back} />
-                          {duplicate && <span className="ml-2 font-semibold text-amber-text">{t('flashcards.editor.duplicate')}</span>}
+                          {skipped && <span className="ml-2 font-semibold text-amber-text">{t('flashcards.bulk.alreadyHere')}</span>}
+                          {sameFront && <span className="ml-2 font-semibold text-amber-text">{t('flashcards.editor.duplicate')}</span>}
                         </span>
                       </>
                     )}
@@ -423,11 +450,16 @@ export default function FlashcardDeckPage() {
             <button
               type="button"
               onClick={handleBulkAdd}
-              disabled={validBulk.length === 0}
+              disabled={bulkPlan.cards.length === 0}
               className="rounded-xl border-2 border-navy px-4 py-2 text-xs font-bold text-navy hover:bg-navy/5 disabled:opacity-50"
             >
-              {t('flashcards.bulk.add', { count: validBulk.length })}
+              {t('flashcards.bulk.add', { count: bulkPlan.cards.length })}
             </button>
+            {bulkPlan.duplicates > 0 && (
+              <span data-purpose="bulk-duplicates" className="self-center text-xs text-muted">
+                {t('flashcards.bulk.duplicatesSkipped', { count: bulkPlan.duplicates })}
+              </span>
+            )}
             <button type="button" onClick={() => setBulkOpen(false)} className={outlineButton}>
               {t('flashcards.common.cancel')}
             </button>

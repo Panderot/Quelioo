@@ -684,7 +684,8 @@
       "studyLabel": "{{name}} destesini çalış, {{count}} kart tekrar bekliyor",
       "edit": "Düzenle",
       "editLabel": "{{name}} destesini düzenle",
-      "ringLabel": "{{total}} kartın {{mastered}} tanesi kalıcı"
+      "ringLabel": "{{total}} kartın {{mastered}} tanesi kalıcı",
+      "studyEmpty": "Önce desteye kart ekle."
     },
     "deck": {
       "notFound": "Bu deste artık yok.",
@@ -724,18 +725,21 @@
     "bulk": {
       "open": "Toplu kart ekle",
       "title": "Kartları yapıştır, her satıra bir kart",
-      "help": "“ön yüz ; arka yüz” yaz ya da ön ve arka yüzü sekmeyle ayır (tablodan kopyalarken olduğu gibi).",
+      "help": "Her satıra bir kart: “ön yüz ; arka yüz”, sekme (tablodan kopyalarken olduğu gibi), “ön | arka” ya da “ön - arka”.",
       "preview": "Önizleme",
       "line": "Satır {{number}}",
       "errors": {
-        "no_separator": "“;” ya da sekme yok:",
+        "no_separator": "Ayraç yok (; sekme | ya da “ - ”):",
         "empty_side": "Bir yüz boş:",
         "too_long": "Çok uzun (ön 300, arka 600 karakter):"
       },
       "add_one": "{{count}} kart ekle",
       "add_other": "{{count}} kart ekle",
       "added_one": "{{count}} kart eklendi.",
-      "added_other": "{{count}} kart eklendi."
+      "added_other": "{{count}} kart eklendi.",
+      "duplicatesSkipped_one": "Destede zaten olan {{count}} kart atlandı.",
+      "duplicatesSkipped_other": "Destede zaten olan {{count}} kart atlandı.",
+      "alreadyHere": "Destede zaten var — atlanır"
     },
     "csv": {
       "export": "CSV olarak dışa aktar",
@@ -753,7 +757,9 @@
         "empty": "Dosya boş. Her satırda “ön yüz, arka yüz” olan bir CSV seç.",
         "columns": "{{line}}. satırda iki sütun yok. Her satırda tam olarak ön ve arka yüz olmalı.",
         "too_many": "Bir seferde en fazla {{max}} kart eklenebilir (sınır {{line}}. satırda aşıldı)."
-      }
+      },
+      "extraColumns_one": "{{count}} fazla sütun yok sayıldı.",
+      "extraColumns_other": "{{count}} fazla sütun yok sayıldı."
     },
     "study": {
       "tabTitle": "Çalış: {{name}}",
@@ -833,7 +839,8 @@
         "not_configured": "Kart üretme bu sunucuda henüz ayarlanmadı.",
         "rate_limited": "Bu saat içinde çok kart ürettin. Biraz sonra tekrar dene.",
         "unverified": "Kartların hiçbiri doğruluk kontrolünden geçemedi. Daha belirli bir konu dene.",
-        "network": "Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene."
+        "network": "Sunucuya ulaşılamadı. Bağlantını kontrol edip tekrar dene.",
+        "same_language": "Çıktı dili metnin diliyle aynı; başka bir dil seç."
       },
       "reviewTitle": "Kartları gözden geçir",
       "reviewHelp": "Eklemeden önce kartları düzenle ya da işaretini kaldır. Eklemeden hiçbir şey kaydedilmez.",
@@ -842,7 +849,13 @@
       "include": "{{number}}. kartı ekle",
       "add_one": "{{count}} kartı ekle",
       "add_other": "{{count}} kartı ekle",
-      "discard": "Vazgeç"
+      "discard": "Vazgeç",
+      "countAuto": "Otomatik (tüm metni kapsa)",
+      "sameLanguage": "Çıktı dili metnin diliyle aynı. Yabancı kelime kartları için farklı bir çıktı dili seç.",
+      "fewer_one": "Bu metinden {{count}} farklı kart çıkarılabildi.",
+      "fewer_other": "Bu metinden {{count}} farklı kart çıkarılabildi.",
+      "fewerTopic_one": "Bu konuda {{count}} farklı kart çıkarılabildi.",
+      "fewerTopic_other": "Bu konuda {{count}} farklı kart çıkarılabildi."
     },
     "convert": {
       "action": "Kartlara dönüştür",

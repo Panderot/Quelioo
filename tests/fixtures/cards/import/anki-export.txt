@@ -1,0 +1,6 @@
+#separator:tab
+#html:true
+#tags column:3
+Şapka Kanunu ne zaman çıkarıldı?	25&nbsp;Kasım&nbsp;1925	Tarih
+Işığın kırılması nedir?	<div>Işığın bir ortamdan diğerine geçerken<br>yön değiştirmesi.</div>	Fizik
+Gökkuşağı için güneş nerede olmalı?	<b>Gözlemcinin arkasında</b>	Fizik

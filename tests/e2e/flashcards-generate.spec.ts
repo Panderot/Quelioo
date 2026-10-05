@@ -54,7 +54,7 @@ test.describe('Flashcards — generate with AI', () => {
     await expect(review(page).locator('[data-purpose="review-card"]')).toHaveCount(3)
     await expect(review(page).getByRole('checkbox')).toHaveCount(3)
     for (const box of await review(page).getByRole('checkbox').all()) await expect(box).toBeChecked()
-    expect(mock.requests).toEqual([{ mode: 'text', text: LONG_TEXT, count: 10, style: 'term', language: 'auto', avoid: [] }])
+    expect(mock.requests).toEqual([{ mode: 'text', text: LONG_TEXT, count: 'auto', style: 'term', language: 'auto', uiLanguage: 'en', avoid: [] }])
     // Nothing is saved before "Add".
     expect((await readStore(page)).cards).toHaveLength(0)
 
@@ -91,7 +91,7 @@ test.describe('Flashcards — generate with AI', () => {
     await generateButton(page).click()
 
     await expect(review(page)).toContainText('2 doubtful cards were removed after the fact check.')
-    expect(mock.requests).toEqual([{ mode: 'topic', topic: "Türkiye'nin coğrafi bölgeleri", level: 'kpss', count: 20, style: 'translation', language: 'tr', avoid: ['Capital of Türkiye'] }])
+    expect(mock.requests).toEqual([{ mode: 'topic', topic: "Türkiye'nin coğrafi bölgeleri", level: 'kpss', count: 20, style: 'translation', language: 'tr', uiLanguage: 'en', avoid: ['Capital of Türkiye'] }])
     await expect(review(page)).toContainText('Same front as another card in this deck')
   })
 

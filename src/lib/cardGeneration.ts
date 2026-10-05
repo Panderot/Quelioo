@@ -12,3 +12,5 @@ export const DEFAULT_CARD_COUNT = 10
 export const MAX_TOPIC_CHARS = 120
 /** Most recent deck fronts sent as the avoid list. */
 export const MAX_AVOID_FRONTS = 300
+/** Text tab only: one card per planned fact, so every main fact of the text gets a card. */
+export const CARD_COUNT_AUTO = 'auto'

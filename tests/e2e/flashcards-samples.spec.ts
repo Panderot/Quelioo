@@ -73,6 +73,25 @@ test.describe('Flashcards — sample decks', () => {
     expect(store.decks.map((deck) => deck.id)).toEqual(expect.arrayContaining(['old-reforms', 'old-geo', 'old-yds']))
   })
 
+  test('the button never replaces or removes a student deck, even one named like a sample or with no cards due', async ({ page }) => {
+    await open(page, '/flashcards?lng=tr')
+    const later = { box: 2, reviews: 1, due: NOW.getTime() + 86_400_000 * 5, introducedAt: NOW.getTime() - 1000 }
+    const cards = Array.from({ length: 7 }, (_, i) => ({ id: `k${i}`, front: `Soru ${i}?`, back: `Cevap ${i}`, ...later }))
+    await seed(page, [
+      { id: 'mine-kpss', name: 'KPSS coğrafya', cards },
+      { id: 'mine-geo', name: 'Türkiye coğrafyası', cards: [{ id: 'g1', front: 'Başkent?', back: 'Ankara' }] },
+    ])
+    await expect(rows(page)).toHaveCount(2)
+    await page.getByRole('button', { name: 'Örnek desteler ekle' }).click()
+    await expect(rows(page).filter({ hasText: 'KPSS coğrafya' })).toContainText('7 kart')
+    await expect(rows(page).filter({ hasText: 'Türkiye coğrafyası' })).toHaveCount(2)
+    await page.reload()
+    const store = await readStore(page)
+    expect(store.decks.map((deck) => deck.id)).toEqual(expect.arrayContaining(['mine-kpss', 'mine-geo']))
+    expect(store.cards.filter((entry) => entry.id.startsWith('k'))).toHaveLength(7)
+    expect(store.cards.find((entry) => entry.id === 'g1')).toMatchObject({ front: 'Başkent?' })
+  })
+
   test('Western Armenian UI uses the English sample cards', async ({ page }) => {
     await open(page, '/flashcards?lng=hyw')
     await page.getByRole('button', { name: 'Աւելցնել օրինակ տրցակներ' }).click()
@@ -146,7 +165,7 @@ test.describe('Flashcards — CSV import', () => {
     const status = page.getByRole('status').filter({ hasText: /./ })
     await importCsv(page, '')
     await expect(status.first()).toContainText('The file is empty')
-    await importCsv(page, 'front,back\r\na,b\r\nc,d,e\r\n')
+    await importCsv(page, 'front,back\r\na,b\r\nsingle\r\n')
     await expect(status.first()).toContainText('Line 3 does not have two columns')
     await importCsv(page, Array.from({ length: 501 }, (_, i) => `q${i},a${i}`).join('\r\n'))
     await expect(status.first()).toContainText('At most 500 cards')

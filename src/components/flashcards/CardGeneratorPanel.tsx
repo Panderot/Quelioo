@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { generateCards } from '../../api/cards'
 import type { CardsErrorCode } from '../../api/cards'
 import { SolveExtraApiError } from '../../api/postJson'
-import { CARD_LEVELS, CARD_STYLES, DEFAULT_CARD_COUNT, MAX_AVOID_FRONTS, MAX_TOPIC_CHARS } from '../../lib/cardGeneration'
+import { CARD_COUNT_AUTO, CARD_LEVELS, CARD_STYLES, DEFAULT_CARD_COUNT, MAX_AVOID_FRONTS, MAX_TOPIC_CHARS } from '../../lib/cardGeneration'
+import { detectTextLanguage, translationLanguageConflict } from '../../lib/cardLanguage'
 import type { CardLevel, CardStyle } from '../../lib/cardGeneration'
 import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../../lib/textStats'
 import OutputLanguageSelect from '../OutputLanguageSelect'
@@ -38,13 +39,15 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
   const [text, setText] = useState('')
   const [topic, setTopic] = useState('')
   const [level, setLevel] = useState<CardLevel>('general')
-  const [count, setCount] = useState(DEFAULT_CARD_COUNT)
+  // The text tab starts on "auto" (a card for every main fact); the topic tab has fixed counts only.
+  const [count, setCount] = useState<number | typeof CARD_COUNT_AUTO>(CARD_COUNT_AUTO)
   const [style, setStyle] = useState<CardStyle>('term')
   const [language, setLanguage] = useState('auto')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<CardsErrorCode | null>(null)
   const [review, setReview] = useState<ReviewCard[] | null>(null)
   const [removed, setRemoved] = useState(0)
+  const [shortfall, setShortfall] = useState<number | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const tabRefs = useRef<Record<Mode, HTMLButtonElement | null>>({ text: null, topic: null })
 
@@ -54,7 +57,11 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
   const numberLocale = i18n.language === 'tr' ? 'tr' : 'en'
   const textValid = words >= MIN_QUIZ_WORDS && words <= MAX_QUIZ_WORDS
   const topicValid = topic.trim().length > 0 && topic.trim().length <= MAX_TOPIC_CHARS
-  const canGenerate = !loading && (mode === 'text' ? textValid : topicValid)
+  const effectiveCount = mode === 'topic' && count === CARD_COUNT_AUTO ? DEFAULT_CARD_COUNT : count
+  // Translating into the language the text is already written in teaches nothing: ask for another language.
+  const sourceLanguage = useMemo(() => (mode === 'text' && style === 'translation' ? detectTextLanguage(text) : null), [mode, style, text])
+  const sameLanguage = style === 'translation' && translationLanguageConflict({ selected: language, sourceLanguage })
+  const canGenerate = !loading && !sameLanguage && (mode === 'text' ? textValid : topicValid)
 
   const selected = selectedCards(review ?? [])
 
@@ -65,20 +72,23 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
     setLoading(true)
     setError(null)
     setReview(null)
+    setShortfall(null)
     try {
       const result = await generateCards(
         {
           mode,
           ...(mode === 'text' ? { text } : { topic: topic.trim(), level }),
-          count,
+          count: effectiveCount,
           style,
           language,
+          uiLanguage: i18n.language,
           avoid: deckFronts.map((front) => front.trim()).filter(Boolean).slice(-MAX_AVOID_FRONTS),
         },
         controller.signal,
       )
       setReview(toReviewCards(result.cards))
       setRemoved(result.removed)
+      setShortfall(result.cards.length < result.requested ? result.cards.length : null)
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === 'AbortError') return
       setError(caught instanceof SolveExtraApiError ? (caught.code as CardsErrorCode) : 'upstream')
@@ -100,6 +110,7 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
     onAdd(selected)
     setReview(null)
     setRemoved(0)
+    setShortfall(null)
   }
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -112,7 +123,7 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
   }
 
   const generateClass =
-    emphasis === 'primary'
+    emphasis === 'primary' && !review
       ? 'bg-amber text-navy shadow-sm hover:bg-amber-hover'
       : 'border-2 border-navy text-navy hover:bg-navy/5'
 
@@ -204,9 +215,9 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
             </span>
             <Select
               id={`${uid}-count-select`}
-              value={String(count)}
-              options={COUNT_OPTIONS.map((value) => ({ value: String(value), label: String(value) }))}
-              onChange={(value) => setCount(Number(value))}
+              value={String(effectiveCount)}
+              options={[...(mode === 'text' ? [{ value: CARD_COUNT_AUTO, label: t('flashcards.generate.countAuto') }] : []), ...COUNT_OPTIONS.map((value) => ({ value: String(value), label: String(value) }))]}
+              onChange={(value) => setCount(value === CARD_COUNT_AUTO ? CARD_COUNT_AUTO : Number(value))}
               labelledBy={`${uid}-count`}
             />
           </div>
@@ -226,9 +237,14 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
             <span id={`${uid}-language`} className={fieldLabel}>
               {t('flashcards.generate.languageLabel')}
             </span>
-            <OutputLanguageSelect id={`${uid}-language-select`} labelledBy={`${uid}-language`} value={language} onChange={setLanguage} />
+            <OutputLanguageSelect id={`${uid}-language-select`} labelledBy={`${uid}-language`} value={language} onChange={setLanguage} variant="param" />
           </div>
         </div>
+        {sameLanguage && (
+          <p role="status" data-purpose="same-language-note" className="text-xs font-semibold text-error">
+            {t('flashcards.generate.sameLanguage')}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -238,7 +254,7 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
           disabled={!canGenerate}
           className={`flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${generateClass}`}
         >
-          {loading ? <SpinnerIcon className="h-4 w-4" /> : emphasis === 'primary' && <SunIcon className="h-4 w-4" />}
+          {loading ? <SpinnerIcon className="h-4 w-4" /> : emphasis === 'primary' && !review && <SunIcon className="h-4 w-4" />}
           {t(loading ? 'flashcards.generate.generating' : 'flashcards.generate.generate')}
         </button>
         {loading && (
@@ -265,6 +281,11 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
             <p className="text-sm font-semibold text-ink">{t('flashcards.generate.reviewTitle')}</p>
             <p className="text-xs text-muted">{t('flashcards.generate.reviewHelp')}</p>
             {removed > 0 && <p className="text-xs text-muted">{t('flashcards.generate.removed', { count: removed })}</p>}
+            {shortfall !== null && (
+              <p data-purpose="generator-shortfall" className="text-xs font-semibold text-amber-text">
+                {t(mode === 'topic' ? 'flashcards.generate.fewerTopic' : 'flashcards.generate.fewer', { count: shortfall })}
+              </p>
+            )}
           </div>
           <CardReviewList cards={review} onChange={setReview} existingFronts={deckFronts} />
           <div className="flex flex-wrap gap-2">
@@ -272,7 +293,7 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
               type="button"
               onClick={handleAdd}
               disabled={selected.length === 0}
-              className="rounded-xl border-2 border-navy px-4 py-2 text-sm font-bold text-navy hover:bg-navy/5 disabled:opacity-50"
+              className="flex h-11 items-center rounded-xl bg-amber px-5 text-sm font-bold text-navy shadow-sm transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t('flashcards.generate.add', { count: selected.length })}
             </button>
@@ -281,8 +302,9 @@ export default function CardGeneratorPanel({ deckFronts, emphasis, onAdd }: Card
               onClick={() => {
                 setReview(null)
                 setRemoved(0)
+                setShortfall(null)
               }}
-              className="rounded-xl border border-warm-border px-4 py-2 text-sm font-semibold text-ink hover:border-focus-neutral"
+              className="flex h-11 items-center rounded-xl border border-warm-border px-4 text-sm font-semibold text-ink hover:border-focus-neutral"
             >
               {t('flashcards.generate.discard')}
             </button>

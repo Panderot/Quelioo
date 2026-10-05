@@ -128,7 +128,7 @@ test.describe('Flashcards — decks', () => {
     const lines = page.locator('[data-purpose="bulk-line"]')
     await expect(lines).toHaveCount(5)
     await expect(page.locator('[data-purpose="bulk-line"][data-valid="false"]')).toHaveCount(2)
-    await expect(lines.nth(2)).toContainText('No “;” or tab:')
+    await expect(lines.nth(2)).toContainText('No separator')
     await expect(lines.nth(3)).toContainText('Same front as another card in this deck')
     await page.getByRole('button', { name: 'Add 3 cards' }).click()
     await expect(page.getByText('Added 3 cards.')).toBeVisible()

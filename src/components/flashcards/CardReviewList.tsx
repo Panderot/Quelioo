@@ -54,6 +54,7 @@ export default function CardReviewList({ cards, onChange, existingFronts }: Card
                     maxLength={side === 'front' ? MAX_FRONT_CHARS : MAX_BACK_CHARS}
                     onChange={(event) => update(card.key, { [side]: event.target.value })}
                     aria-label={label}
+                    dir="auto"
                     className={className}
                     {...focusProps}
                   />
