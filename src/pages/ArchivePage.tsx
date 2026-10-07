@@ -3,12 +3,12 @@ import type { KeyboardEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { getArchiveEntries } from '../lib/archive'
-import type { ArchiveEntry } from '../lib/archive'
+import { useArchive } from '../lib/archive'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
 import type { EstimateDifficulty } from '../lib/estimateTime'
 import { getQuizIdsWithSongs } from '../lib/songStorage'
+import { LoadError, SkeletonList } from '../components/DataStates'
 import SolutionsList from '../components/SolutionsList'
 import { ArchiveIcon, BookIcon, CalculatorIcon, MusicNoteIcon } from '../components/icons'
 
@@ -28,7 +28,8 @@ function formatCreatedAt(iso: string, locale: string): string {
 
 export default function ArchivePage() {
   const { t, i18n } = useTranslation()
-  const [entries] = useState<ArchiveEntry[]>(() => getArchiveEntries())
+  const archive = useArchive()
+  const entries = archive.entries
   const [songQuizIds, setSongQuizIds] = useState<Set<string>>(new Set())
   // The active tab lives in the URL (?tab=solutions) so it survives reload and the back button.
   const [searchParams, setSearchParams] = useSearchParams()
@@ -99,6 +100,10 @@ export default function ArchivePage() {
       <div id="archive-panel" role="tabpanel" aria-labelledby={`archive-tab-${activeTab}`}>
         {activeTab === 'solutions' ? (
           <SolutionsList />
+        ) : !archive.loaded && archive.failed ? (
+          <LoadError onRetry={archive.reload} />
+        ) : !archive.loaded ? (
+          <SkeletonList />
         ) : entries.length === 0 ? (
           <div
             data-purpose="archive-empty-state"

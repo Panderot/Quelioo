@@ -1,3 +1,4 @@
+import { withAuth } from './_lib/with-auth.js'
 import { lessonRequestHandler } from './_lib/lesson.js'
 
-export default lessonRequestHandler
+export default withAuth(lessonRequestHandler)

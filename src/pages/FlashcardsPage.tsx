@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { SAMPLE_REF_PREFIX, missingSampleKeys, sampleDeckCards } from '../data/sampleDecks'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useNow } from '../hooks/useNow'
-import { addCards, cardsForDeck, createDeck, dismissDeletedDeck, dueCountForDeck, undoDeleteDeck, useFlashcards } from '../lib/flashcardStorage'
+import { addCards, cardsForDeck, createDeck, dismissDeletedDeck, dueCountForDeck, reloadFlashcards, undoDeleteDeck, useFlashcards } from '../lib/flashcardStorage'
+import { LoadError, SkeletonList } from '../components/DataStates'
 import { MASTERED_BOX, cardStage } from '../lib/srs'
 import ProgressRing from '../components/flashcards/ProgressRing'
 import StorageNote from '../components/flashcards/StorageNote'
@@ -92,6 +93,9 @@ export default function FlashcardsPage() {
       )}
 
       <StorageNote state={state} />
+
+      {state.loadFailed && <LoadError onRetry={reloadFlashcards} />}
+      {!state.loaded && !state.loadFailed && <SkeletonList rows={3} />}
 
       {state.loaded && state.decks.length === 0 && (
         <div data-purpose="flashcards-empty" className="flex flex-col items-center gap-3 rounded-[14px] border border-warm-border bg-card p-10 text-center">

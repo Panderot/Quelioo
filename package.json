@@ -14,7 +14,9 @@
     "test:e2e:quick": "playwright test --project=desktop --only-changed",
     "test:cross": "playwright test --project=firefox --project=webkit --workers=2",
     "test:all": "playwright test",
-    "test:live": "playwright test --config=playwright.live.config.ts"
+    "test:supabase": "node scripts/test-each.mjs --supabase",
+    "test:live": "playwright test --config=playwright.live.config.ts",
+    "types:gen": "supabase gen types typescript --linked --schema public > src/lib/database.types.ts"
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",
@@ -22,6 +24,7 @@
     "@fontsource-variable/noto-sans-armenian": "^5.3.0",
     "@fontsource-variable/noto-serif-armenian": "^5.3.0",
     "@mozilla/readability": "^0.6.0",
+    "@supabase/supabase-js": "^2.117.3",
     "heic2any": "^0.0.4",
     "i18next": "^26.4.2",
     "i18next-browser-languagedetector": "^8.2.1",

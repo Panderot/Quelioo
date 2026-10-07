@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/auth/apiFetch'
 /** Error thrown by the Solve add-on clients (similar problem, another way): `code` maps to a localized message. */
 export class SolveExtraApiError<C extends string> extends Error {
   code: C | 'network' | 'parse' | 'upstream'
@@ -12,7 +13,7 @@ export class SolveExtraApiError<C extends string> extends Error {
 export async function postJson<C extends string>(url: string, payload: unknown, knownErrors: ReadonlySet<string>, signal?: AbortSignal): Promise<Record<string, unknown>> {
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await apiFetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),

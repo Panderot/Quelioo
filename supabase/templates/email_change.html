@@ -1,0 +1,18 @@
+<!doctype html>
+<html><body style="margin:0;padding:24px;background:#FBF7EF;font-family:'Plus Jakarta Sans',Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFEFB;border:1px solid #ECE5D6;border-radius:16px"><tr><td style="padding:32px">
+<p style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;color:#0E1330">Quelio</p>
+{{ if and .Data.ui_language (eq .Data.ui_language "tr") }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Yeni e-postanı onayla</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Quelio hesabın için yeni e-posta adresini onayla.</p>
+<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Yeni e-postayı onayla</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">Bu değişikliği sen istemediysen bu iletiyi yok sayabilirsin.</p>{{ else if and .Data.ui_language (eq .Data.ui_language "hyw") }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Հաստատէ՛ նոր էլ. փոստդ</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Quelio հաշիւիդ նոր էլ. փոստի հասցէն հաստատէ՛։</p>
+<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Հաստատել նոր հասցէն</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">Եթէ դուն չես խնդրած այս փոփոխութիւնը, այս նամակը անտեսէ՛։</p>{{ else }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Confirm your new email</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Confirm the new email address for your Quelio account.</p>
+<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Confirm new email</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">If you didn't ask for this change, ignore this message.</p>{{ end }}
+</td></tr></table>
+</td></tr></table>
+</body></html>

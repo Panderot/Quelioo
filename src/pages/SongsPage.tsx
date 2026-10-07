@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { MouseEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { getArchiveEntries } from '../lib/archive'
+import { useArchive } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import SongCoverage from '../components/SongCoverage'
 import { buildSongFactPlan, buildSongKeyFacts } from '../lib/songFacts'
@@ -10,7 +11,7 @@ import { isSectionTagLine, localizeSectionTags } from '../lib/songTags'
 import { MAX_SOURCE_EXCERPT_CHARS, SONG_TONES } from '../lib/song'
 import type { SongTone } from '../lib/song'
 import { measureAudioDuration } from '../lib/audioDuration'
-import { deleteSong, getAllSongs, orderSongsForList, saveSong, updateSongDuration } from '../lib/songStorage'
+import { deleteSong, getAllSongs, getSongBlob, getSongDownloadUrl, getSongPlaybackUrl, orderSongsForList, saveSong, updateSongDuration } from '../lib/songStorage'
 import type { StoredSong } from '../lib/songStorage'
 import { remainingSongSecondsToday } from '../lib/songCostGuard'
 import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
@@ -58,9 +59,8 @@ export default function SongsPage() {
   const status = useSongFeatureStatus()
 
   const [songs, setSongs] = useState<StoredSong[]>([])
-  // Archive entries aren't needed live — read on mount and whenever the user comes back to this
-  // page, to know which quizzes still exist (for "open quiz" vs "Quiz deleted") and for the picker.
-  const [archiveEntries, setArchiveEntries] = useState<ArchiveEntry[]>(getArchiveEntries)
+  // Quizzes decide "open quiz" vs "Quiz deleted" and fill the picker.
+  const { entries: archiveEntries } = useArchive()
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerSearch, setPickerSearch] = useState('')
@@ -86,6 +86,7 @@ export default function SongsPage() {
   const loadSongs = useCallback(() => {
     const correctStoredDurations = async (loaded: StoredSong[]) => {
       for (const song of loaded) {
+        if (!song.audio) continue // account songs record their real length when they are saved
         const real = await measureAudioDuration(song.audio)
         if (real === null || Math.abs(real - song.durationSeconds) < 1) continue
         await updateSongDuration(song.id, real)
@@ -105,12 +106,11 @@ export default function SongsPage() {
   // The page stays mounted while the user is elsewhere; songs and quizzes may have changed meanwhile.
   useOnPageReturn(() => {
     loadSongs()
-    setArchiveEntries(getArchiveEntries())
   })
 
   useEffect(
     () => () => {
-      if (currentUrlRef.current) URL.revokeObjectURL(currentUrlRef.current)
+      if (currentUrlRef.current?.startsWith('blob:')) URL.revokeObjectURL(currentUrlRef.current)
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
     },
     [],
@@ -131,7 +131,7 @@ export default function SongsPage() {
   // One object URL per song for the download link, created once per `songs` load and revoked
   // together — recreating one on every render (e.g. inline in the JSX) would leak a blob URL per
   // render instead of per song.
-  const downloadUrls = useMemo(() => new Map(songs.map((song) => [song.id, URL.createObjectURL(song.audio)])), [songs])
+  const downloadUrls = useMemo(() => new Map(songs.flatMap((song) => (song.audio ? [[song.id, URL.createObjectURL(song.audio)] as const] : []))), [songs])
   useEffect(() => {
     return () => {
       downloadUrls.forEach((url) => URL.revokeObjectURL(url))
@@ -170,7 +170,7 @@ export default function SongsPage() {
     loadSongs()
   }
 
-  const togglePlay = (song: StoredSong) => {
+  const togglePlay = async (song: StoredSong) => {
     const audio = audioRef.current
     if (!audio) return
     if (playingId === song.id) {
@@ -178,19 +178,34 @@ export default function SongsPage() {
       setPlayingId(null)
       return
     }
-    if (currentUrlRef.current) URL.revokeObjectURL(currentUrlRef.current)
-    const url = URL.createObjectURL(song.audio)
+    if (currentUrlRef.current?.startsWith('blob:')) URL.revokeObjectURL(currentUrlRef.current)
+    currentUrlRef.current = null
+    setPlayingId(song.id)
+    const url = await getSongPlaybackUrl(song)
+    if (!url) {
+      setPlayingId(null)
+      return
+    }
     currentUrlRef.current = url
     audio.src = url
     // play() rejects with AbortError when the source changes again before playback actually starts
     // (e.g. rapidly switching tracks) — expected, not a real failure, so swallow it rather than
     // leaving an unhandled rejection.
     audio.play().catch(() => {})
-    setPlayingId(song.id)
+  }
+
+  /** Account songs have no local file: ask for a short-lived link that saves it under the song's name. */
+  const handleDownload = async (event: MouseEvent<HTMLAnchorElement>, song: StoredSong) => {
+    if (downloadUrls.has(song.id)) return
+    event.preventDefault()
+    const url = await getSongDownloadUrl(song, downloadFilename(song.quizTitle, song.mimeType))
+    if (url) window.location.assign(url)
   }
 
   const handleDeleteConfirmed = async (song: StoredSong) => {
     const index = songs.findIndex((entry) => entry.id === song.id)
+    // Keep the audio in memory so the undo can put the song back.
+    const audio = song.audio ?? (await getSongBlob(song))
     await deleteSong(song.id)
     if (playingId === song.id) {
       audioRef.current?.pause()
@@ -199,7 +214,7 @@ export default function SongsPage() {
     setSongs((current) => current.filter((entry) => entry.id !== song.id))
     setConfirmDeleteId(null)
     if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
-    setDeleted({ song, index })
+    setDeleted({ song: { ...song, audio }, index })
     undoTimeoutRef.current = setTimeout(() => setDeleted(null), UNDO_WINDOW_MS)
   }
 
@@ -384,7 +399,7 @@ export default function SongsPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => togglePlay(song)}
+                    onClick={() => void togglePlay(song)}
                     aria-label={playingId === song.id ? t('song.player.pause') : t('song.player.play')}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber text-navy transition-colors hover:bg-amber-hover"
                   >
@@ -403,8 +418,9 @@ export default function SongsPage() {
                     <ChevronDownIcon className={`h-3.5 w-3.5 transition-transform ${expandedId === song.id ? 'rotate-180' : ''}`} />
                   </button>
                   <a
-                    href={downloadUrls.get(song.id)}
+                    href={downloadUrls.get(song.id) ?? '#'}
                     download={downloadFilename(song.quizTitle, song.mimeType)}
+                    onClick={(event) => void handleDownload(event, song)}
                     className="flex items-center gap-1 rounded-lg border border-warm-border px-2.5 py-1.5 text-xs font-semibold text-ink hover:border-focus-neutral"
                   >
                     <DownloadIcon className="h-3.5 w-3.5" />

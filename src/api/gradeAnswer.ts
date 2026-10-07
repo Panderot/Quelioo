@@ -1,5 +1,6 @@
 import { isGradeResponseBody } from '../lib/grading'
 import type { GradeErrorCode, GradeQuestionType, GradeResponseBody } from '../lib/grading'
+import { apiFetch } from '../lib/auth/apiFetch'
 
 export interface GradeAnswerPayload {
   type: GradeQuestionType
@@ -33,7 +34,7 @@ function isErrorCode(value: unknown): value is GradeErrorCode {
 export async function gradeAnswer(payload: GradeAnswerPayload, signal?: AbortSignal): Promise<GradeResponseBody> {
   let response: Response
   try {
-    response = await fetch('/api/grade', {
+    response = await apiFetch('/api/grade', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),

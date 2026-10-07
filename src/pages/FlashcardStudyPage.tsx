@@ -6,7 +6,8 @@ import type { TFunction } from 'i18next'
 
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useNow } from '../hooks/useNow'
-import { cardsForDeck, updateCard, useFlashcards } from '../lib/flashcardStorage'
+import { cardsForDeck, reloadFlashcards, updateCard, useFlashcards } from '../lib/flashcardStorage'
+import { LoadError, SkeletonList } from '../components/DataStates'
 import type { Card, Deck } from '../lib/flashcardStorage'
 import {
   answerCurrent,
@@ -337,7 +338,8 @@ export default function FlashcardStudyPage() {
   const [run, setRun] = useState<{ mode: StudyMode; key: number }>({ mode: 'study', key: 0 })
   useDocumentTitle(deck ? t('flashcards.study.tabTitle', { name: deck.name || t('flashcards.untitledDeck') }) : t('flashcards.title'))
 
-  if (!state.loaded) return null
+  if (state.loadFailed) return <LoadError onRetry={reloadFlashcards} />
+  if (!state.loaded) return <SkeletonList rows={2} />
   if (!deck) {
     return (
       <div className="space-y-3 rounded-[14px] border border-warm-border bg-card p-8 text-center">

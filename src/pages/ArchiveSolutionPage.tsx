@@ -36,9 +36,9 @@ export default function ArchiveSolutionPage() {
   }, [id])
 
   const solution = loaded?.id === id ? loaded.solution : undefined
-  const thumbnailUrl = useMemo(() => (solution?.thumbnail ? URL.createObjectURL(solution.thumbnail) : null), [solution])
+  const thumbnailUrl = useMemo(() => (solution?.thumbnail ? URL.createObjectURL(solution.thumbnail) : (solution?.thumbnailUrl ?? null)), [solution])
   useEffect(() => () => {
-    if (thumbnailUrl) URL.revokeObjectURL(thumbnailUrl)
+    if (thumbnailUrl?.startsWith('blob:')) URL.revokeObjectURL(thumbnailUrl)
   }, [thumbnailUrl])
 
   const backLink = (

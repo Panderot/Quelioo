@@ -98,6 +98,14 @@ App root (flex, bg-paper)
 - **Inline delete confirm:** "Delete this ...?" + red-tinted Delete + outline Cancel before deleting.
 - **Confirm dialog (`ConfirmDialog`):** modal (radius 16, scrim), focus starts on Cancel, Escape cancels, red-tinted confirm. Used for delete deck and reset progress.
 - **Owner gate (`OwnerAccessGate`, production only):** card (radius 12, paper), password input, solid amber "Unlock", localized error. Shared by Songs and Audio Lesson; one stored code unlocks both. "Lock" (outline, lock icon) lives only on the owner page. Lists stay visible; only the step that leads to a paid call shows the gate.
+- **Auth layout (`AuthLayout`):** public pages only (sign in/up, passwords, callback, legal). Paper background with the top-right glow; header h-20 with logo mark + wordmark (navy, left) and the language switcher (right); one centered card (`AuthCard`: radius 16, warm border, 24/32px padding, max 448px; legal text 672px). No sidebar.
+- **Auth forms:** field = 11px bold uppercase muted label above an h-11 radius-10 input (card, warm border; error = red border + 12px red message with `role="alert"`, linked by `aria-describedby`). One solid amber CTA per card (h-12, radius 14, navy bold 16px, spinner while busy); secondary actions are outline buttons or amber-text links. Form-level messages: tinted rounded-xl line (`error` / `success` / neutral). Google is a full-width outline button (h-12) above an "or" divider and exists only when the project has the provider on.
+- **Password strength hint:** three 4px bars under a new-password field (red weak, amber fair, green strong) plus a 12px muted line (`aria-live="polite"`). Only the 8-character minimum blocks; the rest is advice.
+- **Check email:** card with title, the address, a spam note and an outline "Send again" button that counts down 60 s ("Send again in 42 s"); the same screen serves sign-up confirmation and password reset (it never says whether an account exists).
+- **User menu (`UserMenu`):** last item of the sidebar footer: 32px amber initials avatar + name (name hidden in the icon rail). Opens an upward menu (MoreMenu tokens: card, warm border, radius 12, 40px rows) with Account and Sign out; WAI-ARIA menu keys. Works in the mobile drawer.
+- **Sync status (`SyncStatus`):** muted pill left of the language switcher; hidden when every change is saved, "Saving…" with a spinner while writes wait, red-tinted "Couldn't save a change" when the server refused one.
+- **Skeleton and load error (`DataStates`):** `SkeletonList` = rows of card/warm-border blocks with a 220ms pulse (off under reduced motion, `aria-busy`); `LoadError` = centered card with the message and an outline "Try again". Lists show the skeleton first and never an empty state before the load ends.
+- **Rate-limit toast (`RateLimitNotice`):** the Undo toast shape (navy pill, bottom-center, 6s) saying "Too many requests, try again shortly"; any API call answered 429 raises it.
 
 ## 6. Create page
 
@@ -214,6 +222,22 @@ Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
 - **Player (`LessonPlayer`):** card: 48px amber play/pause circle, one range seek bar across the whole lesson (amber accent) with "m:ss / m:ss", outline "Back 10 s" / "Forward 10 s", speed pills 0.75-1.5× (song chip style), outline "Download MP3" and "Download transcript", muted shortcut line. One joined MP3 in a single hidden `<audio>` (gapless; pause lines followed by 2.5 s of silence), Media Session metadata and seek actions. Space plays/pauses, arrows skip 10 s (not while typing). Only one audio plays at a time app-wide.
 - **Transcript:** section headings (role label + Fraunces title), each line a button (speaker label + text) that jumps there; the current line is `bg-amber/15` and scrolls into view while playing. Self-check answers show a muted italic "Think first, then show the answer." + outline "Show answer". With audio ready, the editor hides behind an outline "Edit the script" toggle; the owner-only spelled-out abbreviations list sits under the player. No money is shown on the list or lesson pages.
 - **Script editor (`ScriptEditor`):** sections with an amber-text uppercase role label (Quick recall, Opening, Lesson, In simple words, Recap, Self-check, Study tip) + Fraunces section title. Line card (radius 12, warm border): 11px uppercase speaker label, small "pause" / "edited" pills, text; flagged line: 2px dashed amber border + warning icon + "Check this line:" reason. Icon buttons (32px): move up/down, edit, add after, delete; below 640px they sit in a row under the text. Edit: speaker `Select` (boxed, two-speaker styles), textarea, solid amber "Save" + outline "Cancel"; a new line exists only once saved with text. Below the script: 2px navy outline "Prepare next part (N)" or outline "Go to part N".
+
+### Sign in, sign up, passwords (`/sign-in`, `/sign-up`, `/check-email`, `/forgot-password`, `/reset-password`, `/auth/callback`)
+
+All inside `AuthLayout`. Sign in: title, subtitle, optional Google, email, password, "Forgot your password?" link right-aligned, amber CTA, "Create an account" link. Sign up adds an optional name, the strength hint and a required checkbox (20px, amber) "I accept the Terms of Use and the Privacy Notice" with both links opening the legal pages. After sign-in the user returns to `?next=` (only same-site paths). The callback shows a splash while it verifies the link; an expired or invalid link gets a card with "Get a new link". Every error is generic: nothing says whether an email is registered.
+
+### Legal (`/kullanim-sartlari`, `/gizlilik`)
+
+Public, wide `AuthCard`. A tinted amber "Draft" note comes first (final legal text is supplied by the owner), then short sections (serif 18px heading, 14px body) and a text "Back" link.
+
+### Account (`/account`)
+
+Page intro, then stacked cards (radius 14, warm border, 20px padding, serif 18px title, optional muted hint): Profile (name field + save, interface language Select), Email (current address, new address, confirmation sent note), Password (new + confirm with strength hint), Sign-in methods (rows: email, Google), Sessions (outline Sign out, Sign out of all devices), Your data (Download my data), Data on this device (only when old local data exists; amber CTA opens the import dialog), Delete account (red-tinted button). Delete opens a dialog with a typed-email confirmation; the red confirm unlocks only on a match.
+
+### Import dialog (`ImportDialog`)
+
+ConfirmDialog shell (radius 16, scrim, max 448px). Prompt: serif title, "Found 8 decks, 23 quizzes and 4 songs on this device. Add them to your account?", a paper list of counts, a muted card total and "nothing is deleted until the import is checked"; outline "Not now" + amber "Import". Running: status line per step and a 8px amber progress bar. Result: green-neutral "Imported" (or a red message when unchecked or failed, with Try again), a muted skipped-duplicates line, then "Remove old copy" (red tint) or "Keep it". Shown once per account per device; "Not now" leaves the Account entry.
 
 ## 9. Interaction, motion, accessibility
 

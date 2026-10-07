@@ -29,8 +29,9 @@ test.describe('Flashcards — sample decks', () => {
 
     await rows(page).filter({ hasText: 'YDS sık kelimeler' }).getByRole('link', { name: /düzenle/i }).click()
     await expect(page.getByLabel('1. kartın ön yüzü')).toHaveValue('abundant: Türkçe anlamı?')
+    // Saving to IndexedDB trails the screen a little (slower in WebKit): wait for all seven decks.
+    await expect.poll(async () => (await readStore(page)).decks.length).toBe(7)
     const store = await readStore(page)
-    expect(store.decks).toHaveLength(7)
     expect(store.cards.filter((entry) => entry.front.endsWith('?'))).toHaveLength(store.cards.length)
   })
 

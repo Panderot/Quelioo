@@ -1,20 +1,23 @@
+import { clearAllLocalSongs, deleteSongLocal, getAllSongsLocal, getQuizIdsWithSongsLocal, getSongsForQuizLocal, saveSongLocal, updateSongDurationLocal } from './legacy/songStorageLocal'
+import {
+  deleteSongRemote,
+  getAllSongsRemote,
+  getQuizIdsWithSongsRemote,
+  getSongsForQuizRemote,
+  saveSongRemote,
+  songBlobRemote,
+  songDownloadUrlRemote,
+  songPlaybackUrlRemote,
+  updateSongDurationRemote,
+} from './remote/songsRemote'
 import type { SongCoverageItem, SongProvider, SongStyle, SongTone } from './song'
+import { isFakeBackend } from './supabase'
 
-/** Songs can be large (raw PCM/MP3 bytes), so they're kept in IndexedDB rather than localStorage —
- * see CLAUDE.md. Keyed by quiz id: the archived quiz view's "Listen" section, the Archive row's
- * music icon, and the Songs page (/songs) all read from here, never from the archive entry itself. */
-
-const DB_NAME = 'quelio-songs'
-const DB_VERSION = 1
-const STORE = 'songs'
-const QUIZ_ID_INDEX = 'quizId'
-const CREATED_AT_INDEX = 'createdAt'
-
-/** Latest N songs kept per quiz (oldest for that quiz evicted beyond this). */
-/** A quiz split into a numbered series needs one stored song per part (up to 3 parts). */
-const MAX_PER_QUIZ = 6
-/** Oldest songs evicted globally once the store holds more than this many, regardless of quiz. */
-const MAX_TOTAL = 30
+/** Songs live in the account: metadata in Supabase `songs`, the audio in the private `audio` bucket
+ * (played and downloaded through short-lived signed URLs). Keyed by quiz id: the archived quiz view's
+ * "Listen" section, the Archive row's music icon, and the Songs page (/songs) all read from here,
+ * never from the archive entry itself. The UI-logic test build (fake backend) and the one-time
+ * import use the original browser-local store (IndexedDB `quelio-songs`). */
 
 export interface StoredSong {
   id: string
@@ -38,163 +41,70 @@ export interface StoredSong {
   coverage?: SongCoverageItem[]
   /** 1-based number of this song inside a numbered series (a quiz split over several songs). */
   seriesPart?: number
-  audio: Blob
+  /** The audio bytes when this device already holds them (local store, just created); songs listed
+   * from the account have null and are played through `getSongPlaybackUrl`. */
+  audio: Blob | null
+  /** Object path in the `audio` bucket (account songs only). */
+  audioPath: string | null
 }
 
-/** Fills in defaults for fields added after some records were already saved — every read goes
- * through this so older songs render instead of breaking. */
-function withDefaults(raw: Omit<StoredSong, 'quizTitle' | 'tone' | 'factCheckPassed'> & Partial<StoredSong>): StoredSong {
-  return {
-    ...raw,
-    quizTitle: raw.quizTitle ?? raw.title,
-    tone: raw.tone ?? 'normal',
-    factCheckPassed: raw.factCheckPassed ?? true,
-  }
+export type NewSong = Omit<StoredSong, 'id' | 'createdAt' | 'audioPath'>
+
+/** Saves a new song. Throws if the account store or the upload fails — the caller still has the
+ * audio in memory for the current session and shows a localized note. */
+export function saveSong(entry: NewSong): Promise<StoredSong> {
+  return isFakeBackend ? saveSongLocal(entry) : saveSongRemote(entry)
 }
 
-class SongStorageError extends Error {}
-
-function makeId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+export function getSongsForQuiz(quizId: string): Promise<StoredSong[]> {
+  return isFakeBackend ? getSongsForQuizLocal(quizId) : getSongsForQuizRemote(quizId)
 }
 
-function openDb(): Promise<IDBDatabase> {
-  if (typeof indexedDB === 'undefined') {
-    return Promise.reject(new SongStorageError('IndexedDB unavailable'))
-  }
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION)
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains(STORE)) {
-        const store = db.createObjectStore(STORE, { keyPath: 'id' })
-        store.createIndex(QUIZ_ID_INDEX, 'quizId', { unique: false })
-        store.createIndex(CREATED_AT_INDEX, 'createdAt', { unique: false })
-      }
-    }
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(new SongStorageError(request.error?.message ?? 'open failed'))
-  })
+/** Every song, newest first — backs the Songs page (/songs). */
+export function getAllSongs(): Promise<StoredSong[]> {
+  return isFakeBackend ? getAllSongsLocal() : getAllSongsRemote()
 }
 
-function promisifyRequest<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(new SongStorageError(request.error?.message ?? 'request failed'))
-  })
+export function deleteSong(id: string): Promise<void> {
+  return isFakeBackend ? deleteSongLocal(id) : deleteSongRemote(id)
 }
 
-async function getAllForQuiz(db: IDBDatabase, quizId: string): Promise<StoredSong[]> {
-  const tx = db.transaction(STORE, 'readonly')
-  const index = tx.objectStore(STORE).index(QUIZ_ID_INDEX)
-  const all = await promisifyRequest(index.getAll(IDBKeyRange.only(quizId)))
-  return all.map(withDefaults).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-}
-
-function deleteById(db: IDBDatabase, id: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite')
-    tx.objectStore(STORE).delete(id)
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(new SongStorageError(tx.error?.message ?? 'delete failed'))
-  })
-}
-
-/** Corrects a stored song's duration to the length measured from its audio file. Best effort: a
- * missing record or an unavailable IndexedDB leaves the song as it was. */
-export async function updateSongDuration(id: string, durationSeconds: number): Promise<void> {
-  try {
-    const db = await openDb()
-    const tx = db.transaction(STORE, 'readwrite')
-    const store = tx.objectStore(STORE)
-    const existing = await promisifyRequest(store.get(id))
-    if (!existing) return
-    store.put({ ...existing, durationSeconds })
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(new SongStorageError(tx.error?.message ?? 'update failed'))
-    })
-  } catch {
-    // Keep the old value; it is corrected again the next time the songs load.
-  }
-}
-
-/** Saves a new song, then evicts down to MAX_PER_QUIZ for this quiz and MAX_TOTAL overall (oldest
- * first). Throws SongStorageError if IndexedDB is unavailable or the write fails (e.g. quota) — the
- * caller still has the audio in memory for the current session and shows a localized note. */
-export async function saveSong(entry: Omit<StoredSong, 'id' | 'createdAt'>): Promise<StoredSong> {
-  const db = await openDb()
-  const record: StoredSong = { ...entry, id: makeId(), createdAt: new Date().toISOString() }
-
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE, 'readwrite')
-    tx.objectStore(STORE).put(record)
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(new SongStorageError(tx.error?.message ?? 'save failed'))
-  })
-
-  const forQuiz = await getAllForQuiz(db, entry.quizId)
-  for (const stale of forQuiz.slice(MAX_PER_QUIZ)) {
-    await deleteById(db, stale.id)
-  }
-
-  const totalTx = db.transaction(STORE, 'readonly')
-  const allSortedByAge = await promisifyRequest(totalTx.objectStore(STORE).index(CREATED_AT_INDEX).getAll())
-  if (allSortedByAge.length > MAX_TOTAL) {
-    const oldestFirst = allSortedByAge.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-    for (const stale of oldestFirst.slice(0, allSortedByAge.length - MAX_TOTAL)) {
-      await deleteById(db, stale.id)
-    }
-  }
-
-  return record
-}
-
-export async function getSongsForQuiz(quizId: string): Promise<StoredSong[]> {
-  try {
-    const db = await openDb()
-    return await getAllForQuiz(db, quizId)
-  } catch {
-    return []
-  }
-}
-
-/** Every song in the store, newest first — backs the Songs page (/songs). */
-export async function getAllSongs(): Promise<StoredSong[]> {
-  try {
-    const db = await openDb()
-    const tx = db.transaction(STORE, 'readonly')
-    const all = await promisifyRequest(tx.objectStore(STORE).getAll())
-    return all.map(withDefaults).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  } catch {
-    return []
-  }
-}
-
-export async function deleteSong(id: string): Promise<void> {
-  try {
-    const db = await openDb()
-    await deleteById(db, id)
-  } catch {
-    // Best-effort — if IndexedDB is unavailable there's nothing stored to delete anyway.
-  }
+/** Corrects a stored song's duration to the length measured from its audio file. */
+export function updateSongDuration(id: string, durationSeconds: number): Promise<void> {
+  return isFakeBackend ? updateSongDurationLocal(id, durationSeconds) : updateSongDurationRemote(id, durationSeconds)
 }
 
 /** Every quiz id that currently has at least one saved song — used to show the music icon on
  * Archive rows without opening a song for each one. */
-export async function getQuizIdsWithSongs(): Promise<Set<string>> {
-  try {
-    const db = await openDb()
-    const tx = db.transaction(STORE, 'readonly')
-    // The store is capped at MAX_TOTAL records, so reading them all and mapping to quizId is
-    // simpler (and cheap) compared to IDBIndex.getAllKeys(), which returns primary keys, not the
-    // index's own key values.
-    const all = await promisifyRequest(tx.objectStore(STORE).getAll())
-    return new Set(all.map((entry) => entry.quizId))
-  } catch {
-    return new Set()
-  }
+export function getQuizIdsWithSongs(): Promise<Set<string>> {
+  return isFakeBackend ? getQuizIdsWithSongsLocal() : getQuizIdsWithSongsRemote()
+}
+
+/** A URL the audio element can play: an object URL for audio held on this device (the caller revokes
+ * `blob:` URLs) or a signed URL for the account copy. Null when the audio is gone. */
+export async function getSongPlaybackUrl(song: StoredSong): Promise<string | null> {
+  if (song.audio) return URL.createObjectURL(song.audio)
+  return songPlaybackUrlRemote(song)
+}
+
+/** A URL that saves the audio under `filename`. */
+export async function getSongDownloadUrl(song: StoredSong, filename: string): Promise<string | null> {
+  if (song.audio) return URL.createObjectURL(song.audio)
+  return songDownloadUrlRemote(song, filename)
+}
+
+/** The audio bytes of a song (downloaded when it is only in the account). */
+export async function getSongBlob(song: StoredSong): Promise<Blob | null> {
+  return song.audio ?? songBlobRemote(song)
+}
+
+/** Songs still stored in this browser (before the account existed), for the import. */
+export function readLegacySongs(): Promise<StoredSong[]> {
+  return getAllSongsLocal()
+}
+
+export function clearLegacySongs(): Promise<void> {
+  return clearAllLocalSongs()
 }
 
 /** Songs for the list: songs of one quiz stay together (the quiz with the newest song first) and a

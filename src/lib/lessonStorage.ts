@@ -1,22 +1,18 @@
 import { hashText } from './hash'
 import { isLessonLevel, isLessonStyle, isLessonTone, isRecord } from './lesson'
 import type { EpisodePlan, EpisodeScript, KeyPoint, LessonOptions } from './lesson'
+import { clearAllLocalLessons, deleteLessonLocal, getAllLessonsLocal, getAllPlansLocal, getAllSegmentsLocal, getCachedPlanLocal, getLessonLocal, getSegmentsLocal, isLocalLessonStoragePersistent, pruneSegmentsLocal, putCachedPlanLocal, putLessonLocal, putSegmentLocal } from './legacy/lessonStorageLocal'
+import { clearLessonCache, deleteLessonRemote, getAllLessonsRemote, getCachedPlanRemote, getLessonRemote, getSegmentsRemote, putCachedPlanRemote, putLessonRemote, putSegmentRemote, pruneSegmentsRemote } from './remote/lessonsRemote'
+import { isFakeBackend } from './supabase'
 
-/** Audio lessons live in their own IndexedDB database (`quelio-lessons`), so adding them never
- * migrates the other stores. `lessons` holds one record per lesson (all its parts); `plans` caches
- * the extracted key points per source + level + language, so changing only style or tone never
- * pays for a second extraction. Without IndexedDB everything works in memory for the session. */
+/** Audio lessons live in the account: lessons in Supabase `lessons`, cached plans in `lesson_plans`, recorded
+ * lines in `lesson_segments` with their audio in the private `audio` bucket. `lessons` holds one record
+ * per lesson (all its parts); `plans` caches the extracted key points per source + level + language, so
+ * changing only style or tone never pays for a second extraction. The UI-logic test build (fake
+ * backend) and the one-time import use the original browser-local store (IndexedDB `quelio-lessons`). */
 
-const DB_NAME = 'quelio-lessons'
-/** v2 adds the `segments` store (recorded audio); upgrades only create missing stores. */
-const DB_VERSION = 2
-const LESSONS = 'lessons'
-const PLANS = 'plans'
-const SEGMENTS = 'segments'
+export const LESSON_SCHEMA_VERSION = 1
 const SPEND_KEY = 'quelio.lessonSpend.v1'
-const LESSON_SCHEMA_VERSION = 1
-/** Oldest lessons are evicted beyond this many. */
-const MAX_LESSONS = 200
 
 export type LessonSourceKind = 'text' | 'file' | 'url' | 'quiz' | 'solution'
 
@@ -83,7 +79,7 @@ export function createLessonId(): string {
 }
 
 /** Normalizes any stored shape; null for unusable records. */
-function withDefaults(raw: unknown): StoredLesson | null {
+export function normalizeLesson(raw: unknown): StoredLesson | null {
   if (!isRecord(raw) || typeof raw.id !== 'string' || !isRecord(raw.options) || !Array.isArray(raw.episodes) || !Array.isArray(raw.keyPoints)) return null
   const options = raw.options
   const kinds: LessonSourceKind[] = ['text', 'file', 'url', 'quiz', 'solution']
@@ -122,80 +118,14 @@ function withDefaults(raw: unknown): StoredLesson | null {
   }
 }
 
+
 // ---------------------------------------------------------------------------
-// IndexedDB with an in-memory fallback
+// Storage (account in production; the browser-local store in the UI-logic test build)
 // ---------------------------------------------------------------------------
 
-const memoryLessons = new Map<string, StoredLesson>()
-const memoryPlans = new Map<string, CachedPlan>()
-/** Some privacy modes throw on any access to `indexedDB`, so even the existence check is guarded. */
-function detectIndexedDb(): boolean {
-  try {
-    return typeof indexedDB !== 'undefined'
-  } catch {
-    return false
-  }
-}
-
-let indexedDbWorks = detectIndexedDb()
-
-/** False once IndexedDB turned out to be unavailable (lessons then last for this session only). */
+/** False once storage turned out to be unavailable (lessons then last for this session only). */
 export function isLessonStoragePersistent(): boolean {
-  return indexedDbWorks
-}
-
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (!indexedDbWorks) {
-      reject(new Error('IndexedDB unavailable'))
-      return
-    }
-    let request: IDBOpenDBRequest
-    try {
-      request = indexedDB.open(DB_NAME, DB_VERSION)
-    } catch (error) {
-      reject(error instanceof Error ? error : new Error('open failed'))
-      return
-    }
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains(LESSONS)) db.createObjectStore(LESSONS, { keyPath: 'id' })
-      if (!db.objectStoreNames.contains(PLANS)) db.createObjectStore(PLANS, { keyPath: 'key' })
-      if (!db.objectStoreNames.contains(SEGMENTS)) db.createObjectStore(SEGMENTS, { keyPath: 'key' })
-    }
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('open failed'))
-    request.onblocked = () => reject(new Error('open blocked'))
-  })
-}
-
-async function withStore<T>(store: string, mode: IDBTransactionMode, work: (objectStore: IDBObjectStore) => IDBRequest<T> | void): Promise<T | undefined> {
-  const db = await openDb()
-  try {
-    return await new Promise<T | undefined>((resolve, reject) => {
-      const tx = db.transaction(store, mode)
-      const request = work(tx.objectStore(store))
-      let result: T | undefined
-      if (request) request.onsuccess = () => (result = request.result)
-      tx.oncomplete = () => resolve(result)
-      tx.onerror = () => reject(tx.error ?? new Error('transaction failed'))
-      tx.onabort = () => reject(tx.error ?? new Error('transaction aborted'))
-    })
-  } finally {
-    db.close()
-  }
-}
-
-/** Runs the IndexedDB path; on failure switches to memory for the rest of the session. */
-async function persistent<T>(idb: () => Promise<T>, memory: () => T): Promise<T> {
-  if (indexedDbWorks) {
-    try {
-      return await idb()
-    } catch {
-      indexedDbWorks = false
-    }
-  }
-  return memory()
+  return isFakeBackend ? isLocalLessonStoragePersistent() : true
 }
 
 const listeners = new Set<() => void>()
@@ -210,65 +140,75 @@ function notify() {
 }
 
 export async function getAllLessons(): Promise<StoredLesson[]> {
-  const all = await persistent(
-    async () => ((await withStore<unknown[]>(LESSONS, 'readonly', (store) => store.getAll())) ?? []).map(withDefaults).filter((entry): entry is StoredLesson => entry !== null),
-    () => [...memoryLessons.values()],
-  )
-  return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  return isFakeBackend ? getAllLessonsLocal() : getAllLessonsRemote()
 }
 
 export async function getLesson(id: string): Promise<StoredLesson | null> {
-  return persistent(
-    async () => withDefaults(await withStore<unknown>(LESSONS, 'readonly', (store) => store.get(id))),
-    () => memoryLessons.get(id) ?? null,
-  )
+  return isFakeBackend ? getLessonLocal(id) : getLessonRemote(id)
 }
 
-/** Saves (or replaces) a lesson, then evicts the oldest beyond MAX_LESSONS. */
+/** Saves (or replaces) a lesson. */
 export async function putLesson(lesson: StoredLesson): Promise<StoredLesson> {
-  const record = { ...lesson, schemaVersion: LESSON_SCHEMA_VERSION, updatedAt: new Date().toISOString() }
-  memoryLessons.set(record.id, record)
-  await persistent(
-    async () => {
-      await withStore(LESSONS, 'readwrite', (store) => store.put(record))
-      const stale = (await getAllLessons()).slice(MAX_LESSONS)
-      if (stale.length > 0) await withStore(LESSONS, 'readwrite', (store) => stale.forEach((entry) => store.delete(entry.id)))
-    },
-    () => undefined,
-  )
+  const saved = isFakeBackend ? await putLessonLocal(lesson) : putLessonRemote(lesson)
   notify()
-  return record
+  return saved
 }
 
 export async function deleteLesson(id: string): Promise<void> {
-  memoryLessons.delete(id)
-  await persistent(
-    async () => {
-      await withStore(LESSONS, 'readwrite', (store) => store.delete(id))
-    },
-    () => undefined,
-  )
+  if (isFakeBackend) await deleteLessonLocal(id)
+  else await deleteLessonRemote(id)
   notify()
 }
 
 export async function getCachedPlan(key: string): Promise<CachedPlan | null> {
-  return persistent(
-    async () => {
-      const raw = await withStore<unknown>(PLANS, 'readonly', (store) => store.get(key))
-      return isRecord(raw) && Array.isArray(raw.keyPoints) && Array.isArray(raw.episodes) ? (raw as unknown as CachedPlan) : null
-    },
-    () => memoryPlans.get(key) ?? null,
-  )
+  return isFakeBackend ? getCachedPlanLocal(key) : getCachedPlanRemote(key)
 }
 
 export async function putCachedPlan(plan: CachedPlan): Promise<void> {
-  memoryPlans.set(plan.key, plan)
-  await persistent(
-    async () => {
-      await withStore(PLANS, 'readwrite', (store) => store.put(plan))
-    },
-    () => undefined,
-  )
+  if (isFakeBackend) await putCachedPlanLocal(plan)
+  else putCachedPlanRemote(plan)
+}
+
+// ---------------------------------------------------------------------------
+// Recorded audio segments, keyed by segmentKey (normalized text, voice, model, instructions)
+// ---------------------------------------------------------------------------
+
+export interface StoredSegment {
+  key: string
+  audio: Blob
+  durationSeconds: number
+  createdAt: string
+}
+
+export async function getSegments(keys: string[]): Promise<Map<string, StoredSegment>> {
+  return isFakeBackend ? getSegmentsLocal(keys) : getSegmentsRemote(keys)
+}
+
+export async function putSegment(segment: StoredSegment): Promise<void> {
+  if (isFakeBackend) await putSegmentLocal(segment)
+  else await putSegmentRemote(segment)
+}
+
+/** Deletes recorded audio that no saved lesson line uses any more. */
+export async function pruneSegments(keep: Set<string>): Promise<void> {
+  if (isFakeBackend) await pruneSegmentsLocal(keep)
+  else await pruneSegmentsRemote(keep)
+}
+
+/** Forgets what this tab cached from the account (sign-out, other account). */
+export function resetLessonCache(): void {
+  clearLessonCache()
+  notify()
+}
+
+/** Lessons, plans and recorded lines still stored in this browser (before the account existed), for the import. */
+export async function readLegacyLessons(): Promise<{ lessons: StoredLesson[]; plans: CachedPlan[]; segments: StoredSegment[] }> {
+  const [lessons, plans, segments] = await Promise.all([getAllLessonsLocal(), getAllPlansLocal(), getAllSegmentsLocal()])
+  return { lessons, plans, segments }
+}
+
+export function clearLegacyLessons(): Promise<void> {
+  return clearAllLocalLessons()
 }
 
 /** Status shown in the list: audio is ready once every part has audio (part 2 of the feature). */
@@ -290,81 +230,6 @@ export function lessonDuration(lesson: StoredLesson): { seconds: number; exact: 
 
 export function lessonCostUsd(lesson: StoredLesson): number {
   return lesson.planCostUsd + lesson.episodes.reduce((sum, episode) => sum + (episode.costUsd ?? 0) + (episode.audioCostUsd ?? 0), 0)
-}
-
-// ---------------------------------------------------------------------------
-// Recorded audio segments, keyed by segmentKey (normalized text, voice, model, instructions)
-// ---------------------------------------------------------------------------
-
-export interface StoredSegment {
-  key: string
-  audio: Blob
-  durationSeconds: number
-  createdAt: string
-}
-
-const memorySegments = new Map<string, StoredSegment>()
-
-export async function getSegments(keys: string[]): Promise<Map<string, StoredSegment>> {
-  const wanted = new Set(keys)
-  const found = await persistent(
-    async () => {
-      const db = await openDb()
-      try {
-        return await new Promise<StoredSegment[]>((resolve, reject) => {
-          const tx = db.transaction(SEGMENTS, 'readonly')
-          const store = tx.objectStore(SEGMENTS)
-          const result: StoredSegment[] = []
-          for (const key of wanted) {
-            const request = store.get(key)
-            request.onsuccess = () => {
-              const entry: unknown = request.result
-              if (isRecord(entry) && typeof entry.key === 'string' && typeof entry.durationSeconds === 'number') {
-                const audio = toBlob(entry.bytes ?? entry.audio)
-                if (audio) result.push({ key: entry.key, audio, durationSeconds: entry.durationSeconds, createdAt: typeof entry.createdAt === 'string' ? entry.createdAt : '' })
-              }
-            }
-          }
-          tx.oncomplete = () => resolve(result)
-          tx.onerror = () => reject(tx.error ?? new Error('read failed'))
-        })
-      } finally {
-        db.close()
-      }
-    },
-    () => [...memorySegments.values()].filter((entry) => wanted.has(entry.key)),
-  )
-  return new Map(found.map((segment) => [segment.key, segment]))
-}
-
-/** Stored as plain bytes: Safari refuses Blobs in IndexedDB in private browsing. */
-function toBlob(value: unknown): Blob | null {
-  if (value instanceof Blob) return value
-  if (value instanceof ArrayBuffer) return new Blob([value], { type: 'audio/mpeg' })
-  return null
-}
-
-export async function putSegment(segment: StoredSegment): Promise<void> {
-  memorySegments.set(segment.key, segment)
-  const bytes = await segment.audio.arrayBuffer()
-  await persistent(
-    async () => {
-      await withStore(SEGMENTS, 'readwrite', (store) => store.put({ key: segment.key, bytes, durationSeconds: segment.durationSeconds, createdAt: segment.createdAt }))
-    },
-    () => undefined,
-  )
-}
-
-/** Deletes recorded audio that no saved lesson line uses any more. */
-export async function pruneSegments(keep: Set<string>): Promise<void> {
-  for (const key of memorySegments.keys()) if (!keep.has(key)) memorySegments.delete(key)
-  await persistent(
-    async () => {
-      const keys = ((await withStore<IDBValidKey[]>(SEGMENTS, 'readonly', (store) => store.getAllKeys())) ?? []).filter((key) => typeof key === 'string' && !keep.has(key))
-      if (keys.length > 0) await withStore(SEGMENTS, 'readwrite', (store) => keys.forEach((key) => store.delete(key)))
-    },
-    () => undefined,
-  )
 }
 
 // ---------------------------------------------------------------------------

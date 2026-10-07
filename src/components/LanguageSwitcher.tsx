@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { syncLanguageToProfile } from '../lib/auth/authStore'
 import { CheckIcon, ChevronDownIcon, GlobeIcon } from './icons'
 
 interface LanguageOption {
@@ -56,6 +57,7 @@ export default function LanguageSwitcher() {
 
   const selectLanguage = (code: LanguageOption['code']) => {
     void i18n.changeLanguage(code)
+    syncLanguageToProfile(code)
     setIsOpen(false)
     buttonRef.current?.focus()
   }

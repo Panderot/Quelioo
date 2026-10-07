@@ -1131,8 +1131,257 @@
   },
   "ownerPage": {
     "title": "Sahip",
-    "subtitle": "Bu cihazdaki sesli ders harcamaları. Öğrenciler bu sayfayı görmez.",
+    "subtitle": "Bu ay tüm hesapların yapay zekâ harcaması. Öğrenciler bu sayfayı görmez.",
     "monthSpend": "Bu ay: {{cost}}",
     "monthSpendBudget": "Bu ay: {{cost}} / {{budget}}"
+  },
+  "auth": {
+    "email": "E-posta",
+    "password": "Şifre",
+    "confirmPassword": "Şifreyi onayla",
+    "displayName": "Ad",
+    "optional": "isteğe bağlı",
+    "or": "veya",
+    "continueWithGoogle": "Google ile devam et",
+    "backToSignIn": "Girişe dön",
+    "emailInvalid": "Geçerli bir e-posta adresi gir.",
+    "passwordTooShort": "En az 8 karakter kullan.",
+    "passwordMismatch": "İki şifre aynı değil.",
+    "networkError": "Quelio'ya ulaşılamadı. Bağlantını kontrol edip tekrar dene.",
+    "genericError": "Bir şeyler ters gitti. Lütfen tekrar dene.",
+    "signIn": {
+      "title": "Tekrar hoş geldin",
+      "subtitle": "Quizlerini, kartlarını ve şarkılarını her cihazda açmak için giriş yap.",
+      "submit": "Giriş yap",
+      "submitting": "Giriş yapılıyor…",
+      "forgot": "Şifreni mi unuttun?",
+      "noAccount": "Quelio'da yeni misin?",
+      "signUpLink": "Hesap oluştur",
+      "invalid": "E-posta veya şifre yanlış.",
+      "unconfirmed": "Önce e-postanı onayla. Bağlantıyı yeniden gönderebiliriz.",
+      "resend": "Bağlantıyı yeniden gönder",
+      "resendSent": "Hesap gerektiriyorsa yeni bir bağlantı yolda."
+    },
+    "signUp": {
+      "title": "Hesabını oluştur",
+      "subtitle": "Quizlerin, kartların ve şarkıların her cihazda seninle kalır.",
+      "submit": "Hesap oluştur",
+      "submitting": "Hesap oluşturuluyor…",
+      "hasAccount": "Zaten hesabın var mı?",
+      "signInLink": "Giriş yap",
+      "terms": "<terms>Kullanım Şartları</terms>'nı ve <privacy>Gizlilik Bildirimi</privacy>'ni kabul ediyorum.",
+      "termsRequired": "Devam etmek için Kullanım Şartları'nı ve Gizlilik Bildirimi'ni kabul et."
+    },
+    "strength": {
+      "label": "Şifre gücü",
+      "short": "En az 8 karakter.",
+      "weak": "Zayıf: daha fazla karakter ya da harf ve rakam karışımı ekle.",
+      "fair": "Orta: daha uzun bir şifre ya da daha çok çeşitlilik güçlendirir.",
+      "strong": "Güçlü"
+    },
+    "checkEmail": {
+      "title": "E-postanı kontrol et",
+      "body": "{{email}} adresine bir bağlantı gönderdik. Devam etmek için aç. Bir dakika sürebilir.",
+      "bodyNoEmail": "Sana bir bağlantı gönderdik. Devam etmek için aç. Bir dakika sürebilir.",
+      "spam": "Henüz gelmedi mi? Spam klasörüne bak.",
+      "resend": "Bağlantıyı yeniden gönder",
+      "resendIn": "{{seconds}} sn sonra yeniden gönder",
+      "resent": "Yeniden gönderildi.",
+      "resendFailed": "Yeniden gönderilemedi. Birazdan tekrar dene.",
+      "noAddress": "Yeni bağlantı için e-postanı gir.",
+      "wrongEmail": "Adres yanlış mı? Baştan başla"
+    },
+    "forgot": {
+      "title": "Şifreni mi unuttun?",
+      "subtitle": "E-postanı gir, yeni şifre seçmen için bir bağlantı gönderelim.",
+      "submit": "Bağlantıyı gönder",
+      "submitting": "Gönderiliyor…",
+      "sentTitle": "E-postanı kontrol et",
+      "sentBody": "{{email}} için bir hesap varsa, şifreyi sıfırlama bağlantısı yolda."
+    },
+    "reset": {
+      "title": "Yeni şifre seç",
+      "subtitle": "En az 8 karakter kullan.",
+      "newPassword": "Yeni şifre",
+      "submit": "Şifreyi kaydet",
+      "submitting": "Kaydediliyor…",
+      "success": "Şifren değiştirildi.",
+      "continue": "Quelio'ya devam et",
+      "noSession": "Bu bağlantının süresi dolmuş ya da daha önce kullanılmış.",
+      "requestNew": "Yeni bağlantı al"
+    },
+    "callback": {
+      "verifying": "Giriş yapılıyor…",
+      "expiredTitle": "Bu bağlantının süresi doldu",
+      "expiredBody": "Bağlantılar bir kez ve kısa süre çalışır. Devam etmek için yenisini iste.",
+      "invalidTitle": "Bu bağlantı çalışmıyor",
+      "invalidBody": "Daha önce kullanılmış ya da eksik kopyalanmış olabilir. Devam etmek için yenisini iste.",
+      "requestNew": "Yeni bağlantı al",
+      "emailChanged": "E-posta adresin güncellendi.",
+      "denied": "Giriş iptal edildi. Tekrar deneyebilirsin."
+    },
+    "config": {
+      "title": "Quelio henüz kurulmadı",
+      "body": "Bu sürümde hesap hizmeti ayarları yok. Supabase adresini ve yayımlanabilir anahtarı ekleyip yeniden derle."
+    },
+    "loading": "Yükleniyor…"
+  },
+  "account": {
+    "title": "Hesap",
+    "subtitle": "Profilin, girişin ve verilerin.",
+    "save": "Kaydet",
+    "saving": "Kaydediliyor…",
+    "saved": "Kaydedildi.",
+    "profile": {
+      "title": "Profil",
+      "displayName": "Ad",
+      "language": "Arayüz dili"
+    },
+    "email": {
+      "title": "E-posta adresi",
+      "current": "Şu anki adres: {{email}}",
+      "new": "Yeni e-posta",
+      "submit": "E-postayı değiştir",
+      "sent": "{{email}} adresine bir onay bağlantısı gönderdik. Adres, bağlantıyı açtıktan sonra değişir.",
+      "same": "Bu zaten senin adresin."
+    },
+    "password": {
+      "title": "Şifre",
+      "new": "Yeni şifre",
+      "confirm": "Yeni şifreyi onayla",
+      "submit": "Şifreyi değiştir",
+      "done": "Şifren değiştirildi.",
+      "google": "Google ile giriş yapıyorsun. Buradan bir şifre de belirleyebilirsin."
+    },
+    "methods": {
+      "title": "Giriş yöntemleri",
+      "email": "E-posta ve şifre",
+      "google": "Google"
+    },
+    "sessions": {
+      "title": "Oturumlar",
+      "signOut": "Çıkış yap",
+      "signOutAll": "Tüm cihazlardan çık",
+      "signOutAllHint": "Bu cihaz dahil her cihazdaki oturumu kapatır."
+    },
+    "data": {
+      "title": "Verilerin",
+      "download": "Verilerimi indir",
+      "downloadHint": "Hesabına ait her şeyi içeren bir JSON dosyası.",
+      "downloading": "Hazırlanıyor…",
+      "downloadFailed": "Verilerin hazırlanamadı. Tekrar dene."
+    },
+    "import": {
+      "title": "Bu cihazdaki veriler",
+      "button": "Bu cihazdaki eski verileri aktar",
+      "hint": "Yalnızca bu tarayıcıda kayıtlı {{items}} bulundu."
+    },
+    "delete": {
+      "title": "Hesabı sil",
+      "hint": "Hesabını, tüm quizleri, desteleri, şarkıları, dersleri ve dosyaları siler. Geri alınamaz.",
+      "button": "Hesabımı sil",
+      "dialogTitle": "Hesabın silinsin mi?",
+      "dialogBody": "Her şey kalıcı olarak silinir. Onaylamak için e-posta adresini yaz.",
+      "confirmLabel": "E-posta adresin",
+      "confirm": "Her şeyi sil",
+      "failed": "Hesap silinemedi. Tekrar dene."
+    },
+    "errors": {
+      "unauthorized": "Oturumun sona erdi. Tekrar giriş yap.",
+      "forbidden": "Buna erişimin yok.",
+      "bad_request": "Bu istek kabul edilmedi.",
+      "rate_limited": "Çok fazla istek, birazdan tekrar dene.",
+      "server": "Bizim tarafta bir sorun oldu. Tekrar dene.",
+      "network": "Quelio'ya ulaşılamadı. Bağlantını kontrol et."
+    }
+  },
+  "userMenu": {
+    "label": "Hesap menüsü",
+    "account": "Hesap",
+    "signOut": "Çıkış yap"
+  },
+  "legal": {
+    "draftTitle": "Taslak",
+    "draftBody": "Bu metin bir taslaktır. Nihai hukuki metin, yayından önce sahibi tarafından eklenecek.",
+    "back": "Geri",
+    "terms": {
+      "title": "Kullanım Şartları",
+      "intro": "Bu şartlar Quelio'nun nasıl kullanılabileceğini anlatır.",
+      "useTitle": "Quelio'yu kullanma",
+      "useBody": "Quelio quiz hazırlamana, soru çözmene ve çalışmana yardım eder. Eklediğin içerikten ve giriş bilgilerini güvende tutmaktan sen sorumlusun.",
+      "contentTitle": "İçeriğin",
+      "contentBody": "Quizlerin, kartların ve diğer verilerin sana aittir. Hesap sayfandan istediğin zaman indirebilir veya silebilirsin.",
+      "aiTitle": "Yapay zekâ ürünü içerik",
+      "aiBody": "Quizler, çözümler ve dersler yapay zekâ ile hazırlanır ve hata içerebilir. Önemli bilgileri güvenmeden önce kontrol et."
+    },
+    "privacy": {
+      "title": "Gizlilik Bildirimi",
+      "intro": "Bu bildirim, Quelio'nun neleri sakladığını ve nedenini açıklar.",
+      "dataTitle": "Neleri saklıyoruz",
+      "dataBody": "E-posta adresin, adın ve oluşturduğun quizler, kartlar, şarkılar, dersler ve ayarlar; böylece her cihazda aynı olurlar.",
+      "aiTitle": "Yapay zekâ sağlayıcıları",
+      "aiBody": "Quiz, çözüm ve ders hazırlamak için gönderdiğin metin ya da fotoğraf yapay zekâ sağlayıcılarına iletilir. Yalnızca isteğini yanıtlamak için kullanılır.",
+      "controlTitle": "Kontrol sende",
+      "controlBody": "Hesap sayfasından her şeyi indirebilir ya da hesabını tüm veri ve dosyalarıyla silebilirsin."
+    }
+  },
+  "importDialog": {
+    "title": "Eski verilerini de getir",
+    "body": "Bu cihazda {{items}} bulundu. Hesabına aktaralım mı?",
+    "counts": {
+      "decks_one": "{{count}} deste",
+      "decks_other": "{{count}} deste",
+      "quizzes_one": "{{count}} quiz",
+      "quizzes_other": "{{count}} quiz",
+      "songs_one": "{{count}} şarkı",
+      "songs_other": "{{count}} şarkı",
+      "solutions_one": "{{count}} çözüm",
+      "solutions_other": "{{count}} çözüm",
+      "lessons_one": "{{count}} sesli ders",
+      "lessons_other": "{{count}} sesli ders",
+      "cards_one": "{{count}} kart",
+      "cards_other": "{{count}} kart"
+    },
+    "and": "ve",
+    "previewCards": "Desteler toplam {{cards}} içeriyor.",
+    "keepNote": "Aktarım doğrulanana kadar bu cihazdaki hiçbir şey silinmez.",
+    "import": "Aktar",
+    "notNow": "Şimdi değil",
+    "later": "Daha sonra hesap sayfandan aktarabilirsin.",
+    "progress": {
+      "decks": "Desteler aktarılıyor…",
+      "quizzes": "Quizler aktarılıyor…",
+      "songs": "Şarkılar aktarılıyor…",
+      "solutions": "Çözümler aktarılıyor…",
+      "lessons": "Dersler aktarılıyor…",
+      "verify": "Her şeyin ulaştığı kontrol ediliyor…"
+    },
+    "doneTitle": "Aktarıldı",
+    "done": "Bu cihazdaki her şey artık hesabında.",
+    "doneSkipped": "{{items}} zaten hesabında vardı, atlandı.",
+    "unverified": "Bazı öğeler hesabında doğrulanamadı. Bu cihazdaki kopyan saklandı. Aktarımı tekrar dene.",
+    "failed": "Aktarım durdu. Bu cihazdaki kopyan saklandı. Tekrar dene.",
+    "clearPrompt": "Eski kopya bu cihazdan kaldırılsın mı?",
+    "clear": "Eski kopyayı kaldır",
+    "keep": "Kalsın",
+    "close": "Kapat",
+    "retry": "Tekrar dene"
+  },
+  "data": {
+    "loading": "Yükleniyor…",
+    "loadFailed": "Yüklenemedi. Bağlantını kontrol et.",
+    "retry": "Tekrar dene"
+  },
+  "sync": {
+    "saving": "Kaydediliyor…",
+    "failed": "Bir değişiklik kaydedilemedi"
+  },
+  "errors": {
+    "rateLimited": "Çok fazla istek, birazdan tekrar dene."
+  },
+  "ownerUsage": {
+    "total": "Bu ay: {{cost}}",
+    "byFeature": "Özelliğe göre",
+    "loadFailed": "Kullanım yüklenemedi."
   }
 }

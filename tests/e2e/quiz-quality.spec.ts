@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
 
 import { isFillBlankMatch, normalizeAnswer, turkishBaseForms, usesTurkishRules } from '../../src/lib/answerCheck'
-import { previousStemsForSource, sourceTextHash } from '../../src/lib/archive'
-import type { ArchiveEntry } from '../../src/lib/archive'
+import { previousStemsForSource, sourceTextHash } from '../../src/lib/archiveSource'
+import type { ArchiveEntry } from '../../src/lib/archiveSource'
 import type { QuizQuestion } from '../../src/lib/quiz'
 import {
   batchSlots,

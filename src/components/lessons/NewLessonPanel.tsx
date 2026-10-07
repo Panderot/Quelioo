@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -6,7 +6,7 @@ import { ExtractUrlApiError, extractUrlText } from '../../api/extractUrl'
 import type { ExtractUrlErrorCode } from '../../api/extractUrl'
 import { LessonApiError, planLesson, verifyAndStoreLessonAccessCode, writeLessonEpisode } from '../../api/lesson'
 import type { LessonClientErrorCode } from '../../api/lesson'
-import { getArchiveEntries } from '../../lib/archive'
+import { useArchive } from '../../lib/archive'
 import { extractTextFromFile, FileExtractionError } from '../../lib/fileExtraction'
 import type { FileErrorCode } from '../../lib/fileExtraction'
 import { LESSON_LEVELS, LESSON_STYLES, LESSON_TONES, episodeTargetSeconds } from '../../lib/lesson'
@@ -84,7 +84,7 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
   const fileTokenRef = useRef(0)
   const urlAbortRef = useRef<AbortController | null>(null)
 
-  const archiveEntries = useMemo(() => getArchiveEntries(), [])
+  const { entries: archiveEntries } = useArchive()
 
   useEffect(() => () => abortRef.current?.abort(), [])
   useEffect(() => () => urlAbortRef.current?.abort(), [])

@@ -1,0 +1,18 @@
+<!doctype html>
+<html><body style="margin:0;padding:24px;background:#FBF7EF;font-family:'Plus Jakarta Sans',Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFEFB;border:1px solid #ECE5D6;border-radius:16px"><tr><td style="padding:32px">
+<p style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;color:#0E1330">Quelio</p>
+{{ if and .Data.ui_language (eq .Data.ui_language "tr") }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Quelio'ya hoş geldin</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Hesabını oluşturmayı tamamlamak için e-posta adresini onayla.</p>
+<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">E-postayı onayla</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">Bu hesabı sen oluşturmadıysan bu iletiyi yok sayabilirsin.</p>{{ else if and .Data.ui_language (eq .Data.ui_language "hyw") }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Բարի եկար Quelio</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Հաշիւդ ստեղծելը աւարտելու համար հաստատէ՛ էլ. փոստիդ հասցէն։</p>
+<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Հաստատել էլ. փոստը</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">Եթէ դուն չես ստեղծած այս հաշիւը, այս նամակը անտեսէ՛։</p>{{ else }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Welcome to Quelio</h1>
+<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Confirm your email address to finish creating your account.</p>
+<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=signup" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Confirm email</a></p>
+<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">If you didn't create this account, you can ignore this message.</p>{{ end }}
+</td></tr></table>
+</td></tr></table>
+</body></html>

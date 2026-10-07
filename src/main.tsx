@@ -4,9 +4,12 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import './i18n'
 import App from './App.tsx'
+import { initAuth } from './lib/auth/authStore'
+import './lib/data/session'
 import { initFocusModality } from './lib/focusModality'
 import { initSingleAudio } from './lib/singleAudio'
 
+initAuth()
 initFocusModality()
 initSingleAudio()
 

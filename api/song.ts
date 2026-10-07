@@ -1,3 +1,4 @@
+import { withAuth } from './_lib/with-auth.js'
 import { songRequestHandler } from './_lib/song.js'
 
-export default songRequestHandler
+export default withAuth(songRequestHandler)

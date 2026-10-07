@@ -5,8 +5,12 @@ import { spawn, spawnSync } from 'node:child_process'
 import { readdirSync } from 'node:fs'
 import { posix } from 'node:path'
 
-const PORT = 5190
-const files = process.argv.length > 2 ? process.argv.slice(2) : readdirSync('tests/e2e').filter((f) => f.endsWith('.spec.ts')).map((f) => posix.join('tests/e2e', f))
+// --supabase: the real-Supabase specs (tests/supabase) on port 5191 against the TEST project; default: the UI-logic specs on a fake backend.
+const supabaseMode = process.argv.includes('--supabase')
+const PORT = supabaseMode ? 5191 : 5190
+const specDir = supabaseMode ? 'tests/supabase' : 'tests/e2e'
+const args = process.argv.slice(2).filter((arg) => arg !== '--supabase')
+const files = args.length > 0 ? args : readdirSync(specDir).filter((f) => f.endsWith('.spec.ts')).map((f) => posix.join(specDir, f))
 
 const nodeCount = () => {
   const r = spawnSync('powershell', ['-NoProfile', '-Command', "(Get-Process node -ErrorAction SilentlyContinue | Measure-Object).Count"], { encoding: 'utf8' })
@@ -14,8 +18,12 @@ const nodeCount = () => {
 }
 const killTree = (pid) => spawnSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' })
 
+const { testEnv } = supabaseMode ? await import('../tests/supabase/env.ts').catch(() => ({ testEnv: null })) : { testEnv: null }
+const serverEnv = supabaseMode
+  ? { VITE_SUPABASE_URL: testEnv?.url ?? '', VITE_SUPABASE_PUBLISHABLE_KEY: testEnv?.publishableKey ?? '', SUPABASE_SECRET_KEY: testEnv?.secretKey ?? '' }
+  : { VITE_QUELIO_FAKE_BACKEND: '1' }
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(PORT), '--strictPort'], {
-  env: { ...process.env, QUELIO_NO_HMR: '1' },
+  env: { ...process.env, QUELIO_NO_HMR: '1', ...serverEnv },
   stdio: 'ignore',
 })
 const cleanup = () => killTree(server.pid)
@@ -34,7 +42,7 @@ const baseline = nodeCount()
 console.log(`node processes before: ${baseline}`)
 let failedFiles = 0
 for (const file of files) {
-  const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', file, '--project=desktop', '--project=mobile', '--workers=2', '--reporter=line'], { encoding: 'utf8', maxBuffer: 1 << 28 })
+  const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', ...(supabaseMode ? ['--config=playwright.supabase.config.ts'] : []), file, '--project=desktop', '--project=mobile', '--workers=2', '--reporter=line'], { encoding: 'utf8', maxBuffer: 1 << 28 })
   const lines = `${run.stdout}${run.stderr}`.split('\n')
   const summary = lines.filter((l) => /^\s+\d+ (passed|failed|flaky|skipped)/.test(l)).map((l) => l.trim()).join(', ')
   console.log(`${run.status === 0 ? 'ok  ' : 'FAIL'} ${file} — ${summary || 'no summary'} (node: ${nodeCount()})`)

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useNow } from '../hooks/useNow'
 import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
 import { dueCountForDeck, useFlashcards } from '../lib/flashcardStorage'
+import UserMenu from './auth/UserMenu'
 import { LogoMark } from './Logo'
 import { ArchiveIcon, CalculatorIcon, CardsIcon, HeadphonesIcon, HomeIcon, MusicNoteIcon } from './icons'
 import type { ComponentType, SVGProps } from 'react'
@@ -104,6 +105,7 @@ export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
           className="space-y-1 border-t border-paper/10 p-4"
         >
           {footerNavItems.map(renderItem)}
+          <UserMenu onNavigate={onCloseMobile} />
         </div>
       </aside>
     </>

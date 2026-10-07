@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/auth/apiFetch'
 export type SolveErrorCode =
   | 'unreadable'
   | 'not_math'
@@ -94,7 +95,7 @@ function toSolveOutcome(value: unknown): SolveOutcome | null {
 export async function solveMathPhoto(payload: SolveRequestPayload, signal?: AbortSignal): Promise<SolveOutcome> {
   let response: Response
   try {
-    response = await fetch('/api/solve', {
+    response = await apiFetch('/api/solve', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),

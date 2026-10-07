@@ -24,7 +24,7 @@ import {
 import { useIsPageActive } from '../hooks/usePageActive'
 import { getStoredOwnerAccessCode, clearStoredOwnerAccessCode } from '../lib/ownerAccessCode'
 import { saveSong } from '../lib/songStorage'
-import type { StoredSong } from '../lib/songStorage'
+import type { NewSong } from '../lib/songStorage'
 import SongPlayerCard from './SongPlayerCard'
 import OwnerAccessGate from './OwnerAccessGate'
 import { CloseIcon, MusicNoteIcon } from './icons'
@@ -303,7 +303,7 @@ export default function SongPanel({
       const seriesLabel = seriesCount > 1 ? `${quizTitle} · ${t('song.series.partName', { number: currentPart + 1 })}` : quizTitle
       const savedCoverage = buildSongCoverage(partFacts, checkedFactLines, canonicalLyrics)
       setPartCovered((current) => Object.assign([...current], { [currentPart]: savedCoverage ? coveredCount(savedCoverage) : 0 }))
-      const entry: Omit<StoredSong, 'id' | 'createdAt'> = {
+      const entry: NewSong = {
         quizId,
         quizTitle: seriesLabel,
         title: seriesCount > 1 ? seriesLabel : lyricsResult.title,

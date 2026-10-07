@@ -1,28 +1,29 @@
 import type { SolveResult } from '../api/solve'
+import { clearAllLocalSolutions, deleteSolutionLocal, getAllSolutionsLocal, getSolutionLocal, restoreSolutionLocal, saveSolutionLocal, updateSolutionExtrasLocal } from './legacy/solutionStorageLocal'
+import { deleteSolutionRemote, getAllSolutionsRemote, getSolutionRemote, restoreSolutionRemote, saveSolutionRemote, updateSolutionExtrasRemote } from './remote/solutionsRemote'
+import { isFakeBackend } from './supabase'
 
-/** Every successful Solve is kept in IndexedDB (thumbnails are Blobs, too big for localStorage) —
- * see CLAUDE.md. Backs the Archive "Solutions" tab and /archive/solutions/:id. */
+/** Every successful Solve is kept in the account: metadata and results in Supabase `solves`, the
+ * ≤800px thumbnail in the private `uploads` bucket (shown through a signed URL). Backs the Archive
+ * "Solutions" tab and /archive/solutions/:id. The UI-logic test build (fake backend) and the one-time
+ * import use the original browser-local store (IndexedDB `quelio-solutions`). */
 
-const DB_NAME = 'quelio-solutions'
-const DB_VERSION = 1
-const STORE = 'solutions'
-const CREATED_AT_INDEX = 'createdAt'
-
-/** Oldest solutions are evicted once the store holds more than this many. */
-const MAX_SOLUTIONS = 300
 /** Longest side of the stored thumbnail; the full-size photo is never stored. */
 const THUMBNAIL_MAX_SIDE = 800
 const THUMBNAIL_QUALITY = 0.75
 
-/** Bump when a new field needs more than a read-time default (see withDefaults). */
-const SOLUTION_SCHEMA_VERSION = 1
+/** Bump when a new field needs more than a read-time default (see normalizeSolution). */
+export const SOLUTION_SCHEMA_VERSION = 1
 
 export interface StoredSolution {
   id: string
   schemaVersion: number
   createdAt: string
-  /** Compressed JPEG of the cropped photo (≤800px), or null when it couldn't be made. */
+  /** Compressed JPEG of the cropped photo (≤800px) when this device holds it (local store, just
+   * solved), or null. Account solutions are shown through `thumbnailUrl` instead. */
   thumbnail: Blob | null
+  /** Short-lived signed URL of the stored thumbnail (account solutions), or null. */
+  thumbnailUrl: string | null
   /** Output language requested for this solve ('auto' or a language code). */
   language: string
   result: SolveResult
@@ -34,8 +35,6 @@ export interface StoredSolution {
   extras: Record<string, unknown>
 }
 
-class SolutionStorageError extends Error {}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -46,14 +45,15 @@ function stringArray(value: unknown): string[] {
 
 /** Normalizes any stored shape (older or partial records) into the current one — every read goes
  * through this so old records render instead of breaking. Returns null for unusable junk. */
-function withDefaults(raw: unknown): StoredSolution | null {
+export function normalizeSolution(raw: unknown, thumbnailOf: (stored: unknown) => Blob | null = () => null): StoredSolution | null {
   if (!isRecord(raw) || typeof raw.id !== 'string') return null
   const result = isRecord(raw.result) ? raw.result : {}
   return {
     id: raw.id,
     schemaVersion: typeof raw.schemaVersion === 'number' ? raw.schemaVersion : 1,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date(0).toISOString(),
-    thumbnail: thumbnailFromStored(raw.thumbnail),
+    thumbnail: thumbnailOf(raw.thumbnail),
+    thumbnailUrl: typeof raw.thumbnailUrl === 'string' ? raw.thumbnailUrl : null,
     language: typeof raw.language === 'string' ? raw.language : 'auto',
     result: {
       topic: typeof result.topic === 'string' ? result.topic : '',
@@ -68,105 +68,8 @@ function withDefaults(raw: unknown): StoredSolution | null {
   }
 }
 
-/** Thumbnails are stored as raw bytes, not Blobs: some IndexedDB engines (e.g. WebKit builds)
- * refuse Blob values, while ArrayBuffers are stored everywhere. */
-interface StoredThumbnail {
-  type: string
-  bytes: ArrayBuffer
-}
-
-function thumbnailFromStored(value: unknown): Blob | null {
-  if (value instanceof Blob) return value
-  if (isRecord(value) && value.bytes instanceof ArrayBuffer) {
-    return new Blob([value.bytes], { type: typeof value.type === 'string' ? value.type : 'image/jpeg' })
-  }
-  return null
-}
-
-async function toStoredRecord(solution: StoredSolution): Promise<Record<string, unknown>> {
-  const thumbnail: StoredThumbnail | null = solution.thumbnail
-    ? { type: solution.thumbnail.type || 'image/jpeg', bytes: await solution.thumbnail.arrayBuffer() }
-    : null
-  return { ...solution, thumbnail }
-}
-
-function makeId(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
-}
-
-function openDb(): Promise<IDBDatabase> {
-  if (typeof indexedDB === 'undefined') {
-    return Promise.reject(new SolutionStorageError('IndexedDB unavailable'))
-  }
-  return new Promise((resolve, reject) => {
-    let request: IDBOpenDBRequest
-    try {
-      request = indexedDB.open(DB_NAME, DB_VERSION)
-    } catch (error) {
-      reject(new SolutionStorageError(error instanceof Error ? error.message : 'open failed'))
-      return
-    }
-    request.onupgradeneeded = () => {
-      const db = request.result
-      if (!db.objectStoreNames.contains(STORE)) {
-        const store = db.createObjectStore(STORE, { keyPath: 'id' })
-        store.createIndex(CREATED_AT_INDEX, 'createdAt', { unique: false })
-      }
-    }
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(new SolutionStorageError(request.error?.message ?? 'open failed'))
-    request.onblocked = () => reject(new SolutionStorageError('open blocked'))
-  })
-}
-
-function runTransaction(db: IDBDatabase, mode: IDBTransactionMode, work: (store: IDBObjectStore) => void): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let tx: IDBTransaction
-    try {
-      tx = db.transaction(STORE, mode)
-      work(tx.objectStore(STORE))
-    } catch (error) {
-      reject(new SolutionStorageError(error instanceof Error ? error.message : 'transaction failed'))
-      return
-    }
-    tx.oncomplete = () => resolve()
-    tx.onerror = () => reject(new SolutionStorageError(tx.error?.message ?? 'transaction failed'))
-    tx.onabort = () => reject(new SolutionStorageError(tx.error?.message ?? 'transaction aborted'))
-  })
-}
-
-async function readAll(db: IDBDatabase): Promise<StoredSolution[]> {
-  const raw = await new Promise<unknown[]>((resolve, reject) => {
-    const request = db.transaction(STORE, 'readonly').objectStore(STORE).getAll()
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(new SolutionStorageError(request.error?.message ?? 'read failed'))
-  })
-  return raw
-    .map(withDefaults)
-    .filter((entry): entry is StoredSolution => entry !== null)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-}
-
-/** Writes a record, then evicts the oldest beyond MAX_SOLUTIONS. Throws SolutionStorageError when
- * IndexedDB is unavailable or full — callers keep working and show a localized note. */
-async function putAndEvict(record: StoredSolution): Promise<void> {
-  const stored = await toStoredRecord(record)
-  const db = await openDb()
-  try {
-    await runTransaction(db, 'readwrite', (store) => store.put(stored))
-    const all = await readAll(db)
-    const stale = all.slice(MAX_SOLUTIONS)
-    if (stale.length > 0) {
-      await runTransaction(db, 'readwrite', (store) => stale.forEach((entry) => store.delete(entry.id)))
-    }
-  } finally {
-    db.close()
-  }
-}
-
 /** Shrinks the (already cropped) upload JPEG into a ≤800px thumbnail. Null if it can't be made. */
-async function makeThumbnail(dataUrl: string): Promise<Blob | null> {
+export async function makeThumbnail(dataUrl: string): Promise<Blob | null> {
   try {
     const img = new Image()
     img.src = dataUrl
@@ -184,101 +87,56 @@ async function makeThumbnail(dataUrl: string): Promise<Blob | null> {
   }
 }
 
-export async function saveSolution(input: { result: SolveResult; imageDataUrl: string; language: string }): Promise<StoredSolution> {
-  const record: StoredSolution = {
-    id: makeId(),
-    schemaVersion: SOLUTION_SCHEMA_VERSION,
-    createdAt: new Date().toISOString(),
-    thumbnail: await makeThumbnail(input.imageDataUrl),
-    language: input.language,
-    result: input.result,
-    extras: {},
-  }
-  await putAndEvict(record)
-  return record
+export interface NewSolution {
+  result: SolveResult
+  imageDataUrl: string
+  language: string
+}
+
+/** Throws when the account store is unreachable — callers keep working and show a localized note. */
+export function saveSolution(input: NewSolution): Promise<StoredSolution> {
+  return isFakeBackend ? saveSolutionLocal(input) : saveSolutionRemote(input)
 }
 
 /** Puts a previously deleted record back with its original id and date (undo). */
-export async function restoreSolution(record: StoredSolution): Promise<void> {
-  await putAndEvict(record)
+export function restoreSolution(record: StoredSolution): Promise<void> {
+  return isFakeBackend ? restoreSolutionLocal(record) : restoreSolutionRemote(record)
 }
 
-/** Every saved solution, newest first; [] when storage is unavailable. */
-export async function getAllSolutions(): Promise<StoredSolution[]> {
+/** Every saved solution, newest first. Rejects when the account copy cannot be read (the list shows a retry). */
+export function getAllSolutions(): Promise<StoredSolution[]> {
+  return isFakeBackend ? getAllSolutionsLocal() : getAllSolutionsRemote()
+}
+
+export function getSolution(id: string): Promise<StoredSolution | null> {
+  return isFakeBackend ? getSolutionLocal(id) : getSolutionRemote(id)
+}
+
+export function deleteSolution(id: string): Promise<void> {
+  return isFakeBackend ? deleteSolutionLocal(id) : deleteSolutionRemote(id)
+}
+
+/** Merges one feature's data into a saved solution's `extras[key]`. */
+export function updateSolutionExtras(id: string, key: string, value: unknown): Promise<void> {
+  return isFakeBackend ? updateSolutionExtrasLocal(id, key, value) : updateSolutionExtrasRemote(id, key, value)
+}
+
+/** Fills in the thumbnail bytes of an account solution (needed before deleting it, so Undo can put it back). */
+export async function withThumbnailBlob(solution: StoredSolution): Promise<StoredSolution> {
+  if (solution.thumbnail || !solution.thumbnailUrl) return solution
   try {
-    const db = await openDb()
-    try {
-      return await readAll(db)
-    } finally {
-      db.close()
-    }
+    const response = await fetch(solution.thumbnailUrl)
+    return response.ok ? { ...solution, thumbnail: await response.blob() } : solution
   } catch {
-    return []
+    return solution
   }
 }
 
-export async function getSolution(id: string): Promise<StoredSolution | null> {
-  try {
-    const db = await openDb()
-    try {
-      const raw = await new Promise<unknown>((resolve, reject) => {
-        const request = db.transaction(STORE, 'readonly').objectStore(STORE).get(id)
-        request.onsuccess = () => resolve(request.result)
-        request.onerror = () => reject(new SolutionStorageError(request.error?.message ?? 'read failed'))
-      })
-      return withDefaults(raw)
-    } finally {
-      db.close()
-    }
-  } catch {
-    return null
-  }
+/** Solutions still stored in this browser (before the account existed), for the import. */
+export function readLegacySolutions(): Promise<StoredSolution[]> {
+  return getAllSolutionsLocal()
 }
 
-export async function deleteSolution(id: string): Promise<void> {
-  try {
-    const db = await openDb()
-    try {
-      await runTransaction(db, 'readwrite', (store) => store.delete(id))
-    } finally {
-      db.close()
-    }
-  } catch {
-    // Best-effort — if IndexedDB is unavailable there's nothing stored to delete anyway.
-  }
-}
-
-/** Merges one feature's data into a saved solution's `extras[key]` (read-modify-write in a single
- * transaction). Throws SolutionStorageError when storage is unavailable; a missing record is a no-op. */
-export async function updateSolutionExtras(id: string, key: string, value: unknown): Promise<void> {
-  const db = await openDb()
-  try {
-    await new Promise<void>((resolve, reject) => {
-      let tx: IDBTransaction
-      try {
-        tx = db.transaction(STORE, 'readwrite')
-      } catch (error) {
-        reject(new SolutionStorageError(error instanceof Error ? error.message : 'transaction failed'))
-        return
-      }
-      const store = tx.objectStore(STORE)
-      const request = store.get(id)
-      request.onsuccess = () => {
-        const raw: unknown = request.result
-        if (!isRecord(raw)) return
-        const extras = isRecord(raw.extras) ? raw.extras : {}
-        try {
-          store.put({ ...raw, extras: { ...extras, [key]: value } })
-        } catch (error) {
-          tx.abort()
-          reject(new SolutionStorageError(error instanceof Error ? error.message : 'update failed'))
-        }
-      }
-      tx.oncomplete = () => resolve()
-      tx.onerror = () => reject(new SolutionStorageError(tx.error?.message ?? 'update failed'))
-      tx.onabort = () => reject(new SolutionStorageError(tx.error?.message ?? 'update aborted'))
-    })
-  } finally {
-    db.close()
-  }
+export function clearLegacySolutions(): Promise<void> {
+  return clearAllLocalSolutions()
 }

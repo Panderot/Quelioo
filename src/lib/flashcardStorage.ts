@@ -1,12 +1,16 @@
 import { useEffect, useSyncExternalStore } from 'react'
 
+import { getAuthState, useAuth } from './auth/authStore'
+import { enqueueFlashcardWrites, fetchFlashcards } from './remote/flashcardsRemote'
+import { isFakeBackend } from './supabase'
 import { DEFAULT_NEW_PER_DAY, buildStudyQueue, resetProgress } from './srs'
 import type { LeitnerBox, SrsCard, SrsProgress } from './srs'
 import { MAX_BACK_CHARS, MAX_DECK_DESCRIPTION_CHARS, MAX_DECK_NAME_CHARS, MAX_FRONT_CHARS } from './flashcardText'
 
-/** Flashcard decks live in IndexedDB (`quelio-flashcards`). Everything is also held in an in-memory
- * cache that the UI reads synchronously; writes update the cache first and persist afterwards, so a
- * missing or full IndexedDB only costs persistence (with a note), never the current session. */
+/** Flashcards live in the account (Supabase `decks`, `cards`, `card_progress`). Everything is held in an
+ * in-memory cache that the UI reads synchronously; writes update the cache first and are sent through
+ * the write queue, so a dropped connection only delays saving. The UI-logic test build (fake backend)
+ * and the one-time import use the original IndexedDB database (`quelio-flashcards`) instead. */
 
 const DB_NAME = 'quelio-flashcards'
 const DB_VERSION = 1
@@ -41,6 +45,8 @@ export interface FlashcardState {
   loaded: boolean
   decks: Deck[]
   cards: Card[]
+  /** The account copy could not be loaded (network); `reloadFlashcards()` retries. */
+  loadFailed: boolean
   /** IndexedDB could not be opened — everything lives in memory for this tab only. */
   storageUnavailable: boolean
   /** A write failed (e.g. quota) — the change is kept in memory but not saved. */
@@ -52,7 +58,7 @@ export interface FlashcardState {
   changedAt: number
 }
 
-let state: FlashcardState = { loaded: false, decks: [], cards: [], storageUnavailable: false, saveFailed: false, deletedDeck: null, changedAt: 0 }
+let state: FlashcardState = { loaded: false, loadFailed: false, decks: [], cards: [], storageUnavailable: false, saveFailed: false, deletedDeck: null, changedAt: 0 }
 const listeners = new Set<() => void>()
 let dbPromise: Promise<IDBDatabase | null> | null = null
 let writeChain: Promise<void> = Promise.resolve()
@@ -142,8 +148,53 @@ function cardWithDefaults(raw: Partial<Card>): Card | null {
 
 let loadPromise: Promise<void> | null = null
 
+/** Reads the account copy. A blank deck left over from an earlier visit is dropped for good. */
+async function loadRemoteFlashcards(): Promise<void> {
+  const userId = getAuthState().user?.id
+  const fetched = await fetchFlashcards()
+  if (getAuthState().user?.id !== userId) return
+  if (!fetched) {
+    loadPromise = null
+    setState({ loaded: true, loadFailed: true })
+    return
+  }
+  const validDecks = fetched.decks.map(deckWithDefaults).filter((deck): deck is Deck => deck !== null)
+  const deckIds = new Set(validDecks.map((deck) => deck.id))
+  const validCards = fetched.cards.map(cardWithDefaults).filter((card): card is Card => card !== null && deckIds.has(card.deckId))
+  const blankIds = validDecks.filter((deck) => isBlankDeck(deck, validCards) && !state.decks.some((entry) => entry.id === deck.id)).map((deck) => deck.id)
+  if (blankIds.length > 0) {
+    validDecks.splice(0, validDecks.length, ...validDecks.filter((deck) => !blankIds.includes(deck.id)))
+    persist({ deleteDecks: blankIds })
+  }
+  const known = (ids: Set<string>) => (entry: { id: string }) => !ids.has(entry.id)
+  setState({
+    loaded: true,
+    loadFailed: false,
+    decks: [...validDecks, ...state.decks.filter(known(deckIds))],
+    cards: [...validCards, ...state.cards.filter(known(new Set(validCards.map((card) => card.id))))],
+  })
+}
+
+/** Retries a failed load of the account copy. */
+export function reloadFlashcards(): void {
+  loadPromise = null
+  setState({ loadFailed: false, loaded: false })
+  void loadFlashcards()
+}
+
+/** Forgets the account copy (sign-out, other account). */
+export function resetFlashcardCache(): void {
+  loadPromise = null
+  state = { loaded: false, loadFailed: false, decks: [], cards: [], storageUnavailable: false, saveFailed: false, deletedDeck: null, changedAt: Date.now() }
+  listeners.forEach((listener) => listener())
+}
+
 function loadFlashcards(): Promise<void> {
   if (loadPromise) return loadPromise
+  if (!isFakeBackend) {
+    loadPromise = loadRemoteFlashcards()
+    return loadPromise
+  }
   loadPromise = (async () => {
     const db = await openDb()
     if (!db) {
@@ -179,11 +230,17 @@ interface WriteOps {
   putDecks?: Deck[]
   deleteDecks?: string[]
   putCards?: Card[]
+  /** Cards whose progress changed (a review); in IndexedDB the whole card is rewritten. */
+  putProgress?: Card[]
   deleteCards?: string[]
 }
 
 /** Persists in order; a failure keeps the in-memory change and raises the "not saved" note. */
 function persist(ops: WriteOps) {
+  if (!isFakeBackend) {
+    enqueueFlashcardWrites(ops)
+    return
+  }
   if (state.storageUnavailable) return
   writeChain = writeChain.then(async () => {
     const db = await openDb()
@@ -199,6 +256,7 @@ function persist(ops: WriteOps) {
         ops.putDecks?.forEach((deck) => decks.put(deck))
         ops.deleteDecks?.forEach((id) => decks.delete(id))
         ops.putCards?.forEach((card) => cards.put(card))
+        ops.putProgress?.forEach((card) => cards.put(card))
         ops.deleteCards?.forEach((id) => cards.delete(id))
         tx.oncomplete = () => resolve()
         tx.onerror = () => {
@@ -318,7 +376,8 @@ export function updateCard(cardId: string, patch: Partial<Pick<Card, 'front' | '
   next.front = next.front.slice(0, MAX_FRONT_CHARS)
   next.back = next.back.slice(0, MAX_BACK_CHARS)
   setState({ cards: state.cards.map((card) => (card.id === cardId ? next : card)) })
-  persist({ putCards: [next] })
+  const textChanged = 'front' in patch || 'back' in patch
+  persist(textChanged ? { putCards: [next] } : { putProgress: [next] })
 }
 
 export function deleteCard(cardId: string): Card | null {
@@ -340,7 +399,7 @@ export function resetDeckProgress(deckId: string) {
   const reset = state.cards.filter((card) => card.deckId === deckId).map((card) => ({ ...card, ...resetProgress(now) }))
   const byId = new Map(reset.map((card) => [card.id, card]))
   setState({ cards: state.cards.map((card) => byId.get(card.id) ?? card) })
-  persist({ putCards: reset })
+  persist({ putProgress: reset })
 }
 
 export function cardsForDeck(cards: Card[], deckId: string): Card[] {
@@ -358,8 +417,42 @@ function subscribe(listener: () => void) {
 
 /** Live flashcard state; triggers the one-time load from IndexedDB. */
 export function useFlashcards(): FlashcardState {
+  // Re-runs when another account signs in (the cache was reset) so the new account's decks load.
+  const userId = useAuth().user?.id
   useEffect(() => {
     void loadFlashcards()
-  }, [])
+  }, [userId])
   return useSyncExternalStore(subscribe, () => state)
+}
+
+/** Decks and cards still stored in this browser (before the account existed), for the import. */
+export async function readLegacyFlashcards(): Promise<{ decks: Deck[]; cards: Card[] }> {
+  const db = await openDb()
+  if (!db) return { decks: [], cards: [] }
+  try {
+    const [decks, cards] = await Promise.all([readAll<Partial<Deck>>(db, DECKS), readAll<Partial<Card>>(db, CARDS)])
+    const validDecks = decks.map(deckWithDefaults).filter((deck): deck is Deck => deck !== null)
+    const deckIds = new Set(validDecks.map((deck) => deck.id))
+    return { decks: validDecks, cards: cards.map(cardWithDefaults).filter((card): card is Card => card !== null && deckIds.has(card.deckId)) }
+  } catch {
+    return { decks: [], cards: [] }
+  }
+}
+
+/** Empties the browser-local flashcard database (after a verified import, when the student agrees). */
+export async function clearLegacyFlashcards(): Promise<void> {
+  const db = await openDb()
+  if (!db) return
+  await new Promise<void>((resolve) => {
+    try {
+      const tx = db.transaction([DECKS, CARDS], 'readwrite')
+      tx.objectStore(DECKS).clear()
+      tx.objectStore(CARDS).clear()
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => resolve()
+      tx.onabort = () => resolve()
+    } catch {
+      resolve()
+    }
+  })
 }

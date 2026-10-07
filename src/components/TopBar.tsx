@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import LanguageSwitcher from './LanguageSwitcher'
+import SyncStatus from './SyncStatus'
 import { MenuIcon } from './icons'
 
 interface TopBarProps {
@@ -22,6 +23,7 @@ export default function TopBar({ onOpenMobileNav }: TopBarProps) {
       </button>
 
       <div className="flex flex-1 shrink-0 items-center justify-end gap-3 md:gap-4">
+        <SyncStatus />
         <LanguageSwitcher />
       </div>
     </header>

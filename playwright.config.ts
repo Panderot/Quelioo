@@ -25,7 +25,9 @@ export default defineConfig({
     command: `node node_modules/vite/bin/vite.js --port ${PORT} --strictPort`,
     url: BASE_URL,
     reuseExistingServer: true,
-    env: { QUELIO_NO_HMR: '1' },
+    // The UI-logic specs run on a fake signed-in user and the browser-local stores (see src/lib/supabase.ts);
+    // the real Supabase flows are covered by playwright.supabase.config.ts against the test project.
+    env: { QUELIO_NO_HMR: '1', VITE_QUELIO_FAKE_BACKEND: '1' },
     timeout: 30_000,
   },
   // test:e2e runs desktop + mobile (Chromium); test:cross runs @cross specs (image decode/crop,

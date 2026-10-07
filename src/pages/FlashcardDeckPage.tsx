@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useIsPageActive } from '../hooks/usePageActive'
 import { useNow } from '../hooks/useNow'
-import { addCards, cardsForDeck, deleteCard, deleteDeck, discardBlankDeck, dueCountForDeck, resetDeckProgress, restoreCard, updateCard, updateDeck, useFlashcards } from '../lib/flashcardStorage'
+import { addCards, cardsForDeck, deleteCard, deleteDeck, discardBlankDeck, dueCountForDeck, resetDeckProgress, restoreCard, updateCard, updateDeck, reloadFlashcards, useFlashcards } from '../lib/flashcardStorage'
+import { LoadError, SkeletonList } from '../components/DataStates'
 import type { Card } from '../lib/flashcardStorage'
 import {
   MAX_BACK_CHARS,
@@ -171,7 +172,8 @@ export default function FlashcardDeckPage() {
   const bulkPlan = useMemo(() => planBulkAdd(bulkLines, existingKeys), [bulkLines, existingKeys])
   const existingFronts = useMemo(() => new Set(cards.map((card) => normalizeFront(card.front)).filter(Boolean)), [cards])
 
-  if (!state.loaded) return null
+  if (state.loadFailed) return <LoadError onRetry={reloadFlashcards} />
+  if (!state.loaded) return <SkeletonList rows={3} />
 
   if (!deck) {
     return (

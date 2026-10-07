@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/auth/apiFetch'
 export type ExplainLevel = 'simple' | 'simpler'
 
 export type ExplainErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited' | 'network'
@@ -33,7 +34,7 @@ const ERROR_CODES: ReadonlySet<string> = new Set(['bad_type', 'too_large', 'upst
 export async function explainStep(payload: ExplainRequestPayload, signal?: AbortSignal): Promise<StepExplanation> {
   let response: Response
   try {
-    response = await fetch('/api/explain-step', {
+    response = await apiFetch('/api/explain-step', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload),

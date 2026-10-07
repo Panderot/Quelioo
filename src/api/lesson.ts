@@ -11,6 +11,7 @@ import type {
   ScriptSection,
 } from '../lib/lesson'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode, setStoredOwnerAccessCode } from '../lib/ownerAccessCode'
+import { apiFetch } from '../lib/auth/apiFetch'
 
 export type LessonClientErrorCode = LessonErrorCode | 'network'
 
@@ -68,7 +69,7 @@ async function postLesson(body: Record<string, unknown>, signal?: AbortSignal, c
   if (accessCode) headers['x-owner-access'] = accessCode
   let response: Response
   try {
-    response = await fetch('/api/lesson', { method: 'POST', headers, body: JSON.stringify(body), signal })
+    response = await apiFetch('/api/lesson', { method: 'POST', headers, body: JSON.stringify(body), signal })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
     throw new LessonApiError('network')

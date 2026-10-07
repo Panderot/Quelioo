@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 
+import { recordUsage } from './usage.js'
 import { cleanString, isRecord } from './llm-json.js'
 import { encodeMp3 } from './mp3-encode.js'
 import { LESSON_SPEAKERS, effectiveDelivery, isDeliveryHint, isLessonStyle } from '../../src/lib/lesson.js'
@@ -116,6 +117,8 @@ interface TtsResult {
   /** Raw 16-bit PCM of the line (24 kHz mono), before loudness normalization. */
   pcm: Uint8Array
   costUsd: number
+  inputTokens: number
+  outputTokens: number
 }
 
 /** gpt-4o-mini-tts raw output: 24 kHz, 16-bit, mono. */
@@ -163,7 +166,7 @@ async function callTts(params: { text: string; voice: string; instructions: stri
       }
     }
     const pcm = Uint8Array.from(Buffer.concat(chunks))
-    return pcm.length >= 2 ? { pcm, costUsd: (outputTokens * 12 + inputTokens * 0.6) / 1_000_000 } : null
+    return pcm.length >= 2 ? { pcm, costUsd: (outputTokens * 12 + inputTokens * 0.6) / 1_000_000, inputTokens, outputTokens } : null
   } catch (error) {
     console.log(`lesson: tts error=${error instanceof Error ? error.name : 'unknown'}`)
     return null
@@ -216,6 +219,8 @@ export async function speakBatch(
   const segments: SpokenSegment[] = []
   const failed: string[] = []
   let costUsd = 0
+  let ttsInputTokens = 0
+  let ttsOutputTokens = 0
   let seconds = 0
   let next = 0
   const worker = async () => {
@@ -230,6 +235,8 @@ export async function speakBatch(
       }
       let samples = pcm16ToFloat(result.pcm)
       let lineCost = result.costUsd
+      ttsInputTokens += result.inputTokens
+      ttsOutputTokens += result.outputTokens
       // A question must sound like one: when the pitch does not rise at the end, it is spoken once more and the better take is kept.
       if (effectiveDelivery(line) === 'question') {
         let rise = endRiseSemitones(samples, PCM_SAMPLE_RATE)
@@ -237,6 +244,8 @@ export async function speakBatch(
           const again = await callTts({ text: line.spoken, voice, instructions: `${instructions}${FLAT_QUESTION_NOTE}` })
           if (!again) break
           lineCost += again.costUsd
+          ttsInputTokens += again.inputTokens
+          ttsOutputTokens += again.outputTokens
           const retakeSamples = pcm16ToFloat(again.pcm)
           const retakeRise = endRiseSemitones(retakeSamples, PCM_SAMPLE_RATE)
           console.log(`lesson: speak question take=${take + 1} riseBefore=${rise.toFixed(1)} riseRetake=${retakeRise === null ? 'n/a' : retakeRise.toFixed(1)}`)
@@ -260,6 +269,7 @@ export async function speakBatch(
   if (segments.length === 0) return { status: 502, body: { error: 'upstream' } }
   recordDaily(context.ip, context.accessCode, request.lessonKey, seconds)
   recordSpend(costUsd)
+  recordUsage({ feature: 'lesson-speak', provider: 'openai', model: TTS_MODEL, inputTokens: ttsInputTokens, outputTokens: ttsOutputTokens, costUsd })
   const unknownAbbreviations = [...new Set(prepared.flatMap((line) => line.unknown))]
   console.log(`lesson: action=speak model=${TTS_MODEL} lines=${segments.length} failed=${failed.length} chars=${chars} seconds=${seconds.toFixed(1)} cost=$${costUsd.toFixed(5)}`)
   const order = new Map(prepared.map((line, index) => [line.id, index]))

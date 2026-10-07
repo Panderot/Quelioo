@@ -1131,8 +1131,257 @@
   },
   "ownerPage": {
     "title": "Owner",
-    "subtitle": "Spending for the audio lessons on this device. Students never see this page.",
+    "subtitle": "AI spending of all accounts this month. Students never see this page.",
     "monthSpend": "This month: {{cost}}",
     "monthSpendBudget": "This month: {{cost}} of {{budget}}"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "displayName": "Name",
+    "optional": "optional",
+    "or": "or",
+    "continueWithGoogle": "Continue with Google",
+    "backToSignIn": "Back to sign in",
+    "emailInvalid": "Enter a valid email address.",
+    "passwordTooShort": "Use at least 8 characters.",
+    "passwordMismatch": "The two passwords don't match.",
+    "networkError": "Couldn't reach Quelio. Check your connection and try again.",
+    "genericError": "Something went wrong. Please try again.",
+    "signIn": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to open your quizzes, cards and songs on any device.",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "forgot": "Forgot your password?",
+      "noAccount": "New to Quelio?",
+      "signUpLink": "Create an account",
+      "invalid": "The email or password is incorrect.",
+      "unconfirmed": "Confirm your email first. We can send the link again.",
+      "resend": "Send the link again",
+      "resendSent": "If the account needs it, a new link is on its way."
+    },
+    "signUp": {
+      "title": "Create your account",
+      "subtitle": "Your quizzes, cards and songs stay with you on every device.",
+      "submit": "Create account",
+      "submitting": "Creating account…",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign in",
+      "terms": "I accept the <terms>Terms of Use</terms> and the <privacy>Privacy Notice</privacy>.",
+      "termsRequired": "Accept the Terms of Use and the Privacy Notice to continue."
+    },
+    "strength": {
+      "label": "Password strength",
+      "short": "At least 8 characters.",
+      "weak": "Weak: add more characters or a mix of letters and numbers.",
+      "fair": "Fair: a longer password or more variety makes it stronger.",
+      "strong": "Strong"
+    },
+    "checkEmail": {
+      "title": "Check your email",
+      "body": "We sent a link to {{email}}. Open it to continue. It can take a minute.",
+      "bodyNoEmail": "We sent you a link. Open it to continue. It can take a minute.",
+      "spam": "Nothing yet? Look in your spam folder.",
+      "resend": "Send the link again",
+      "resendIn": "Send again in {{seconds}} s",
+      "resent": "Sent again.",
+      "resendFailed": "Couldn't send it again. Try again in a moment.",
+      "noAddress": "Enter your email to get a new link.",
+      "wrongEmail": "Wrong address? Start again"
+    },
+    "forgot": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email and we'll send a link to choose a new one.",
+      "submit": "Send the link",
+      "submitting": "Sending…",
+      "sentTitle": "Check your email",
+      "sentBody": "If an account exists for {{email}}, a link to reset the password is on its way."
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "subtitle": "Use at least 8 characters.",
+      "newPassword": "New password",
+      "submit": "Save password",
+      "submitting": "Saving…",
+      "success": "Your password was changed.",
+      "continue": "Continue to Quelio",
+      "noSession": "This link has expired or was already used.",
+      "requestNew": "Get a new link"
+    },
+    "callback": {
+      "verifying": "Signing you in…",
+      "expiredTitle": "This link has expired",
+      "expiredBody": "Links work once and for a short time. Request a new one to continue.",
+      "invalidTitle": "This link doesn't work",
+      "invalidBody": "It may have been used already or copied incompletely. Request a new one to continue.",
+      "requestNew": "Get a new link",
+      "emailChanged": "Your email address was updated.",
+      "denied": "Sign-in was cancelled. You can try again."
+    },
+    "config": {
+      "title": "Quelio isn't set up yet",
+      "body": "This build has no account service settings. Add the Supabase URL and publishable key and rebuild."
+    },
+    "loading": "Loading…"
+  },
+  "account": {
+    "title": "Account",
+    "subtitle": "Your profile, sign-in and data.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved.",
+    "profile": {
+      "title": "Profile",
+      "displayName": "Name",
+      "language": "Interface language"
+    },
+    "email": {
+      "title": "Email address",
+      "current": "Current address: {{email}}",
+      "new": "New email",
+      "submit": "Change email",
+      "sent": "We sent a confirmation link to {{email}}. The address changes after you open it.",
+      "same": "That is already your address."
+    },
+    "password": {
+      "title": "Password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "submit": "Change password",
+      "done": "Your password was changed.",
+      "google": "You sign in with Google. You can set a password here too."
+    },
+    "methods": {
+      "title": "Sign-in methods",
+      "email": "Email and password",
+      "google": "Google"
+    },
+    "sessions": {
+      "title": "Sessions",
+      "signOut": "Sign out",
+      "signOutAll": "Sign out of all devices",
+      "signOutAllHint": "Ends the session on every device, including this one."
+    },
+    "data": {
+      "title": "Your data",
+      "download": "Download my data",
+      "downloadHint": "A JSON file with everything your account owns.",
+      "downloading": "Preparing…",
+      "downloadFailed": "Couldn't prepare your data. Try again."
+    },
+    "import": {
+      "title": "Data on this device",
+      "button": "Import the old data on this device",
+      "hint": "Found {{items}} saved only in this browser."
+    },
+    "delete": {
+      "title": "Delete account",
+      "hint": "Deletes your account, every quiz, deck, song, lesson and file. This cannot be undone.",
+      "button": "Delete my account",
+      "dialogTitle": "Delete your account?",
+      "dialogBody": "Everything is removed for good. Type your email address to confirm.",
+      "confirmLabel": "Your email address",
+      "confirm": "Delete everything",
+      "failed": "Couldn't delete the account. Try again."
+    },
+    "errors": {
+      "unauthorized": "Your session has ended. Sign in again.",
+      "forbidden": "You don't have access to that.",
+      "bad_request": "That request wasn't accepted.",
+      "rate_limited": "Too many requests, try again shortly.",
+      "server": "Something went wrong on our side. Try again.",
+      "network": "Couldn't reach Quelio. Check your connection."
+    }
+  },
+  "userMenu": {
+    "label": "Account menu",
+    "account": "Account",
+    "signOut": "Sign out"
+  },
+  "legal": {
+    "draftTitle": "Draft",
+    "draftBody": "This text is a draft. The final legal text will be added by the owner before launch.",
+    "back": "Back",
+    "terms": {
+      "title": "Terms of Use",
+      "intro": "These terms describe how Quelio may be used.",
+      "useTitle": "Using Quelio",
+      "useBody": "Quelio helps you make quizzes, solve problems, and study. You are responsible for the material you add and for keeping your sign-in details safe.",
+      "contentTitle": "Your content",
+      "contentBody": "Your quizzes, cards and other data belong to you. You can download or delete them at any time from your account page.",
+      "aiTitle": "AI-made material",
+      "aiBody": "Quizzes, solutions and lessons are made with AI and can contain mistakes. Check important facts before relying on them."
+    },
+    "privacy": {
+      "title": "Privacy Notice",
+      "intro": "This notice explains what Quelio keeps and why.",
+      "dataTitle": "What we keep",
+      "dataBody": "Your email address, name, and the quizzes, cards, songs, lessons and settings you create, so they are the same on every device.",
+      "aiTitle": "AI providers",
+      "aiBody": "To make quizzes, solutions and lessons, the text or photo you submit is sent to AI providers. It is used only to answer your request.",
+      "controlTitle": "Your control",
+      "controlBody": "You can download everything or delete your account, with all its data and files, from the account page."
+    }
+  },
+  "importDialog": {
+    "title": "Bring your old data along",
+    "body": "Found {{items}} on this device. Add them to your account?",
+    "counts": {
+      "decks_one": "{{count}} deck",
+      "decks_other": "{{count}} decks",
+      "quizzes_one": "{{count}} quiz",
+      "quizzes_other": "{{count}} quizzes",
+      "songs_one": "{{count}} song",
+      "songs_other": "{{count}} songs",
+      "solutions_one": "{{count}} solution",
+      "solutions_other": "{{count}} solutions",
+      "lessons_one": "{{count}} audio lesson",
+      "lessons_other": "{{count}} audio lessons",
+      "cards_one": "{{count}} card",
+      "cards_other": "{{count}} cards"
+    },
+    "and": "and",
+    "previewCards": "The decks hold {{cards}} in total.",
+    "keepNote": "Nothing on this device is deleted until the import is checked.",
+    "import": "Import",
+    "notNow": "Not now",
+    "later": "You can import them later from your account page.",
+    "progress": {
+      "decks": "Importing decks…",
+      "quizzes": "Importing quizzes…",
+      "songs": "Importing songs…",
+      "solutions": "Importing solutions…",
+      "lessons": "Importing lessons…",
+      "verify": "Checking everything arrived…"
+    },
+    "doneTitle": "Imported",
+    "done": "Everything from this device is now in your account.",
+    "doneSkipped": "{{items}} were already in your account and were skipped.",
+    "unverified": "Some items could not be confirmed in your account. Your copy on this device was kept. Try the import again.",
+    "failed": "The import stopped. Your copy on this device was kept. Try again.",
+    "clearPrompt": "Remove the old copy from this device?",
+    "clear": "Remove old copy",
+    "keep": "Keep it",
+    "close": "Close",
+    "retry": "Try again"
+  },
+  "data": {
+    "loading": "Loading…",
+    "loadFailed": "Couldn't load this. Check your connection.",
+    "retry": "Try again"
+  },
+  "sync": {
+    "saving": "Saving…",
+    "failed": "Couldn't save a change"
+  },
+  "errors": {
+    "rateLimited": "Too many requests, try again shortly."
+  },
+  "ownerUsage": {
+    "total": "This month: {{cost}}",
+    "byFeature": "By feature",
+    "loadFailed": "Couldn't load the usage."
   }
 }

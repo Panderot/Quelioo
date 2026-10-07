@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { deleteSolution, getAllSolutions, restoreSolution } from '../lib/solutionStorage'
+import { LoadError, SkeletonList } from './DataStates'
+import { deleteSolution, getAllSolutions, restoreSolution, withThumbnailBlob } from '../lib/solutionStorage'
 import type { StoredSolution } from '../lib/solutionStorage'
 import MathText from './MathText'
 import { CalculatorIcon, SearchIcon, TrashIcon } from './icons'
@@ -31,6 +32,8 @@ function searchText(solution: StoredSolution, locale: string): string {
 export default function SolutionsList() {
   const { t, i18n } = useTranslation()
   const [solutions, setSolutions] = useState<StoredSolution[] | null>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   // In the URL (?q=), so the search is still there after opening a solution and coming back, or a reload.
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('q') ?? ''
@@ -50,26 +53,40 @@ export default function SolutionsList() {
 
   useEffect(() => {
     let cancelled = false
-    void getAllSolutions().then((all) => {
-      if (!cancelled) setSolutions(all)
-    })
+    void getAllSolutions().then(
+      (all) => {
+        if (!cancelled) {
+          setSolutions(all)
+          setLoadFailed(false)
+        }
+      },
+      () => {
+        if (!cancelled) setLoadFailed(true)
+      },
+    )
     return () => {
       cancelled = true
       if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
     }
-  }, [])
+  }, [reloadKey])
 
-  // One object URL per thumbnail per load, revoked together.
+  // One object URL per local thumbnail per load, revoked together; account thumbnails come as signed URLs.
   const thumbnailUrls = useMemo(
     () =>
       new Map(
-        (solutions ?? [])
-          .filter((solution) => solution.thumbnail)
-          .map((solution) => [solution.id, URL.createObjectURL(solution.thumbnail as Blob)]),
+        (solutions ?? []).flatMap((solution) =>
+          solution.thumbnail ? [[solution.id, URL.createObjectURL(solution.thumbnail)] as const] : solution.thumbnailUrl ? [[solution.id, solution.thumbnailUrl] as const] : [],
+        ),
       ),
     [solutions],
   )
-  useEffect(() => () => thumbnailUrls.forEach((url) => URL.revokeObjectURL(url)), [thumbnailUrls])
+  useEffect(
+    () => () =>
+      thumbnailUrls.forEach((url) => {
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url)
+      }),
+    [thumbnailUrls],
+  )
 
   const filtered = useMemo(() => {
     const query = search.trim().toLocaleLowerCase(i18n.language)
@@ -79,11 +96,12 @@ export default function SolutionsList() {
 
   const handleDeleteConfirmed = async (solution: StoredSolution) => {
     const index = solutions?.findIndex((entry) => entry.id === solution.id) ?? 0
+    const kept = await withThumbnailBlob(solution) // so Undo can put the thumbnail back
     await deleteSolution(solution.id)
     setSolutions((current) => (current ?? []).filter((entry) => entry.id !== solution.id))
     setConfirmDeleteId(null)
     if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
-    setDeleted({ solution, index })
+    setDeleted({ solution: kept, index })
     undoTimeoutRef.current = setTimeout(() => setDeleted(null), UNDO_WINDOW_MS)
   }
 
@@ -104,7 +122,17 @@ export default function SolutionsList() {
     })
   }
 
-  if (solutions === null) return null
+  if (loadFailed && solutions === null) {
+    return (
+      <LoadError
+        onRetry={() => {
+          setLoadFailed(false)
+          setReloadKey((key) => key + 1)
+        }}
+      />
+    )
+  }
+  if (solutions === null) return <SkeletonList />
 
   const undoToast = deleted && (
     <div

@@ -12,6 +12,7 @@ import {
   cachedPlanForSource,
   createArchiveEntryId,
   getArchiveEntries,
+  loadArchive,
   getArchiveEntry,
   previousStemsForSource,
   sourceTextHash,
@@ -508,6 +509,7 @@ export default function CreatePage() {
     // with the same settings: new quizzes cover other facts and wordings first.
     const sourceHash = sourceTextHash(activeContent)
     const sameSettings = lastGenerationRef.current?.key === generationKey ? lastGenerationRef.current.questions : []
+    await loadArchive() // the account's quizzes, warmed at sign-in (instant once loaded)
     const archiveEntries = getArchiveEntries()
     const avoidQuestions = [...new Set([...sameSettings, ...previousStemsForSource(archiveEntries, sourceHash)])].slice(0, MAX_SOURCE_AVOID_STEMS)
     const plan = cachedPlanForSource(archiveEntries, sourceHash, outputLanguage)

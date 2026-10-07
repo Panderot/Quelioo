@@ -1,9 +1,15 @@
 import { useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
 
+import AuthLayout from './components/auth/AuthLayout'
+import { ImportPrompt } from './components/auth/ImportDialog'
+import RequireAuth, { ConfigMissing } from './components/auth/RequireAuth'
 import KeptRoute from './components/KeptRoute'
+import RateLimitNotice from './components/RateLimitNotice'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
+import { isFakeBackend, supabaseConfigured } from './lib/supabase'
+import AccountPage from './pages/AccountPage'
 import ArchivePage from './pages/ArchivePage'
 import ArchiveQuizPage from './pages/ArchiveQuizPage'
 import ArchiveSolutionPage from './pages/ArchiveSolutionPage'
@@ -16,6 +22,13 @@ import LessonsPage from './pages/LessonsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import OwnerPage from './pages/OwnerPage'
 import SolvePage from './pages/SolvePage'
+import AuthCallbackPage from './pages/auth/AuthCallbackPage'
+import CheckEmailPage from './pages/auth/CheckEmailPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import LegalPage from './pages/auth/LegalPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
+import SignInPage from './pages/auth/SignInPage'
+import SignUpPage from './pages/auth/SignUpPage'
 import SongsPage from './pages/SongsPage'
 
 const KEPT_ROUTES = [
@@ -29,7 +42,34 @@ const KEPT_ROUTES = [
   { path: '/lessons/:id', element: <LessonPage /> },
 ]
 
+/** Public pages (sign in, sign up, passwords, legal) sit outside the app shell; everything else needs a session. */
 export default function App() {
+  if (!supabaseConfigured && !isFakeBackend) return <ConfigMissing />
+  return (
+    <Routes>
+      <Route element={<AuthLayout />}>
+        <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
+        <Route path="/check-email" element={<CheckEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route path="/kullanim-sartlari" element={<LegalPage kind="terms" />} />
+        <Route path="/gizlilik" element={<LegalPage kind="privacy" />} />
+      </Route>
+      <Route
+        path="*"
+        element={
+          <RequireAuth>
+            <AppShell />
+          </RequireAuth>
+        }
+      />
+    </Routes>
+  )
+}
+
+function AppShell() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
 
   return (
@@ -58,6 +98,7 @@ export default function App() {
             {KEPT_ROUTES.map(({ path }) => (
               <Route key={path} path={path} element={null} />
             ))}
+            <Route path="/account" element={<AccountPage />} />
             <Route path="/owner" element={<OwnerPage />} />
             <Route path="/archive" element={<ArchivePage />} />
             <Route path="/archive/solutions/:id" element={<ArchiveSolutionPage />} />
@@ -66,6 +107,8 @@ export default function App() {
           </Routes>
         </div>
       </main>
+      <ImportPrompt />
+      <RateLimitNotice />
     </div>
   )
 }

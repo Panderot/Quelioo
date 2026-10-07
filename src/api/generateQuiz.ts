@@ -3,6 +3,7 @@ import type { GeneratedQuiz, QuizQuestion, QuizQuestionType } from '../lib/quiz'
 import { deepMathToPlain } from '../lib/mathPlain'
 import { parseQuizCoverage } from '../lib/factCoverage'
 import type { CoverageFact, FactEntry } from '../lib/factCoverage'
+import { apiFetch } from '../lib/auth/apiFetch'
 
 export type GenerateErrorCode =
   | 'too_short'
@@ -165,7 +166,7 @@ function isErrorCode(value: unknown): value is GenerateErrorCode {
 async function postGenerate(body: unknown, signal?: AbortSignal): Promise<unknown> {
   let response: Response
   try {
-    response = await fetch('/api/generate', {
+    response = await apiFetch('/api/generate', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),

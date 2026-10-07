@@ -9,6 +9,7 @@ import type {
   SongTone,
 } from '../lib/song'
 import { clearStoredOwnerAccessCode, getStoredOwnerAccessCode, setStoredOwnerAccessCode } from '../lib/ownerAccessCode'
+import { apiFetch } from '../lib/auth/apiFetch'
 
 export class SongApiError extends Error {
   code: SongErrorCode
@@ -83,7 +84,7 @@ function songRequestHeaders(): HeadersInit {
 async function postSongJson(url: string, body: unknown, signal?: AbortSignal, gatewayTimeoutIsTimeout = false): Promise<unknown> {
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await apiFetch(url, {
       method: 'POST',
       headers: songRequestHeaders(),
       body: JSON.stringify(body),
@@ -141,7 +142,7 @@ export async function createSong(payload: CreateSongPayload, signal?: AbortSigna
  * — true/false tells the caller whether the code was accepted; a true result also persists it. */
 export async function verifyAndStoreMusicAccessCode(code: string): Promise<boolean> {
   try {
-    const response = await fetch('/api/song', {
+    const response = await apiFetch('/api/song', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-music-access': code },
       body: JSON.stringify({}),

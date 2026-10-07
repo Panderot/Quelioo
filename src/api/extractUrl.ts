@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/auth/apiFetch'
 export type ExtractUrlErrorCode =
   | 'invalid_url'
   | 'blocked_address'
@@ -48,7 +49,7 @@ export class ExtractUrlApiError extends Error {
 export async function extractUrlText(url: string, signal?: AbortSignal): Promise<ExtractUrlResult> {
   let response: Response
   try {
-    response = await fetch('/api/extract-url', {
+    response = await apiFetch('/api/extract-url', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ url }),

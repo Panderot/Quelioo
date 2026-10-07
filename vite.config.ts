@@ -2,9 +2,11 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
 
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import type { Plugin } from 'vite'
 
+import { accountRequestHandler } from './api/_lib/account.js'
+import { withAuth } from './api/_lib/with-auth.js'
 import { solveRequestHandler } from './api/_lib/solve.js'
 import { explainStepRequestHandler } from './api/_lib/explain-step.js'
 import { similarRequestHandler } from './api/_lib/similar.js'
@@ -19,49 +21,55 @@ import { cardsRequestHandler } from './api/_lib/cards.js'
 import { solveToolsRequestHandler } from './api/_lib/solve-tools.js'
 import { lessonRequestHandler } from './api/_lib/lesson.js'
 
+/** The same account check as production (api/*.ts): AI endpoints answer 401 without a valid token. */
+const protect = withAuth
+
 function apiDevMiddleware(): Plugin {
   return {
     name: 'quelio-api-dev-middleware',
     configureServer(server) {
       // Production routes these four through /api/solve-tools (vercel.json rewrites); same handlers.
       server.middlewares.use('/api/solve-tools', (req, res) => {
-        void solveToolsRequestHandler(req, res)
+        void protect(solveToolsRequestHandler)(req, res)
+      })
+      server.middlewares.use('/api/account', (req, res) => {
+        void accountRequestHandler(req, res)
       })
       server.middlewares.use('/api/lesson', (req, res) => {
-        void lessonRequestHandler(req, res)
+        void protect(lessonRequestHandler)(req, res)
       })
       server.middlewares.use('/api/cards', (req, res) => {
-        void cardsRequestHandler(req, res)
+        void protect(cardsRequestHandler)(req, res)
       })
       server.middlewares.use('/api/solve', (req, res) => {
-        void solveRequestHandler(req, res)
+        void protect(solveRequestHandler)(req, res)
       })
       server.middlewares.use('/api/similar', (req, res) => {
-        void similarRequestHandler(req, res)
+        void protect(similarRequestHandler)(req, res)
       })
       server.middlewares.use('/api/another-way', (req, res) => {
-        void anotherWayRequestHandler(req, res)
+        void protect(anotherWayRequestHandler)(req, res)
       })
       server.middlewares.use('/api/check-work', (req, res) => {
-        void checkWorkRequestHandler(req, res)
+        void protect(checkWorkRequestHandler)(req, res)
       })
       server.middlewares.use('/api/explain-step', (req, res) => {
-        void explainStepRequestHandler(req, res)
+        void protect(explainStepRequestHandler)(req, res)
       })
       server.middlewares.use('/api/generate', (req, res) => {
-        void generateRequestHandler(req, res)
+        void protect(generateRequestHandler)(req, res)
       })
       server.middlewares.use('/api/extract-url', (req, res) => {
-        void extractUrlRequestHandler(req, res)
+        void protect(extractUrlRequestHandler)(req, res)
       })
       server.middlewares.use('/api/grade', (req, res) => {
-        void gradeRequestHandler(req, res)
+        void protect(gradeRequestHandler)(req, res)
       })
       server.middlewares.use('/api/song-lyrics', (req, res) => {
-        void songLyricsRequestHandler(req, res)
+        void protect(songLyricsRequestHandler)(req, res)
       })
       server.middlewares.use('/api/song', (req, res) => {
-        void songRequestHandler(req, res)
+        void protect(songRequestHandler)(req, res)
       })
     },
   }
@@ -94,12 +102,20 @@ function buildVersionPlugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss(), apiDevMiddleware(), buildVersionPlugin()],
-  // Only reached via a lazy import (the similar-problem answer check); pre-bundle it so the dev
-  // server doesn't discover it mid-session and reload the page.
-  optimizeDeps: { include: ['mathjs/number'] },
-  // The Playwright dev server runs without HMR: when a busy machine drops the HMR socket, Vite's client
-  // reloads the page and wipes the state of whatever test is running.
-  server: { hmr: process.env.QUELIO_NO_HMR ? false : undefined },
+export default defineConfig(({ mode }) => {
+  // The dev server's /api handlers read process.env: hand them the Supabase settings (token checks,
+  // usage log) from .env.local without exposing the LLM keys the way a full load would.
+  const fileEnv = loadEnv(mode, process.cwd(), '')
+  for (const key of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SECRET_KEY']) {
+    if (!process.env[key] && fileEnv[key]) process.env[key] = fileEnv[key]
+  }
+  return {
+    plugins: [react(), tailwindcss(), apiDevMiddleware(), buildVersionPlugin()],
+    // Only reached via a lazy import (the similar-problem answer check); pre-bundle it so the dev
+    // server doesn't discover it mid-session and reload the page.
+    optimizeDeps: { include: ['mathjs/number'] },
+    // The Playwright dev server runs without HMR: when a busy machine drops the HMR socket, Vite's client
+    // reloads the page and wipes the state of whatever test is running.
+    server: { hmr: process.env.QUELIO_NO_HMR ? false : undefined },
+  }
 })

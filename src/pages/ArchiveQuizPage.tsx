@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
-import { getArchiveEntry, updateArchiveEntry } from '../lib/archive'
+import { LoadError, SkeletonList } from '../components/DataStates'
+import { getArchiveEntry, updateArchiveEntry, useArchive } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import type { GeneratedQuiz } from '../lib/quiz'
 import QuizWorkspace from '../components/QuizWorkspace'
@@ -19,14 +20,21 @@ export default function ArchiveQuizPage() {
 function ArchiveQuizEntry({ id }: { id: string | undefined }) {
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
-  const [entry, setEntry] = useState<ArchiveEntry | undefined>(() => (id ? getArchiveEntry(id) : undefined))
+  const archive = useArchive()
+  // Read from the store on every render: a deep link or a reload opens this page before the account's
+  // quizzes have loaded, and a quiz deleted elsewhere simply stops being found. The version bump
+  // re-reads after a save in the browser-local (test) build, which has no change notifications.
+  const [, setVersion] = useState(0)
+  const entry: ArchiveEntry | undefined = id ? getArchiveEntry(id) : undefined
   const [songRefreshKey, setSongRefreshKey] = useState(0)
   // Kept mounted while the user is elsewhere: the quiz may have been deleted, or got a new song.
   useOnPageReturn(() => {
-    if (id && !getArchiveEntry(id)) setEntry(undefined)
+    setVersion((value) => value + 1)
     setSongRefreshKey((key) => key + 1)
   })
   const [studyMode, setStudyMode] = useState(() => searchParams.get('mode') === 'study')
+
+  if (!entry && !archive.loaded) return archive.failed ? <LoadError onRetry={archive.reload} /> : <SkeletonList />
 
   if (!entry) {
     return (
@@ -51,7 +59,7 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
 
   const handlePersist = (quiz: GeneratedQuiz) => {
     const updated = updateArchiveEntry(entry.id, (current) => ({ ...current, title: quiz.title, quiz }))
-    if (updated) setEntry(updated)
+    if (updated) setVersion((value) => value + 1)
   }
 
   const handleToggleStudyMode = () => setStudyMode((current) => !current)

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { getSongsForQuiz } from '../lib/songStorage'
+import { getSongPlaybackUrl, getSongsForQuiz } from '../lib/songStorage'
 import SongPlayerCard from './SongPlayerCard'
 
 interface SongListenSectionProps {
@@ -16,7 +16,7 @@ function extensionForMime(mimeType: string): string {
 }
 
 /** Shown on the archived quiz view when a song exists for this quiz — reads straight from
- * IndexedDB (see lib/songStorage.ts), independent of the song panel. Renders nothing otherwise. */
+ * the account (see lib/songStorage.ts), independent of the song panel. Renders nothing otherwise. */
 export default function SongListenSection({ quizId, quizTitle }: SongListenSectionProps) {
   const { t } = useTranslation()
   const [song, setSong] = useState<{ url: string; lyrics: string; demo: boolean; mimeType: string } | null>(null)
@@ -24,15 +24,21 @@ export default function SongListenSection({ quizId, quizTitle }: SongListenSecti
   useEffect(() => {
     let cancelled = false
     let url: string | null = null
-    void getSongsForQuiz(quizId).then((songs) => {
+    void getSongsForQuiz(quizId).then(async (songs) => {
       if (cancelled || songs.length === 0) return
       const latest = songs[0]
-      url = URL.createObjectURL(latest.audio)
-      setSong({ url, lyrics: latest.lyrics, demo: latest.demo, mimeType: latest.mimeType })
+      const playUrl = await getSongPlaybackUrl(latest)
+      if (!playUrl) return
+      if (cancelled) {
+        if (playUrl.startsWith('blob:')) URL.revokeObjectURL(playUrl)
+        return
+      }
+      url = playUrl
+      setSong({ url: playUrl, lyrics: latest.lyrics, demo: latest.demo, mimeType: latest.mimeType })
     })
     return () => {
       cancelled = true
-      if (url) URL.revokeObjectURL(url)
+      if (url?.startsWith('blob:')) URL.revokeObjectURL(url)
     }
   }, [quizId])
 

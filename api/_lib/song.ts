@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { mp3DurationSeconds } from '../../src/lib/mp3.js'
 import { readRequestBody } from './anthropic.js'
 import { synthesizeDemoSong } from './song-demo-audio.js'
+import { recordUsage } from './usage.js'
 import { callGeminiMusic } from './gemini-music.js'
 import {
   isMusicEnabled,
@@ -163,7 +164,9 @@ export async function handleSongCreateRequest(
   const durationSeconds = measured > 0 ? measured : targetSeconds
   recordSongForIp(context.ip, durationSeconds)
   // Google list prices (lyria-3-clip-preview $0.04, lyria-3.5 $0.08): logged for the owner, never shown to students.
-  console.log(`song: cost=$${targetSeconds <= 30 ? '0.04' : '0.08'} seconds=${durationSeconds}`)
+  const priceUsd = targetSeconds <= 30 ? 0.04 : 0.08
+  console.log(`song: cost=$${priceUsd.toFixed(2)} seconds=${durationSeconds}`)
+  recordUsage({ feature: 'song', provider: 'gemini', model, inputTokens: 0, outputTokens: 0, costUsd: priceUsd })
   return {
     status: 200,
     body: {
