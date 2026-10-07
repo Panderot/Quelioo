@@ -135,10 +135,15 @@ export interface BulkParse {
 /** One card per non-empty line. A single separator is chosen for the whole paste: the one that splits the
  * most lines into exactly two parts. A line the chosen separator cannot split tries the others before failing. */
 export function parseBulk(input: string): BulkParse {
-  const text = input.replace(/^\uFEFF/, '')
+  // Spreadsheets and web pages paste non-breaking spaces around separators; they count as plain spaces.
+  const text = input.replace(/^\uFEFF/, '').replace(/[\u00A0\u2007\u202F]/g, ' ')
   const candidates = BULK_SEPARATORS.map((separator) => {
     const rows = rowsFor(text, separator)
-    const score = rows.filter(({ cells }) => trimTrailingEmptyCells(cells).length === 2).length
+    // Exactly two parts is the clearest signal; a third spreadsheet column (ignored later) still counts as a split.
+    const score = rows.reduce((sum, { cells }) => {
+      const parts = trimTrailingEmptyCells(cells).length
+      return sum + (parts === 2 ? 2 : parts > 2 ? 1 : 0)
+    }, 0)
     return { separator, rows, score }
   })
   const best = candidates.reduce((top, entry) => (entry.score > top.score ? entry : top), candidates[0])

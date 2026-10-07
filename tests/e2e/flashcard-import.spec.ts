@@ -44,6 +44,14 @@ test.describe('bulk paste parser', () => {
     expect(pairs('"open\tx\ny\tz')).toEqual([['"open', 'x', null], ['y', 'z', null]])
   })
 
+  test('Excel / Sheets paste: every row with a third column, trailing empty cells, CRLF or LF, non-breaking spaces', () => {
+    const cards = [['Mitokondri', 'Enerji santrali', null], ['Ribozom', 'Protein sentezler', null]]
+    expect(pairs('Mitokondri\tEnerji santrali\tnot\r\nRibozom\tProtein sentezler\tnot\r\n')).toEqual(cards)
+    expect(pairs('Mitokondri\tEnerji santrali\t\r\nRibozom\tProtein sentezler\t\r\n')).toEqual(cards)
+    expect(pairs('Mitokondri\tEnerji santrali\nRibozom\tProtein sentezler\n')).toEqual(cards)
+    expect(pairs('Mitokondri - Enerji santrali\r\nRibozom - Protein sentezler')).toEqual(cards)
+  })
+
   test('errors carry the line number and reason; valid lines can still be added', () => {
     const { lines } = parseBulk('a ; b\nnoseparator\n ; c\nd ; \n' + 'x'.repeat(301) + ' ; long')
     expect(lines.map((line) => [line.line, line.error])).toEqual([[1, null], [2, 'no_separator'], [3, 'empty_side'], [4, 'empty_side'], [5, 'too_long']])

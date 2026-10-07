@@ -202,12 +202,14 @@ async function main() {
     for (const [code, name] of languages) await check('language', `${name}, 5`, { ...base, count: 5, style: 'qa', language: code }, { style: 'qa', languageCode: code, languageName: name, count: 5, source: TEXT })
   }
   if (want('repeat')) {
-    const first = await run({ ...base, count: 10, style: 'qa', language: 'auto' })
+    // The long text holds enough distinct facts for two runs of 10; the short one holds about 7.
+    const repeatBase = { ...base, text: LONG_TEXT }
+    const first = await run({ ...repeatBase, count: 10, style: 'qa', language: 'auto' })
     if (first.status === 200) {
-      const second = await run({ ...base, count: 10, style: 'qa', language: 'auto', avoid: first.cards.map((card) => card.front) })
+      const second = await run({ ...repeatBase, count: 10, style: 'qa', language: 'auto', avoid: first.cards.map((card) => card.front) })
       const merged = [...first.cards, ...second.cards]
       const dropped = dropNearDuplicates(second.cards, first.cards).dropped.length
-      const judged = second.status === 200 ? await judge({ cards: merged, style: 'qa', languageName: 'Turkish', source: TEXT, label: 'repeat' }) : null
+      const judged = second.status === 200 ? await judge({ cards: merged, style: 'qa', languageName: 'Turkish', source: LONG_TEXT, label: 'repeat' }) : null
       rows.push({
         group: 'repeat',
         name: 'aynı ayarlar ikinci kez, aynı desteye',

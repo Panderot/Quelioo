@@ -22,6 +22,8 @@ export interface RuleContext {
 }
 
 const QUESTION_END = /[?？؟;]["')\]»”]?\s*$/
+/** Armenian puts the question mark (՞) on the question word and ends the sentence with "։", so it never ends with one. */
+const isQuestion = (front: string) => QUESTION_END.test(front) || front.includes('՞')
 
 function isCjk(text: string): boolean {
   const counts = scriptCounts(text)
@@ -53,15 +55,15 @@ export function cardViolation(card: { front: string; back: string }, context: Ru
   const back = card.back.trim()
   if (context.style === 'qa') {
     const cjkLike = ['ja', 'zh', 'ko'].some((code) => context.outputLanguage.startsWith(code))
-    if (!QUESTION_END.test(front) && !(cjkLike && front.length >= 4)) return 'front_not_question'
+    if (!isQuestion(front) && !(cjkLike && front.length >= 4)) return 'front_not_question'
     if (back.split(/\n+/).length > QA_BACK_MAX_LINES) return 'back_too_long'
   } else if (context.style === 'term') {
-    if (QUESTION_END.test(front)) return 'front_is_question'
+    if (isQuestion(front)) return 'front_is_question'
     if (cardWordCount(front) > TERM_MAX_WORDS) return 'front_too_long'
     if (context.topic && normalizeFront(front) === normalizeFront(context.topic)) return 'front_is_topic'
     if (/:\s*$/.test(front)) return 'front_too_long'
   } else {
-    if (QUESTION_END.test(front)) return 'front_is_question'
+    if (isQuestion(front)) return 'front_is_question'
     if (cardWordCount(front) > FOREIGN_MAX_WORDS) return 'front_too_long'
     const { translation, example } = splitTranslationBack(back)
     if (!translation || cardWordCount(example) < 3) return 'back_no_example'
