@@ -114,7 +114,7 @@ export function PasswordStrengthHint({ password }: { password: string }) {
   )
 }
 
-export function GoogleMark({ className }: { className?: string }) {
+function GoogleMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <path fill="#4285F4" d="M23.5 12.27c0-.82-.07-1.6-.21-2.36H12v4.47h6.45a5.52 5.52 0 01-2.39 3.62v3h3.87c2.27-2.09 3.57-5.17 3.57-8.73z" />

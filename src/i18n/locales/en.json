@@ -1132,7 +1132,6 @@
   "ownerPage": {
     "title": "Owner",
     "subtitle": "AI spending of all accounts this month. Students never see this page.",
-    "monthSpend": "This month: {{cost}}",
     "monthSpendBudget": "This month: {{cost}} of {{budget}}"
   },
   "auth": {
@@ -1196,7 +1195,6 @@
       "subtitle": "Enter your email and we'll send a link to choose a new one.",
       "submit": "Send the link",
       "submitting": "Sending…",
-      "sentTitle": "Check your email",
       "sentBody": "If an account exists for {{email}}, a link to reset the password is on its way."
     },
     "reset": {
@@ -1347,7 +1345,6 @@
     "keepNote": "Nothing on this device is deleted until the import is checked.",
     "import": "Import",
     "notNow": "Not now",
-    "later": "You can import them later from your account page.",
     "progress": {
       "decks": "Importing decks…",
       "quizzes": "Importing quizzes…",

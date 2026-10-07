@@ -1132,7 +1132,6 @@
   "ownerPage": {
     "title": "Sahip",
     "subtitle": "Bu ay tüm hesapların yapay zekâ harcaması. Öğrenciler bu sayfayı görmez.",
-    "monthSpend": "Bu ay: {{cost}}",
     "monthSpendBudget": "Bu ay: {{cost}} / {{budget}}"
   },
   "auth": {
@@ -1196,7 +1195,6 @@
       "subtitle": "E-postanı gir, yeni şifre seçmen için bir bağlantı gönderelim.",
       "submit": "Bağlantıyı gönder",
       "submitting": "Gönderiliyor…",
-      "sentTitle": "E-postanı kontrol et",
       "sentBody": "{{email}} için bir hesap varsa, şifreyi sıfırlama bağlantısı yolda."
     },
     "reset": {
@@ -1347,7 +1345,6 @@
     "keepNote": "Aktarım doğrulanana kadar bu cihazdaki hiçbir şey silinmez.",
     "import": "Aktar",
     "notNow": "Şimdi değil",
-    "later": "Daha sonra hesap sayfandan aktarabilirsin.",
     "progress": {
       "decks": "Desteler aktarılıyor…",
       "quizzes": "Quizler aktarılıyor…",

@@ -7,7 +7,7 @@ const DB_VERSION = 1
 const STORE = 'drafts'
 
 /** Drafts older than this are dropped instead of restored. */
-export const PAGE_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000
+const PAGE_DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
 export type PageDraftKey = 'solve' | 'create'
 

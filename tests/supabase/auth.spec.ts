@@ -186,13 +186,13 @@ test.describe('password reset', () => {
     await page.goto('/forgot-password?lng=en')
     await page.getByLabel('Email').fill(user.email)
     await page.getByRole('button', { name: en.auth.forgot.submit }).click()
-    await expect(page.getByRole('heading', { name: en.auth.forgot.sentTitle })).toBeVisible()
+    await expect(page.getByRole('heading', { name: en.auth.checkEmail.title })).toBeVisible()
     const known = await page.locator('[data-purpose="auth-card"]').innerText()
 
     await page.goto('/forgot-password?lng=en')
     await page.getByLabel('Email').fill(testEmail('unknown'))
     await page.getByRole('button', { name: en.auth.forgot.submit }).click()
-    await expect(page.getByRole('heading', { name: en.auth.forgot.sentTitle })).toBeVisible()
+    await expect(page.getByRole('heading', { name: en.auth.checkEmail.title })).toBeVisible()
     // Same screen apart from the typed address.
     expect((await page.locator('[data-purpose="auth-card"]').innerText()).replace(/\S+@\S+/g, '')).toBe(known.replace(/\S+@\S+/g, ''))
 

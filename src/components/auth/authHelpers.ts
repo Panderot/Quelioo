@@ -5,7 +5,7 @@ import { supabasePublishableKey, supabaseUrl } from '../../lib/supabase'
 /** Small helpers shared by the sign-in, sign-up, password and callback pages. */
 
 export const MIN_PASSWORD_LENGTH = 8
-export const RESEND_COOLDOWN_SECONDS = 60
+const RESEND_COOLDOWN_SECONDS = 60
 
 const NEXT_KEY = 'quelio.authNext'
 const COOLDOWN_KEY = 'quelio.authCooldown.v1'
@@ -16,7 +16,7 @@ export function isValidEmail(value: string): boolean {
 }
 
 /** A return path that stays inside the app: one leading slash, no "//", no backslash, no scheme. */
-export function safeNext(raw: string | null | undefined): string | null {
+function safeNext(raw: string | null | undefined): string | null {
   if (!raw || raw.length > 2000) return null
   if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\')) return null
   if (/^\/[a-z][a-z0-9+.-]*:/i.test(raw)) return null

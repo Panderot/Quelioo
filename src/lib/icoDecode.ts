@@ -5,12 +5,12 @@
  * practice for real-world favicons) are not supported and return null — callers treat that as a
  * decode failure with a localized message, not a crash.
  */
-export interface DecodedIcoFrame {
+interface DecodedIcoFrame {
   kind: 'png'
   bytes: Uint8Array
 }
 
-export interface DecodedIcoBitmap {
+interface DecodedIcoBitmap {
   kind: 'bitmap'
   width: number
   height: number

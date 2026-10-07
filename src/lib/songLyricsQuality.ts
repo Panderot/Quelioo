@@ -4,7 +4,7 @@ import { isSectionTagLine } from './songTags.js'
 export const LYRICS_MIN_FILL = 0.8
 export const LYRICS_MAX_FILL = 0.95
 /** Below this the song is rewritten longer instead of accepted as is. */
-export const LYRICS_REWRITE_FILL = 0.7
+const LYRICS_REWRITE_FILL = 0.7
 
 /** Phrases that only fill rhythm. A line made of one of these (plus little else) teaches nothing. */
 const FILLER_PHRASES = [
@@ -51,7 +51,7 @@ export function findFillerLines(lyrics: string): number[] {
 }
 
 /** Characters of the lyrics (tags and line breaks included, as the counter shows them) over the limit. */
-export function lyricsFillRatio(lyrics: string, maxChars: number): number {
+function lyricsFillRatio(lyrics: string, maxChars: number): number {
   return maxChars > 0 ? lyrics.length / maxChars : 1
 }
 

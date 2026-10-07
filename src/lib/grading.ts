@@ -2,7 +2,7 @@
  * client caller, same pattern as lib/quiz.ts for generate. */
 
 export type GradeQuestionType = 'short-answer' | 'open-ended'
-export type GradeVerdict = 'correct' | 'partial' | 'incorrect'
+type GradeVerdict = 'correct' | 'partial' | 'incorrect'
 export type GradeErrorCode = 'empty' | 'too_long' | 'upstream' | 'parse' | 'not_configured'
 
 export const MAX_STUDENT_ANSWER_CHARS = 1000

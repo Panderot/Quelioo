@@ -6,7 +6,7 @@ import type { Database } from '../../src/lib/database.types.js'
 /** Server-side Supabase access. The secret key lives only here (Vercel env / .env.local) and is never
  * sent to the browser; the publishable key is the same one the browser uses. */
 
-export function supabaseUrl(): string {
+function supabaseUrl(): string {
   return (process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? '').trim()
 }
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { CheckIcon, CloseIcon, SpinnerIcon } from './icons'
 
-export type CheckStatus = 'correct' | 'partial' | 'incorrect'
+type CheckStatus = 'correct' | 'partial' | 'incorrect'
 
 export interface CheckResultState {
   status: CheckStatus

@@ -5,7 +5,7 @@ export const MAX_BACK_CHARS = 600
 export const MAX_DECK_NAME_CHARS = 80
 export const MAX_DECK_DESCRIPTION_CHARS = 160
 
-export type ParsedLineError = 'no_separator' | 'empty_side' | 'too_long'
+type ParsedLineError = 'no_separator' | 'empty_side' | 'too_long'
 
 export interface ParsedLine {
   line: number
@@ -100,7 +100,7 @@ function trimTrailingEmptyCells(cells: string[]): string[] {
 
 // --- Bulk paste --------------------------------------------------------------------------------
 
-export type BulkSeparator = 'tab' | 'semicolon' | 'pipe' | 'dash'
+type BulkSeparator = 'tab' | 'semicolon' | 'pipe' | 'dash'
 /** Tie-break order when several separators split the same number of lines. */
 const BULK_SEPARATORS: BulkSeparator[] = ['tab', 'pipe', 'semicolon', 'dash']
 const BULK_JOINERS: Record<BulkSeparator, string> = { tab: '\t', semicolon: ';', pipe: ' | ', dash: ' - ' }
@@ -306,7 +306,7 @@ function splitHeaderLines(text: string): { headers: string[]; body: string } {
 
 /** RFC 4180 parser: quoted fields, doubled quotes, delimiters and newlines inside quotes, CRLF. The delimiter
  * (tab, ";", ",", "|") is detected. Each row carries the 1-based line where it starts. */
-export function parseCsvRowsWithLines(input: string): { cells: string[]; line: number }[] {
+function parseCsvRowsWithLines(input: string): { cells: string[]; line: number }[] {
   const { headers, body } = splitHeaderLines(input.replace(/^\uFEFF/, ''))
   const delimiter = declaredDelimiter(headers) ?? detectDelimiter(body)
   const rows = splitDelimited(body, delimiter, true) ?? splitDelimited(body, delimiter, false) ?? []
@@ -319,7 +319,7 @@ export function parseCsvRows(input: string): string[][] {
 
 export const MAX_IMPORT_CARDS = 500
 
-export type CsvErrorCode = 'empty' | 'columns' | 'too_many'
+type CsvErrorCode = 'empty' | 'columns' | 'too_many'
 
 export interface CsvImport {
   cards: { front: string; back: string }[]

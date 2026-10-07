@@ -15,11 +15,11 @@ export const WORDS_PER_FACT = 8
 /** A list fact is tested item by item (single-answer types) up to this many items. */
 export const MAX_LIST_ITEMS = 6
 /** One short-answer/open-ended question asks for at most this many list items. */
-export const MAX_ALL_ITEMS = 5
+const MAX_ALL_ITEMS = 5
 export const MAX_PLAN_FACTS = 200
 export const COVERAGE_VERSION = 1
 
-export type FactImportance = 'core' | 'supporting'
+type FactImportance = 'core' | 'supporting'
 
 export interface CoverageFact {
   id: number
@@ -231,7 +231,7 @@ function vanDerCorput(index: number): number {
 }
 
 /** Facts reordered so that any prefix is spread over the whole source. */
-export function spreadOrder<T extends { position: number }>(items: T[]): T[] {
+function spreadOrder<T extends { position: number }>(items: T[]): T[] {
   const sorted = [...items].sort((a, b) => a.position - b.position)
   const used = new Set<number>()
   const result: T[] = []
@@ -249,7 +249,7 @@ export function spreadOrder<T extends { position: number }>(items: T[]): T[] {
 
 /** Most important first: fresh core, fresh supporting, then facts earlier quizzes already asked; each
  * group spread over the source; with focus facts about `focusShare` of every prefix is focus. */
-export function factPriority(facts: PlannedFact[], focusShare = 0.7): PlannedFact[] {
+function factPriority(facts: PlannedFact[], focusShare = 0.7): PlannedFact[] {
   const rank = (fact: PlannedFact) => (fact.usedBefore ? 2 : 0) + (fact.importance === 'core' ? 0 : 1)
   const ordered = (list: PlannedFact[]) =>
     [0, 1, 2, 3].flatMap((value) => spreadOrder(list.filter((fact) => rank(fact) === value)))

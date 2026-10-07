@@ -8,17 +8,17 @@ import { requestIp } from './song-rate-limit.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
-export type ExplainErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited'
+type ExplainErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited'
 
-export type ExplainLevel = 'simple' | 'simpler'
+type ExplainLevel = 'simple' | 'simpler'
 
-export interface ExplainSuccess {
+interface ExplainSuccess {
   explanation: string
   /** A short worked mini example, or "" when one wouldn't help. */
   example: string
 }
 
-export type ExplainResponseBody = (ExplainSuccess & { provider: LlmProvider; fallbackUsed: boolean }) | { error: ExplainErrorCode }
+type ExplainResponseBody = (ExplainSuccess & { provider: LlmProvider; fallbackUsed: boolean }) | { error: ExplainErrorCode }
 
 const MAX_REQUEST_BYTES = 64 * 1024
 const MAX_QUESTION_CHARS = 2000

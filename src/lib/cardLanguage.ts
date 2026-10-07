@@ -58,7 +58,7 @@ const TURKISH_LETTERS = /[çğışöüÇĞİŞÖÜ]/
 const GERMAN_LETTERS = /[äöüßÄÖÜ]/
 
 /** The Latin-script language of a text when its function words make it clear, else null. */
-export function detectLatinLanguage(text: string): string | null {
+function detectLatinLanguage(text: string): string | null {
   const words = text.toLocaleLowerCase('en').match(/[\p{L}']+/gu) ?? []
   if (words.length < 3) return null
   const scores: [string, number][] = Object.entries(STOPWORDS).map(([code, list]) => {
@@ -119,11 +119,11 @@ export function detectTextLanguage(text: string): string | null {
 }
 
 /** "pt-BR" -> "pt", "zh-Hans" stays: the part that identifies the language for comparisons. */
-export function baseLanguage(code: string): string {
+function baseLanguage(code: string): string {
   return code.startsWith('zh') ? 'zh' : code.split('-')[0]
 }
 
-export function sameLanguage(a: string, b: string): boolean {
+function sameLanguage(a: string, b: string): boolean {
   const left = baseLanguage(a)
   const right = baseLanguage(b)
   return left === right || (left === 'hy' && right === 'hyw') || (left === 'hyw' && right === 'hy')

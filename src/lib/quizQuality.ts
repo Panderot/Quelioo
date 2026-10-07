@@ -10,7 +10,7 @@ import type { CoverageFact } from './factCoverage.js'
 
 export type QualityLanguage = 'tr' | 'en' | 'other'
 
-export type QualityIssueCode =
+type QualityIssueCode =
   | 'leak'
   | 'duplicate_stem'
   | 'duplicate_answer'
@@ -118,7 +118,7 @@ const MAX_ANSWER_TERM_WORDS = 4
 /** The short answer forms of a question whose appearance elsewhere would give the answer away, each
  * as its content words (Turkish answers also as their base form). Empty for true/false, matching and
  * open-ended, and for long sentence answers. */
-export function answerTerms(question: QuizQuestion, language: QualityLanguage): string[][] {
+function answerTerms(question: QuizQuestion, language: QualityLanguage): string[][] {
   let forms: string[] = []
   if (question.type === 'fill-blanks' || question.type === 'short-answer') forms = [question.answer, ...(question.acceptableAnswers ?? [])]
   else if (question.type === 'mcq') forms = [question.options[question.answerIndex] ?? '']
@@ -472,7 +472,7 @@ export function markUsedBefore<T extends CoverageFact>(facts: T[], previousStems
   })
 }
 
-export const MAX_BATCH_SIZE = 10
+const MAX_BATCH_SIZE = 10
 
 /** Splits a total into near-equal batches of at most MAX_BATCH_SIZE. */
 export function planBatches(totalCount: number, maxBatch = MAX_BATCH_SIZE): number[] {

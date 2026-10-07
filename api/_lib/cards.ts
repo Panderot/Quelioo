@@ -72,7 +72,7 @@ export function cardTokenBudget(count: number): { initialTokens: number; retryTo
  * A single-backslash LaTeX command that starts a JSON escape (frac, times, neq, beta, right) parses
  * into a control character instead of failing; put the backslash back.
  */
-export function restoreLatexEscapes(text: string): string {
+function restoreLatexEscapes(text: string): string {
   return text
     .replace(/\f(?=[a-z])/g, '\\f')
     .replace(/\t(?=[a-z])/g, '\\t')

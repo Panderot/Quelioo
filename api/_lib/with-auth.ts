@@ -9,7 +9,7 @@ import { createUserRateLimit } from './user-rate-limit.js'
 export type RequestHandler = (req: IncomingMessage, res: ServerResponse) => Promise<void>
 
 /** AI requests allowed per account per minute. */
-export const AI_REQUESTS_PER_MINUTE = 20
+const AI_REQUESTS_PER_MINUTE = 20
 
 const limiter = createUserRateLimit(AI_REQUESTS_PER_MINUTE)
 
@@ -20,7 +20,7 @@ function sendError(res: ServerResponse, status: number, error: string) {
 }
 
 /** What the call is for, named in usage_events: the endpoint, or the Solve helper behind /api/solve-tools. */
-export function featureOf(req: IncomingMessage): string {
+function featureOf(req: IncomingMessage): string {
   // Dev middleware strips its mount path from req.url; originalUrl keeps the full one.
   const url = new URL((req as { originalUrl?: string }).originalUrl ?? req.url ?? '/', 'http://localhost')
   const name = url.pathname.split('/').filter(Boolean).pop() ?? 'unknown'

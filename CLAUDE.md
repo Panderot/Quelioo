@@ -4,7 +4,8 @@ Yapay zekâ ile metin/dosya/URL/YouTube'dan quiz üreten, fotoğraftaki matemati
 
 ## Stack ve komutlar
 
-- Vite + React + TypeScript + Tailwind v4 + react-i18next (en/tr/hyw) + KaTeX + mathjs. Backend: `api/*.ts` ince Vercel fonksiyonları, mantık `api/_lib/<ad>.ts`. 9 fonksiyon var; Hobby sınırı 12 (`/api/similar|another-way|explain-step|check-work` tek fonksiyon `api/solve-tools.ts`, `vercel.json` rewrite'ı `?action=` ekler).
+- Vite + React + TypeScript + Tailwind v4 + react-i18next (en/tr/hyw) + KaTeX + mathjs. Backend: `api/*.ts` ince Vercel fonksiyonları, mantık `api/_lib/<ad>.ts`. 10 fonksiyon var (`api/account.ts` dahil); Hobby sınırı 12 (`/api/similar|another-way|explain-step|check-work` tek fonksiyon `api/solve-tools.ts`, `vercel.json` rewrite'ı `?action=` ekler).
+- Klasörler: `src/pages|components|hooks|lib|api|i18n` (arayüz; `lib/remote` hesap verisi, `lib/legacy` eski yerel depolar, `lib/import` içe aktarma), `api/_lib` (sunucu mantığı), `supabase/` (migration, şablon), `tests/{e2e,supabase,accuracy,fixtures}`.
 - `npm run dev` `/api/*`'i yerelde servis eder; düz `vite` `.env.local`'i `process.env`'e yüklemez (anahtarla test için kabuğa `export` ya da `vercel dev`).
 - `npm run build` (`tsc -b && vite build`), `npm run lint`, `npm run check:llm` (anahtar yoksa SKIPPED; `-- --list-models`).
 - Sayfa durumu: `App.tsx` `KEPT_ROUTES` sayfaları mounted kalır (`KeepAlivePage`); gizliyken dinleyiciler `useIsPageActive` ile kapanır, `useOnPageReturn` ile tazelenir. Arama/filtre URL'de (`useSearchParamState`).
@@ -13,9 +14,9 @@ Yapay zekâ ile metin/dosya/URL/YouTube'dan quiz üreten, fotoğraftaki matemati
 ## Test ve makine kuralları (16 GB RAM)
 
 - Tarayıcı testleri Playwright headless (Claude in Chrome değil): `test:e2e` (Chromium desktop + `@mobile`), `test:cross` (`@cross` Firefox/WebKit, 2 worker), `test:all`, `test:e2e:quick`, `test:each [dosya...]` (tek Vite sunucusu, dosya başına node sayısı yazar, sonunda süreç ağacını öldürür). `test:live` yalnızca istenince.
-- 2 worker (`PW_WORKERS` ezer), iki suite asla aynı anda; tek dev sunucusu. Çalışırken yalnızca değişen dosyalara dokunan specleri koş, tam suite en sonda bir kez; geçmiş testi tekrar koşma. Sabit bekleme yok, bitiş bildirimini bekle (yoklama döngüsü yok). Görev sonunda tüm arka plan kabuk/monitör/agent'ları durdur (`Get-Process node` başlangıca dönmeli).
+- 2 worker (`PW_WORKERS` ezer), iki suite asla aynı anda; tek dev sunucusu. Çalışırken yalnızca değişen dosyalara dokunan specleri koş, tam suite en sonda bir kez; geçmiş testi tekrar koşma. Sabit bekleme yok, bitiş bildirimini bekle (yoklama döngüsü yok). Görev sonunda yalnızca kendi başlattığın arka plan kabuk/monitör/agent'ları durdur (`Get-Process node` başlangıca dönmeli); başkasının süreçlerini öldürme.
 - Tarayıcı farkı önemli yeni specleri (görsel/kırpma, IndexedDB, pano, print, ses) `@cross` etiketle. Çıktı kısa: yalnızca başarısız testler ve ilgili hata satırları.
-- Doğruluk setleri (gerçek API): `npx tsx tests/accuracy/{quiz-quality,fact-coverage,check-work-accuracy,llm-budget-audit}.ts`.
+- Doğruluk setleri (gerçek API): `npx tsx tests/accuracy/{quiz-quality,fact-coverage,check-work-accuracy,llm-budget-audit}.ts`. Gerçek API'yi yalnızca görevin verdiği bütçe kadar kullan, gerçek maliyeti dolar olarak raporla.
 
 ## Deploy
 
@@ -38,16 +39,16 @@ Yapay zekâ ile metin/dosya/URL/YouTube'dan quiz üreten, fotoğraftaki matemati
 - **Cards (`/api/cards`)**: metin/konu/çözümden kart; konu modunda her zaman ikinci doğrulama çağrısı, hata durumunda kart eklenmez. SRS `src/lib/srs.ts` (Leitner 5 kutu 0/1/3/7/16 gün); "Practice anyway" kutu/vadeyi değiştirmez.
 - **Şarkı (`/api/song-lyrics`, `/api/song`)**: sözler ayrı LLM çağrısıyla fact-check edilir (≤2 tur), kontrolsüz şarkı "doğru" gösterilmez. Her quiz sorusu şarkıda kapsanır (yetmezse numaralı seri, quiz başına ≤6); satır/karakter sınırı süreye göre (30 sn = 8 satır, 260 karakter); bölüm etiketleri yerelleştirilir; kaynak terimleri bire bir korunur (`findTermViolations`); ortak `deadlineAt` 90 sn altında kalır. Dolar fiyatı öğrenciye gösterilmez.
 - **Audio Lesson (`/api/lesson`, `action`: plan|script|check|speak|unlock)**: yalnızca OpenAI; plan quiz ile aynı planlayıcı (kaynağın ~50 kelimesinde bir ana bilgi, en az 6). Ders süresi kaynağa göre (`episodeTargetSeconds`: ~35–45 kelime ≈ 2–2,5 dk, ≥155 kelime 6 dk, seri bölümleri 6 dk); hedef dışındaysa bir kez yalnızca satır ekle/sil/kısalt; ucuz model doğruluk+kapsam kontrolü, işaretli satırlar ≤2 tur; hesaplar mathjs. Ses: tek model `TTS_MODEL` (`src/lib/lessonAudio.ts`; model değişirse `SPEECH_TIMING`'i yeniden ölç), `speak` ≤6 satır/istek, satır başına -16 LUFS, `pronunciation.ts` sözlüğü yalnızca TTS metnine uygulanır. Owner sınırı: günde 3 ders ve 30 dk ses (IP+kod başına). Ses önizlemeleri statik (`public/voices/`, `scripts/make-voice-previews.ts`).
-- Rate limit: per-IP saatlik (solve, explain, similar/another-way/check-work/cards/lesson, song için ayrı dosyalar).
+- Rate limit: per-IP saatlik (solve, explain, similar/another-way/check-work/cards/lesson, song için ayrı dosyalar) ve hesap başına 20 AI isteği/dk (`with-auth.ts`).
 
 ## Tarayıcı depolama
 
-- localStorage `quelio.*.v1` anahtarları (archive, draft, solveTryFirst, flashcardsReminder, songGuard, songSecondsGuard, musicAccessCode, lessonSpend, lessonSpeed, lessonPosition). Arşiv `sourceHash` ile aynı kaynaktan önceki ≤40 soru kökünü avoid listesi yapar.
-- IndexedDB: `quelio-page-drafts` (Solve/Create taslağı, 24 saat), `quelio-songs` (≤30 şarkı), `quelio-solutions` (≤800px küçük resim, en yeni 300, `withDefaults`), `quelio-lessons` v2 (lessons/plans/segments), `quelio-flashcards` (decks/cards, IndexedDB yoksa bellekte çalışır).
+- Yerelde yalnızca kolaylıklar kalır (localStorage `quelio.*.v1`: draft, solveTryFirst, flashcardsReminder, songGuard, songSecondsGuard, musicAccessCode, lessonSpend, lessonSpeed, lessonPosition, writeQueue, importState; IndexedDB `quelio-page-drafts`). Arşiv `sourceHash` ile aynı kaynaktan önceki ≤40 soru kökünü avoid listesi yapar.
+- Eski yerel kopya (`quelio.archive.v1`, IndexedDB `quelio-songs|solutions|lessons|flashcards`) yalnızca `lib/legacy` ve içe aktarma tarafından okunur; kullanıcı onaylamadan silinmez.
 
 ## Supabase (hesap, veri, giriş)
 
-- Kullanıcı verisi Supabase'de (Postgres + Auth + Storage); şema `supabase/migrations`'ta, önce `quelio-test`'e sonra prod'a (`supabase link` + `db push`). Yıkıcı testler (kayıt, silme, RLS saldırısı) yalnızca test projesinde: `npm run test:supabase` (`tests/supabase`, port 5191, `SUPABASE_TEST_*`). Yukarıdaki "Tarayıcı depolama" artık eski yerel kopyayı anlatır: yalnızca içe aktarma (`src/lib/import`) ve test arka ucu okur.
+- Kullanıcı verisi Supabase'de (Postgres + Auth + Storage); şema `supabase/migrations`'ta, önce `quelio-test`'e sonra prod'a (`supabase link` + `db push`). Yıkıcı testler (kayıt, silme, RLS saldırısı) yalnızca test projesinde: `npm run test:supabase` (`tests/supabase`, port 5191, `SUPABASE_TEST_*`). 
 - `SUPABASE_SECRET_KEY` yalnızca `api/`'de; tarayıcı yalnızca publishable key (`VITE_SUPABASE_*`). Yeni tabloda RLS ve `(select auth.uid()) = user_id` politikaları zorunlu; tipler `npm run types:gen` ile yenilenir (`src/lib/database.types.ts`).
 - AI endpoint'leri `withAuth` ile sarılı (`api/_lib/with-auth.ts`): geçerli token yoksa 401 ve sağlayıcı çağrılmaz, hesap başına 20 istek/dk, her çağrı `usage_events`'e yazılır; yeni endpoint'i `api/*.ts`'de sarmala. `/api/account` dışa aktarma, hesap silme ve admin kullanım özeti.
 - UI-mantık specleri sahte arka uçla koşar (`VITE_QUELIO_FAKE_BACKEND=1`, yalnız Playwright dev sunucusu: sahte kullanıcı + yerel depolar); gerçek giriş/veri akışları `tests/supabase`'de. `supabase config push` Google'ı kapatır: panelden açıldıysa önce config.toml'a yaz.

@@ -16,7 +16,7 @@ export interface AnthropicContentBlock {
   source?: { type: 'base64'; media_type: string; data: string }
 }
 
-export interface AnthropicUsage {
+interface AnthropicUsage {
   inputTokens: number
   outputTokens: number
 }

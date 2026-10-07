@@ -113,7 +113,7 @@ export function buildAnswerKeyLine(rightOrder: number[]): string {
 
 // ---- Student answer parsing/checking (matching answer-check field) ----
 
-export interface ParsedMatchingPair {
+interface ParsedMatchingPair {
   number: number
   letter: string
 }

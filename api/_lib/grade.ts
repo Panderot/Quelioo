@@ -7,7 +7,7 @@ import type { GradeErrorCode, GradeQuestionType, GradeResponseBody, GradeApiErro
 import { getOutputLanguageEnglishName } from '../../src/data/outputLanguages.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
-export type GradeResponseBodyOrError = GradeResponseBody | GradeApiErrorBody
+type GradeResponseBodyOrError = GradeResponseBody | GradeApiErrorBody
 
 const MAX_REQUEST_BYTES = 32 * 1024
 const GRADE_TYPES = new Set<string>(['short-answer', 'open-ended'])

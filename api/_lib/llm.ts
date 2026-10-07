@@ -5,7 +5,7 @@ import { recordLlmUsage } from './usage.js'
 import type { OpenAiUsage } from './openai.js'
 
 export type LlmProvider = 'anthropic' | 'openai'
-export type LlmErrorCode = 'upstream' | 'parse' | 'model'
+type LlmErrorCode = 'upstream' | 'parse' | 'model'
 /**
  * Only used for the one-line-per-request diagnostic log; the client always sees the coarse
  * LlmErrorCode above. quota/rate/auth/bad_request all collapse to 'upstream' for the client —

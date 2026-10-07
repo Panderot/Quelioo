@@ -200,7 +200,7 @@ export function isLocallyCheckable(expected: string): boolean {
 type OptionMap = Map<string, string>
 
 /** Reads "A) 2  B) 4 ..." style options (inline or one per line) out of the problem text. */
-export function parseOptions(problem: string): OptionMap {
+function parseOptions(problem: string): OptionMap {
   const options: OptionMap = new Map()
   const marker = /(?:^|[\s,;])\(?([A-E])[).:]\s+/g
   const hits = [...problem.matchAll(marker)]

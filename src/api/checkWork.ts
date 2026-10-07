@@ -2,8 +2,8 @@ import { isStringArray, postJson, SolveExtraApiError } from './postJson'
 
 export type CheckWorkErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited' | 'network'
 
-export type CheckWorkVerdict = 'correct' | 'has_error' | 'unsure' | 'incomplete' | 'different_problem' | 'unreadable' | 'uncertain'
-export type CheckWorkErrorType = 'arithmetic' | 'sign' | 'concept' | 'copying' | 'missing_step'
+type CheckWorkVerdict = 'correct' | 'has_error' | 'unsure' | 'incomplete' | 'different_problem' | 'unreadable' | 'uncertain'
+type CheckWorkErrorType = 'arithmetic' | 'sign' | 'concept' | 'copying' | 'missing_step'
 export type CheckWorkStepState = 'ok' | 'mistake' | 'unsure' | 'unchecked'
 
 export interface CheckWorkResult {

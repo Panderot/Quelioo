@@ -10,7 +10,7 @@ import type { Tables } from '../supabase'
  * or a restart only delays a write. Network errors retry with a growing pause; a write the server
  * refuses (a rule, a permission) is dropped and reported through `failed` so it is never silent. */
 
-export type TableName = keyof Tables
+type TableName = keyof Tables
 
 type Row = Record<string, unknown>
 
@@ -45,21 +45,17 @@ function setStatus(patch: Partial<SyncStatus>) {
   listeners.forEach((listener) => listener())
 }
 
-export function getSyncStatus(): SyncStatus {
+function getSyncStatus(): SyncStatus {
   return status
 }
 
-export function subscribeSyncStatus(listener: () => void): () => void {
+function subscribeSyncStatus(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
 
 export function useSyncStatus(): SyncStatus {
   return useSyncExternalStore(subscribeSyncStatus, getSyncStatus)
-}
-
-export function dismissSyncFailure() {
-  setStatus({ failed: false })
 }
 
 function readJobs(): WriteJob[] {
@@ -171,7 +167,7 @@ function scheduleRetry() {
 }
 
 /** Sends queued writes in order; stops at the first one that needs a retry. */
-export async function pump(): Promise<void> {
+async function pump(): Promise<void> {
   if (isFakeBackend || pumping || !getAuthState().user) return
   pumping = true
   try {

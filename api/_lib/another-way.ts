@@ -5,9 +5,9 @@ import type { LlmProvider } from './llm.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
-export type AnotherWayErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited' | 'mismatch'
+type AnotherWayErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited' | 'mismatch'
 
-export type AnotherWayResult =
+type AnotherWayResult =
   | { kind: 'method'; method: string; steps: string[]; answer: string }
   /** No meaningfully different method exists — a short note instead of repeating the same one. */
   | { kind: 'none'; note: string }

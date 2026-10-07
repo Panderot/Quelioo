@@ -24,7 +24,7 @@ import { mp3DurationSeconds } from '../../src/lib/mp3.js'
 const TTS_TIMEOUT_MS = 60_000
 const TTS_PARALLEL = 3
 
-export interface SpokenSegment {
+interface SpokenSegment {
   id: string
   /** base64 MP3 */
   audio: string

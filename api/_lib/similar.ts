@@ -6,9 +6,9 @@ import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/d
 import { isLocallyCheckable } from '../../src/lib/mathAnswer.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
-export type SimilarErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited' | 'unverified'
+type SimilarErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited' | 'unverified'
 
-export interface SimilarProblem {
+interface SimilarProblem {
   question: string
   steps: string[]
   answer: string

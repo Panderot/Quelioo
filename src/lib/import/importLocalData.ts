@@ -33,7 +33,7 @@ export interface LegacySummary {
   total: number
 }
 
-export type ImportStep = 'decks' | 'quizzes' | 'songs' | 'solutions' | 'lessons' | 'verify'
+type ImportStep = 'decks' | 'quizzes' | 'songs' | 'solutions' | 'lessons' | 'verify'
 
 export interface ImportProgress {
   step: ImportStep

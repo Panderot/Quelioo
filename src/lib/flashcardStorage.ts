@@ -36,7 +36,7 @@ export interface Card extends SrsCard {
   deckId: string
 }
 
-export interface DeletedDeck {
+interface DeletedDeck {
   deck: Deck
   cards: Card[]
 }

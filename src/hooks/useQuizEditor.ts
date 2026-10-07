@@ -35,7 +35,7 @@ interface UseQuizEditorParams {
 const UNDO_WINDOW_MS = 6000
 
 /** "{title} · 2", then "· 3" for a follow-up of a follow-up. */
-export function followUpTitle(title: string): string {
+function followUpTitle(title: string): string {
   const match = /^(.*) · (\d+)$/.exec(title)
   return match ? `${match[1]} · ${Number(match[2]) + 1}` : `${title} · 2`
 }

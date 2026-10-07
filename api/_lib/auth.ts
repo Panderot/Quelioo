@@ -11,7 +11,7 @@ export type AuthResult = { status: 'ok'; user: AuthenticatedUser } | { status: '
 
 const MAX_TOKEN_CHARS = 4096
 
-export function bearerToken(req: IncomingMessage): string | null {
+function bearerToken(req: IncomingMessage): string | null {
   const header = req.headers.authorization
   const value = Array.isArray(header) ? header[0] : header
   const match = typeof value === 'string' ? /^Bearer\s+(\S+)$/i.exec(value.trim()) : null

@@ -17,7 +17,7 @@ export const LESSON_SPEAKERS: Record<LessonStyle, readonly string[]> = {
   narrator: ['narrator'],
 }
 
-export const SECTION_ROLES = ['opening', 'recall', 'teach', 'feynman', 'recap', 'selfcheck', 'tip'] as const
+const SECTION_ROLES = ['opening', 'recall', 'teach', 'feynman', 'recap', 'selfcheck', 'tip'] as const
 export type SectionRole = (typeof SECTION_ROLES)[number]
 
 export interface LessonOptions {
@@ -46,7 +46,7 @@ export interface EpisodePlan {
 }
 
 /** How a line is delivered by the voice; the script writer tags every line, the speech call passes it on. */
-export const DELIVERY_HINTS = ['question', 'warm', 'surprised', 'encouraging', 'slow', 'playful'] as const
+const DELIVERY_HINTS = ['question', 'warm', 'surprised', 'encouraging', 'slow', 'playful'] as const
 export type DeliveryHint = (typeof DELIVERY_HINTS)[number]
 
 export function isDeliveryHint(value: unknown): value is DeliveryHint {
@@ -124,9 +124,9 @@ export const MAX_LESSON_TITLE_CHARS = 120
 export const MAX_WORDS_PER_LINE = 32
 
 /** The longest an episode gets (a long source becomes a series of these). */
-export const MAX_EPISODE_SECONDS_TARGET = 360
+const MAX_EPISODE_SECONDS_TARGET = 360
 /** The shortest lesson, however small the source. */
-export const MIN_EPISODE_SECONDS_TARGET = 120
+const MIN_EPISODE_SECONDS_TARGET = 120
 /** Lesson seconds: a base for the opening and closing plus this much per source word, so the lesson
  * length follows the source (45 words ~ 2.3 minutes, 100 words ~ 4.2, 155+ words the 6-minute maximum). */
 const BASE_LESSON_SECONDS = 50

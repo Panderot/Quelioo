@@ -14,7 +14,7 @@ export const LEVEL_NAMES: Record<CardLevel, string> = {
 }
 
 /** What each card type looks like. The server checks the same rules (src/lib/cardRules.ts) and rewrites cards that break them. */
-export function styleRules(style: CardStyle, targetLanguage: string | null): string {
+function styleRules(style: CardStyle, targetLanguage: string | null): string {
   switch (style) {
     case 'qa':
       return 'Card type QUESTION -> ANSWER. "front" is ONE complete question (a full sentence that ends with a question mark) with exactly one correct answer, short and unambiguous. "back" gives the short answer FIRST, then at most one short line of context, about 25 words in all.'

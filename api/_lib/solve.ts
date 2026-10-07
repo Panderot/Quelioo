@@ -8,7 +8,7 @@ import { requestIp } from './song-rate-limit.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
-export type SolveErrorCode =
+type SolveErrorCode =
   | 'unreadable'
   | 'not_math'
   | 'too_large'
@@ -19,7 +19,7 @@ export type SolveErrorCode =
   | 'not_configured'
   | 'rate_limited'
 
-export interface SolveSuccess {
+interface SolveSuccess {
   topic: string
   question: string
   /** Optional one-sentence goal statement shown above the numbered steps ("" when none). */
@@ -32,17 +32,17 @@ export interface SolveSuccess {
 }
 
 /** Returned instead of a solution when the photo holds several problems and none was chosen yet. */
-export interface SolveChoices {
+interface SolveChoices {
   problems: string[]
 }
 
-export interface SolveError {
+interface SolveError {
   error: SolveErrorCode
 }
 
 type ProviderInfo = { provider: LlmProvider; fallbackUsed: boolean }
 
-export type SolveResponseBody = (SolveSuccess & ProviderInfo) | (SolveChoices & ProviderInfo) | SolveError
+type SolveResponseBody = (SolveSuccess & ProviderInfo) | (SolveChoices & ProviderInfo) | SolveError
 
 const ACCEPTED_MIME_TYPES = new Set(['image/jpeg'])
 // The client always normalizes every photo to a single JPEG before sending (see

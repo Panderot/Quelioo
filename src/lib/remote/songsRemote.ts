@@ -8,7 +8,7 @@ import { downloadFile, removeFiles, signedUrl, uploadFile } from './storageFiles
 /** Account copy of the songs: metadata in `songs`, audio in the private `audio` bucket under
  * "<user id>/songs/<song id>.<ext>". */
 
-export class SongStorageError extends Error {}
+class SongStorageError extends Error {}
 
 type SongRow = Row<'songs'>
 
@@ -26,7 +26,7 @@ function userId(): string {
   return id
 }
 
-export function rowToSong(row: SongRow): StoredSong {
+function rowToSong(row: SongRow): StoredSong {
   return {
     id: row.id,
     quizId: row.quiz_id,

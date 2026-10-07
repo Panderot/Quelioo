@@ -31,7 +31,7 @@ function isCjk(text: string): boolean {
 }
 
 /** Words of a text; CJK text has no spaces, so two characters count as one word. */
-export function cardWordCount(text: string): number {
+function cardWordCount(text: string): number {
   const trimmed = text.trim()
   if (!trimmed) return 0
   if (isCjk(trimmed)) return Math.ceil(trimmed.replace(/\s+/g, '').length / 2)
@@ -113,7 +113,7 @@ export function isNearDuplicate(a: { front: string; back: string }, b: { front: 
 }
 
 /** A front compared with deck fronts only (no back known). */
-export function repeatsFront(front: string, existing: string[]): boolean {
+function repeatsFront(front: string, existing: string[]): boolean {
   const mine = tokens(front)
   const key = normalizeFront(front)
   return existing.some((other) => normalizeFront(other) === key || jaccard(mine, tokens(other)) >= 0.75)

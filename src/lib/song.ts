@@ -75,7 +75,7 @@ export const MAX_KEY_FACT_CHARS = 200
 export const MAX_KEY_FACTS = 40
 export const MAX_SOURCE_EXCERPT_CHARS = 3000
 
-export interface LengthBand {
+interface LengthBand {
   /** This band applies to quizzes with up to this many key facts (one per question). */
   maxFacts: number
   targetSeconds: number

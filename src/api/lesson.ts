@@ -134,7 +134,7 @@ export async function checkLessonEpisode(
   return json
 }
 
-export interface SpokenSegment {
+interface SpokenSegment {
   id: string
   audio: Uint8Array
   durationSeconds: number

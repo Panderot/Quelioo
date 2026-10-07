@@ -315,7 +315,7 @@ export interface ReviewFlag {
 }
 
 /** Compact, answer-revealing view of a question for the reviewer (DATA only). */
-export function questionForReview(question: QuizQuestion): Record<string, unknown> {
+function questionForReview(question: QuizQuestion): Record<string, unknown> {
   const base = { id: question.id, type: question.type, question: question.question }
   switch (question.type) {
     case 'mcq':

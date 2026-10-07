@@ -174,7 +174,7 @@ function countConfirmedPairs(text: string, pairs: QuizPair[]): number {
   return pairs.filter((pair) => leaksText(text, pair.left, 0.8) && leaksText(text, pair.right, 0.8)).length
 }
 
-export type HintLeakReason = 'count' | 'empty' | 'overlong' | 'duplicate' | 'answer' | 'verdict' | 'pairs'
+type HintLeakReason = 'count' | 'empty' | 'overlong' | 'duplicate' | 'answer' | 'verdict' | 'pairs'
 
 export interface HintLeakResult {
   index: number

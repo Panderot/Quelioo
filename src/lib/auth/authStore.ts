@@ -10,7 +10,7 @@ import type { Row } from '../supabase'
 export type Profile = Row<'profiles'>
 export type UiLanguage = 'en' | 'tr' | 'hyw'
 
-export interface AuthUser {
+interface AuthUser {
   id: string
   email: string
   /** Sign-in methods linked to the account ("email", "google"). */
@@ -22,7 +22,7 @@ export interface AuthState {
   status: 'loading' | 'signedIn' | 'signedOut'
   user: AuthUser | null
   profile: Profile | null
-  /** The profile could not be loaded (network); retry with refreshProfile(). */
+  /** The profile could not be loaded (network). */
   profileFailed: boolean
 }
 
@@ -49,7 +49,7 @@ export function getAuthState(): AuthState {
   return state
 }
 
-export function subscribeAuth(listener: () => void): () => void {
+function subscribeAuth(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)
 }
@@ -68,13 +68,6 @@ export function onSessionEnd(handler: () => void): () => void {
 export function onSessionStart(handler: (userId: string) => void): () => void {
   sessionStartHandlers.add(handler)
   return () => sessionStartHandlers.delete(handler)
-}
-
-/** The signed-in user's id; throws when nobody is signed in (data calls never run signed out). */
-export function requireUserId(): string {
-  const id = state.user?.id
-  if (!id) throw new Error('not signed in')
-  return id
 }
 
 function toAuthUser(session: Session): AuthUser {
@@ -99,11 +92,6 @@ async function loadProfile(userId: string): Promise<void> {
     const { default: i18n } = await import('../../i18n')
     if (data.ui_language !== i18n.resolvedLanguage) void i18n.changeLanguage(data.ui_language)
   }
-}
-
-export function refreshProfile(): Promise<void> {
-  const id = state.user?.id
-  return id && !isFakeBackend ? loadProfile(id) : Promise.resolve()
 }
 
 function applySession(session: Session | null) {
@@ -174,8 +162,4 @@ export function syncLanguageToProfile(language: string): void {
   const profile = state.profile
   if (!profile || (language !== 'en' && language !== 'tr' && language !== 'hyw') || profile.ui_language === language) return
   void updateProfile({ ui_language: language })
-}
-
-export function isAdmin(): boolean {
-  return state.profile?.role === 'admin'
 }

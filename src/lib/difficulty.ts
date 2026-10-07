@@ -1,4 +1,4 @@
-export type DifficultyLevel = 'easy' | 'medium' | 'hard'
+type DifficultyLevel = 'easy' | 'medium' | 'hard'
 
 /** Single source of truth for what each difficulty means, fed into the generation prompt. Difficulty
  * sets the THINKING level, never trickery or ambiguity. */

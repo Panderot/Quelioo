@@ -9,7 +9,7 @@ import { isRecord, readRequestBody } from './anthropic.js'
 import { isPublicIp, validateFetchUrl } from './ssrf.js'
 import { countWords } from '../../src/lib/textStats.js'
 
-export type ExtractUrlErrorCode =
+type ExtractUrlErrorCode =
   | 'invalid_url'
   | 'blocked_address'
   | 'unreachable'
@@ -19,14 +19,14 @@ export type ExtractUrlErrorCode =
   | 'youtube_not_supported'
   | 'too_many_redirects'
 
-export interface ExtractUrlSuccessBody {
+interface ExtractUrlSuccessBody {
   title: string
   text: string
   wordCount: number
   truncated: boolean
 }
 
-export interface ExtractUrlErrorBody {
+interface ExtractUrlErrorBody {
   error: ExtractUrlErrorCode
 }
 

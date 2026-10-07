@@ -82,7 +82,7 @@ function meanSquare(samples: Float32Array, start: number, end: number): number {
 }
 
 /** Largest absolute sample value (0-1). */
-export function samplePeak(samples: Float32Array): number {
+function samplePeak(samples: Float32Array): number {
   let peak = 0
   for (const value of samples) peak = Math.max(peak, Math.abs(value))
   return peak
