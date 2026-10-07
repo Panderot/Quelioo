@@ -129,6 +129,7 @@ DIALOGUE
 - Whoever asks a question also says the following "think about it" pause line (with "pause": true); the OTHER speaker answers after the pause. In the self-check the asker may answer their own question. A single narrator does all of it.
 - Two speakers: the second one (host B or the student) asks the questions a real student would ask, including "why?" and "what if?", and sometimes gives a wrong answer that is kindly corrected. Do not give the speakers names.
 - Single narrator: the narrator asks the listener questions directly and answers them after pause lines.
+- Phrase every spoken question so the voice can rise at its end: ONE short question per line (never two questions or a two-part question in one line), and the LAST word of the line carries the question. In Turkish that means the question particle is the final word (a yes/no question ends in "mı/mi/mu/mü", never with a verb after the particle: "Su değişirse süreç aynı hızda ilerler mi?"), or a content question ("nasıl", "ne", "hangi") ends with a short tag such as ", biliyor musun?" or ", söyleyebilir misin?". In other languages end the question with its question word, tag or particle in the same way.
 - Tone: warm, clear, encouraging, never boring. Short turns. No filler, no off-topic chat, no greetings longer than one line.
 
 SPOKEN TEXT (it will be read by text-to-speech)
@@ -350,6 +351,7 @@ export function keyPointsFromFacts(facts: CoverageFact[], text: string): KeyPoin
     text: group.texts.join(' ').slice(0, MAX_MERGED_KEY_POINT_CHARS),
     source: group.sources.join(' ').slice(0, MAX_MERGED_SOURCE_CHARS),
     topic: group.topic,
+    facts: group.texts.length,
   }))
 }
 
@@ -431,6 +433,28 @@ export function speakabilityIssue(text: string): string | null {
   if (SYMBOL_PATTERN.test(text)) return 'speak:symbols'
   if (countWords(text) > MAX_WORDS_PER_LINE) return 'speak:long'
   return null
+}
+
+/** A Turkish question must end on its question word: the voice only rises at the end of "...mı?", "...değil mi?"
+ * or a tag ("..., biliyor musun?"); a verb after the particle or a bare content question comes out falling. */
+const TURKISH_QUESTION_END = /(?:^|[\s,])m[ıiuü][a-zçğıöşü]*$/iu
+export function questionEndIssue(text: string, language: string): string | null {
+  if (language !== 'tr' || !/[?？]\s*$/.test(text)) return null
+  const body = text.replace(/[?？\s.…!]+$/u, '')
+  return TURKISH_QUESTION_END.test(body) ? null : 'question:end'
+}
+
+/** Free last-resort fix for "... mi bağlı?": a particle followed by exactly one word moves behind that word,
+ * with vowel harmony taken from the word ("bağlı mı?", "ilerler mi?"). Null when the line does not fit that shape. */
+export function moveQuestionParticleLast(text: string, language: string): string | null {
+  if (questionEndIssue(text, language) === null) return null
+  const found = /^(.*\s)m[ıiuü]\s+(\p{L}+)\s*([?？])\s*$/u.exec(text.trim())
+  if (!found) return null
+  const [, head, word, mark] = found
+  const vowel = [...word.toLocaleLowerCase('tr')].reverse().find((char) => 'aeıioöuü'.includes(char))
+  if (!vowel) return null
+  const particle = 'aı'.includes(vowel) ? 'mı' : 'ei'.includes(vowel) ? 'mi' : 'ou'.includes(vowel) ? 'mu' : 'mü'
+  return `${head}${word} ${particle}${mark}`
 }
 
 /** Recalculates every "calc" entry with the whitelisted math evaluator; a mismatch flags its line. */
@@ -527,6 +551,8 @@ async function runCheck(params: {
   onlyLineIds?: Set<string>
   /** A short lesson (a few minutes): a key point counts as explained with a plain statement and one example. */
   short?: boolean
+  /** Lesson language: Turkish questions are also checked for how they end (see questionEndIssue). */
+  language?: string
 }): Promise<CheckOutcome> {
   const lines = allLines(params.sections as ScriptSection[])
   const lineIds = new Set(lines.map((line) => line.id))
@@ -553,7 +579,7 @@ async function runCheck(params: {
   // Deterministic rules always run, even when the AI check could not.
   for (const line of lines as WrittenLine[]) {
     if (params.onlyLineIds && !params.onlyLineIds.has(line.id)) continue
-    const issue = calculationIssue(line) ?? speakabilityIssue(line.text) ?? repeats.get(line.id)
+    const issue = calculationIssue(line) ?? speakabilityIssue(line.text) ?? questionEndIssue(line.text, params.language ?? '') ?? repeats.get(line.id)
     if (issue) flags.set(line.id, issue)
   }
   if (!result.ok) return { ran: false, flags, missingKeyPointIds: [] }
@@ -592,6 +618,7 @@ function parseRewriteReply(raw: unknown): RewriteReply | null {
 function describeIssue(issue: string): string {
   if (issue === 'speak:symbols') return 'Not speakable: write every number, symbol and abbreviation as words; no digits, symbols, markdown or emoji.'
   if (issue === 'speak:long') return `Too long to say in one breath: split it into shorter turns (at most about ${MAX_WORDS_PER_LINE} words each).`
+  if (issue === 'question:end') return 'A question must end on its question word so the voice can rise: end a yes/no question with "mı/mi/mu/mü" as the LAST word (nothing after it), or end a "nasıl/ne/hangi" question with a short tag such as ", biliyor musun?" or ", söyleyebilir misin?". Keep one short question per line.'
   if (issue.startsWith('repeat:')) return 'Repeats an earlier line almost word for word: delete it, or say something NEW instead (a different example, a check question or a misconception).'
   if (issue.startsWith('mnemonic:')) return `Misleading memory trick (${issue.slice(9)}). Replace it with a clean trick whose words mean nothing misleading in the output language, or delete it and state the point plainly.`
   if (issue.startsWith('broken:')) return `Broken or unnatural sentence (${issue.slice(7)}). Rewrite it as one natural, complete sentence a native speaker would say.`
@@ -812,7 +839,7 @@ function parseKeyPoints(value: unknown): KeyPoint[] | null {
     if (!isRecord(entry) || typeof entry.id !== 'string' || !/^K\d{1,3}$/.test(entry.id)) return null
     const text = cleanString(entry.text, MAX_MERGED_KEY_POINT_CHARS)
     if (!text) return null
-    points.push({ id: entry.id, text, source: cleanString(entry.source, MAX_MERGED_SOURCE_CHARS), topic: cleanString(entry.topic, 60) })
+    points.push({ id: entry.id, text, source: cleanString(entry.source, MAX_MERGED_SOURCE_CHARS), topic: cleanString(entry.topic, 60), ...(typeof entry.facts === 'number' && Number.isInteger(entry.facts) && entry.facts >= 1 && entry.facts <= 50 ? { facts: entry.facts } : {}) })
   }
   return new Set(points.map((point) => point.id)).size === points.length ? points : null
 }
@@ -1017,7 +1044,7 @@ async function handleScript(payload: Record<string, unknown>, ip: string): Promi
     fixPauseSpeakers(sections)
   }
 
-  let check = await runCheck({ sections, keyPoints: episodePoints, text, meter, step: 'check1', short: !profile.feynman })
+  let check = await runCheck({ sections, keyPoints: episodePoints, text, meter, step: 'check1', short: !profile.feynman, language })
   const rewritten: string[] = []
   for (let round = 1; round <= MAX_REWRITE_ROUNDS; round += 1) {
     if (!check.ran || (check.flags.size === 0 && check.missingKeyPointIds.length === 0)) break
@@ -1033,9 +1060,16 @@ async function handleScript(payload: Record<string, unknown>, ip: string): Promi
       check = { ran: false, flags: check.flags, missingKeyPointIds: check.missingKeyPointIds }
       break
     }
-    check = await runCheck({ sections, keyPoints: episodePoints, text, meter, step: `check${round + 1}`, short: !profile.feynman })
+    check = await runCheck({ sections, keyPoints: episodePoints, text, meter, step: `check${round + 1}`, short: !profile.feynman, language })
   }
 
+  // A question the rewrite rounds left with its particle in mid-sentence is fixed locally (no extra model call).
+  for (const section of sections) {
+    for (const line of section.lines) {
+      const moved = moveQuestionParticleLast(line.text, language)
+      if (moved) line.text = moved
+    }
+  }
   const result = finalizeEpisode(part, title, sections, check, rewritten, language)
   console.log(
     `lesson: action=script part=${part}/${episodes.length} words=${result.wordCount} seconds=${result.estimatedSeconds} flagged=${check.flags.size} missing=${check.missingKeyPointIds.length} rewritten=${result.check.rewrittenLineIds.length} duration=${Date.now() - start}ms`,

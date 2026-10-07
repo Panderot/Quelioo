@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { applyLengthEdit, applyRewrite, episodeProfile, fixPauseSpeakers, handleLessonRequest, keyPointsFromFacts, parseCheckReply, repeatedLineIssues, speakabilityIssue, validateWrittenScript, wordBudget } from '../../api/_lib/lesson'
+import { applyLengthEdit, applyRewrite, episodeProfile, fixPauseSpeakers, handleLessonRequest, keyPointsFromFacts, parseCheckReply, repeatedLineIssues, speakabilityIssue, validateWrittenScript, wordBudget, questionEndIssue, moveQuestionParticleLast } from '../../api/_lib/lesson'
 import { handleSongCreateRequest } from '../../api/_lib/song'
 import { glidePcm, glideSamples, tinyPcm } from '../fixtures/tinyPcm'
 import { endRiseSemitones } from '../../src/lib/pitch'
@@ -209,10 +209,43 @@ test.describe('/api/lesson: fixed 6-minute episodes and series split', () => {
     })
   }
 
+  test('episodes differ by at most one key point, cuts prefer topic boundaries among equal splits', () => {
+    for (const count of [7, 11, 14, 19, 30, 41]) {
+      const points = Array.from({ length: count }, (_, i) => ({ id: 'K' + (i + 1), topic: 't' + Math.floor(i / 3) }))
+      const sizes = splitIntoEpisodes(points).map((episode) => episode.keyPointIds.length)
+      expect(Math.max(...sizes) - Math.min(...sizes), String(sizes)).toBeLessThanOrEqual(1)
+    }
+    // 12 key points in 3 episodes: 4/4/4 is the only even split
+    const twelve = splitIntoEpisodes(Array.from({ length: 14 }, (_, i) => ({ id: 'K' + (i + 1), topic: i < 5 ? 'a' : i < 9 ? 'b' : 'c' })))
+    expect(twelve.map((episode) => episode.keyPointIds.length)).toEqual([5, 4, 5]) // 14 points: the 5/4/5 split cuts exactly at both topic changes
+  })
+
+  test('among splits that differ by at most one key point, the evenest fact counts win', () => {
+    // 7 key points in 2 episodes: 3+4 or 4+3 key points; facts 3,1,1,1,1,1,1 are 5|4 as 3+4 and 6|3 as 4+3
+    const points = [3, 1, 1, 1, 1, 1, 1].map((facts, i) => ({ id: 'K' + (i + 1), topic: 't' + i, facts }))
+    expect(splitIntoEpisodes(points).map((episode) => episode.keyPointIds.length)).toEqual([3, 4])
+  })
+
+  test('Turkish questions must end on the question word so the voice can rise', () => {
+    for (const ok of ['Işık olmadan fotosentez gerçekleşir mi?', 'Klorofil ışığı soğurur, değil mi?', 'Bitki ışıkla nasıl besin üretir, biliyor musun?', 'Su aynı hızda ilerler mıydı?', 'Tamam mı?']) expect(questionEndIssue(ok, 'tr'), ok).toBeNull()
+    for (const bad of ['Işığı klorofil mi soğurur?', 'Bitki hangi ürünü kullanır?', 'Süreç hep aynı hızda mı ilerler?']) expect(questionEndIssue(bad, 'tr'), bad).toBe('question:end')
+    expect(questionEndIssue('Bitki hangi ürünü kullanır?', 'en')).toBeNull() // only Turkish is checked
+    expect(questionEndIssue('Klorofil ışığı soğurur.', 'tr')).toBeNull() // statements are never flagged
+  })
+
+  test('a stranded question particle moves behind the last word with vowel harmony', () => {
+    expect(moveQuestionParticleLast('Fotosentez hızı yalnızca ışık şiddetine mi bağlı?', 'tr')).toBe('Fotosentez hızı yalnızca ışık şiddetine bağlı mı?')
+    expect(moveQuestionParticleLast('Süreç hep aynı hızda mı ilerler?', 'tr')).toBe('Süreç hep aynı hızda ilerler mi?')
+    expect(moveQuestionParticleLast('Işığı kloroplast mı soğurur?', 'tr')).toBe('Işığı kloroplast soğurur mu?')
+    expect(moveQuestionParticleLast('Işık olmadan fotosentez gerçekleşir mi?', 'tr')).toBeNull() // already fine
+    expect(moveQuestionParticleLast('Bitki hangi ürünü kullanır?', 'tr')).toBeNull() // no particle to move
+    expect(moveQuestionParticleLast('Does light matter?', 'en')).toBeNull()
+  })
+
   test('a cut moves to a nearby topic boundary', () => {
     const topics = ['a', 'a', 'a', 'a', 'b', 'b', 'b', 'b', 'b', 'b']
     const episodes = splitIntoEpisodes(topics.map((topic, i) => ({ id: `K${i + 1}`, topic })))
-    expect(episodes.map((episode) => episode.keyPointIds.length)).toEqual([4, 6])
+    expect(episodes.map((episode) => episode.keyPointIds.length)).toEqual([5, 5]) // evenness wins over the topic boundary at 4
   })
 })
 
@@ -552,7 +585,7 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
     )
     const byInput = (start: string) => String(calls.find((call) => String(call.input).toLowerCase().startsWith(start))?.instructions)
     expect(byInput('kloroplastla')).toContain('QUESTION')
-    expect(byInput('kloroplastla')).toContain('rising question intonation')
+    expect(byInput('kloroplastla')).toContain('very last syllable is the highest note')
     expect(byInput('bu çok')).toContain('surprised')
     expect(byInput('bu çok')).toContain('co-host') // the speaker's style is kept
     expect(byInput('klorofil ışığı')).toContain('warmly')

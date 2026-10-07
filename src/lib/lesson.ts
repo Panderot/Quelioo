@@ -36,6 +36,8 @@ export interface KeyPoint {
   source: string
   /** Short topic label, used to split a series at natural topic boundaries. */
   topic: string
+  /** Facts of the shared plan merged into this key point (a list counts as one); 1 when unknown. */
+  facts?: number
 }
 
 export interface EpisodePlan {
@@ -203,31 +205,62 @@ export function episodeCountFor(keyPointCount: number): number {
 }
 
 /**
- * Splits key points (already in teaching order) into consecutive episodes of near-equal size,
- * moving each cut by at most one key point to land on a topic boundary. Every key point lands in
- * exactly one episode, order is kept, none is dropped.
+ * Splits key points (already in teaching order) into consecutive episodes that differ by at most one
+ * key point; among those splits the one with the evenest fact counts (a key point may hold several
+ * facts), and then the one that cuts at the most topic boundaries so related facts stay together.
+ * Every key point lands in exactly one episode, order is kept, none is dropped.
  */
-export function splitIntoEpisodes(keyPoints: Pick<KeyPoint, 'id' | 'topic'>[]): EpisodePlan[] {
+export function splitIntoEpisodes(keyPoints: Pick<KeyPoint, 'id' | 'topic' | 'facts'>[]): EpisodePlan[] {
   const total = keyPoints.length
   const episodes = episodeCountFor(total)
   if (episodes === 0) return []
-  const cuts: number[] = []
-  let previous = 0
-  for (let k = 1; k < episodes; k += 1) {
-    const ideal = Math.round((k * total) / episodes)
-    const remaining = episodes - k
-    const valid = (cut: number) => cut > previous && total - cut >= remaining
-    const isBoundary = (cut: number) => keyPoints[cut - 1].topic !== keyPoints[cut].topic
-    const candidates = [ideal, ideal - 1, ideal + 1].filter(valid)
-    const cut = candidates.find(isBoundary) ?? candidates[0] ?? Math.max(previous + 1, ideal)
-    cuts.push(cut)
-    previous = cut
+  const prefix = [0]
+  for (const point of keyPoints) prefix.push(prefix[prefix.length - 1] + Math.max(1, point.facts ?? 1))
+  const allFacts = prefix[total]
+  const smallest = Math.floor(total / episodes)
+  const largest = Math.ceil(total / episodes)
+  const boundary = (cut: number) => (keyPoints[cut - 1].topic.toLocaleLowerCase() !== keyPoints[cut].topic.toLocaleLowerCase() ? 1 : 0)
+
+  // Most topic-boundary cuts with every episode holding lo..hi facts (-Infinity: impossible).
+  const solve = (lo: number, hi: number) => {
+    const best = Array.from({ length: episodes + 1 }, () => Array<number>(total + 1).fill(Number.NEGATIVE_INFINITY))
+    const from = Array.from({ length: episodes + 1 }, () => Array<number>(total + 1).fill(-1))
+    best[0][0] = 0
+    for (let k = 1; k <= episodes; k += 1) {
+      for (let i = k; i <= total; i += 1) {
+        for (let j = k - 1; j < i; j += 1) {
+          const facts = prefix[i] - prefix[j]
+          if (best[k - 1][j] === Number.NEGATIVE_INFINITY || i - j < smallest || i - j > largest || facts < lo || facts > hi) continue
+          const score = best[k - 1][j] + (k > 1 ? boundary(j) : 0)
+          if (score > best[k][i]) {
+            best[k][i] = score
+            from[k][i] = j
+          }
+        }
+      }
+    }
+    return { score: best[episodes][total], from }
   }
-  const bounds = [0, ...cuts, total]
-  return bounds.slice(0, -1).map((start, index) => ({
-    part: index + 1,
-    keyPointIds: keyPoints.slice(start, bounds[index + 1]).map((point) => point.id),
-  }))
+
+  const average = allFacts / episodes
+  for (let spread = 0; spread <= allFacts; spread += 1) {
+    let winner: ReturnType<typeof solve> | null = null
+    for (let lo = Math.max(1, Math.floor(average) - spread); lo <= Math.ceil(average); lo += 1) {
+      const attempt = solve(lo, lo + spread)
+      if (attempt.score > (winner?.score ?? Number.NEGATIVE_INFINITY)) winner = attempt
+    }
+    if (!winner) continue
+    const bounds = [total]
+    for (let k = episodes, i = total; k > 0; k -= 1) {
+      i = winner.from[k][i]
+      bounds.unshift(i)
+    }
+    return bounds.slice(0, -1).map((start, index) => ({
+      part: index + 1,
+      keyPointIds: keyPoints.slice(start, bounds[index + 1]).map((point) => point.id),
+    }))
+  }
+  return [{ part: 1, keyPointIds: keyPoints.map((point) => point.id) }]
 }
 
 export function scriptWordCount(sections: ScriptSection[], countWords: (text: string) => number): number {

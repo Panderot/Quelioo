@@ -120,6 +120,8 @@ interface TtsResult {
 
 /** gpt-4o-mini-tts raw output: 24 kHz, 16-bit, mono. */
 const PCM_SAMPLE_RATE = 24_000
+/** A flat-sounding question is spoken again at most this many times; the take with the highest end rise is kept. */
+const MAX_QUESTION_RETAKES = 2
 /** Added to the instruction when a question came back flat and is spoken once more. */
 const FLAT_QUESTION_NOTE = ' The previous attempt sounded flat: exaggerate the rising pitch on the last word of this question.'
 
@@ -230,15 +232,17 @@ export async function speakBatch(
       let lineCost = result.costUsd
       // A question must sound like one: when the pitch does not rise at the end, it is spoken once more and the better take is kept.
       if (effectiveDelivery(line) === 'question') {
-        const rise = endRiseSemitones(samples, PCM_SAMPLE_RATE)
-        if (rise !== null && rise < MIN_QUESTION_RISE_SEMITONES) {
+        let rise = endRiseSemitones(samples, PCM_SAMPLE_RATE)
+        for (let take = 1; take <= MAX_QUESTION_RETAKES && rise !== null && rise < MIN_QUESTION_RISE_SEMITONES; take += 1) {
           const again = await callTts({ text: line.spoken, voice, instructions: `${instructions}${FLAT_QUESTION_NOTE}` })
-          if (again) {
-            lineCost += again.costUsd
-            const retakeSamples = pcm16ToFloat(again.pcm)
-            const retakeRise = endRiseSemitones(retakeSamples, PCM_SAMPLE_RATE)
-            if (retakeRise !== null && retakeRise > rise) samples = retakeSamples
-            console.log(`lesson: speak question riseFirst=${rise.toFixed(1)} riseRetake=${retakeRise === null ? 'n/a' : retakeRise.toFixed(1)}`)
+          if (!again) break
+          lineCost += again.costUsd
+          const retakeSamples = pcm16ToFloat(again.pcm)
+          const retakeRise = endRiseSemitones(retakeSamples, PCM_SAMPLE_RATE)
+          console.log(`lesson: speak question take=${take + 1} riseBefore=${rise.toFixed(1)} riseRetake=${retakeRise === null ? 'n/a' : retakeRise.toFixed(1)}`)
+          if (retakeRise !== null && retakeRise > rise) {
+            samples = retakeSamples
+            rise = retakeRise
           }
         }
       }

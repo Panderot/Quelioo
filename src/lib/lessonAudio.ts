@@ -28,7 +28,7 @@ export const DAILY_AUDIO_SECONDS_CAP = 30 * 60
 
 /** What each per-line delivery hint asks of the voice (added to the speaker's style). */
 const DELIVERY_INSTRUCTIONS: Record<DeliveryHint, string> = {
-  question: 'This line is a QUESTION. Use an unmistakably rising question intonation: the pitch climbs over the last words and the final syllable ends clearly higher than the rest of the sentence. Never let the pitch fall at the end.',
+  question: 'This line is a QUESTION asked to a friend. The pitch rises over the last two syllables and the very last syllable is the highest note of the whole sentence, clearly higher (about 4 to 6 semitones) than the middle of the sentence. Never drop the voice at the end and never trail off.',
   warm: 'Deliver this line warmly and calmly, like explaining to a friend.',
   surprised: 'Sound pleasantly surprised and amazed, with lively, rising energy.',
   encouraging: 'Sound encouraging and positive, smiling while you speak.',

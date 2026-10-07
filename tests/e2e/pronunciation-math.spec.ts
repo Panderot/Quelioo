@@ -52,3 +52,22 @@ test.describe('spoken math: exponents and fractions', () => {
     expect(hyw('x^2 + 1')).not.toContain('աստիճան')
   })
 })
+
+test.describe('pronunciation dictionary in every language', () => {
+  const say = (text: string, language: 'tr' | 'en' | 'other') => normalizeForSpeech(text, language).text
+
+  test('Turkish and English spell DNA, formulas, percentages and units', () => {
+    expect(say('DNA ve CO2', 'tr')).toBe('de-en-a ve ce-o-iki')
+    expect(say('%20 ve 5 km', 'tr')).toBe('yüzde yirmi ve beş kilometre')
+    expect(say('DNA and H2O', 'en')).toBe('D N A and H two O')
+    expect(say('20% and 5 km', 'en')).toBe('twenty percent and five kilometres')
+  })
+
+  test('other languages (Armenian, German, ...) spell Latin acronyms and formulas, never invent a word', () => {
+    expect(say('DNA և mRNA', 'other')).toBe('D N A և m R N A')
+    expect(say('CO2 և H2O', 'other')).toBe('C O 2 և H 2 O')
+    expect(say('der pH-Wert', 'other')).toBe('der p H-Wert')
+    expect(say('NATO und UNESCO', 'other')).toBe('NATO und UNESCO')
+    expect(normalizeForSpeech('DNA', 'other').unknownAbbreviations).toEqual(['DNA'])
+  })
+})

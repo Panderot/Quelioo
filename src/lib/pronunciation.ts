@@ -343,12 +343,34 @@ function speakFractions(text: string, language: SpeechLanguage): string {
   }
 }
 
+/** Acronyms that are said as a word in every language, never spelled letter by letter. */
+const SAID_AS_WORDS = new Set(['NATO', 'NASA', 'UNESCO', 'UNICEF', 'OPEC', 'FIFA', 'NAFTA', 'ASEAN', 'WIFI', 'LASER', 'RADAR'])
+
+/** Languages without their own dictionary (Armenian, German, ...): the voice must still not read DNA,
+ * mRNA, pH or CO2 as a made-up word, so Latin acronyms and chemical formulas are spelled letter by
+ * letter (digits stay digits, the voice says those in the lesson language). */
+function spellLatinAbbreviations(input: string): { text: string; spelled: string[] } {
+  const spelled = new Set<string>()
+  const letters = (token: string) => token.replace(/[A-Z][a-z]?|\d+/g, (piece) => `${piece} `).trim()
+  let text = input.replace(new RegExp(`${before}((?:[A-Z][a-z]?\\d*){1,8})${after}`, 'gu'), (match: string) => (/\d/.test(match) ? letters(match) : match))
+  text = text.replace(new RegExp(`${before}(m?[A-Z]{2,5}|pH)${after}`, 'gu'), (token: string) => {
+    if (SAID_AS_WORDS.has(token)) return token
+    spelled.add(token)
+    return token === 'pH' ? 'p H' : [...token].join(' ')
+  })
+  return { text, spelled: [...spelled] }
+}
+
 /** Rewrites abbreviations, symbols, units, Roman numerals, formulas and numbers into spoken words. */
 export function normalizeForSpeech(input: string, language: SpeechLanguage): SpeechText {
   // LaTeX never reaches the voice as code: it becomes plain math first.
   let text = mathToPlainText(input).replace(/[*_#`~]+/g, ' ')
   const unknown = new Set<string>()
-  if (language === 'other') return { text: speakPowers(speakFractions(text, 'other'), 'other', true).replace(/\s+/g, ' ').trim(), unknownAbbreviations: [] }
+  if (language === 'other') {
+    const spoken = speakPowers(speakFractions(text, 'other'), 'other', true)
+    const { text: letters, spelled } = spellLatinAbbreviations(spoken)
+    return { text: letters.replace(/\s+/g, ' ').trim(), unknownAbbreviations: spelled }
+  }
   const lang = language
 
   // 0. Spoken math: fractions with a bracketed side, powers ("4⁵", "a^(m+n)"), "·" and a fraction bar after a closing bracket.

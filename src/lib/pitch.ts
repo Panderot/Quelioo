@@ -2,7 +2,7 @@
  * check that a question really rises at the end. */
 
 /** A question counts as rising when its last 300 ms sit at least this many semitones above the 500 ms before. */
-export const MIN_QUESTION_RISE_SEMITONES = 0.5
+export const MIN_QUESTION_RISE_SEMITONES = 1
 
 const FRAME = 1024
 const HOP = 240
