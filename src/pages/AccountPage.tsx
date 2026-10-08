@@ -16,6 +16,7 @@ import type { UiLanguage } from '../lib/auth/authStore'
 import { detectLegacyData, getImportState } from '../lib/import/importLocalData'
 import type { LegacySummary } from '../lib/import/importLocalData'
 import { supabase } from '../lib/supabase'
+import SupportNote from '../components/SupportNote'
 
 const LANGUAGE_OPTIONS = [
   { value: 'en', label: 'English' },
@@ -289,6 +290,8 @@ export default function AccountPage() {
           </button>
         </div>
       </Section>
+
+      <SupportNote className="text-center" />
 
       {importSummary && <ImportDialog userId={user.id} summary={importSummary} onClose={() => setImportSummary(null)} />}
       {deleteOpen && <DeleteAccountDialog email={user.email} busy={deleteBusy} error={deleteError} onConfirm={() => void confirmDelete()} onCancel={() => setDeleteOpen(false)} />}

@@ -1147,7 +1147,7 @@
     "passwordTooShort": "Use at least 8 characters.",
     "passwordMismatch": "The two passwords don't match.",
     "networkError": "Couldn't reach Quelio. Check your connection and try again.",
-    "genericError": "Something went wrong. Please try again.",
+    "genericError": "Something went wrong. Please try again. If it keeps happening, write to info@motiqai.com.",
     "signIn": {
       "title": "Welcome back",
       "subtitle": "Sign in to open your quizzes, cards and songs on any device.",
@@ -1267,7 +1267,7 @@
       "download": "Download my data",
       "downloadHint": "A JSON file with everything your account owns.",
       "downloading": "Preparing…",
-      "downloadFailed": "Couldn't prepare your data. Try again."
+      "downloadFailed": "Couldn't prepare your data. Try again. If it keeps happening, write to info@motiqai.com."
     },
     "import": {
       "title": "Data on this device",
@@ -1282,14 +1282,14 @@
       "dialogBody": "Everything is removed for good. Type your email address to confirm.",
       "confirmLabel": "Your email address",
       "confirm": "Delete everything",
-      "failed": "Couldn't delete the account. Try again."
+      "failed": "Couldn't delete the account. Try again. If it keeps happening, write to info@motiqai.com."
     },
     "errors": {
       "unauthorized": "Your session has ended. Sign in again.",
       "forbidden": "You don't have access to that.",
       "bad_request": "That request wasn't accepted.",
       "rate_limited": "Too many requests, try again shortly.",
-      "server": "Something went wrong on our side. Try again.",
+      "server": "Something went wrong on our side. Try again. If it keeps happening, write to info@motiqai.com.",
       "network": "Couldn't reach Quelio. Check your connection."
     }
   },
@@ -1380,5 +1380,8 @@
     "total": "This month: {{cost}}",
     "byFeature": "By feature",
     "loadFailed": "Couldn't load the usage."
+  },
+  "support": {
+    "prefix": "Need help?"
   }
 }

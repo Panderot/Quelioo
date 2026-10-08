@@ -105,6 +105,7 @@ App root (flex, bg-paper)
 - **User menu (`UserMenu`):** last item of the sidebar footer: 32px amber initials avatar + name (name hidden in the icon rail). Opens an upward menu (MoreMenu tokens: card, warm border, radius 12, 40px rows) with Account and Sign out; WAI-ARIA menu keys. Works in the mobile drawer.
 - **Sync status (`SyncStatus`):** muted pill left of the language switcher; hidden when every change is saved, "Saving…" with a spinner while writes wait, red-tinted "Couldn't save a change" when the server refused one.
 - **Skeleton and load error (`DataStates`):** `SkeletonList` = rows of card/warm-border blocks with a 220ms pulse (off under reduced motion, `aria-busy`); `LoadError` = centered card with the message and an outline "Try again". Lists show the skeleton first and never an empty state before the load ends.
+- **Support note (`SupportNote`):** one muted 12px line "Need help? info@motiqai.com" (amber-text mailto link) in the auth footer, at the end of the account page and inside load-error cards; error strings that suggest writing to the same address.
 - **Rate-limit toast (`RateLimitNotice`):** the Undo toast shape (navy pill, bottom-center, 6s) saying "Too many requests, try again shortly"; any API call answered 429 raises it.
 
 ## 6. Create page

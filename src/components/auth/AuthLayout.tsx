@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../LanguageSwitcher'
 import { LogoMark } from '../Logo'
 import RateLimitNotice from '../RateLimitNotice'
+import SupportNote from '../SupportNote'
 
 /** Public pages (sign in, sign up, passwords, legal): centered card on paper, no sidebar. */
 export default function AuthLayout() {
@@ -27,6 +28,9 @@ export default function AuthLayout() {
           <Outlet />
         </div>
       </main>
+      <footer className="relative px-4 pb-8 text-center">
+        <SupportNote />
+      </footer>
       <RateLimitNotice />
     </div>
   )

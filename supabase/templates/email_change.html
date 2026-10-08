@@ -1,18 +1,172 @@
-<!doctype html>
-<html><body style="margin:0;padding:24px;background:#FBF7EF;font-family:'Plus Jakarta Sans',Arial,sans-serif">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
-<table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFEFB;border:1px solid #ECE5D6;border-radius:16px"><tr><td style="padding:32px">
-<p style="margin:0 0 20px;font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:600;color:#0E1330">Quelio</p>
-{{ if and .Data.ui_language (eq .Data.ui_language "tr") }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Yeni e-postanı onayla</h1>
-<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Quelio hesabın için yeni e-posta adresini onayla.</p>
-<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Yeni e-postayı onayla</a></p>
-<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">Bu değişikliği sen istemediysen bu iletiyi yok sayabilirsin.</p>{{ else if and .Data.ui_language (eq .Data.ui_language "hyw") }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Հաստատէ՛ նոր էլ. փոստդ</h1>
-<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Quelio հաշիւիդ նոր էլ. փոստի հասցէն հաստատէ՛։</p>
-<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Հաստատել նոր հասցէն</a></p>
-<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">Եթէ դուն չես խնդրած այս փոփոխութիւնը, այս նամակը անտեսէ՛։</p>{{ else }}<h1 style="margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:600;color:#0E1330">Confirm your new email</h1>
-<p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#14172B">Confirm the new email address for your Quelio account.</p>
-<p style="margin:0 0 24px"><a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email_change" style="display:inline-block;background:#F5A524;color:#0E1330;font-weight:700;font-size:15px;text-decoration:none;padding:13px 22px;border-radius:12px">Confirm new email</a></p>
-<p style="margin:0;font-size:13px;line-height:1.5;color:#6B6F85">If you didn't ask for this change, ignore this message.</p>{{ end }}
-</td></tr></table>
-</td></tr></table>
-</body></html>
+{{ if and .Data.ui_language (eq .Data.ui_language "en") }}<!doctype html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Verify your new Quelio email address</title>
+<style>
+  body { margin:0; padding:0; }
+  a { color:#9C4A09; }
+  @media (max-width:600px) { .px { padding-left:24px !important; padding-right:24px !important; } .btn a { display:block !important; } }
+  @media (prefers-color-scheme: dark) {
+    .page { background-color:#0B0F26 !important; }
+    .card { background-color:#171B38 !important; border-color:#2A3058 !important; }
+    .ink { color:#FBF7EF !important; }
+    .muted { color:#A9ADC4 !important; }
+    .linkbox { background-color:#0B0F26 !important; border-color:#2A3058 !important; }
+    .foot a, .linkbox a { color:#F5A524 !important; }
+  }
+</style>
+</head>
+<body class="page" style="margin:0;padding:0;background-color:#FBF7EF;">
+<table role="presentation" class="page" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FBF7EF;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+    <tr><td class="px" bgcolor="#0E1330" style="background-color:#0E1330;border-radius:16px 16px 0 0;padding:26px 40px;">
+      <span style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:600;letter-spacing:-0.3px;color:#FBF7EF;">Quelio</span>
+      <span style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3px;color:#F5A524;padding-top:4px;">Questions that shine.</span>
+    </td></tr>
+    <tr><td class="card px" bgcolor="#FFFEFB" style="background-color:#FFFEFB;border:1px solid #ECE5D6;border-top:0;border-radius:0 0 16px 16px;padding:36px 40px 32px;">
+      <h1 class="ink" style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;font-weight:600;color:#0E1330;">Verify your new email address</h1>
+      <p class="ink" style="margin:0 0 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#14172B;">We received a request to change the email address of your account from {{ .Email }} to {{ .NewEmail }}. Use the button below to confirm it.</p>
+      <table role="presentation" class="btn" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+        <tr><td align="center" bgcolor="#F5A524" style="background-color:#F5A524;border-radius:12px;">
+          <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change" style="display:inline-block;padding:15px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#0E1330;text-decoration:none;border-radius:12px;">Confirm the change</a>
+        </td></tr>
+      </table>
+      <p class="muted" style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6B6F85;">If the button doesn't work, paste this link into your browser:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+        <tr><td class="linkbox" bgcolor="#FBF7EF" style="background-color:#FBF7EF;border:1px solid #ECE5D6;border-radius:10px;padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;word-break:break-all;">
+          <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change" style="color:#9C4A09;text-decoration:underline;">{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change</a>
+        </td></tr>
+      </table>
+      <p class="muted" style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">The link is valid for 1 hour and works only once.</p>
+      <p class="muted" style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">For your safety, you may be asked to confirm from both addresses.</p>
+      <p class="muted" style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">If you didn't make this request, you can ignore this email. Your account is safe.</p>
+    </td></tr>
+    <tr><td class="foot px" align="center" style="padding:22px 24px 4px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#6B6F85;">
+      <span class="muted" style="color:#6B6F85;">Quelio by MotiqAI &middot; <a href="mailto:info@motiqai.com" style="color:#9C4A09;text-decoration:none;">info@motiqai.com</a></span><br>
+      <a href="https://quelio.vercel.app/gizlilik" style="color:#9C4A09;text-decoration:underline;">Privacy</a> &nbsp;&middot;&nbsp; <a href="https://quelio.vercel.app/kullanim-sartlari" style="color:#9C4A09;text-decoration:underline;">Terms of Use</a>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>
+{{ else if and .Data.ui_language (eq .Data.ui_language "hyw") }}<!doctype html>
+<html lang="hyw" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Հաստատէ՛ նոր էլ. փոստի հասցէն</title>
+<style>
+  body { margin:0; padding:0; }
+  a { color:#9C4A09; }
+  @media (max-width:600px) { .px { padding-left:24px !important; padding-right:24px !important; } .btn a { display:block !important; } }
+  @media (prefers-color-scheme: dark) {
+    .page { background-color:#0B0F26 !important; }
+    .card { background-color:#171B38 !important; border-color:#2A3058 !important; }
+    .ink { color:#FBF7EF !important; }
+    .muted { color:#A9ADC4 !important; }
+    .linkbox { background-color:#0B0F26 !important; border-color:#2A3058 !important; }
+    .foot a, .linkbox a { color:#F5A524 !important; }
+  }
+</style>
+</head>
+<body class="page" style="margin:0;padding:0;background-color:#FBF7EF;">
+<table role="presentation" class="page" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FBF7EF;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+    <tr><td class="px" bgcolor="#0E1330" style="background-color:#0E1330;border-radius:16px 16px 0 0;padding:26px 40px;">
+      <span style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:600;letter-spacing:-0.3px;color:#FBF7EF;">Quelio</span>
+      <span style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3px;color:#F5A524;padding-top:4px;">Հարցեր՝ որոնք կը փայլին։</span>
+    </td></tr>
+    <tr><td class="card px" bgcolor="#FFFEFB" style="background-color:#FFFEFB;border:1px solid #ECE5D6;border-top:0;border-radius:0 0 16px 16px;padding:36px 40px 32px;">
+      <h1 class="ink" style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;font-weight:600;color:#0E1330;">Հաստատէ՛ նոր էլ. փոստիդ հասցէն</h1>
+      <p class="ink" style="margin:0 0 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#14172B;">Հաշիւիդ էլ. փոստի հասցէն {{ .Email }}-էն {{ .NewEmail }}-ի փոխելու խնդրանք ստացանք։ Հաստատելու համար գործածէ՛ ստորեւ կոճակը։</p>
+      <table role="presentation" class="btn" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+        <tr><td align="center" bgcolor="#F5A524" style="background-color:#F5A524;border-radius:12px;">
+          <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change" style="display:inline-block;padding:15px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#0E1330;text-decoration:none;border-radius:12px;">Հաստատել փոփոխութիւնը</a>
+        </td></tr>
+      </table>
+      <p class="muted" style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6B6F85;">Եթէ կոճակը չի գործեր, այս յղումը փակցուր դիտարկիչիդ մէջ՝</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+        <tr><td class="linkbox" bgcolor="#FBF7EF" style="background-color:#FBF7EF;border:1px solid #ECE5D6;border-radius:10px;padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;word-break:break-all;">
+          <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change" style="color:#9C4A09;text-decoration:underline;">{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change</a>
+        </td></tr>
+      </table>
+      <p class="muted" style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">Յղումը 1 ժամ կը գործէ եւ միայն մէկ անգամ կարելի է գործածել։</p>
+      <p class="muted" style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">Քու ապահովութեան համար հնարաւոր է երկու հասցէներէն ալ հաստատում խնդրուի։</p>
+      <p class="muted" style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">Եթէ դուն չես խնդրած այս գործողութիւնը, այս նամակը անտեսէ՛։ Հաշիւդ ապահով է։</p>
+    </td></tr>
+    <tr><td class="foot px" align="center" style="padding:22px 24px 4px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#6B6F85;">
+      <span class="muted" style="color:#6B6F85;">Quelio by MotiqAI &middot; <a href="mailto:info@motiqai.com" style="color:#9C4A09;text-decoration:none;">info@motiqai.com</a></span><br>
+      <a href="https://quelio.vercel.app/gizlilik" style="color:#9C4A09;text-decoration:underline;">Գաղտնիութիւն</a> &nbsp;&middot;&nbsp; <a href="https://quelio.vercel.app/kullanim-sartlari" style="color:#9C4A09;text-decoration:underline;">Գործածութեան պայմաններ</a>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>
+{{ else }}<!doctype html>
+<html lang="tr" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>Quelio e-posta adresini doğrula</title>
+<style>
+  body { margin:0; padding:0; }
+  a { color:#9C4A09; }
+  @media (max-width:600px) { .px { padding-left:24px !important; padding-right:24px !important; } .btn a { display:block !important; } }
+  @media (prefers-color-scheme: dark) {
+    .page { background-color:#0B0F26 !important; }
+    .card { background-color:#171B38 !important; border-color:#2A3058 !important; }
+    .ink { color:#FBF7EF !important; }
+    .muted { color:#A9ADC4 !important; }
+    .linkbox { background-color:#0B0F26 !important; border-color:#2A3058 !important; }
+    .foot a, .linkbox a { color:#F5A524 !important; }
+  }
+</style>
+</head>
+<body class="page" style="margin:0;padding:0;background-color:#FBF7EF;">
+<table role="presentation" class="page" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#FBF7EF;">
+<tr><td align="center" style="padding:24px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;">
+    <tr><td class="px" bgcolor="#0E1330" style="background-color:#0E1330;border-radius:16px 16px 0 0;padding:26px 40px;">
+      <span style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:600;letter-spacing:-0.3px;color:#FBF7EF;">Quelio</span>
+      <span style="display:block;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.3px;color:#F5A524;padding-top:4px;">Işıldayan sorular.</span>
+    </td></tr>
+    <tr><td class="card px" bgcolor="#FFFEFB" style="background-color:#FFFEFB;border:1px solid #ECE5D6;border-top:0;border-radius:0 0 16px 16px;padding:36px 40px 32px;">
+      <h1 class="ink" style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.25;font-weight:600;color:#0E1330;">Yeni e-posta adresini doğrula</h1>
+      <p class="ink" style="margin:0 0 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#14172B;">Hesabının e-posta adresini {{ .Email }} yerine {{ .NewEmail }} olarak değiştirme isteği aldık. Onaylamak için aşağıdaki butonu kullan.</p>
+      <table role="presentation" class="btn" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+        <tr><td align="center" bgcolor="#F5A524" style="background-color:#F5A524;border-radius:12px;">
+          <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change" style="display:inline-block;padding:15px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#0E1330;text-decoration:none;border-radius:12px;">Değişikliği onayla</a>
+        </td></tr>
+      </table>
+      <p class="muted" style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6B6F85;">Buton çalışmıyorsa bu bağlantıyı tarayıcına yapıştır:</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+        <tr><td class="linkbox" bgcolor="#FBF7EF" style="background-color:#FBF7EF;border:1px solid #ECE5D6;border-radius:10px;padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;word-break:break-all;">
+          <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change" style="color:#9C4A09;text-decoration:underline;">{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&amp;type=email_change</a>
+        </td></tr>
+      </table>
+      <p class="muted" style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">Bağlantı 1 saat boyunca geçerlidir ve yalnızca bir kez kullanılabilir.</p>
+      <p class="muted" style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">Güvenliğin için iki adresten de onay istenebilir.</p>
+      <p class="muted" style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.55;color:#6B6F85;">Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin, hesabın güvende.</p>
+    </td></tr>
+    <tr><td class="foot px" align="center" style="padding:22px 24px 4px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#6B6F85;">
+      <span class="muted" style="color:#6B6F85;">Quelio by MotiqAI &middot; <a href="mailto:info@motiqai.com" style="color:#9C4A09;text-decoration:none;">info@motiqai.com</a></span><br>
+      <a href="https://quelio.vercel.app/gizlilik" style="color:#9C4A09;text-decoration:underline;">Gizlilik</a> &nbsp;&middot;&nbsp; <a href="https://quelio.vercel.app/kullanim-sartlari" style="color:#9C4A09;text-decoration:underline;">Kullanım Şartları</a>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body>
+</html>
+{{ end }}

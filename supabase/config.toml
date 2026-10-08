@@ -234,9 +234,9 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Localized templates live in supabase/templates/ (confirmation, recovery, email_change). The free plan
-# cannot change templates without a custom SMTP provider, so they are pasted in the dashboard until then;
-# once SMTP exists, add [auth.email.template.<name>] sections (subject + content_path) and run config push.
+# Localized templates live in supabase/templates/ (confirmation, recovery, email_change) and are uploaded
+# through the Management API (never `supabase config push`, which overwrites dashboard settings such as
+# Google and SMTP).
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]

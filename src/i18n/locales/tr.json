@@ -1147,7 +1147,7 @@
     "passwordTooShort": "En az 8 karakter kullan.",
     "passwordMismatch": "İki şifre aynı değil.",
     "networkError": "Quelio'ya ulaşılamadı. Bağlantını kontrol edip tekrar dene.",
-    "genericError": "Bir şeyler ters gitti. Lütfen tekrar dene.",
+    "genericError": "Bir şeyler ters gitti. Lütfen tekrar dene. Sorun sürerse info@motiqai.com adresine yaz.",
     "signIn": {
       "title": "Tekrar hoş geldin",
       "subtitle": "Quizlerini, kartlarını ve şarkılarını her cihazda açmak için giriş yap.",
@@ -1267,7 +1267,7 @@
       "download": "Verilerimi indir",
       "downloadHint": "Hesabına ait her şeyi içeren bir JSON dosyası.",
       "downloading": "Hazırlanıyor…",
-      "downloadFailed": "Verilerin hazırlanamadı. Tekrar dene."
+      "downloadFailed": "Verilerin hazırlanamadı. Tekrar dene. Sorun sürerse info@motiqai.com adresine yaz."
     },
     "import": {
       "title": "Bu cihazdaki veriler",
@@ -1282,14 +1282,14 @@
       "dialogBody": "Her şey kalıcı olarak silinir. Onaylamak için e-posta adresini yaz.",
       "confirmLabel": "E-posta adresin",
       "confirm": "Her şeyi sil",
-      "failed": "Hesap silinemedi. Tekrar dene."
+      "failed": "Hesap silinemedi. Tekrar dene. Sorun sürerse info@motiqai.com adresine yaz."
     },
     "errors": {
       "unauthorized": "Oturumun sona erdi. Tekrar giriş yap.",
       "forbidden": "Buna erişimin yok.",
       "bad_request": "Bu istek kabul edilmedi.",
       "rate_limited": "Çok fazla istek, birazdan tekrar dene.",
-      "server": "Bizim tarafta bir sorun oldu. Tekrar dene.",
+      "server": "Bizim tarafta bir sorun oldu. Tekrar dene. Sorun sürerse info@motiqai.com adresine yaz.",
       "network": "Quelio'ya ulaşılamadı. Bağlantını kontrol et."
     }
   },
@@ -1380,5 +1380,8 @@
     "total": "Bu ay: {{cost}}",
     "byFeature": "Özelliğe göre",
     "loadFailed": "Kullanım yüklenemedi."
+  },
+  "support": {
+    "prefix": "Yardım için:"
   }
 }

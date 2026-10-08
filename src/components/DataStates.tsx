@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
+import SupportNote from './SupportNote'
+
 interface SkeletonListProps {
   rows?: number
   label?: string
@@ -39,6 +41,7 @@ export function LoadError({ onRetry, message }: LoadErrorProps) {
       >
         {t('data.retry')}
       </button>
+      <SupportNote />
     </div>
   )
 }
