@@ -160,7 +160,6 @@
     "subtitle": "Every quiz you create and every problem you solve is saved here.",
     "untitled": "Untitled quiz",
     "study": "Study",
-    "backToEdit": "Back to editing",
     "empty": {
       "title": "No quizzes yet",
       "subtitle": "Quizzes you create in the Create section will appear here.",
@@ -170,11 +169,6 @@
       "notFoundTitle": "Quiz not found",
       "notFoundBody": "This quiz may have been deleted.",
       "backToArchive": "Back to Archive"
-    },
-    "practice": {
-      "score": "{{correct}} / {{total}} correct",
-      "hintsUsed": "Hints used: {{count}}",
-      "tryAgain": "Try again"
     },
     "tabs": {
       "label": "Archive sections",
@@ -1683,6 +1677,110 @@
       "terms": "Terms of Use",
       "email": "info@motiqai.com",
       "language": "Language"
+    }
+  },
+  "study": {
+    "label": "Study mode",
+    "exit": "Exit",
+    "start": {
+      "typeLegend": "How do you want to study?",
+      "begin": "Start",
+      "resumeTitle": "You have an unfinished session",
+      "resumeBody": "{{done}} of {{total}} questions done.",
+      "resume": "Continue where you left off",
+      "restart": "Start over"
+    },
+    "kinds": {
+      "normal": {
+        "name": "Normal",
+        "description": "Try again after a wrong answer; after a second miss the right answer and explanation are shown."
+      },
+      "exam": {
+        "name": "Exam practice",
+        "description": "Timed. Results and answers are shown at the end."
+      },
+      "quick": {
+        "name": "Quick review",
+        "description": "Questions you got wrong, guessed or flagged in earlier sessions.",
+        "none": "No questions to review yet.",
+        "count_one": "{{count}} question",
+        "count_other": "{{count}} questions"
+      }
+    },
+    "timer": {
+      "legend": "Timer",
+      "off": "Off",
+      "total": "Total time",
+      "question": "Per question",
+      "totalMinutes": "Total minutes",
+      "questionSeconds": "Seconds per question",
+      "minutesUnit": "minutes",
+      "secondsUnit": "seconds",
+      "remaining": "Time left"
+    },
+    "run": {
+      "matchSelectLabel": "Match for row {{n}}",
+      "matchChoices": "Choices",
+      "streak": "{{count}} in a row",
+      "readAloud": "Read aloud",
+      "stopReading": "Stop reading",
+      "progressLabel": "Question {{current}} of {{total}}",
+      "flag": "Look again later",
+      "flagged": "Flagged",
+      "examNote": "Exam practice: results are shown at the end.",
+      "tryHint": "You can take a hint if you like.",
+      "correct": "Correct!",
+      "secondTry": "on the second try",
+      "timeUp": "Time is up",
+      "revealedTitle": "The right answer",
+      "rightAnswer": "Right answer:",
+      "confidenceQuestion": "How sure were you?",
+      "sure": "I was sure",
+      "guess": "I guessed",
+      "finish": "Finish",
+      "next": "Next",
+      "check": "Check",
+      "checking": "Checking…",
+      "gradingExam": "Checking your answers…"
+    },
+    "chrome": {
+      "focus": "Focus mode",
+      "focusExit": "Leave focus mode",
+      "settings": "Settings",
+      "celebrate": "Celebration animations"
+    },
+    "end": {
+      "title": "Session complete",
+      "score": "{{correct}} / {{total}} correct",
+      "percent": "{{percent}}%",
+      "timedOut": "Time ran out; unanswered questions count as wrong.",
+      "time": "Time",
+      "secondTryLabel": "On the second try",
+      "slowest": "Question you spent the most time on",
+      "allRight": "Everything right on the first try!",
+      "wrongTitle": "Your mistakes ({{count}})",
+      "allAnswers": "All questions and answers",
+      "guessedTitle": "Your guesses ({{count}})",
+      "flaggedTitle": "Flagged to look at again ({{count}})",
+      "retryWrong": "Study my mistakes again ({{count}})",
+      "flaggedRound": "Look at my flagged ones ({{count}})",
+      "again": "Study from the start",
+      "toArchive": "Back to Archive",
+      "secondTry_one": "{{count}} question",
+      "secondTry_other": "{{count}} questions"
+    },
+    "history": {
+      "title": "Study history",
+      "empty": "No finished session yet.",
+      "chartLabel": "Scores of the latest sessions",
+      "best": "Best: {{score}}",
+      "last": "Last session: {{score}}",
+      "lastWhen": "Last session: {{score}}, {{when}}"
+    },
+    "when": {
+      "today": "today",
+      "yesterday": "yesterday",
+      "daysAgo": "{{count}} days ago"
     }
   }
 }

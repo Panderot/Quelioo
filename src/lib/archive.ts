@@ -7,6 +7,8 @@ import { sourceTextHash } from './archiveSource'
 import type { ArchiveEntry } from './archiveSource'
 import type { GeneratedQuiz } from './quiz'
 import { deepMathToPlain } from './mathPlain'
+import { parseStudyResults } from './study'
+import type { StudyResults } from './study'
 import { isFakeBackend, supabase } from './supabase'
 import type { InsertRow, Row } from './supabase'
 
@@ -97,6 +99,7 @@ export function archiveEntryToRow(entry: ArchiveEntry, userId: string): InsertRo
     focus_parts_count: entry.focusPartsCount ?? null,
     coverage_scope: entry.coverageScope ?? null,
     quiz: entry.quiz as unknown as Json,
+    results: (entry.results ?? null) as unknown as Json | null,
     created_at: entry.createdAt,
   }
 }
@@ -120,6 +123,7 @@ function rowToArchiveEntry(row: QuizRow): ArchiveEntry | null {
     ...(row.focus_parts_count !== null ? { focusPartsCount: row.focus_parts_count } : {}),
     ...(row.source_hash !== null ? { sourceHash: row.source_hash } : {}),
     ...(row.coverage_scope === 'part' ? { coverageScope: 'part' as const } : {}),
+    ...(row.results !== null ? { results: parseStudyResults(row.results) } : {}),
   }
   return hasValidQuestions(entry) ? withReadableMath(entry) : null
 }
@@ -227,6 +231,19 @@ export function updateArchiveEntry(id: string, updater: (entry: ArchiveEntry) =>
   setSnapshot({ entries: snapshot.entries.map((entry) => (entry.id === id ? updated : entry)) })
   enqueueEntry(updated)
   return updated
+}
+
+/** Saves the study history of a quiz. Only the `results` column is written (never the whole quiz), so a
+ * save after every answered question stays small. */
+export function saveStudyResults(id: string, results: StudyResults): void {
+  if (isFakeBackend) {
+    updateArchiveEntry(id, (entry) => ({ ...entry, results }))
+    return
+  }
+  const current = snapshot.entries.find((entry) => entry.id === id)
+  if (!current) return
+  setSnapshot({ entries: snapshot.entries.map((entry) => (entry.id === id ? { ...entry, results } : entry)) })
+  enqueueWrite({ kind: 'update', table: 'quizzes', column: 'id', value: id, patch: { results: results as unknown as Json } })
 }
 
 /** A new id for a quiz: a UUID, which is what the `quizzes` table stores. */

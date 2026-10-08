@@ -144,6 +144,44 @@ select,
   }
 }
 
+/* Study mode: a short pulse when the streak reaches 3, 6, 9...; a one-time confetti burst on a score of 80% or more.
+   Both are also switched off in the code (setting and prefers-reduced-motion), not only by the rule above. */
+@keyframes streak-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-streak {
+  animation: streak-pop 520ms ease-out;
+}
+
+@keyframes confetti-fall {
+  from {
+    transform: translate3d(0, -20px, 0) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(var(--confetti-drift, 0), 70vh, 0) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confetti-fall 2200ms ease-in forwards;
+}
+
 /* Flashcard flip (study screen): CSS 3D with hidden backfaces; reduced motion crossfades instead. */
 .flashcard-scene {
   perspective: 1200px;

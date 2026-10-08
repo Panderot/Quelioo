@@ -169,44 +169,6 @@ test.describe('Edit form hint fields', () => {
   })
 })
 
-test.describe('Study Mode', () => {
-  test('the Hint button works per question and the end screen reports hints used', async ({ page, seedArchive, mockGrade }) => {
-    await mockGrade({ verdict: 'correct', feedback: 'Nice.', covered: 2, total: 2 })
-    await seedArchive([SEEDED_ENTRY])
-    await page.goto(`/archive/${SEEDED_ENTRY.id}?lng=en`)
-    await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
-    await page.getByRole('button', { name: 'Study' }).click()
-
-    const mcqCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'photosynthesis' })
-    await mcqCard.getByRole('button', { name: 'Hint' }).click()
-    await expect(mcqCard.getByText('Think about what plants take in from the air to make their food.')).toBeVisible()
-    await mcqCard.getByRole('radio', { name: /Carbon dioxide/ }).check()
-    await mcqCard.getByRole('button', { name: 'Check answer' }).click()
-
-    const tfCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'Great Wall' })
-    await tfCard.getByRole('radio', { name: 'False' }).check()
-    await tfCard.getByRole('button', { name: 'Check answer' }).click()
-
-    const fillCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'boils at' })
-    await fillCard.getByLabel('Your answer').fill('100')
-    await fillCard.getByRole('button', { name: 'Check answer' }).click()
-
-    const shortCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'largest planet' })
-    await shortCard.getByLabel('Your answer').fill('Jupiter')
-    await shortCard.getByRole('button', { name: 'Check answer' }).click()
-
-    const matchingCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'Match each planet' })
-    await matchingCard.getByPlaceholder('Write your matches, e.g. 1-A, 2-B, 3-C').fill('1-D, 2-A, 3-B, 4-C')
-    await matchingCard.getByRole('button', { name: 'Check answer' }).click()
-
-    const openCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'sky appears blue' })
-    await openCard.getByLabel('Your answer').fill('Sunlight is scattered by the atmosphere, and blue light scatters more because of its shorter wavelength.')
-    await openCard.getByRole('button', { name: 'Check answer' }).click()
-
-    await expect(page.getByText('Hints used: 1')).toBeVisible()
-  })
-})
-
 test.describe('Turkish and Western Armenian', () => {
   test('Turkish: hints switch and button labels are localized', async ({ page, mockGenerate }) => {
     await mockGenerate(SAMPLE_QUIZ)

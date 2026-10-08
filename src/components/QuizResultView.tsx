@@ -13,15 +13,14 @@ import type { EstimateDifficulty } from '../lib/estimateTime'
 import { buildSongFactPlan, buildSongKeyFacts } from '../lib/songFacts'
 import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
 import QuestionCard from './QuestionCard'
-import PracticeQuestionCard from './PracticeQuestionCard'
 import SongButton from './SongButton'
 import MoreMenu from './MoreMenu'
 import CoveragePanel from './CoveragePanel'
 import AddCardsDialog from './flashcards/AddCardsDialog'
-import { addCards, cardsForDeck, createDeck, updateDeck, useFlashcards } from '../lib/flashcardStorage'
-import { DEFAULT_NEW_PER_DAY } from '../lib/srs'
-import { missingCards, quizToCards } from '../lib/quizToCards'
-import { BookIcon, CheckIcon, CloseIcon, PencilIcon } from './icons'
+import { useFlashcards } from '../lib/flashcardStorage'
+import { addMistakesToDeck } from '../lib/mistakesToCards'
+import { quizToCards } from '../lib/quizToCards'
+import { CloseIcon, PencilIcon } from './icons'
 
 export interface QuizResultMeta {
   questionCount: number
@@ -48,8 +47,6 @@ interface QuizResultViewProps {
   deletedQuestion: QuizQuestion | null
   onUndoDelete: () => void
   archiveLink?: ArchiveLink
-  studyMode?: boolean
-  onToggleStudyMode?: () => void
   missingCount?: number
   /** The source supports only about this many good questions (fewer than requested). */
   supportedCount?: number
@@ -153,8 +150,6 @@ export default function QuizResultView({
   deletedQuestion,
   onUndoDelete,
   archiveLink,
-  studyMode = false,
-  onToggleStudyMode,
   missingCount = 0,
   supportedCount,
   isToppingUp = false,
@@ -168,9 +163,6 @@ export default function QuizResultView({
   const [titleDraft, setTitleDraft] = useState(quiz.title)
   const [showAnswers, setShowAnswers] = useState(false)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
-  const [practiceResults, setPracticeResults] = useState<Record<string, boolean>>({})
-  const [hintsUsed, setHintsUsed] = useState(0)
-  const [resetSignal, setResetSignal] = useState(0)
   const [printMenuOpen, setPrintMenuOpen] = useState(false)
   const [printVariant, setPrintVariant] = useState<'questions' | 'with-answers'>('questions')
   // First check per question (edit view or Study Mode) — later re-checks never overwrite it.
@@ -229,12 +221,6 @@ export default function QuizResultView({
     }
   }
 
-  const handleTryAgain = () => {
-    setPracticeResults({})
-    setHintsUsed(0)
-    setResetSignal((value) => value + 1)
-  }
-
   const handleOpenPrintMenu = () => {
     setPrintVariant('questions')
     setPrintMenuOpen(true)
@@ -263,39 +249,27 @@ export default function QuizResultView({
     matchPrefix: t('flashcards.convert.matchPrefix'),
   }
   const mistakeIds = new Set(quiz.questions.filter((question) => firstAttempts[question.id] === false).map((question) => question.id))
-  const mistakesRef = `${quizId}#mistakes`
 
   // Mistakes go straight into "{title} · Mistakes" (no review): new cards are due today, and the
   // daily new-card limit is raised so all of them really are.
   const handleMistakesToCards = () => {
-    const cards = quizToCards(quiz, cardLabels, mistakeIds)
-    const existing = flashcards.decks.find((deck) => deck.source === 'quiz' && deck.sourceRef === mistakesRef)
-    if (existing) {
-      const fresh = missingCards(cards, cardsForDeck(flashcards.cards, existing.id).map((card) => card.front))
-      addCards(existing.id, fresh)
-      const pendingNew = cardsForDeck(flashcards.cards, existing.id).filter((card) => card.reviews === 0).length + fresh.length
-      if (pendingNew > existing.newPerDay) updateDeck(existing.id, { newPerDay: pendingNew })
-      setMistakesResult({ deckId: existing.id, deckName: existing.name, count: fresh.length })
-      return
-    }
-    const deck = createDeck({
-      name: t('flashcards.mistakes.deckName', { title: quiz.title }),
-      source: 'quiz',
-      sourceRef: mistakesRef,
-      language: meta.outputLanguage,
-      newPerDay: Math.max(DEFAULT_NEW_PER_DAY, cards.length),
-    })
-    addCards(deck.id, cards)
-    setMistakesResult({ deckId: deck.id, deckName: deck.name, count: cards.length })
+    setMistakesResult(
+      addMistakesToDeck({
+        quiz,
+        quizId,
+        questionIds: mistakeIds,
+        labels: cardLabels,
+        deckName: t('flashcards.mistakes.deckName', { title: quiz.title }),
+        language: meta.outputLanguage,
+        flashcards,
+      }),
+    )
   }
 
   const moreItems = [
     { key: 'flashcards', label: t('flashcards.convert.action'), onSelect: () => setConvertOpen(true) },
     ...(mistakeIds.size > 0 ? [{ key: 'mistakes', label: t('flashcards.mistakes.action', { count: mistakeIds.size }), onSelect: handleMistakesToCards }] : []),
   ]
-
-  const correctCount = Object.values(practiceResults).filter(Boolean).length
-  const answeredCount = Object.keys(practiceResults).length
 
   return (
     <section data-purpose="quiz-result" className="space-y-5">
@@ -353,8 +327,8 @@ export default function QuizResultView({
                 coverage={quiz.coverage}
                 questions={quiz.questions}
                 questionType={meta.questionType}
-                showAnswers={showAnswers && !studyMode}
-                onAddMissing={studyMode ? undefined : onAddMissing}
+                showAnswers={showAnswers}
+                onAddMissing={onAddMissing}
                 isAddingMissing={isAddingMissing}
               />
             )}
@@ -368,19 +342,6 @@ export default function QuizResultView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t border-warm-border pt-3" data-print-hide>
-          {onToggleStudyMode && (
-            <button
-              type="button"
-              onClick={onToggleStudyMode}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-amber"
-            >
-              <BookIcon className="h-3.5 w-3.5" />
-              {studyMode ? t('archive.backToEdit') : t('archive.study')}
-            </button>
-          )}
-
-          {!studyMode && (
-            <>
               <button
                 type="button"
                 role="switch"
@@ -422,8 +383,6 @@ export default function QuizResultView({
               >
                 {t('create.result.print')}
               </button>
-            </>
-          )}
 
           <SongButton
             quizId={quizId}
@@ -537,54 +496,6 @@ export default function QuizResultView({
         </div>
       )}
 
-      {studyMode ? (
-        <>
-          <ul className="space-y-4" data-print-hide>
-            {quiz.questions.map((question, index) => (
-              <PracticeQuestionCard
-                key={`${question.id}-${resetSignal}`}
-                index={index}
-                question={question}
-                outputLanguage={meta.outputLanguage}
-                resetSignal={resetSignal}
-                onGraded={(correct) => {
-                  setPracticeResults((current) => ({ ...current, [question.id]: correct }))
-                  recordFirstAttempt(question.id)(correct)
-                }}
-                onHintUsed={() => setHintsUsed((count) => count + 1)}
-              />
-            ))}
-          </ul>
-
-          {answeredCount === quiz.questions.length && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-warm-border bg-card p-5">
-              <div className="space-y-0.5">
-                <p className="flex items-center gap-2 text-sm font-bold text-ink">
-                  <CheckIcon className="h-4 w-4 text-success" />
-                  {t('archive.practice.score', { correct: correctCount, total: quiz.questions.length })}
-                </p>
-                {hintsUsed > 0 && <p className="text-xs text-muted">{t('archive.practice.hintsUsed', { count: hintsUsed })}</p>}
-              </div>
-              {mistakeIds.size > 0 && (
-                <button
-                  type="button"
-                  onClick={handleMistakesToCards}
-                  className="ml-auto rounded-xl border-2 border-navy px-4 py-2 text-xs font-bold text-navy hover:bg-navy/5"
-                >
-                  {t('flashcards.mistakes.action', { count: mistakeIds.size })}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={handleTryAgain}
-                className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-navy transition-colors hover:border-amber"
-              >
-                {t('archive.practice.tryAgain')}
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
         <ul className="space-y-4" data-print-hide>
           {quiz.questions.map((question, index) => (
             <QuestionCard
@@ -602,15 +513,14 @@ export default function QuizResultView({
             />
           ))}
         </ul>
-      )}
 
-      {!studyMode && supportedCount !== undefined && (
+      {supportedCount !== undefined && (
         <p data-print-hide data-testid="supported-note" className="rounded-[14px] border border-warm-border bg-card p-5 text-sm font-medium text-ink">
           {t('create.result.supportedNote', { count: supportedCount })}
         </p>
       )}
 
-      {!studyMode && missingCount > 0 && onTopUp && (
+      {missingCount > 0 && onTopUp && (
         <div
           data-print-hide
           className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-warm-border bg-card p-5"
@@ -643,103 +553,101 @@ export default function QuizResultView({
         </div>
       )}
 
-      {!studyMode && (
-        <div className="hidden" data-print-only data-print-variant={printVariant}>
-          <div className="print-header">
-            <div className="print-header-row">
-              <h1>{quiz.title}</h1>
-              <span className="print-wordmark">{t('app.name')}</span>
-            </div>
-            <p className="print-meta">{printMetaLine}</p>
-            <div className="print-rule" />
-            {printVariant === 'questions' && (
-              <div className="print-fields">
-                <span className="print-field-line">{t('create.result.printNameLabel')}</span>
-                <span className="print-field-line">{t('create.result.printClassLabel')}</span>
-                <span className="print-field-line">{t('create.result.printDateLabel')}</span>
-              </div>
-            )}
+      <div className="hidden" data-print-only data-print-variant={printVariant}>
+        <div className="print-header">
+          <div className="print-header-row">
+            <h1>{quiz.title}</h1>
+            <span className="print-wordmark">{t('app.name')}</span>
           </div>
-
-          <ol className="print-questions">
-            {quiz.questions.map((question) => (
-              <li key={question.id} className="print-question">
-                <p className="print-q-text">{question.question}</p>
-
-                {question.type === 'mcq' && (
-                  <ul className={`print-options${fitsTwoColumns(question.options) ? ' print-options-2col' : ''}`}>
-                    {question.options.map((option, optionIndex) => (
-                      <li key={optionIndex}>
-                        {letterFor(optionIndex)}) {option}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {question.type === 'true-false' && (
-                  <div className="print-truefalse">
-                    <span>
-                      <PrintCheckbox />
-                      {t('create.result.trueLabel')}
-                    </span>
-                    <span>
-                      <PrintCheckbox />
-                      {t('create.result.falseLabel')}
-                    </span>
-                  </div>
-                )}
-
-                {question.type === 'fill-blanks' && <PrintWritingLines count={1} width="45%" />}
-                {question.type === 'short-answer' && <PrintWritingLines count={2} />}
-                {question.type === 'open-ended' && <PrintWritingLines count={6} />}
-
-                {question.type === 'matching' && (
-                  <div className="print-matching">
-                    <ol>
-                      {question.pairs.map((pair, pairIndex) => (
-                        <li key={pairIndex}>
-                          <span className="print-matching-row">
-                            <span>{pair.left}</span>
-                            <span className="print-matching-line" />
-                          </span>
-                        </li>
-                      ))}
-                    </ol>
-                    <ol className="print-matching-right">
-                      {getRightOrder(question).map((pairIndex, position) => (
-                        <li key={position}>{question.pairs[pairIndex].right}</li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ol>
-
-          {printVariant === 'with-answers' && (
-            <div data-print-answer-key>
-              <h2>{t('create.result.answerKeyTitle')}</h2>
-              <ol>
-                {quiz.questions.map((question) => (
-                  <li key={question.id}>
-                    {question.type === 'mcq' && withExplanation(letterFor(question.answerIndex), question.explanation)}
-                    {question.type === 'true-false' &&
-                      withExplanation(question.answerBool ? t('create.result.trueLabel') : t('create.result.falseLabel'), question.explanation)}
-                    {question.type === 'matching' &&
-                      withExplanation(
-                        `${buildAnswerKeyLine(getRightOrder(question))} — ${question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')}`,
-                        question.explanation,
-                      )}
-                    {(question.type === 'fill-blanks' || question.type === 'short-answer') &&
-                      withExplanation(question.answer, question.explanation)}
-                    {question.type === 'open-ended' && withExplanation(getKeyPoints(question).join('; '), question.explanation)}
-                  </li>
-                ))}
-              </ol>
+          <p className="print-meta">{printMetaLine}</p>
+          <div className="print-rule" />
+          {printVariant === 'questions' && (
+            <div className="print-fields">
+              <span className="print-field-line">{t('create.result.printNameLabel')}</span>
+              <span className="print-field-line">{t('create.result.printClassLabel')}</span>
+              <span className="print-field-line">{t('create.result.printDateLabel')}</span>
             </div>
           )}
         </div>
-      )}
+
+        <ol className="print-questions">
+          {quiz.questions.map((question) => (
+            <li key={question.id} className="print-question">
+              <p className="print-q-text">{question.question}</p>
+
+              {question.type === 'mcq' && (
+                <ul className={`print-options${fitsTwoColumns(question.options) ? ' print-options-2col' : ''}`}>
+                  {question.options.map((option, optionIndex) => (
+                    <li key={optionIndex}>
+                      {letterFor(optionIndex)}) {option}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {question.type === 'true-false' && (
+                <div className="print-truefalse">
+                  <span>
+                    <PrintCheckbox />
+                    {t('create.result.trueLabel')}
+                  </span>
+                  <span>
+                    <PrintCheckbox />
+                    {t('create.result.falseLabel')}
+                  </span>
+                </div>
+              )}
+
+              {question.type === 'fill-blanks' && <PrintWritingLines count={1} width="45%" />}
+              {question.type === 'short-answer' && <PrintWritingLines count={2} />}
+              {question.type === 'open-ended' && <PrintWritingLines count={6} />}
+
+              {question.type === 'matching' && (
+                <div className="print-matching">
+                  <ol>
+                    {question.pairs.map((pair, pairIndex) => (
+                      <li key={pairIndex}>
+                        <span className="print-matching-row">
+                          <span>{pair.left}</span>
+                          <span className="print-matching-line" />
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                  <ol className="print-matching-right">
+                    {getRightOrder(question).map((pairIndex, position) => (
+                      <li key={position}>{question.pairs[pairIndex].right}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </li>
+          ))}
+        </ol>
+
+        {printVariant === 'with-answers' && (
+          <div data-print-answer-key>
+            <h2>{t('create.result.answerKeyTitle')}</h2>
+            <ol>
+              {quiz.questions.map((question) => (
+                <li key={question.id}>
+                  {question.type === 'mcq' && withExplanation(letterFor(question.answerIndex), question.explanation)}
+                  {question.type === 'true-false' &&
+                    withExplanation(question.answerBool ? t('create.result.trueLabel') : t('create.result.falseLabel'), question.explanation)}
+                  {question.type === 'matching' &&
+                    withExplanation(
+                      `${buildAnswerKeyLine(getRightOrder(question))} — ${question.pairs.map((pair) => `${pair.left} → ${pair.right}`).join('; ')}`,
+                      question.explanation,
+                    )}
+                  {(question.type === 'fill-blanks' || question.type === 'short-answer') &&
+                    withExplanation(question.answer, question.explanation)}
+                  {question.type === 'open-ended' && withExplanation(getKeyPoints(question).join('; '), question.explanation)}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+      </div>
     </section>
   )
 }

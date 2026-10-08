@@ -24,8 +24,6 @@ interface QuizWorkspaceProps {
   supportedCount?: number
   onPersist: (quiz: GeneratedQuiz) => void
   archiveLink?: ArchiveLink
-  studyMode?: boolean
-  onToggleStudyMode?: () => void
   includeExplanations?: boolean
   shuffleOptions?: boolean
   includeHints?: boolean
@@ -46,8 +44,6 @@ export default function QuizWorkspace({
   supportedCount,
   onPersist,
   archiveLink,
-  studyMode,
-  onToggleStudyMode,
   includeExplanations,
   shuffleOptions,
   includeHints,
@@ -87,8 +83,6 @@ export default function QuizWorkspace({
         deletedQuestion={editor.deleted?.question ?? null}
         onUndoDelete={editor.undoDelete}
         archiveLink={archiveLink}
-        studyMode={studyMode}
-        onToggleStudyMode={onToggleStudyMode}
         missingCount={editor.missingCount}
         supportedCount={supportedCount}
         isToppingUp={editor.isToppingUp}

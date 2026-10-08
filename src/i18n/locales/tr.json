@@ -160,7 +160,6 @@
     "subtitle": "Oluşturduğun her quiz ve çözdüğün her soru burada saklanır.",
     "untitled": "Adsız quiz",
     "study": "Çalış",
-    "backToEdit": "Düzenlemeye dön",
     "empty": {
       "title": "Henüz quiz yok",
       "subtitle": "Oluştur bölümünde hazırladığın quizler burada görünecek.",
@@ -170,11 +169,6 @@
       "notFoundTitle": "Quiz bulunamadı",
       "notFoundBody": "Bu quiz silinmiş olabilir.",
       "backToArchive": "Arşive dön"
-    },
-    "practice": {
-      "score": "{{correct}} / {{total}} doğru",
-      "hintsUsed": "Kullanılan ipucu: {{count}}",
-      "tryAgain": "Tekrar dene"
     },
     "tabs": {
       "label": "Arşiv bölümleri",
@@ -1683,6 +1677,110 @@
       "terms": "Kullanım Şartları",
       "email": "info@motiqai.com",
       "language": "Dil"
+    }
+  },
+  "study": {
+    "label": "Çalışma modu",
+    "exit": "Çık",
+    "start": {
+      "typeLegend": "Nasıl çalışmak istersin?",
+      "begin": "Başla",
+      "resumeTitle": "Yarım kalmış bir çalışman var",
+      "resumeBody": "{{done}} / {{total}} soru tamamlandı.",
+      "resume": "Kaldığın yerden devam et",
+      "restart": "Baştan başla"
+    },
+    "kinds": {
+      "normal": {
+        "name": "Normal",
+        "description": "Yanlış cevapta tekrar dene; ikinci yanlışta doğru cevap ve açıklama gösterilir."
+      },
+      "exam": {
+        "name": "Sınav provası",
+        "description": "Süreli. Sonuçlar ve cevaplar en sonda gösterilir."
+      },
+      "quick": {
+        "name": "Hızlı tekrar",
+        "description": "Önceki çalışmalarda yanlış yaptığın, tahmin ettiğin veya işaretlediğin sorular.",
+        "none": "Henüz tekrar edilecek soru yok.",
+        "count_one": "{{count}} soru",
+        "count_other": "{{count}} soru"
+      }
+    },
+    "timer": {
+      "legend": "Süre",
+      "off": "Kapalı",
+      "total": "Toplam süre",
+      "question": "Soru başına",
+      "totalMinutes": "Toplam dakika",
+      "questionSeconds": "Soru başına saniye",
+      "minutesUnit": "dakika",
+      "secondsUnit": "saniye",
+      "remaining": "Kalan süre"
+    },
+    "run": {
+      "matchSelectLabel": "{{n}}. satır için eşleşme",
+      "matchChoices": "Seçenekler",
+      "streak": "{{count}} üst üste",
+      "readAloud": "Sesli oku",
+      "stopReading": "Okumayı durdur",
+      "progressLabel": "Soru {{current}} / {{total}}",
+      "flag": "Sonra bak",
+      "flagged": "İşaretlendi",
+      "examNote": "Sınav provası: sonuçlar en sonda gösterilir.",
+      "tryHint": "İstersen bir ipucu al.",
+      "correct": "Doğru!",
+      "secondTry": "ikinci denemede",
+      "timeUp": "Süre doldu",
+      "revealedTitle": "Doğru cevap bu",
+      "rightAnswer": "Doğru cevap:",
+      "confidenceQuestion": "Ne kadar emindin?",
+      "sure": "Emindim",
+      "guess": "Tahmin ettim",
+      "finish": "Bitir",
+      "next": "Sonraki",
+      "check": "Kontrol et",
+      "checking": "Kontrol ediliyor…",
+      "gradingExam": "Cevapların kontrol ediliyor…"
+    },
+    "chrome": {
+      "focus": "Odak modu",
+      "focusExit": "Odak modundan çık",
+      "settings": "Ayarlar",
+      "celebrate": "Kutlama animasyonları"
+    },
+    "end": {
+      "title": "Çalışma bitti",
+      "score": "{{correct}} / {{total}} doğru",
+      "percent": "%{{percent}}",
+      "timedOut": "Süre doldu; cevaplanmayan sorular yanlış sayıldı.",
+      "time": "Süre",
+      "secondTryLabel": "İkinci denemede",
+      "slowest": "En çok vakit harcadığın soru",
+      "allRight": "Hepsi ilk denemede doğru!",
+      "wrongTitle": "Yanlışların ({{count}})",
+      "allAnswers": "Tüm sorular ve cevaplar",
+      "guessedTitle": "Tahmin ettiklerin ({{count}})",
+      "flaggedTitle": "Sonra bak dediklerin ({{count}})",
+      "retryWrong": "Yanlışlarımı tekrar çalış ({{count}})",
+      "flaggedRound": "İşaretlediklerime bak ({{count}})",
+      "again": "Baştan çalış",
+      "toArchive": "Arşive dön",
+      "secondTry_one": "{{count}} soru",
+      "secondTry_other": "{{count}} soru"
+    },
+    "history": {
+      "title": "Çalışma geçmişi",
+      "empty": "Henüz tamamlanmış bir çalışma yok.",
+      "chartLabel": "Son çalışma puanları",
+      "best": "En iyi: {{score}}",
+      "last": "Son çalışma: {{score}}",
+      "lastWhen": "Son çalışma: {{score}}, {{when}}"
+    },
+    "when": {
+      "today": "bugün",
+      "yesterday": "dün",
+      "daysAgo": "{{count}} gün önce"
     }
   }
 }

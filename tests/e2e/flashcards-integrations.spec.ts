@@ -184,11 +184,6 @@ test.describe('Flashcards from my mistakes', () => {
     expect(stored.cards.map((card) => [card.front, card.back])).toEqual([['Which gas do plants absorb during photosynthesis?', 'Carbon dioxide']])
     expect(stored.cards[0].due).toBeLessThanOrEqual(NOW.getTime())
 
-    // Study Mode keeps the same first attempts: a later wrong answer there is not a new mistake.
-    await page.getByRole('button', { name: 'Study', exact: true }).click()
-    const practice = (text: string) => page.locator('[data-purpose="practice-question-card"]', { hasText: text })
-    await answer(practice('Great Wall'), /^True/)
-
     // A second run only adds what's missing to the same deck.
     await more(page).click()
     await page.getByRole('menuitem', { name: 'Flashcards from my mistakes (1)' }).click()
@@ -200,13 +195,20 @@ test.describe('Flashcards from my mistakes', () => {
     await expect(page.locator('[data-purpose="deck-row"]')).toContainText('1 card · 0 learned · 1 card to review today')
   })
 
-  test('Study Mode summary offers the mistakes deck once every question is answered', async ({ page, seedArchive }) => {
+  test('Study Mode end screen offers the mistakes deck', async ({ page, seedArchive }) => {
     await seedArchive([{ ...ENTRY, quiz: { title: ENTRY.title, questions: SAMPLE_QUIZ.questions.slice(0, 2) } }])
     await page.clock.setFixedTime(NOW)
     await page.goto(`/archive/${ENTRY.id}?mode=study&lng=en`)
-    const practice = (text: string) => page.locator('[data-purpose="practice-question-card"]', { hasText: text })
-    await answer(practice('photosynthesis'), /Oxygen/)
-    await answer(practice('Great Wall'), /^False/)
+    await page.getByRole('button', { name: 'Start' }).click()
+    // Question 1: wrong twice (answer revealed), question 2: right on the first try.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await page.getByRole('radio', { name: /Oxygen/ }).click()
+      await page.getByRole('button', { name: 'Check' }).click()
+    }
+    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('radio', { name: 'False' }).click()
+    await page.getByRole('button', { name: 'Check' }).click()
+    await page.getByRole('button', { name: 'Finish' }).click()
     await page.getByRole('button', { name: 'Flashcards from my mistakes (1)' }).click()
     await expect(page.locator('[data-purpose="mistakes-result"]')).toContainText('Added 1 card')
   })

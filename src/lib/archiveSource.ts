@@ -2,6 +2,7 @@ import { parseQuizCoverage } from './factCoverage'
 import type { CoverageFact } from './factCoverage'
 import { hashText } from './hash'
 import type { GeneratedQuiz } from './quiz'
+import type { StudyResults } from './study'
 
 /** The parts of the Archive that need no browser or account: the entry shape and the helpers that
  * match a new quiz with earlier quizzes from the same source text (also used by the unit specs). */
@@ -34,6 +35,8 @@ export interface ArchiveEntry {
   /** "part": a follow-up quiz over the facts an earlier quiz had no room for (its plan is a subset,
    * never reused as the source's cached plan). */
   coverageScope?: 'part'
+  /** Study history: finished sessions, the repeat pool and an unfinished session (see lib/study.ts). */
+  results?: StudyResults
 }
 
 /** Hash of a source text after trimming, collapsing whitespace and lowercasing. */

@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { useArchive } from '../lib/archive'
+import { daysAgo, lastFullSession, parseStudyResults } from '../lib/study'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
 import type { EstimateDifficulty } from '../lib/estimateTime'
@@ -137,6 +138,9 @@ export default function ArchivePage() {
                 timeLabel,
               ].join(' • ')
 
+              const lastStudy = entry.results ? lastFullSession(parseStudyResults(entry.results)) : undefined
+              const studyAgo = lastStudy ? daysAgo(lastStudy.at) : 0
+
               return (
                 <li key={entry.id} className="flex items-center justify-between gap-4 p-4 md:p-5">
                   <Link to={`/archive/${entry.id}`} className="min-w-0 flex-1 space-y-1">
@@ -153,6 +157,14 @@ export default function ArchivePage() {
                     </p>
                     <p className="truncate text-xs text-muted">{meta}</p>
                     <p className="truncate text-xs text-muted">{formatCreatedAt(entry.createdAt, i18n.language)}</p>
+                    {lastStudy && (
+                      <p data-purpose="archive-last-study" className="truncate text-xs font-semibold text-amber-text">
+                        {t('study.history.lastWhen', {
+                          score: `${lastStudy.firstTry}/${lastStudy.total}`,
+                          when: t(studyAgo === 0 ? 'study.when.today' : studyAgo === 1 ? 'study.when.yesterday' : 'study.when.daysAgo', { count: studyAgo }),
+                        })}
+                      </p>
+                    )}
                   </Link>
 
                   <div className="flex shrink-0 items-center gap-2.5">

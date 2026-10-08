@@ -8,6 +8,8 @@ import KeepAlivePage from './KeepAlivePage'
 interface KeptRouteProps {
   path: string
   element: ReactNode
+  /** A plain link back to the page brings back the search it was left with (filters). Off when the search changes what the page is. */
+  restoreSearch?: boolean
 }
 
 // Same matching as <Routes>: a trailing slash still means the same page.
@@ -18,7 +20,7 @@ const trimSlash = (pathname: string) => pathname.replace(/(.)\/+$/, '$1')
  * is still there on return. The page keeps seeing the last URL it matched — its params, search and
  * state — and a different URL for the same pattern (another lesson, deck, quiz) replaces it.
  */
-export default function KeptRoute({ path, element }: KeptRouteProps) {
+export default function KeptRoute({ path, element, restoreSearch = true }: KeptRouteProps) {
   const location = useLocation()
   const navigationType = useNavigationType()
   const navigate = useNavigate()
@@ -28,6 +30,7 @@ export default function KeptRoute({ path, element }: KeptRouteProps) {
   if (matches && last?.key !== location.key) {
     // Coming back from the menu (a plain link to the page) keeps the search/filters it was left with.
     const restoresSearch =
+      restoreSearch &&
       navigationType === 'PUSH' &&
       location.state == null &&
       last !== null &&

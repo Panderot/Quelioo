@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 
 import { ImportPrompt } from './components/auth/ImportDialog'
@@ -6,6 +7,7 @@ import KeptRoute from './components/KeptRoute'
 import RateLimitNotice from './components/RateLimitNotice'
 import Sidebar from './components/Sidebar'
 import TopBar from './components/TopBar'
+import { useStudyChrome } from './lib/studyPrefs'
 import AccountPage from './pages/AccountPage'
 import ArchivePage from './pages/ArchivePage'
 import ArchiveQuizPage from './pages/ArchiveQuizPage'
@@ -21,10 +23,11 @@ import OwnerPage from './pages/OwnerPage'
 import SolvePage from './pages/SolvePage'
 import SongsPage from './pages/SongsPage'
 
-const KEPT_ROUTES = [
+const KEPT_ROUTES: { path: string; element: ReactNode; restoreSearch?: boolean }[] = [
   { path: '/', element: <CreatePage /> },
   { path: '/solve', element: <SolvePage /> },
-  { path: '/archive/:id', element: <ArchiveQuizPage /> },
+  // Search is part of what the page shows (?mode=study): a plain link to the quiz page must open the quiz page, never a remembered study screen.
+  { path: '/archive/:id', element: <ArchiveQuizPage />, restoreSearch: false },
   { path: '/songs', element: <SongsPage /> },
   { path: '/flashcards', element: <FlashcardsPage /> },
   { path: '/flashcards/:deckId', element: <FlashcardDeckPage /> },
@@ -35,10 +38,12 @@ const KEPT_ROUTES = [
 /** The signed-in app: sidebar, top bar and the pages (kept ones stay mounted). Loaded lazily so the landing page never downloads it. */
 export default function AppShell() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  // Study mode is a focused screen: it has its own header, and its focus mode hides the sidebar too.
+  const studyChrome = useStudyChrome()
 
   return (
     <div data-purpose="app-viewport" className="flex min-h-screen bg-paper lg:flex-row">
-      <Sidebar isMobileOpen={isMobileNavOpen} onCloseMobile={() => setIsMobileNavOpen(false)} />
+      {!(studyChrome.active && studyChrome.focus) && <Sidebar isMobileOpen={isMobileNavOpen} onCloseMobile={() => setIsMobileNavOpen(false)} />}
 
       <main
         data-purpose="main-layout"
@@ -49,14 +54,14 @@ export default function AppShell() {
           aria-hidden
         />
 
-        <TopBar onOpenMobileNav={() => setIsMobileNavOpen(true)} />
+        {!studyChrome.active && <TopBar onOpenMobileNav={() => setIsMobileNavOpen(true)} />}
 
-        <div className="animate-fade-in relative mx-auto w-full max-w-5xl space-y-7 p-6 lg:p-8 xl:p-10">
+        <div className={`animate-fade-in relative mx-auto w-full max-w-5xl space-y-7 ${studyChrome.active ? 'p-4 sm:p-6 lg:p-8' : 'p-6 lg:p-8 xl:p-10'}`}>
           {/* Pages that hold unfinished work (photo and crop, forms, results, answers, requests in
               flight, playback) stay mounted while the user visits other pages; <Routes> renders
               nothing for them. Lists that other pages change (Archive) are not kept. */}
-          {KEPT_ROUTES.map(({ path, element }) => (
-            <KeptRoute key={path} path={path} element={element} />
+          {KEPT_ROUTES.map(({ path, element, restoreSearch }) => (
+            <KeptRoute key={path} path={path} element={element} restoreSearch={restoreSearch} />
           ))}
           <Routes>
             {KEPT_ROUTES.map(({ path }) => (

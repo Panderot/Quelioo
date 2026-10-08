@@ -276,29 +276,6 @@ test.describe('Show answers ON', () => {
   })
 })
 
-test.describe('study mode uses the same checkable, retryable UI as the result view', () => {
-  test('mcq and fill-blanks are checkable and retryable in Study Mode', async ({ page, seedArchive }) => {
-    await seedArchive([SEEDED_ENTRY])
-    await page.goto(`/archive/${SEEDED_ENTRY.id}?lng=en`)
-    await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
-    await page.getByRole('button', { name: 'Study' }).click()
-
-    const mcqCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'photosynthesis' })
-    await mcqCard.getByRole('radio', { name: /Oxygen/ }).check()
-    await mcqCard.getByRole('button', { name: 'Check answer' }).click()
-    await expect(mcqCard.getByText('Not yet. Try again.')).toBeVisible()
-    await mcqCard.getByRole('radio', { name: /Carbon dioxide/ }).check()
-    await mcqCard.getByRole('button', { name: 'Check answer' }).click()
-    await expect(mcqCard.getByText('Correct!')).toBeVisible()
-
-    const fillCard = page.locator('[data-purpose="practice-question-card"]', { hasText: 'boils at' })
-    await expect(fillCard.getByRole('button', { name: 'Reveal answer' })).toHaveCount(0)
-    await fillCard.getByLabel('Your answer').fill('100')
-    await fillCard.getByRole('button', { name: 'Check answer' }).click()
-    await expect(fillCard.getByText('Correct!')).toBeVisible()
-  })
-})
-
 test.describe('localization', () => {
   test('fill-blank checking is localized in Turkish', async ({ page, mockGenerate }) => {
     await mockGenerate(SAMPLE_QUIZ)

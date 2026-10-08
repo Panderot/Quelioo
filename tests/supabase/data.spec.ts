@@ -160,6 +160,63 @@ test.describe('archive in the account', () => {
   })
 })
 
+test.describe('study results in the account', () => {
+  test('a finished session is saved in quizzes.results, shows on a second device, and an unfinished one can be continued', async ({ browser }) => {
+    const user = await createTestUser('study')
+    const id = crypto.randomUUID()
+    const questions = SAMPLE_QUIZ.questions.slice(0, 3)
+    const { error } = await user.client.from('quizzes').insert({
+      id,
+      title: SAMPLE_QUIZ.title,
+      source: 'text',
+      question_type: 'mixed',
+      difficulty: 'medium',
+      question_count: '3',
+      output_language: 'en',
+      quiz: { title: SAMPLE_QUIZ.title, questions },
+    })
+    expect(error).toBeNull()
+    const first = await newContext(browser, user)
+    const page = await first.newPage()
+    await page.goto(`/archive/${id}?mode=study&lng=en`)
+    await page.getByRole('button', { name: 'Start', exact: true }).click()
+
+    // One question answered, then the page is closed: the resume point reaches the account.
+    await page.getByRole('radio', { name: /Carbon dioxide/ }).click()
+    await page.getByRole('button', { name: 'Check', exact: true }).click()
+    await expect
+      .poll(async () => ((await admin.from('quizzes').select('results').eq('id', id).single()).data?.results as { resume?: unknown } | null)?.resume !== undefined)
+      .toBe(true)
+    await page.reload()
+    await page.getByRole('button', { name: 'Continue where you left off' }).click()
+    await expect(page.locator('[data-purpose="study-progress"]')).toHaveText('2 / 3')
+    await page.getByRole('radio', { name: 'False' }).click()
+    await page.getByRole('button', { name: 'Check', exact: true }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
+    await page.getByLabel('Your answer').fill('100')
+    await page.getByRole('button', { name: 'Check', exact: true }).click()
+    await page.getByRole('button', { name: 'Finish', exact: true }).click()
+    await expect(page.locator('[data-purpose="study-score"]')).toHaveText('3 / 3 correct')
+
+    await expect
+      .poll(async () => ((await admin.from('quizzes').select('results').eq('id', id).single()).data?.results as { sessions?: unknown[]; resume?: unknown } | null)?.sessions?.length)
+      .toBe(1)
+    const saved = (await admin.from('quizzes').select('results').eq('id', id).single()).data?.results as { sessions: { firstTry: number; total: number; scope: string }[]; resume?: unknown }
+    expect(saved.sessions[0]).toMatchObject({ firstTry: 3, total: 3, scope: 'full' })
+    expect(saved.resume).toBeUndefined()
+
+    // A second device shows the last result on the Archive card and the chart on the quiz page.
+    const second = await newContext(browser, user)
+    const other = await second.newPage()
+    await other.goto('/archive?lng=en')
+    await expect(other.locator('[data-purpose="archive-last-study"]')).toHaveText(/Last session: 3\/3, today/)
+    await other.goto(`/archive/${id}?lng=en`)
+    await expect(other.locator('[data-purpose="study-history"] [data-score="3/3"]')).toBeVisible()
+    await first.close()
+    await second.close()
+  })
+})
+
 test.describe('storage layers in the browser (songs, solutions, lessons)', () => {
   test('songs: upload, list, play through a signed URL, delete removes the file', async ({ browser }) => {
     const user = await createTestUser('songs')

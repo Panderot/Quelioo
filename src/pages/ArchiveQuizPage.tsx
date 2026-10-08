@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { LoadError, SkeletonList } from '../components/DataStates'
@@ -8,6 +8,8 @@ import type { ArchiveEntry } from '../lib/archive'
 import type { GeneratedQuiz } from '../lib/quiz'
 import QuizWorkspace from '../components/QuizWorkspace'
 import SongListenSection from '../components/SongListenSection'
+import StudyHistory from '../components/study/StudyHistory'
+import StudyView from '../components/study/StudyView'
 import { ArchiveIcon } from '../components/icons'
 import { useOnPageReturn } from '../hooks/usePageActive'
 
@@ -19,7 +21,9 @@ export default function ArchiveQuizPage() {
 
 function ArchiveQuizEntry({ id }: { id: string | undefined }) {
   const { t } = useTranslation()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const location = useLocation()
   const archive = useArchive()
   // Read from the store on every render: a deep link or a reload opens this page before the account's
   // quizzes have loaded, and a quiz deleted elsewhere simply stops being found. The version bump
@@ -33,7 +37,7 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
     setSongRefreshKey((key) => key + 1)
   })
   // Study mode lives in the URL: this page stays mounted, so a later visit to ?mode=study must not depend on
-  // initial state. Toggling replaces the entry, so Back still returns to wherever the user came from (Archive).
+  // initial state. Every visit is a new history entry (new location key), which starts the study screen afresh.
   const studyMode = searchParams.get('mode') === 'study'
 
   if (!entry && !archive.loaded) return archive.failed ? <LoadError onRetry={archive.reload} /> : <SkeletonList />
@@ -64,16 +68,13 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
     if (updated) setVersion((value) => value + 1)
   }
 
-  const handleToggleStudyMode = () =>
-    setSearchParams(
-      (current) => {
-        const next = new URLSearchParams(current)
-        if (studyMode) next.delete('mode')
-        else next.set('mode', 'study')
-        return next
-      },
-      { replace: true },
-    )
+  // Back to where the student came from (Archive, or this quiz's page); a deep link has nothing to go back to.
+  const handleExitStudy = () => {
+    if (typeof window.history.state?.idx === 'number' && window.history.state.idx > 0) navigate(-1)
+    else navigate(`/archive/${entry.id}`, { replace: true })
+  }
+
+  if (studyMode) return <StudyView key={location.key} entry={entry} onExit={handleExitStudy} onToArchive={() => navigate('/archive')} />
 
   return (
     <>
@@ -95,14 +96,13 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
         incomplete={false}
         onPersist={handlePersist}
         archiveLink={{ href: '/archive', label: t('archive.detail.backToArchive') }}
-        studyMode={studyMode}
-        onToggleStudyMode={handleToggleStudyMode}
         includeExplanations={entry.includeExplanations ?? true}
         shuffleOptions={entry.shuffleOptions ?? false}
         includeHints={entry.includeHints ?? true}
         onSongSaved={() => setSongRefreshKey((key) => key + 1)}
       />
-      <div data-print-hide>
+      <div data-print-hide className="space-y-7">
+        <StudyHistory entry={entry} />
         <SongListenSection key={songRefreshKey} quizId={entry.id} quizTitle={entry.quiz.title} />
       </div>
     </>

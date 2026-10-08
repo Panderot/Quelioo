@@ -49,7 +49,8 @@ test('the Study button opens the quiz directly in Study Mode, is keyboard access
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL(`/archive/${SEEDED_ENTRY.id}?mode=study`)
-  await expect(page.locator('[data-purpose="practice-question-card"]').first()).toBeVisible()
+  await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
+  await expect(page.locator('[data-purpose="question-card"]')).toHaveCount(0)
   await expect(page.getByRole('switch')).toHaveCount(0)
 })
 
@@ -92,26 +93,36 @@ for (const [lang, strings] of [['tr', tr], ['en', en], ['hyw', hyw]] as const) {
     await seedArchive([SEEDED_ENTRY])
     const detailUrl = `/archive/${SEEDED_ENTRY.id}`
     const study = () => page.getByRole('link', { name: `${strings.archive.study} — ${SAMPLE_QUIZ.title}` })
+    const card = () => page.locator(`[data-purpose="archive-list"] li a[href="${detailUrl}"]`)
+    const studyScreen = page.locator('[data-purpose="study-start"]')
+    const editPage = page.locator('[data-purpose="question-card"]').first()
 
     await page.goto(`/archive?lng=${lang}`)
     // Card click (not the button) opens the plain detail page, which then stays mounted (kept route).
-    await page.locator(`[data-purpose="archive-list"] li a[href="${detailUrl}"]`).click()
+    await card().click()
     await expect(page).toHaveURL(detailUrl)
-    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toHaveCount(0)
+    await expect(editPage).toBeVisible()
+    await expect(studyScreen).toHaveCount(0)
     await page.goBack()
     await expect(page).toHaveURL(/\/archive(\?|$)/)
 
     await study().click()
     await expect(page).toHaveURL(`${detailUrl}?mode=study`)
-    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toBeVisible()
+    await expect(studyScreen).toBeVisible()
+    await expect(page.getByText(strings.study.label, { exact: true }).first()).toBeVisible()
 
-    // Leave study mode on the detail page (kept mounted), return to Archive and press Study again.
-    await page.getByRole('button', { name: strings.archive.backToEdit }).click()
-    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toHaveCount(0)
+    // Back from study returns to Archive; the card body then opens the detail page, never the remembered study screen.
     await page.goBack()
     await expect(page).toHaveURL(/\/archive(\?|$)/)
+    await card().click()
+    await expect(page).toHaveURL(detailUrl)
+    await expect(editPage).toBeVisible()
+    await expect(studyScreen).toHaveCount(0)
+
+    // And the study button still needs one click, also right after the detail page was shown.
+    await page.goBack()
     await study().click()
-    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toBeVisible()
+    await expect(studyScreen).toBeVisible()
 
     await page.goBack()
     await expect(page).toHaveURL(/\/archive(\?|$)/)
