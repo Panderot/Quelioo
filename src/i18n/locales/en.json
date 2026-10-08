@@ -1216,6 +1216,9 @@
       "invalidBody": "It may have been used already or copied incompletely. Request a new one to continue.",
       "requestNew": "Get a new link",
       "emailChanged": "Your email address was updated.",
+      "pendingTitle": "Almost done",
+      "pendingBody": "Your email change needs one more confirmation. Open the link we sent to your other address to finish.",
+      "toAccount": "Go to my account",
       "denied": "Sign-in was cancelled. You can try again."
     },
     "config": {

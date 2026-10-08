@@ -1216,6 +1216,9 @@
       "invalidBody": "Daha önce kullanılmış ya da eksik kopyalanmış olabilir. Devam etmek için yenisini iste.",
       "requestNew": "Yeni bağlantı al",
       "emailChanged": "E-posta adresin güncellendi.",
+      "pendingTitle": "Neredeyse bitti",
+      "pendingBody": "E-posta değişikliği için bir onay daha gerekiyor. Tamamlamak için diğer adrese gönderdiğimiz bağlantıyı aç.",
+      "toAccount": "Hesabıma git",
       "denied": "Giriş iptal edildi. Tekrar deneyebilirsin."
     },
     "config": {

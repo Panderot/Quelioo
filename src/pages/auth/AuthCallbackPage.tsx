@@ -10,7 +10,7 @@ import { useAuth } from '../../lib/auth/authStore'
 import { supabase } from '../../lib/supabase'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
-type Outcome = { kind: 'ok'; destination: string } | { kind: 'expired' } | { kind: 'invalid' } | { kind: 'denied' }
+type Outcome = { kind: 'ok'; destination: string } | { kind: 'expired' } | { kind: 'invalid' } | { kind: 'denied' } | { kind: 'pending' }
 
 const OTP_TYPES: EmailOtpType[] = ['signup', 'invite', 'magiclink', 'recovery', 'email_change', 'email']
 
@@ -42,8 +42,10 @@ async function verify(search: string, hash: string): Promise<Outcome> {
   const tokenHash = params.get('token_hash')
   const type = params.get('type') as EmailOtpType | null
   if (tokenHash && type && OTP_TYPES.includes(type)) {
-    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+    const { data, error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
     if (error) return failureOf(error)
+    // Changing the address needs both mailboxes to confirm: after the first link the change is still pending.
+    if (type === 'email_change' && data.user?.new_email) return { kind: 'pending' }
     if (type === 'recovery') return { kind: 'ok', destination: '/reset-password' }
     if (type === 'email_change') return { kind: 'ok', destination: '/account?emailChanged=1' }
     return { kind: 'ok', destination: stored }
@@ -93,6 +95,17 @@ export default function AuthCallbackPage() {
   }, [destination, status, navigate])
 
   if (!outcome || outcome.kind === 'ok') return <AuthSplash />
+
+  if (outcome.kind === 'pending') {
+    return (
+      <AuthCard>
+        <AuthHeading title={t('auth.callback.pendingTitle')} subtitle={t('auth.callback.pendingBody')} />
+        <Link to="/account" className="block text-center text-sm font-semibold text-amber-text hover:underline">
+          {t('auth.callback.toAccount')}
+        </Link>
+      </AuthCard>
+    )
+  }
 
   const linkType = readParams(location.search, location.hash).get('type')
   const newLinkPath = linkType && linkType !== 'recovery' ? '/check-email' : '/forgot-password'

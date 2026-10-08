@@ -235,6 +235,20 @@ test.describe('expired and invalid links', () => {
     await expect(page).toHaveURL(/\/(forgot-password|check-email)/)
   })
 
+  test('the first link of an email change says one more confirmation is needed, not "updated"', async ({ page }) => {
+    await page.route('**/auth/v1/verify**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ user: { id: '00000000-0000-4000-8000-000000000002', aud: 'authenticated', email: 'old@example.com', new_email: 'new@example.com', app_metadata: {}, user_metadata: {}, created_at: new Date().toISOString() } }),
+      }),
+    )
+    await page.goto('/auth/callback?token_hash=first-of-two&type=email_change&lng=en')
+    await expect(page.getByRole('heading', { name: en.auth.callback.pendingTitle })).toBeVisible()
+    await expect(page.getByText(en.auth.callback.pendingBody)).toBeVisible()
+    await expect(page.getByText(en.auth.callback.emailChanged)).toHaveCount(0)
+  })
+
   test('a callback with no parameters', async ({ page }) => {
     await page.goto('/auth/callback?lng=en')
     await expect(page.getByRole('heading', { name: new RegExp(`${en.auth.callback.expiredTitle}|${en.auth.callback.invalidTitle}`) })).toBeVisible()
