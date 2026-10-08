@@ -53,9 +53,6 @@ export default function Landing({ language, prerendered = false }: { language?: 
           </a>
           <nav className="flex items-center gap-1 sm:gap-3" aria-label={t('landing.nav.home')}>
             <LanguageSwitcher syncProfile={false} tall />
-            <a href="/sign-in" className="inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-navy transition-colors hover:bg-card">
-              {t('landing.nav.signIn')}
-            </a>
             <a href="/sign-up" className="hidden min-h-11 items-center rounded-xl bg-navy px-4 text-sm font-bold text-paper transition-colors hover:bg-ink sm:inline-flex">
               {t('landing.nav.start')}
             </a>

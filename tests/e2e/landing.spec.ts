@@ -34,7 +34,7 @@ test('signed-in "/" goes straight to the app and the landing page never renders'
   expect(await page.evaluate(() => (window as unknown as { __landingSeen?: boolean }).__landingSeen)).toBeFalsy()
 })
 
-test('every start button reaches sign-up and the header link reaches sign-in', async ({ page }) => {
+test('every start button reaches sign-up; the header has no sign-in link; sign-up links to sign-in', async ({ page }) => {
   await signedOut(page, 'en')
   await page.goto('/')
   const starts = page.locator('a[href="/sign-up"]')
@@ -46,8 +46,14 @@ test('every start button reaches sign-up and the header link reaches sign-in', a
   await expect(page).toHaveURL(/\/sign-up$/)
 
   await page.goto('/')
-  await page.getByRole('link', { name: en.landing.nav.signIn }).click()
+  await expect(page.locator('header a[href="/sign-in"]')).toHaveCount(0)
+  await expect(page.locator('a[href="/sign-in"]')).toHaveCount(0)
+
+  await page.goto('/sign-up')
+  await page.getByRole('link', { name: en.auth.signUp.signInLink }).click()
   await expect(page).toHaveURL(/\/sign-in$/)
+  await page.goto('/sign-in')
+  await expect(page.getByRole('heading', { name: en.auth.signIn.title })).toBeVisible()
 
   await page.goto('/')
   await page.getByRole('link', { name: en.landing.cta.button }).last().click()
@@ -159,3 +165,14 @@ test('the lesson excerpt plays only on tap (Turkish)', async ({ page }) => {
   await page.getByRole('button', { name: tr.landing.features.lesson.play }).click()
   await expect.poll(() => audioRequests.length).toBeGreaterThan(0)
 })
+
+for (const lang of ['tr', 'en', 'hyw'] as const) {
+  test(`sign-up shows the "already have an account" sign-in link in ${lang}`, async ({ page }) => {
+    await signedOut(page, lang)
+    await page.goto('/sign-up')
+    const a = LOCALES[lang].auth.signUp
+    await expect(page.getByText(a.hasAccount)).toBeVisible()
+    await page.getByRole('link', { name: a.signInLink }).click()
+    await expect(page).toHaveURL(/\/sign-in$/)
+  })
+}
