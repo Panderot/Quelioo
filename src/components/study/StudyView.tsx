@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useIsPageActive } from '../../hooks/usePageActive'
 import { saveStudyResults } from '../../lib/archive'
@@ -102,7 +102,7 @@ export default function StudyView({ entry, onExit, onToArchive }: StudyViewProps
   }
 
   const handleStart = (kind: StudyKind, timer: TimerSetting) => {
-    changePrefs({ ...prefs, kind, timer: { mode: timer.mode, questionSeconds: timer.questionSeconds, totalMinutes: Math.round(timer.totalSeconds / 60) } })
+    changePrefs({ ...prefs, kind, timers: { ...prefs.timers, [kind]: { mode: timer.mode, questionSeconds: timer.questionSeconds, totalMinutes: Math.round(timer.totalSeconds / 60) } } })
     const all = entry.quiz.questions.map((question) => question.id)
     if (kind === 'quick') beginRun(kind, 'subset', quickPoolIds(resultsRef.current, entry.quiz.questions), timer)
     else beginRun(kind, 'full', all, timer)
@@ -117,12 +117,16 @@ export default function StudyView({ entry, onExit, onToArchive }: StudyViewProps
     beginRun(resume.kind, resume.scope, qids, resume.timer, { ...resume, qids })
   }
 
+  /** Start over: drop the unfinished session and begin the same study type and timer from question 1. */
   const handleDiscardResume = () => {
-    const { resume: _discarded, ...rest } = resultsRef.current
-    void _discarded
+    const { resume: old, ...rest } = resultsRef.current
     const next: StudyResults = rest
     store(next)
     setResults(next)
+    if (!old) return
+    const stillThere = new Set(entry.quiz.questions.map((question) => question.id))
+    const qids = old.qids.filter((id) => stillThere.has(id))
+    if (qids.length > 0) beginRun(old.kind, old.scope, qids, old.timer)
   }
 
   const handleSaveResume = useCallback(

@@ -1686,7 +1686,7 @@
       "typeLegend": "How do you want to study?",
       "begin": "Start",
       "resumeTitle": "You have an unfinished session",
-      "resumeBody": "{{done}} of {{total}} questions done.",
+      "resumeBody": "Question {{current}} of {{total}}",
       "resume": "Continue where you left off",
       "restart": "Start over"
     },
@@ -1760,6 +1760,8 @@
       "allRight": "Everything right on the first try!",
       "wrongTitle": "Your mistakes ({{count}})",
       "allAnswers": "All questions and answers",
+      "yourAnswer": "Your answer:",
+      "noAnswer": "Left blank",
       "guessedTitle": "Your guesses ({{count}})",
       "flaggedTitle": "Flagged to look at again ({{count}})",
       "retryWrong": "Study my mistakes again ({{count}})",

@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+﻿import { useSyncExternalStore } from 'react'
 
 import { getAuthState } from './auth/authStore'
 import { DEFAULT_QUESTION_SECONDS } from './study'
@@ -7,16 +7,22 @@ import type { StudyKind, TimerSetting } from './study'
 /** The student's last study choices, remembered per signed-in user on this device (a convenience,
  * never account data). */
 
+export type KindTimer = Pick<TimerSetting, 'mode' | 'questionSeconds'> & { totalMinutes?: number }
+
 export interface StudyPrefs {
   kind: StudyKind
-  timer: Pick<TimerSetting, 'mode' | 'questionSeconds'> & { totalMinutes?: number }
+  /** The timer choice of each study type; one type's choice never carries over to another. */
+  timers: Partial<Record<StudyKind, KindTimer>>
   /** Streak pulse and the confetti burst; off for people who find them distracting. */
   celebrate: boolean
 }
 
 const STORAGE_KEY = 'quelio.studyPrefs.v1'
 
-export const DEFAULT_PREFS: StudyPrefs = { kind: 'normal', timer: { mode: 'off', questionSeconds: DEFAULT_QUESTION_SECONDS }, celebrate: true }
+export const DEFAULT_PREFS: StudyPrefs = { kind: 'normal', timers: {}, celebrate: true }
+
+/** Normal and Quick review start with the timer off; the exam rehearsal suggests a total time. */
+export const defaultKindTimer = (kind: StudyKind): KindTimer => ({ mode: kind === 'exam' ? 'total' : 'off', questionSeconds: DEFAULT_QUESTION_SECONDS })
 
 type Store = Record<string, StudyPrefs>
 
@@ -36,11 +42,18 @@ export function loadStudyPrefs(): StudyPrefs {
   if (!saved) return DEFAULT_PREFS
   return {
     kind: saved.kind === 'exam' || saved.kind === 'quick' ? saved.kind : 'normal',
-    timer: {
-      mode: saved.timer?.mode === 'total' || saved.timer?.mode === 'question' ? saved.timer.mode : 'off',
-      questionSeconds: Math.min(3600, Math.max(5, Number(saved.timer?.questionSeconds) || DEFAULT_QUESTION_SECONDS)),
-      ...(saved.timer?.totalMinutes ? { totalMinutes: Math.min(600, Math.max(1, Number(saved.timer.totalMinutes))) } : {}),
-    },
+    timers: Object.fromEntries(
+      (['normal', 'exam', 'quick'] as StudyKind[]).flatMap((kind) => {
+        const raw = saved.timers?.[kind]
+        if (!raw) return []
+        const entry: KindTimer = {
+          mode: raw.mode === 'total' || raw.mode === 'question' ? raw.mode : 'off',
+          questionSeconds: Math.min(3600, Math.max(5, Number(raw.questionSeconds) || DEFAULT_QUESTION_SECONDS)),
+          ...(raw.totalMinutes ? { totalMinutes: Math.min(600, Math.max(1, Number(raw.totalMinutes))) } : {}),
+        }
+        return [[kind, entry]]
+      }),
+    ),
     celebrate: saved.celebrate !== false,
   }
 }

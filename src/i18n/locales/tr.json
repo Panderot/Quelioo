@@ -1686,7 +1686,7 @@
       "typeLegend": "Nasıl çalışmak istersin?",
       "begin": "Başla",
       "resumeTitle": "Yarım kalmış bir çalışman var",
-      "resumeBody": "{{done}} / {{total}} soru tamamlandı.",
+      "resumeBody": "Soru {{current}} / {{total}}",
       "resume": "Kaldığın yerden devam et",
       "restart": "Baştan başla"
     },
@@ -1760,6 +1760,8 @@
       "allRight": "Hepsi ilk denemede doğru!",
       "wrongTitle": "Yanlışların ({{count}})",
       "allAnswers": "Tüm sorular ve cevaplar",
+      "yourAnswer": "Senin cevabın:",
+      "noAnswer": "Boş bıraktın",
       "guessedTitle": "Tahmin ettiklerin ({{count}})",
       "flaggedTitle": "Sonra bak dediklerin ({{count}})",
       "retryWrong": "Yanlışlarımı tekrar çalış ({{count}})",

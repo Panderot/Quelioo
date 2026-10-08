@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useIsPageActive } from '../../hooks/usePageActive'
@@ -79,6 +79,10 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
   const [checkError, setCheckError] = useState(false)
   const [elapsedMs, setElapsedMs] = useState(initial?.elapsedMs ?? 0)
   const [questionMs, setQuestionMs] = useState(0)
+  // Countdowns run on the wall clock (stored anchors), so a reload keeps the real remaining time.
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const [totalStartAt] = useState(() => initial?.totalStartAt ?? Date.now())
+  const [questionStartAt, setQuestionStartAt] = useState(() => initial?.questionStartAt ?? Date.now())
   const [streak, setStreak] = useState(initial?.streak ?? 0)
   const [pulseKey, setPulseKey] = useState(0)
   const [hintsShown, setHintsShown] = useState(0)
@@ -105,10 +109,21 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
   const stopSpeech = speech.stop
 
   const persist = useCallback(
-    (nextIndex: number, nextRecords: Record<string, QuestionRecord>, nextStreak: number, nextElapsed: number) => {
-      onSaveResume({ kind, scope, qids, index: nextIndex, records: nextRecords, elapsedMs: Math.round(nextElapsed), timer, streak: nextStreak })
+    (nextIndex: number, nextRecords: Record<string, QuestionRecord>, nextStreak: number, nextElapsed: number, nextQuestionStartAt?: number) => {
+      onSaveResume({
+        kind,
+        scope,
+        qids,
+        index: nextIndex,
+        records: nextRecords,
+        elapsedMs: Math.round(nextElapsed),
+        timer,
+        streak: nextStreak,
+        totalStartAt,
+        ...(nextQuestionStartAt !== undefined ? { questionStartAt: nextQuestionStartAt } : {}),
+      })
     },
-    [kind, scope, qids, timer, onSaveResume],
+    [kind, scope, qids, timer, totalStartAt, onSaveResume],
   )
 
   const updateRecord = useCallback((id: string, patch: Partial<QuestionRecord>) => {
@@ -170,7 +185,10 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
       setCheckError(false)
       setQuestionMs(0)
       setHintsShown(0)
-      persist(nextIndex, nextRecords, live.current.streak, live.current.elapsedMs)
+      const startedAt = Date.now()
+      setQuestionStartAt(startedAt)
+      setNowMs(startedAt)
+      persist(nextIndex, nextRecords, live.current.streak, live.current.elapsedMs, startedAt)
     },
     [questions, persist, stopSpeech],
   )
@@ -217,7 +235,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
         nextStreak = 0
         nextFeedback = { status: 'retry', text }
       }
-      const nextRecords = { ...live.current.records, [question.id]: { ...current, ...patch, hints: current.hints } }
+      const nextRecords = { ...live.current.records, [question.id]: { ...current, ...patch, answer: live.current.value, hints: current.hints } }
       setRecords(nextRecords)
       setStreak(nextStreak)
       setFeedback(nextFeedback)
@@ -257,7 +275,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
     if (current.done) return
     const nextRecords = {
       ...live.current.records,
-      [question.id]: { ...current, firstTry: false, correct: false, revealed: true, timedOut: true, done: true, ms: live.current.questionMs },
+      [question.id]: { ...current, ...(hasAnswer(question, live.current.value) ? { answer: live.current.value } : {}), firstTry: false, correct: false, revealed: true, timedOut: true, done: true, ms: live.current.questionMs },
     }
     live.current.records = nextRecords
     live.current.streak = 0
@@ -276,6 +294,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
       const now = Date.now()
       const delta = Math.min(now - last, 2000)
       last = now
+      setNowMs(now)
       if (document.hidden) return
       setElapsedMs((current) => current + delta)
       if (!(live.current.records[questions[live.current.index]?.id ?? '']?.done ?? false)) setQuestionMs((current) => current + delta)
@@ -283,8 +302,8 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
     return () => window.clearInterval(id)
   }, [pageActive, finishing, questions])
 
-  const totalRemainingMs = timer.mode === 'total' ? timer.totalSeconds * 1000 - elapsedMs : null
-  const questionRemainingMs = timer.mode === 'question' ? timer.questionSeconds * 1000 - questionMs : null
+  const totalRemainingMs = timer.mode === 'total' ? timer.totalSeconds * 1000 - (nowMs - totalStartAt) : null
+  const questionRemainingMs = timer.mode === 'question' ? timer.questionSeconds * 1000 - (nowMs - questionStartAt) : null
 
   useEffect(() => {
     if (totalRemainingMs !== null && totalRemainingMs <= 0 && !finishing) void finish(true)
@@ -703,6 +722,68 @@ export function CorrectAnswer({ question }: { question: QuizQuestion }) {
       return (
         <p className="text-base break-words text-ink">
           {label} <span className="font-semibold"><MathText text={question.answer} /></span>
+        </p>
+      )
+  }
+}
+
+/** What the student answered, in the same form as the right answer, for the end-screen review. */
+export function YourAnswer({ question, answer }: { question: QuizQuestion; answer: AnswerValue | undefined }) {
+  const { t } = useTranslation()
+  const label = <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('study.end.yourAnswer')}</span>
+  const blank = (
+    <p className="text-base text-muted">
+      {label} {t('study.end.noAnswer')}
+    </p>
+  )
+  if (answer === undefined || !hasAnswer(question, answer)) return blank
+  switch (question.type) {
+    case 'mcq':
+      return (
+        <p className="text-base break-words text-ink">
+          {label} <span className="font-semibold">{String.fromCharCode(65 + Number(answer))}. </span>
+          <MathText text={question.options[Number(answer)] ?? ''} />
+        </p>
+      )
+    case 'true-false':
+      return (
+        <p className="text-base text-ink">
+          {label} <span className="font-semibold">{answer === true ? t('create.result.trueLabel') : t('create.result.falseLabel')}</span>
+        </p>
+      )
+    case 'matching': {
+      const letters = Array.isArray(answer) ? answer : []
+      const order = getRightOrder(question)
+      return (
+        <div className="space-y-1">
+          {label}
+          <ul className="space-y-0.5 text-sm text-ink">
+            {question.pairs.map((pair, i) => {
+              const position = letters[i] ? letters[i].toUpperCase().charCodeAt(0) - 65 : -1
+              const chosen = position >= 0 ? question.pairs[order[position]] : undefined
+              return (
+                <li key={i} className="break-words">
+                  <span className="font-semibold">
+                    {i + 1} → {letters[i] || '–'}
+                  </span>{' '}
+                  <MathText text={pair.left} />
+                  {chosen && (
+                    <>
+                      {' — '}
+                      <MathText text={chosen.right} />
+                    </>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )
+    }
+    default:
+      return (
+        <p className="text-base break-words text-ink">
+          {label} <MathText text={String(answer)} />
         </p>
       )
   }

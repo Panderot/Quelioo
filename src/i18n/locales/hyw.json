@@ -1686,7 +1686,7 @@
       "typeLegend": "Ինչպէ՞ս կ՚ուզես սերտել",
       "begin": "Սկսիլ",
       "resumeTitle": "Անաւարտ սերտողութիւն մը ունիս",
-      "resumeBody": "{{done}} / {{total}} հարց աւարտած է։",
+      "resumeBody": "Հարց {{current}} / {{total}}",
       "resume": "Շարունակել ուր որ մնացեր էիր",
       "restart": "Սկսիլ նորէն"
     },
@@ -1760,6 +1760,8 @@
       "allRight": "Բոլորն ալ առաջին փորձով ճիշդ էին։",
       "wrongTitle": "Սխալներդ ({{count}})",
       "allAnswers": "Բոլոր հարցերն ու պատասխանները",
+      "yourAnswer": "Քու պատասխանդ.",
+      "noAnswer": "Թողուցիր պարապ",
       "guessedTitle": "Գուշակածներդ ({{count}})",
       "flaggedTitle": "Յետոյ նայելու նշածներդ ({{count}})",
       "retryWrong": "Կրկին սերտել սխալներս ({{count}})",

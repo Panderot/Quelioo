@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures'
+﻿import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
 import en from '../../src/i18n/locales/en.json' with { type: 'json' }
@@ -283,15 +283,72 @@ test.describe('Study Mode', () => {
 
     await page.reload()
     const resume = page.locator('[data-purpose="study-resume"]')
-    await expect(resume).toContainText('2 of 5 questions done.')
+    await expect(resume).toContainText('Question 3 of 5')
     await button(page, 'Continue where you left off').click()
     await expect(progress(page)).toHaveText('3 / 5')
     await expect(questionBox(page)).toContainText('Water boils at')
 
-    // "Start over" drops the saved point.
+    // "Start over" begins again at question 1 and drops the saved point.
     await page.reload()
     await button(page, 'Start over').click()
+    await expect(progress(page)).toHaveText('1 / 5')
+    await expect(questionBox(page)).toContainText('Which gas do plants absorb')
+    await page.reload()
+    await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
     await expect(page.locator('[data-purpose="study-resume"]')).toHaveCount(0)
+  })
+
+  test('a finished session never shows the resume prompt', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.goto(URL_STUDY)
+    await expect(page.locator('[data-purpose="study-resume"]')).toHaveCount(0)
+    await start(page)
+    await finishAllRight(page)
+    await expect(page.locator('[data-purpose="study-end"]')).toBeVisible()
+    await page.reload()
+    await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
+    await expect(page.locator('[data-purpose="study-resume"]')).toHaveCount(0)
+  })
+
+  test('the end screen shows, for each mistake, your answer, the right answer and the explanation', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.goto(URL_STUDY)
+    await start(page)
+    await answerWrong(page, 'q-mcq')
+    await page.getByRole('radio', { name: /Nitrogen/ }).click()
+    await button(page, 'Check').click()
+    await button(page, 'Next').click()
+    await answerWrong(page, 'q-tf')
+    await button(page, 'Next').click()
+    await answerRight(page, 'q-fill')
+    await button(page, 'Next').click()
+    await answerRight(page, 'q-short')
+    await button(page, 'Next').click()
+    await answerRight(page, 'q-matching')
+    await button(page, 'Finish').click()
+    const wrongList = page.locator('[data-purpose="study-wrong-list"] > li')
+    await expect(wrongList).toHaveCount(2)
+    await expect(wrongList.nth(0)).toContainText('Your answer:')
+    await expect(wrongList.nth(0)).toContainText('Nitrogen')
+    await expect(wrongList.nth(0)).toContainText('Right answer:')
+    await expect(wrongList.nth(0)).toContainText('Carbon dioxide')
+    await expect(wrongList.nth(0)).toContainText('Plants absorb carbon dioxide and release oxygen.')
+    await expect(wrongList.nth(1)).toContainText('Your answer: True')
+    await expect(wrongList.nth(1)).toContainText('Right answer: False')
+  })
+
+  test('the exam review lists your answer next to the right answer and the explanation', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.goto(URL_STUDY)
+    await start(page, 'Exam practice')
+    await page.getByRole('radio', { name: /Oxygen/ }).click()
+    await button(page, 'Next').click()
+    for (let i = 0; i < 3; i += 1) await button(page, 'Next').click()
+    await button(page, 'Finish').click()
+    const all = page.locator('[data-purpose="study-all-answers"]')
+    await expect(all).toContainText('Your answer: A. Oxygen')
+    await expect(all).toContainText('Left blank')
+    await expect(all).toContainText('Plants absorb carbon dioxide and release oxygen.')
   })
 
   test('Exit goes back to where the student came from', async ({ page }) => {
@@ -386,14 +443,70 @@ test.describe('Study types', () => {
     await seed(page, [entry(LOCAL_QUESTIONS)])
     await page.clock.install({ time: NOW })
     await page.goto(URL_STUDY)
-    await page.getByRole('radio', { name: 'Off' }).click()
+    for (const kind of [/Normal/, /Exam practice/]) {
+      await page.getByRole('radio', { name: kind }).check()
+      await page.getByRole('radio', { name: 'Off', exact: true }).click()
+      await expect(page.getByRole('radio', { name: 'Off', exact: true })).toHaveAttribute('aria-checked', 'true')
+      await button(page, 'Start').click()
+      await expect(questionBox(page)).toBeVisible()
+      await page.clock.runFor(30_000)
+      await expect(page.getByRole('timer')).toHaveCount(0)
+      await expect(page.getByText(/\d+:\d\d/)).toHaveCount(0)
+      await button(page, 'Exit').click()
+      await page.goto(URL_STUDY)
+    }
+  })
+
+  test('the timer default and choice belong to each study type: Normal Off, Exam total time, never carried across', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.goto(URL_STUDY)
+    const checked = (name: string) => expect(page.getByRole('radio', { name, exact: true })).toHaveAttribute('aria-checked', 'true')
+    await checked('Off')
     await page.getByRole('radio', { name: /Exam practice/ }).check()
-    await expect(page.getByRole('radio', { name: 'Off' })).toHaveAttribute('aria-checked', 'true')
+    await checked('Total time')
+    await page.getByRole('radio', { name: 'Per question', exact: true }).click()
+    await page.getByRole('radio', { name: /Normal/ }).check()
+    await checked('Off')
+    await page.getByRole('radio', { name: /Exam practice/ }).check()
+    await checked('Per question')
     await button(page, 'Start').click()
     await expect(questionBox(page)).toBeVisible()
+    await button(page, 'Exit').click()
+
+    // Remembered after leaving, still per type.
+    await page.goto(URL_STUDY)
+    await checked('Per question')
+    await page.getByRole('radio', { name: /Normal/ }).check()
+    await checked('Off')
+  })
+
+  test('after a reload the countdown shows the real remaining time and keeps running; time that ran out while closed ends the session', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.clock.install({ time: NOW })
+    await page.goto(URL_STUDY)
+    await page.getByRole('radio', { name: 'Total time', exact: true }).click()
+    await page.getByLabel('Total minutes').fill('3')
+    await button(page, 'Start').click()
+    await page.getByRole('radio', { name: /Carbon dioxide/ }).click()
+    await button(page, 'Check').click()
+    await button(page, 'Next').click()
     await page.clock.runFor(30_000)
-    await expect(page.getByRole('timer')).toHaveCount(0)
-    await expect(page.getByText(/\d+:\d\d/)).toHaveCount(0)
+    await expect(page.getByRole('timer')).toHaveText('2:30')
+
+    // Closed for 20 seconds: the clock kept running while the page was gone.
+    await page.clock.setSystemTime(new Date(NOW.getTime() + 50_000))
+    await page.reload()
+    await button(page, 'Continue where you left off').click()
+    await expect(page.getByRole('timer')).toHaveText('2:10')
+    await page.clock.runFor(10_000)
+    await expect(page.getByRole('timer')).toHaveText('2:00')
+
+    // Closed past the end: the session is ended and scored.
+    await page.clock.setSystemTime(new Date(NOW.getTime() + 20 * 60_000))
+    await page.reload()
+    await button(page, 'Continue where you left off').click()
+    await expect(page.locator('[data-purpose="study-end"]')).toContainText('Time ran out')
+    await expect(page.locator('[data-purpose="study-score"]')).toHaveText('1 / 5 correct')
   })
 
   test('total and per-question timers count down from the chosen value; Off starts no timer', async ({ page }) => {
@@ -660,23 +773,30 @@ for (const [lang, strings] of [['tr', tr], ['en', en], ['hyw', hyw]] as const) {
 }
 
 test.describe('layout', () => {
-  test('on a wide screen the start, question and end screens sit in the horizontal centre of the window', async ({ page }) => {
-    await page.setViewportSize({ width: 1600, height: 900 })
-    await seed(page, [entry(LOCAL_QUESTIONS)])
-    await page.goto(URL_STUDY)
-    const offCentre = async (purpose: string) =>
-      page.evaluate((name) => {
-        const box = document.querySelector(`[data-purpose="${name}"]`)!.getBoundingClientRect()
-        return Math.abs(document.documentElement.clientWidth / 2 - (box.left + box.width / 2))
-      }, purpose)
-    await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
-    expect(await offCentre('study-start')).toBeLessThanOrEqual(2)
-    await start(page)
-    expect(await offCentre('study-run')).toBeLessThanOrEqual(2)
-    await finishAllRight(page)
-    await expect(page.locator('[data-purpose="study-end"]')).toBeVisible()
-    expect(await offCentre('study-end')).toBeLessThanOrEqual(2)
-  })
+  for (const width of [360, 1024, 1100, 1280, 1366, 1920]) {
+    test(`the start, question, feedback and end screens are centred at ${width}px (equal left and right margins)`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await seed(page, [entry(LOCAL_QUESTIONS)])
+      await page.goto(URL_STUDY)
+      const margins = async (purpose: string) =>
+        page.evaluate((name) => {
+          const box = document.querySelector(`[data-purpose="${name}"]`)!.getBoundingClientRect()
+          return Math.abs(box.left - (document.documentElement.clientWidth - box.right))
+        }, purpose)
+      await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
+      expect(await margins('study-start')).toBeLessThanOrEqual(3)
+      await start(page)
+      expect(await margins('study-run')).toBeLessThanOrEqual(3)
+      await page.getByRole('radio', { name: /Carbon dioxide/ }).click()
+      await button(page, 'Check').click()
+      await expect(page.locator('[data-purpose="study-feedback"]')).toBeVisible()
+      expect(await margins('study-feedback')).toBeLessThanOrEqual(3)
+      await button(page, 'Next').click()
+      await finishAllRight(page, IDS.slice(1))
+      await expect(page.locator('[data-purpose="study-end"]')).toBeVisible()
+      expect(await margins('study-end')).toBeLessThanOrEqual(3)
+    })
+  }
 })
 
 test.describe('mobile', () => {

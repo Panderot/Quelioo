@@ -1,4 +1,4 @@
-import { checkMatchingAnswer, getRightOrder, letterFor } from './matching'
+﻿import { checkMatchingAnswer, getRightOrder, letterFor } from './matching'
 import { isFillBlankMatch, isLenientMatch, usesTurkishRules } from './answerCheck'
 import { getAcceptableAnswers, getKeyPoints } from './quiz'
 import type { QuizQuestion } from './quiz'
@@ -73,6 +73,9 @@ export interface StudyResume {
   elapsedMs: number
   timer: TimerSetting
   streak: number
+  /** Wall-clock anchors (epoch ms): countdowns are computed from these, so they survive a reload and keep running while the page is closed. */
+  totalStartAt?: number
+  questionStartAt?: number
 }
 
 export interface StudyResults {

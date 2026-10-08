@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -13,7 +13,7 @@ import type { StudyPrefs } from '../../lib/studyPrefs'
 import { CheckIcon, CloseIcon } from '../icons'
 import MathText from '../MathText'
 import Confetti from './Confetti'
-import { CorrectAnswer } from './StudyRun'
+import { CorrectAnswer, YourAnswer } from './StudyRun'
 import ScoreChart from './ScoreChart'
 
 interface StudyEndProps {
@@ -29,6 +29,14 @@ interface StudyEndProps {
 }
 
 const CONFETTI_MIN_PERCENT = 80
+
+function Explanation({ text }: { text: string }) {
+  return (
+    <p data-purpose="study-explanation" className="text-sm break-words text-muted">
+      <MathText text={text} />
+    </p>
+  )
+}
 
 export default function StudyEnd({ entry, session, records, results, prefs, onRetryWrong, onFlaggedRound, onAgain, onToArchive }: StudyEndProps) {
   const { t } = useTranslation()
@@ -63,7 +71,9 @@ export default function StudyEnd({ entry, session, records, results, prefs, onRe
     )
   }
 
-  const listClasses = 'divide-y divide-warm-border rounded-xl border border-warm-border bg-card'
+  const showExplanation = (question: { explanation: string }) => question.explanation.trim() !== '' && (entry.includeExplanations ?? true)
+
+  const listClasses ='divide-y divide-warm-border rounded-xl border border-warm-border bg-card'
 
   return (
     <section data-purpose="study-end" className="mx-auto w-full max-w-2xl space-y-5" aria-label={t('study.end.title')}>
@@ -115,7 +125,9 @@ export default function StudyEnd({ entry, session, records, results, prefs, onRe
                 <p className="text-sm font-semibold break-words text-ink">
                   <MathText text={question.question} />
                 </p>
+                <YourAnswer question={question} answer={records[question.id]?.answer} />
                 <CorrectAnswer question={question} />
+                {showExplanation(question) && <Explanation text={question.explanation} />}
               </li>
             ))}
           </ul>
@@ -140,12 +152,9 @@ export default function StudyEnd({ entry, session, records, results, prefs, onRe
                       <MathText text={question.question} />
                     </span>
                   </p>
+                  <YourAnswer question={question} answer={records[question.id]?.answer} />
                   <CorrectAnswer question={question} />
-                  {question.explanation.trim() && (entry.includeExplanations ?? true) && (
-                    <p className="text-sm break-words text-muted">
-                      <MathText text={question.explanation} />
-                    </p>
-                  )}
+                  {showExplanation(question) && <Explanation text={question.explanation} />}
                 </li>
               ))}
           </ol>
