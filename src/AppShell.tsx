@@ -38,12 +38,12 @@ const KEPT_ROUTES: { path: string; element: ReactNode; restoreSearch?: boolean }
 /** The signed-in app: sidebar, top bar and the pages (kept ones stay mounted). Loaded lazily so the landing page never downloads it. */
 export default function AppShell() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
-  // Study mode is a focused screen: it has its own header, and its focus mode hides the sidebar too.
+  // Study mode is a focused screen: it has its own header, so the sidebar and top bar are hidden and the screen is centred on the whole window.
   const studyChrome = useStudyChrome()
 
   return (
     <div data-purpose="app-viewport" className="flex min-h-screen bg-paper lg:flex-row">
-      {!(studyChrome.active && studyChrome.focus) && <Sidebar isMobileOpen={isMobileNavOpen} onCloseMobile={() => setIsMobileNavOpen(false)} />}
+      {!studyChrome.active && <Sidebar isMobileOpen={isMobileNavOpen} onCloseMobile={() => setIsMobileNavOpen(false)} />}
 
       <main
         data-purpose="main-layout"

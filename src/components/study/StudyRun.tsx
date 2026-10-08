@@ -54,7 +54,10 @@ interface StudyRunProps {
 const TICK_MS = 250
 const STREAK_PULSE_EVERY = 3
 
-type Feedback = { status: 'retry' | 'correct' | 'revealed'; text?: string } | null
+const isTwoChoice = (question: QuizQuestion | undefined) =>
+  question?.type === 'true-false' || (question?.type === 'mcq' && question.options.length === 2)
+
+type Feedback ={ status: 'retry' | 'correct' | 'revealed'; text?: string } | null
 
 export default function StudyRun({ entry, kind, scope, qids, timer, initial, prefs, focus, onToggleFocus, onPrefsChange, onSaveResume, onFinish, onExit }: StudyRunProps) {
   const { t, i18n } = useTranslation()
@@ -205,7 +208,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
         patch = { attempts, firstTry: attempts === 1, correct: true, done: true, ms }
         nextStreak = attempts === 1 ? live.current.streak + 1 : 0
         nextFeedback = { status: 'correct', text }
-      } else if (attempts >= 2) {
+      } else if (attempts >= 2 || isTwoChoice(question)) {
         patch = { attempts, firstTry: false, correct: false, revealed: true, done: true, ms }
         nextStreak = 0
         nextFeedback = { status: 'revealed', text }
@@ -354,7 +357,8 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
 
   if (!question) return null
 
-  const hints = getHints(question)
+  // Two-choice questions (true/false, 2-option multiple choice): a guess is 50%, so no hints and no second try.
+  const hints = isTwoChoice(question) ? [] : getHints(question)
   const done = record.done
   const mark: OptionMark = !done && feedback?.status !== 'retry' ? 'none' : record.correct ? 'correct' : 'wrong'
   const inputDisabled = checking || (done && !isExam)

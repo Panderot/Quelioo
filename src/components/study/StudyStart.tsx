@@ -26,6 +26,7 @@ export default function StudyStart({ title, questionCount, results, quickCount, 
   const initialKind: StudyKind = prefs.kind === 'quick' && quickCount === 0 ? 'normal' : prefs.kind
   const [kind, setKind] = useState<StudyKind>(initialKind)
   const [timerMode, setTimerMode] = useState<TimerMode>(prefs.timer.mode)
+  const [timerTouched, setTimerTouched] = useState(false)
   const defaultMinutes = Math.max(1, Math.round((questionCount * DEFAULT_EXAM_SECONDS_PER_QUESTION) / 60))
   const [totalMinutes, setTotalMinutes] = useState(prefs.timer.totalMinutes ?? defaultMinutes)
   const [questionSeconds, setQuestionSeconds] = useState(prefs.timer.questionSeconds)
@@ -33,8 +34,8 @@ export default function StudyStart({ title, questionCount, results, quickCount, 
   const resume = results.resume
   const last = lastFullSession(results)
   const best = bestScore(results)
-  // The exam is always timed; the other types may run without a timer.
-  const effectiveMode: TimerMode = kind === 'exam' && timerMode === 'off' ? 'total' : timerMode
+  // The student's timer choice is always honoured, "Off" included: no countdown unless they pick one.
+  const effectiveMode: TimerMode = timerMode
   const count = kind === 'quick' ? quickCount : questionCount
 
   const start = () => {
@@ -112,7 +113,11 @@ export default function StudyStart({ title, questionCount, results, quickCount, 
                 value={option}
                 checked={selected}
                 disabled={disabled}
-                onChange={() => setKind(option)}
+                onChange={() => {
+                  setKind(option)
+                  // A rehearsal suggests a total time until the student picks a timer themselves; their choice (Off included) is never overridden.
+                  if (option === 'exam' && !timerTouched && timerMode === 'off') setTimerMode('total')
+                }}
                 className="mt-1 h-5 w-5 shrink-0 accent-amber"
               />
               <span className="min-w-0 space-y-0.5">
@@ -130,20 +135,21 @@ export default function StudyStart({ title, questionCount, results, quickCount, 
       <fieldset className="space-y-2.5">
         <legend className="mb-1 text-xs font-bold tracking-wide text-muted uppercase">{t('study.timer.legend')}</legend>
         <div role="radiogroup" aria-label={t('study.timer.legend')} className="flex flex-wrap gap-2">
-          {(['off', 'total', 'question'] as TimerMode[])
-            .filter((mode) => !(kind === 'exam' && mode === 'off'))
-            .map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                role="radio"
-                aria-checked={effectiveMode === mode}
-                onClick={() => setTimerMode(mode)}
-                className={`min-h-11 rounded-xl border px-4 text-sm font-semibold transition-colors ${effectiveMode === mode ? 'border-amber bg-amber/12 text-ink' : 'border-warm-border bg-card text-ink hover:border-focus-neutral'}`}
-              >
-                {t(`study.timer.${mode}`)}
-              </button>
-            ))}
+          {(['off', 'total', 'question'] as TimerMode[]).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              role="radio"
+              aria-checked={effectiveMode === mode}
+              onClick={() => {
+                setTimerTouched(true)
+                setTimerMode(mode)
+              }}
+              className={`min-h-11 rounded-xl border px-4 text-sm font-semibold transition-colors ${effectiveMode === mode ? 'border-amber bg-amber/12 text-ink' : 'border-warm-border bg-card text-ink hover:border-focus-neutral'}`}
+            >
+              {t(`study.timer.${mode}`)}
+            </button>
+          ))}
         </div>
         {effectiveMode === 'total' && (
           <label className="flex items-center gap-2 text-sm text-ink">

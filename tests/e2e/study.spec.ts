@@ -179,13 +179,56 @@ test.describe('Study Mode', () => {
     await expect(feedback).toContainText('Plants absorb carbon dioxide and release oxygen.')
     await expect(page.getByRole('radio', { name: /Carbon dioxide/ })).toBeVisible()
 
-    // Right on the second try is shown, but does not count as first-try correct.
-    await button(page, 'Next').click()
-    await answerWrong(page, 'q-tf')
-    await expect(page.getByText('Not yet. Try again.')).toBeVisible()
-    await page.getByRole('radio', { name: 'False' }).click()
+  })
+
+  test('two-choice questions (true/false, 2-option multiple choice): no hint, no second try, the answer shows at once and counts as wrong', async ({ page }) => {
+    const twoOption = {
+      id: 'q-two',
+      type: 'mcq' as const,
+      question: 'Which one is a planet?',
+      options: ['Mars', 'The Sun'],
+      correctIndex: 0,
+      explanation: 'Mars orbits the Sun; the Sun is a star.',
+      hints: ['Think about what orbits.'],
+    }
+    const questions = [...LOCAL_QUESTIONS.slice(0, 2), twoOption]
+    await seed(page, [entry(questions as typeof LOCAL_QUESTIONS)])
+    await page.goto(URL_STUDY)
+    await start(page)
+    // 4-option question keeps its hint button.
+    await expect(button(page, 'Hint')).toBeVisible()
+    await page.getByRole('radio', { name: /Carbon dioxide/ }).click()
     await button(page, 'Check').click()
-    await expect(page.getByText('on the second try')).toBeVisible()
+    await button(page, 'Next').click()
+
+    // True/false: wrong -> immediate reveal, no hint button, no retry.
+    await expect(button(page, 'Hint')).toHaveCount(0)
+    await page.getByRole('radio', { name: 'True' }).click()
+    await button(page, 'Check').click()
+    const feedback = page.locator('[data-purpose="study-feedback"]')
+    await expect(feedback).toHaveAttribute('data-state', 'revealed')
+    await expect(feedback).toContainText('False')
+    await expect(page.getByText('Not yet. Try again.')).toHaveCount(0)
+    await button(page, 'Next').click()
+
+    // 2-option multiple choice: same.
+    await expect(button(page, 'Hint')).toHaveCount(0)
+    await page.getByRole('radio', { name: /The Sun/ }).click()
+    await button(page, 'Check').click()
+    await expect(feedback).toHaveAttribute('data-state', 'revealed')
+    await expect(feedback).toContainText('Mars')
+    await expect(feedback).toContainText('the Sun is a star')
+    await button(page, 'Finish').click()
+    await expect(page.locator('[data-purpose="study-score"]')).toHaveText('1 / 3 correct')
+    await expect(page.locator('[data-purpose="study-wrong-list"] > li')).toHaveCount(2)
+  })
+
+  test('a right two-choice answer still counts as first-try correct', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.goto(URL_STUDY)
+    await start(page)
+    await finishAllRight(page)
+    await expect(page.locator('[data-purpose="study-score"]')).toHaveText('5 / 5 correct')
   })
 
   test('"Study my mistakes again" contains only the wrong ones; the score counts first tries; history is saved and shown', async ({ page }) => {
@@ -194,14 +237,12 @@ test.describe('Study Mode', () => {
     await page.goto(URL_STUDY)
     await start(page)
 
-    // q-mcq wrong twice, q-tf right on the second try, the rest right at once.
+    // q-mcq wrong twice, q-tf wrong (revealed at once: two choices), the rest right at once.
     await answerWrong(page, 'q-mcq')
     await page.getByRole('radio', { name: /Nitrogen/ }).click()
     await button(page, 'Check').click()
     await button(page, 'Next').click()
     await answerWrong(page, 'q-tf')
-    await page.getByRole('radio', { name: 'False' }).click()
-    await button(page, 'Check').click()
     await button(page, 'Next').click()
     await answerRight(page, 'q-fill')
     await button(page, 'Next').click()
@@ -212,7 +253,6 @@ test.describe('Study Mode', () => {
 
     await expect(page.locator('[data-purpose="study-score"]')).toHaveText('3 / 5 correct')
     await expect(page.locator('[data-purpose="study-end"]')).toContainText('60%')
-    await expect(page.locator('[data-purpose="study-end"]')).toContainText('1 question')
     const wrongList = page.locator('[data-purpose="study-wrong-list"]')
     await expect(wrongList.locator('> li')).toHaveCount(2)
     await expect(wrongList).toContainText('Which gas do plants absorb')
@@ -342,6 +382,32 @@ test.describe('Study types', () => {
     await expect(page.getByRole('timer')).toHaveText('0:20')
   })
 
+  test('timer Off shows no countdown, for every study type', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.clock.install({ time: NOW })
+    await page.goto(URL_STUDY)
+    await page.getByRole('radio', { name: 'Off' }).click()
+    await page.getByRole('radio', { name: /Exam practice/ }).check()
+    await expect(page.getByRole('radio', { name: 'Off' })).toHaveAttribute('aria-checked', 'true')
+    await button(page, 'Start').click()
+    await expect(questionBox(page)).toBeVisible()
+    await page.clock.runFor(30_000)
+    await expect(page.getByRole('timer')).toHaveCount(0)
+    await expect(page.getByText(/\d+:\d\d/)).toHaveCount(0)
+  })
+
+  test('total and per-question timers count down from the chosen value; Off starts no timer', async ({ page }) => {
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.clock.install({ time: NOW })
+    await page.goto(URL_STUDY)
+    await page.getByRole('radio', { name: 'Total time' }).click()
+    await page.getByLabel('Total minutes').fill('3')
+    await button(page, 'Start').click()
+    await expect(page.getByRole('timer')).toHaveText('3:00')
+    await page.clock.runFor(10_000)
+    await expect(page.getByRole('timer')).toHaveText('2:50')
+  })
+
   test('Quick review holds only wrong, guessed and flagged questions from earlier sessions', async ({ page }) => {
     await seed(page, [entry(LOCAL_QUESTIONS)])
     await page.goto(URL_STUDY)
@@ -452,19 +518,22 @@ test.describe('Study extras', () => {
     await expect(page.locator('[data-purpose="study-confetti"]')).toHaveCount(1)
   })
 
-  test('@cross focus mode hides the sidebar and leaves with the button or Esc', async ({ page }) => {
+  test('@cross the sidebar is hidden during study; focus mode leaves with the button or Esc and the sidebar returns on exit', async ({ page }) => {
     await seed(page, [entry(LOCAL_QUESTIONS)])
     await page.goto(URL_STUDY)
-    await start(page)
     const sidebar = page.locator('[data-purpose="sidebar-navigation"]')
-    await expect(sidebar).toBeVisible()
-    await button(page, 'Focus mode').click()
+    await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
     await expect(sidebar).toHaveCount(0)
+    await start(page)
+    await expect(sidebar).toHaveCount(0)
+    await button(page, 'Focus mode').click()
+    await expect(button(page, 'Leave focus mode')).toBeVisible()
     await button(page, 'Leave focus mode').click()
-    await expect(sidebar).toBeVisible()
     await button(page, 'Focus mode').click()
-    await expect(sidebar).toHaveCount(0)
+    await expect(button(page, 'Leave focus mode')).toBeVisible()
     await page.keyboard.press('Escape')
+    await expect(button(page, 'Focus mode')).toBeVisible()
+    await button(page, 'Exit').click()
     await expect(sidebar).toBeVisible()
   })
 
@@ -589,6 +658,26 @@ for (const [lang, strings] of [['tr', tr], ['en', en], ['hyw', hyw]] as const) {
     await expect(progress(page)).toHaveText('2 / 5')
   })
 }
+
+test.describe('layout', () => {
+  test('on a wide screen the start, question and end screens sit in the horizontal centre of the window', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 })
+    await seed(page, [entry(LOCAL_QUESTIONS)])
+    await page.goto(URL_STUDY)
+    const offCentre = async (purpose: string) =>
+      page.evaluate((name) => {
+        const box = document.querySelector(`[data-purpose="${name}"]`)!.getBoundingClientRect()
+        return Math.abs(document.documentElement.clientWidth / 2 - (box.left + box.width / 2))
+      }, purpose)
+    await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
+    expect(await offCentre('study-start')).toBeLessThanOrEqual(2)
+    await start(page)
+    expect(await offCentre('study-run')).toBeLessThanOrEqual(2)
+    await finishAllRight(page)
+    await expect(page.locator('[data-purpose="study-end"]')).toBeVisible()
+    expect(await offCentre('study-end')).toBeLessThanOrEqual(2)
+  })
+})
 
 test.describe('mobile', () => {
   test('@mobile 360px: no horizontal scroll, answer targets are at least 44px, every screen fits', async ({ page }) => {
