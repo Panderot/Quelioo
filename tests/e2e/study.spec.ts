@@ -737,6 +737,67 @@ test.describe('Study extras', () => {
     await expect(page.locator('[data-purpose="study-history"] [data-score]')).toHaveCount(2)
   })
 
+  for (const lang of ['en', 'tr', 'hyw']) {
+    test(`history chart (${lang}): bars of one day show their time, the date once per day when crowded, and a tooltip with date, time, mode and score`, async ({ page }) => {
+      const session = (id: string, at: Date, kind: string, firstTry: number) => ({
+        id, at: at.toISOString(), kind, scope: 'full', total: 5, firstTry, secondTry: 0, ms: 60_000, wrongIds: [], guessIds: [], flaggedIds: [],
+      })
+      const day1 = (h: number, m: number) => new Date(2026, 2, 9, h, m)
+      const withResults = (sessions: unknown[]) => ({ ...entry(LOCAL_QUESTIONS), results: { v: 1, sessions, pool: [] } })
+      const expected = (at: Date) =>
+        page.evaluate(
+          ([iso, locale]) => {
+            const d = new Date(iso)
+            return {
+              date: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(d),
+              time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(d),
+              full: new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' }).format(d),
+            }
+          },
+          [at.toISOString(), lang === 'hyw' ? 'hy' : lang],
+        )
+      const kindName = (kind: 'normal' | 'exam' | 'quick') => ({ en, tr, hyw })[lang as 'en' | 'tr' | 'hyw'].study.kinds[kind].name
+
+      // Few bars: every bar carries date and time.
+      const few = [session('a', day1(1, 35), 'normal', 3), session('b', day1(9, 5), 'exam', 4), session('c', day1(21, 40), 'normal', 5)]
+      await seed(page, [withResults(few)])
+      await page.goto(`/archive/${entry().id}?lng=${lang}`)
+      const bars = page.locator('[data-purpose="study-history-chart"] [data-score]')
+      await expect(bars).toHaveCount(3)
+      const first = await expected(day1(1, 35))
+      await expect(bars.nth(0).locator('[data-purpose="study-bar-date"]')).toHaveText(first.date)
+      await expect(bars.nth(0).locator('[data-purpose="study-bar-time"]')).toHaveText(first.time)
+      await expect(bars.nth(1).locator('[data-purpose="study-bar-date"]')).toHaveText(first.date)
+      await expect(bars.nth(1).locator('[data-purpose="study-bar-time"]')).toHaveText((await expected(day1(9, 5))).time)
+      const tip = await bars.nth(1).getAttribute('title')
+      expect(tip).toContain((await expected(day1(9, 5))).full)
+      expect(tip).toContain(kindName('exam'))
+      expect(tip).toContain('4/5')
+    })
+
+    test(`history chart (${lang}): with many bars the date shows once per day and every bar shows its time`, async ({ page }) => {
+      const make = (id: string, at: Date, firstTry: number) => ({
+        id, at: at.toISOString(), kind: 'normal', scope: 'full', total: 5, firstTry, secondTry: 0, ms: 1000, wrongIds: [], guessIds: [], flaggedIds: [],
+      })
+      const sessions = [
+        make('a', new Date(2026, 2, 9, 1, 35), 1),
+        make('b', new Date(2026, 2, 9, 2, 10), 2),
+        make('c', new Date(2026, 2, 9, 3, 45), 3),
+        make('d', new Date(2026, 2, 10, 8, 0), 4),
+        make('e', new Date(2026, 2, 10, 9, 30), 5),
+        make('f', new Date(2026, 2, 10, 10, 15), 5),
+      ]
+      await seed(page, [{ ...entry(LOCAL_QUESTIONS), results: { v: 1, sessions, pool: [] } }])
+      await page.goto(`/archive/${entry().id}?lng=${lang}`)
+      const chart = page.locator('[data-purpose="study-history-chart"]')
+      await expect(chart.locator('[data-score]')).toHaveCount(6)
+      await expect(chart.locator('[data-purpose="study-bar-time"]')).toHaveCount(6)
+      await expect(chart.locator('[data-purpose="study-bar-date"]')).toHaveCount(2)
+      const times = await chart.locator('[data-purpose="study-bar-time"]').allTextContents()
+      expect(new Set(times).size).toBe(6)
+    })
+  }
+
   test('mistakes can become flashcards from the end screen', async ({ page }) => {
     await seed(page, [entry(LOCAL_QUESTIONS)])
     await page.goto(URL_STUDY)
