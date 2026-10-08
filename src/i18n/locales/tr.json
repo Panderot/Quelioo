@@ -1386,5 +1386,304 @@
   },
   "support": {
     "prefix": "Yardım için:"
+  },
+  "landing": {
+    "meta": {
+      "title": "Quelio – Okuduğun her şeyi quize çevir",
+      "description": "Metni, PDF'i ya da bağlantıyı yapıştır; Quelio önemli bilgileri bulup quiz, bilgi kartı, şarkı ve sesli ders yapsın. Fotoğraftaki matematik sorusunu adım adım çözer. Beta süresince ücretsiz."
+    },
+    "skip": "Ana içeriğe geç",
+    "nav": {
+      "signIn": "Giriş yap",
+      "start": "Ücretsiz başla",
+      "home": "Quelio ana sayfa"
+    },
+    "hero": {
+      "title": "Okuduğun her şeyi quize çevir.",
+      "sub": "Metni yapıştır, PDF'i bırak ya da bağlantıyı ver. Quelio önemli bilgileri bulur, sorularını yazar; sen de kendini sınarsın.",
+      "start": "Ücretsiz başla",
+      "how": "Nasıl çalışıyor?",
+      "note": "Beta süresince ücretsiz",
+      "demoLabel": "Bir metindeki önemli bilgilerin quiz sorularına dönüşmesinin örneği",
+      "pause": "Animasyonu duraklat",
+      "play": "Animasyonu oynat",
+      "textLabel": "Metin",
+      "quizLabel": "Quiz"
+    },
+    "demo": {
+      "mcqTag": "Çoktan seçmeli",
+      "tfTag": "Doğru / Yanlış",
+      "true": "Doğru",
+      "false": "Yanlış",
+      "replay": "Tekrar oynat"
+    },
+    "samples": {
+      "photo": {
+        "name": "Fotosentez",
+        "l1": "Fotosentez, bitkilerin ışık enerjisiyle besin ürettiği süreçtir.",
+        "l2": "Kloroplastta gerçekleşir; karbondioksit ve su kullanılır.",
+        "l3": "Sonunda glikoz ve oksijen oluşur.",
+        "q1": "Fotosentez bitki hücresinin hangi organelinde gerçekleşir?",
+        "o1a": "Mitokondri",
+        "o1b": "Kloroplast",
+        "o1c": "Çekirdek",
+        "q2": "Fotosentezin sonunda glikoz ve oksijen oluşur."
+      },
+      "science": {
+        "name": "Fizik",
+        "l1": "Newton'un birinci yasasına göre dış kuvvet etki etmedikçe cisimler hareket durumunu korur.",
+        "l2": "Bu özelliğe eylemsizlik denir.",
+        "l3": "Kütlesi büyük cismin eylemsizliği de büyüktür.",
+        "q1": "Cisimlerin hareket durumunu korumaya çalışma özelliğine ne ad verilir?",
+        "o1a": "Sürtünme",
+        "o1b": "Eylemsizlik",
+        "o1c": "Basınç",
+        "q2": "Kütlesi büyük cismin eylemsizliği daha büyüktür."
+      },
+      "history": {
+        "name": "Tarih",
+        "l1": "Malazgirt Savaşı 1071'de Sultan Alparslan ile Bizans İmparatoru Romanos Diogenes arasında yapıldı.",
+        "l2": "Savaşı Selçuklular kazandı.",
+        "l3": "Zafer sonrasında Anadolu'nun kapıları Türklere açıldı.",
+        "q1": "Malazgirt Savaşı hangi yıl yapıldı?",
+        "o1a": "1176",
+        "o1b": "1071",
+        "o1c": "1453",
+        "q2": "Malazgirt Savaşı'nı Bizans kazandı."
+      },
+      "vocab": {
+        "name": "İngilizce kelime",
+        "l1": "reluctant: isteksiz, gönülsüz",
+        "l2": "abundant: bol, çok miktarda",
+        "l3": "scarce: az bulunan, kıt",
+        "q1": "\"abundant\" kelimesinin anlamı nedir?",
+        "o1a": "Kıt",
+        "o1b": "İsteksiz",
+        "o1c": "Bol",
+        "q2": "\"scarce\" az bulunan anlamına gelir."
+      }
+    },
+    "how": {
+      "title": "Nasıl çalışır?",
+      "sub": "Üç adım, hepsi bu.",
+      "step": "Adım {{n}}",
+      "s1": {
+        "title": "Yapıştır, bırak ya da bağlantıyı ver",
+        "body": "Ders notun, kitaptan bir bölüm, PDF'in ya da bir web sayfası olabilir.",
+        "chipText": "Metin",
+        "chipPdf": "PDF",
+        "chipLink": "Bağlantı"
+      },
+      "s2": {
+        "title": "Quelio önemli bilgileri bulur",
+        "body": "Önce metindeki bilgileri çıkarır, sonra her biri için soru yazar. Metinde olmayan bilgiyi uydurmaz; bilgi yetmezse daha az soru üretir."
+      },
+      "s3": {
+        "title": "Quizle, kartla, şarkıyla, dinleyerek öğren",
+        "body": "Aynı kaynaktan quiz, bilgi kartı, şarkı ve sesli ders çıkar. Sen sana uyanı seçersin.",
+        "quiz": "Quiz",
+        "cards": "Kartlar",
+        "song": "Şarkı",
+        "lesson": "Sesli ders"
+      }
+    },
+    "features": {
+      "title": "Tek kaynaktan, beş çalışma yolu",
+      "sub": "Aşağıdakiler Quelio'nun gerçek arayüzünden örneklerdir. Sekmelere dokun.",
+      "tabsLabel": "Özellikler",
+      "tabs": {
+        "create": "Oluştur",
+        "solve": "Çöz",
+        "cards": "Kartlar",
+        "songs": "Şarkılar",
+        "lesson": "Sesli Ders"
+      },
+      "create": {
+        "title": "Her soru türü, tek tıkla",
+        "body": "Çoktan seçmeli, doğru/yanlış, eşleştirme, boşluk doldurma, kısa cevap ve açık uçlu sorular. Zorluğu ve soru sayısını sen seçersin.",
+        "mcq": "Çoktan seçmeli",
+        "mcqQ": "Bitkiler fotosentezde hangi gazı alır?",
+        "mcqA": "Oksijen",
+        "mcqB": "Karbondioksit",
+        "mcqC": "Azot",
+        "tf": "Doğru / Yanlış",
+        "tfQ": "Fotosentez yalnızca geceleri gerçekleşir.",
+        "matching": "Eşleştirme",
+        "m1": "Kloroplast",
+        "m2": "Mitokondri",
+        "m3": "Ribozom",
+        "ma": "Protein sentezi",
+        "mb": "Fotosentez",
+        "mc": "Hücresel solunum",
+        "fill": "Boşluk doldurma",
+        "fillQ": "Bitkiler ışık enerjisini {{blank}} enerjiye dönüştürür.",
+        "fillA": "kimyasal"
+      },
+      "solve": {
+        "title": "Fotoğrafını çek, çözümü adım adım gör",
+        "body": "Matematik sorusunun fotoğrafını yükle; Quelio çözümü, her adımın nedeniyle birlikte gösterir. Kendi çözümünü de kontrol ettirebilirsin.",
+        "photoLabel": "Soru fotoğrafı",
+        "question": "2x + 6 = 14 ise x kaçtır?",
+        "stepsLabel": "Adım adım çözüm",
+        "step1": "İki taraftan 6 çıkar.",
+        "step2": "İki tarafı 2'ye böl.",
+        "step3": "Kontrol et.",
+        "answer": "Cevap"
+      },
+      "cards": {
+        "title": "Bir kez öğren, uzun süre hatırla",
+        "body": "Kartlar quizden ya da metinden otomatik çıkar. Bildiğin kartlar seyrek, zorlandıkların sık karşına gelir.",
+        "tapHint": "Çevirmek için karta dokun",
+        "again": "Tekrar göster",
+        "known": "Biliyordum",
+        "progress": "İlerleme",
+        "new": "Yeni",
+        "learning": "Öğreniliyor",
+        "learned": "Öğrenildi",
+        "q1": "Fotosentez nerede gerçekleşir?",
+        "a1": "Kloroplastta",
+        "q2": "Fotosentezin girdileri nelerdir?",
+        "a2": "Işık, su ve karbondioksit",
+        "q3": "Fotosentezin ürünleri nelerdir?",
+        "a3": "Glikoz ve oksijen"
+      },
+      "songs": {
+        "title": "Konuyu şarkıyla ezberle",
+        "body": "Quiz sorularındaki bilgiler şarkı sözlerine girer; sözler şarkı yapılmadan önce kaynağınla karşılaştırılıp kontrol edilir.",
+        "songTitle": "Fotosentez",
+        "play": "Şarkıyı oynat",
+        "pause": "Şarkıyı duraklat",
+        "hint": "Örnek animasyon, ses yok.",
+        "l1": "Güneşten gelen ışık yaprağa değer",
+        "l2": "Su ve karbondioksit kloroplastta birleşir",
+        "l3": "Glikoz olur besin, oksijen havaya yayılır",
+        "l4": "Fotosentez böyle çalışır, artık unutmazsın"
+      },
+      "lesson": {
+        "title": "Kulaklığı tak, dinleyerek öğren",
+        "body": "İki sunucu konuyu sohbet ederek anlatır, ara ara sorular sorar. Yürürken, yolda, uyumadan önce.",
+        "hostA": "Sunucu A",
+        "hostB": "Sunucu B",
+        "play": "Dersi oynat",
+        "pause": "Dersi duraklat",
+        "hint": "Kısa bir örnek. Ses dokununca yüklenir.",
+        "l1": "Bitkiler besin üretirken ışık enerjisinden yararlanır mı?",
+        "l2": "Bir düşün...",
+        "l3": "Evet. Fotosentezde bitki ışık enerjisiyle besin üretir. Şimdi yerini, girdilerini, ürünlerini ve hızını keşfedelim."
+      }
+    },
+    "audiences": {
+      "title": "Kimler için?",
+      "sub": "Ne çalışıyorsan, kaynağın hazır.",
+      "tabsLabel": "Kimler için",
+      "school": {
+        "tab": "Lise ve sınav öğrencileri",
+        "title": "Okul sınavı, LGS, YKS",
+        "body": "Ders notunu ya da kitaptaki konuyu yapıştır, kendi soruların hazır olsun. Takıldığın matematik sorusunun fotoğrafını çek, çözümü adım adım gör.",
+        "progress": "Soru 7 / 10"
+      },
+      "university": {
+        "tab": "Üniversite",
+        "title": "Vize ve final haftası",
+        "body": "Ders notunu ya da slayt PDF'ini yükle. Quelio kavramları bulup quize ve bilgi kartlarına çevirsin; sınavdan önce kendini sınayarak çalış.",
+        "file": "Hücre-Biyolojisi-Notlar.pdf",
+        "c1": "Mitokondri",
+        "c2": "Ribozom",
+        "c3": "Golgi aygıtı"
+      },
+      "exam": {
+        "tab": "KPSS, YDS, ALES",
+        "title": "Aylarca sürecek tekrar",
+        "body": "Tarih özetini ya da kelime listesini yapıştır, kartlara çevir. Aralıklı tekrar, hangi kartın ne zaman karşına çıkacağını senin yerine ayarlar.",
+        "front": "Malazgirt Savaşı hangi yıl yapıldı?",
+        "back": "1071",
+        "due": "Bugün 12 kart"
+      },
+      "teacher": {
+        "tab": "Öğretmenler",
+        "title": "Sınıf için hazır quiz",
+        "body": "Konu anlatımını yapıştır, soru türlerini seç. Quizi yazdır ya da kopyala; cevap anahtarı yanında gelir. Yapay zekâ yanılabilir, dağıtmadan önce göz atmanı öneririz.",
+        "sheet": "Hücre Bölünmesi, 10 soru",
+        "print": "Yazdır / PDF",
+        "copy": "Kopyala",
+        "key": "Cevap anahtarı"
+      }
+    },
+    "try": {
+      "title": "Kendin dene",
+      "sub": "Bir örnek metin seç; quizin nasıl oluştuğunu izle. Bu bir önceden hazırlanmış gösterimdir, yapay zekâ çağırmaz.",
+      "pickLabel": "Örnek metin",
+      "building": "Quiz oluşturuluyor",
+      "cta": "Kendi metninle dene"
+    },
+    "plans": {
+      "title": "Planlar",
+      "sub": "Çok yakında. Şimdilik beta, hepsi ücretsiz.",
+      "badge": "Beta süresince ücretsiz",
+      "soon": "Çok yakında",
+      "free": {
+        "name": "Ücretsiz",
+        "desc": "Başlamak ve düzenli çalışmak için.",
+        "f1": "Metin, dosya ve bağlantıdan quiz",
+        "f2": "Fotoğraftaki matematik sorusunun adım adım çözümü",
+        "f3": "Bilgi kartları ve aralıklı tekrar",
+        "f4": "Türkçe, İngilizce ve Batı Ermenicesi arayüz"
+      },
+      "pro": {
+        "name": "Pro",
+        "desc": "Daha çok kullanmak isteyenler için.",
+        "f1": "Ücretsiz plandaki her şey",
+        "f2": "Daha yüksek kullanım sınırları",
+        "f3": "Şarkılar ve sesli dersler"
+      },
+      "start": "Ücretsiz başla"
+    },
+    "faq": {
+      "title": "Sık sorulanlar",
+      "what": {
+        "q": "Quelio nedir?",
+        "a": "Yazdığın, yüklediğin ya da bağlantısını verdiğin içerikten yapay zekâ ile quiz, bilgi kartı, şarkı ve sesli ders hazırlayan; fotoğraftaki matematik sorusunu adım adım çözen bir çalışma aracı."
+      },
+      "languages": {
+        "q": "Hangi dillerde çalışıyor?",
+        "a": "Arayüz Türkçe, İngilizce ve Batı Ermenicesi. Quizleri bunlardan çok daha fazla dilde üretebilirsin; çıktı dilini kendin seçersin."
+      },
+      "free": {
+        "q": "Ücretsiz mi?",
+        "a": "Evet, beta süresince ücretsiz. Planlar çok yakında geliyor; kapsam ve fiyatlar belli olunca burada duyurulacak."
+      },
+      "data": {
+        "q": "Verilerime ne oluyor?",
+        "a": "E-posta adresini, adını ve oluşturduğun quiz, kart, şarkı ve dersleri saklarız; böylece her cihazda aynı kalır. Gönderdiğin metin ya da fotoğraf içerik üretmek için yapay zekâ sağlayıcılarına iletilir. Hesap sayfasından her şeyi indirebilir ya da hesabını tüm verileriyle silebilirsin."
+      },
+      "files": {
+        "q": "Hangi dosyaları kabul ediyor?",
+        "a": "PDF, Word (.docx), düz metin (.txt) ve Markdown (.md) dosyalarını, bir de web sayfası bağlantılarını. Matematik soruları için fotoğraf yeterli. YouTube bağlantıları henüz desteklenmiyor; videonun yazıya dökümünü yapıştırabilirsin."
+      },
+      "teachers": {
+        "q": "Öğretmenler kullanabilir mi?",
+        "a": "Evet. Konu anlatımından sınıf için quiz üret, soru türlerini seç, yazdır ya da kopyala; cevap anahtarlı çıktı da alabilirsin."
+      },
+      "trust": {
+        "q": "Sorulara güvenebilir miyim?",
+        "a": "Sorular senin verdiğin kaynağa dayanır; Quelio kaynakta olmayan bilgiyi doldurmaz. Yine de yapay zekâ hata yapabilir, önemli sınavlar ve dağıtılacak materyaller için soruları gözden geçir."
+      },
+      "phone": {
+        "q": "Telefonda çalışıyor mu?",
+        "a": "Evet. Tarayıcıdan açılır, telefon, tablet ve bilgisayarda aynı hesapla kullanırsın; bir şey indirmen gerekmez."
+      }
+    },
+    "cta": {
+      "title": "Bugün ne okuduysan, onu quize çevir.",
+      "sub": "Kredi kartı gerekmez.",
+      "button": "Ücretsiz başla"
+    },
+    "footer": {
+      "by": "Quelio, MotiqAI ürünüdür.",
+      "privacy": "Gizlilik",
+      "terms": "Kullanım Şartları",
+      "email": "info@motiqai.com",
+      "language": "Dil"
+    }
   }
 }

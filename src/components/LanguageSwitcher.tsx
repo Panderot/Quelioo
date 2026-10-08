@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { syncLanguageToProfile } from '../lib/auth/authStore'
 import { CheckIcon, ChevronDownIcon, GlobeIcon } from './icons'
 
 interface LanguageOption {
@@ -17,7 +16,9 @@ const LANGUAGES: LanguageOption[] = [
   { code: 'hyw', shortLabel: 'ՀԱՅ', nativeLabel: 'Հայերէն (Արեւմտահայերէն)' },
 ]
 
-export default function LanguageSwitcher() {
+/** `placement="up"` opens the menu above the button (for a switcher at the bottom of a page). */
+/** `tall` gives the button a 44px tap target (landing page). `syncProfile={false}` (landing page: nobody is signed in) keeps the account code out of that page's bundle. */
+export default function LanguageSwitcher({ placement = 'down', syncProfile = true, tall = false }: { placement?: 'down' | 'up'; syncProfile?: boolean; tall?: boolean }) {
   const { t, i18n } = useTranslation()
   const [isOpen, setIsOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
@@ -57,7 +58,7 @@ export default function LanguageSwitcher() {
 
   const selectLanguage = (code: LanguageOption['code']) => {
     void i18n.changeLanguage(code)
-    syncLanguageToProfile(code)
+    if (syncProfile) void import('../lib/auth/authStore').then((m) => m.syncLanguageToProfile(code))
     setIsOpen(false)
     buttonRef.current?.focus()
   }
@@ -119,7 +120,7 @@ export default function LanguageSwitcher() {
         aria-label={t('topbar.language.buttonLabel')}
         onClick={handleButtonClick}
         onKeyDown={handleButtonKeyDown}
-        className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-muted transition-colors hover:text-ink md:text-sm"
+        className={`flex items-center gap-1.5 rounded-xl px-3 py-2 ${tall ? 'min-h-11' : ''} text-xs font-semibold text-muted transition-colors hover:text-ink md:text-sm`}
       >
         <GlobeIcon className="h-4 w-4" />
         <span>{current.shortLabel}</span>
@@ -130,7 +131,7 @@ export default function LanguageSwitcher() {
         <ul
           role="listbox"
           aria-label={t('topbar.language.menuLabel')}
-          className="absolute top-full right-0 z-50 mt-2 w-60 space-y-0.5 rounded-xl border border-warm-border bg-card p-1.5 shadow-[0_16px_32px_-12px_rgba(20,23,43,0.18),0_4px_10px_-4px_rgba(20,23,43,0.08)]"
+          className={`absolute right-0 z-50 w-60 ${placement === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'} space-y-0.5 rounded-xl border border-warm-border bg-card p-1.5 shadow-[0_16px_32px_-12px_rgba(20,23,43,0.18),0_4px_10px_-4px_rgba(20,23,43,0.08)]`}
         >
           {LANGUAGES.map((lang, index) => (
             <li key={lang.code} role="none">

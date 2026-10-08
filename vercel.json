@@ -4,7 +4,7 @@
     { "source": "/api/another-way", "destination": "/api/solve-tools?action=another-way" },
     { "source": "/api/explain-step", "destination": "/api/solve-tools?action=explain-step" },
     { "source": "/api/check-work", "destination": "/api/solve-tools?action=check-work" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/app.html" }
   ],
   "functions": {
     "api/generate.ts": {

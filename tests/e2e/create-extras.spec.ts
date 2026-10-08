@@ -200,6 +200,7 @@ test.describe('Shuffle options switch', () => {
     await page.getByRole('link', { name: 'View in Archive' }).click()
     const firstCardOptionOrder = await cards.first().getByRole('radio').evaluateAll((radios) => radios.map((r) => r.getAttribute('name')))
     await page.reload()
+    await expect(cards.first()).toBeVisible()
     const reloadedOptionOrder = await cards.first().getByRole('radio').evaluateAll((radios) => radios.map((r) => r.getAttribute('name')))
     expect(reloadedOptionOrder).toEqual(firstCardOptionOrder)
   })

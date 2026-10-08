@@ -1386,5 +1386,304 @@
   },
   "support": {
     "prefix": "Need help?"
+  },
+  "landing": {
+    "meta": {
+      "title": "Quelio – Turn everything you read into a quiz",
+      "description": "Paste text, a PDF or a link and Quelio finds the key facts and turns them into quizzes, flashcards, songs and audio lessons. It also solves a photo of a math problem step by step. Free during the beta."
+    },
+    "skip": "Skip to main content",
+    "nav": {
+      "signIn": "Sign in",
+      "start": "Start for free",
+      "home": "Quelio home"
+    },
+    "hero": {
+      "title": "Turn everything you read into a quiz.",
+      "sub": "Paste text, drop a PDF or share a link. Quelio finds the key facts and writes the questions, so you can test yourself.",
+      "start": "Start for free",
+      "how": "How does it work?",
+      "note": "Free during the beta",
+      "demoLabel": "Example of key facts in a text turning into quiz questions",
+      "pause": "Pause animation",
+      "play": "Play animation",
+      "textLabel": "Text",
+      "quizLabel": "Quiz"
+    },
+    "demo": {
+      "mcqTag": "Multiple choice",
+      "tfTag": "True / False",
+      "true": "True",
+      "false": "False",
+      "replay": "Replay"
+    },
+    "samples": {
+      "photo": {
+        "name": "Photosynthesis",
+        "l1": "Photosynthesis is how plants make food from light energy.",
+        "l2": "It happens in the chloroplast and uses carbon dioxide and water.",
+        "l3": "In the end, glucose and oxygen are formed.",
+        "q1": "In which part of a plant cell does photosynthesis take place?",
+        "o1a": "Mitochondrion",
+        "o1b": "Chloroplast",
+        "o1c": "Nucleus",
+        "q2": "Photosynthesis produces glucose and oxygen."
+      },
+      "science": {
+        "name": "Physics",
+        "l1": "By Newton's first law, an object keeps its state of motion unless an outside force acts on it.",
+        "l2": "This property is called inertia.",
+        "l3": "The more mass an object has, the more inertia it has.",
+        "q1": "What is the tendency of objects to keep their state of motion called?",
+        "o1a": "Friction",
+        "o1b": "Inertia",
+        "o1c": "Pressure",
+        "q2": "An object with more mass has more inertia."
+      },
+      "history": {
+        "name": "History",
+        "l1": "The Battle of Manzikert was fought in 1071 between Sultan Alp Arslan and Byzantine Emperor Romanos Diogenes.",
+        "l2": "The Seljuks won the battle.",
+        "l3": "After the victory, Anatolia opened up to the Turks.",
+        "q1": "In which year was the Battle of Manzikert fought?",
+        "o1a": "1176",
+        "o1b": "1071",
+        "o1c": "1453",
+        "q2": "The Byzantines won the Battle of Manzikert."
+      },
+      "vocab": {
+        "name": "English vocabulary",
+        "l1": "reluctant: unwilling and hesitant",
+        "l2": "abundant: existing in large quantities",
+        "l3": "scarce: hard to find, in short supply",
+        "q1": "What does \"abundant\" mean?",
+        "o1a": "In short supply",
+        "o1b": "Unwilling",
+        "o1c": "Plentiful",
+        "q2": "\"Scarce\" means hard to find."
+      }
+    },
+    "how": {
+      "title": "How it works",
+      "sub": "Three steps, that's all.",
+      "step": "Step {{n}}",
+      "s1": {
+        "title": "Paste it, drop it, or share a link",
+        "body": "Your class notes, a chapter from a book, a PDF or a web page will do.",
+        "chipText": "Text",
+        "chipPdf": "PDF",
+        "chipLink": "Link"
+      },
+      "s2": {
+        "title": "Quelio finds the key facts",
+        "body": "It pulls the facts out of your text first, then writes a question for each one. It won't invent facts that aren't in your text; if there isn't enough, it asks fewer questions."
+      },
+      "s3": {
+        "title": "Learn with quizzes, cards, songs and audio",
+        "body": "One source gives you a quiz, flashcards, a song and an audio lesson. Pick whatever suits you.",
+        "quiz": "Quiz",
+        "cards": "Cards",
+        "song": "Song",
+        "lesson": "Audio lesson"
+      }
+    },
+    "features": {
+      "title": "One source, five ways to study",
+      "sub": "These are examples from Quelio's real interface. Tap the tabs.",
+      "tabsLabel": "Features",
+      "tabs": {
+        "create": "Create",
+        "solve": "Solve",
+        "cards": "Cards",
+        "songs": "Songs",
+        "lesson": "Audio Lesson"
+      },
+      "create": {
+        "title": "Every question type, one click",
+        "body": "Multiple choice, true/false, matching, fill in the blank, short answer and open-ended questions. You choose the difficulty and how many.",
+        "mcq": "Multiple choice",
+        "mcqQ": "Which gas do plants take in during photosynthesis?",
+        "mcqA": "Oxygen",
+        "mcqB": "Carbon dioxide",
+        "mcqC": "Nitrogen",
+        "tf": "True / False",
+        "tfQ": "Photosynthesis only happens at night.",
+        "matching": "Matching",
+        "m1": "Chloroplast",
+        "m2": "Mitochondrion",
+        "m3": "Ribosome",
+        "ma": "Protein synthesis",
+        "mb": "Photosynthesis",
+        "mc": "Cellular respiration",
+        "fill": "Fill in the blank",
+        "fillQ": "Plants turn light energy into {{blank}} energy.",
+        "fillA": "chemical"
+      },
+      "solve": {
+        "title": "Snap a photo, see the solution step by step",
+        "body": "Upload a photo of a math problem and Quelio shows the solution with the reason for every step. You can have your own working checked, too.",
+        "photoLabel": "Photo of the problem",
+        "question": "If 2x + 6 = 14, what is x?",
+        "stepsLabel": "Step-by-step solution",
+        "step1": "Subtract 6 from both sides.",
+        "step2": "Divide both sides by 2.",
+        "step3": "Check it.",
+        "answer": "Answer"
+      },
+      "cards": {
+        "title": "Learn it once, remember it for good",
+        "body": "Cards come straight from a quiz or a text. The ones you know show up rarely; the ones you struggle with come back sooner.",
+        "tapHint": "Tap the card to flip it",
+        "again": "Show again",
+        "known": "I knew it",
+        "progress": "Progress",
+        "new": "New",
+        "learning": "Learning",
+        "learned": "Learned",
+        "q1": "Where does photosynthesis happen?",
+        "a1": "In the chloroplast",
+        "q2": "What goes into photosynthesis?",
+        "a2": "Light, water and carbon dioxide",
+        "q3": "What comes out of photosynthesis?",
+        "a3": "Glucose and oxygen"
+      },
+      "songs": {
+        "title": "Memorize a topic as a song",
+        "body": "The facts from your quiz questions go into the lyrics, and the lyrics are checked against your source before a song is made.",
+        "songTitle": "Photosynthesis",
+        "play": "Play song",
+        "pause": "Pause song",
+        "hint": "Animated example, no sound.",
+        "l1": "Sunlight reaches every leaf",
+        "l2": "Water and CO2 meet in the chloroplast",
+        "l3": "Glucose is the food, oxygen drifts away",
+        "l4": "That's photosynthesis, now you won't forget"
+      },
+      "lesson": {
+        "title": "Put your headphones on and listen",
+        "body": "Two hosts talk the topic through and ask you questions along the way. On a walk, on the bus, before bed.",
+        "hostA": "Host A",
+        "hostB": "Host B",
+        "play": "Play lesson",
+        "pause": "Pause lesson",
+        "hint": "A short example. No sound in this language.",
+        "l1": "Do plants use light energy to make food?",
+        "l2": "Think about it...",
+        "l3": "Yes. In photosynthesis, a plant uses light energy to make food. Let's look at where it happens, what goes in, what comes out and how fast."
+      }
+    },
+    "audiences": {
+      "title": "Who is it for?",
+      "sub": "Whatever you study, your source is ready.",
+      "tabsLabel": "Who it's for",
+      "school": {
+        "tab": "School and exam students",
+        "title": "Unit tests and entrance exams",
+        "body": "Paste your class notes or a chapter and get practice questions of your own. Stuck on a math problem? Snap a photo and see the solution step by step.",
+        "progress": "Question 7 / 10"
+      },
+      "university": {
+        "tab": "University",
+        "title": "Midterm and finals week",
+        "body": "Upload your lecture notes or slide PDF. Quelio finds the concepts and turns them into a quiz and flashcards, so you can test yourself before the exam.",
+        "file": "Cell-Biology-Notes.pdf",
+        "c1": "Mitochondrion",
+        "c2": "Ribosome",
+        "c3": "Golgi apparatus"
+      },
+      "exam": {
+        "tab": "Exam candidates",
+        "title": "Months of revision, sorted",
+        "body": "Paste a history summary or a word list and turn it into cards. Spaced repetition decides when each card comes back, so you don't have to.",
+        "front": "In which year was the Battle of Manzikert fought?",
+        "back": "1071",
+        "due": "12 cards today"
+      },
+      "teacher": {
+        "tab": "Teachers",
+        "title": "A quiz ready for your class",
+        "body": "Paste your lesson text and choose the question types. Print the quiz or copy it, with the answer key alongside. AI can make mistakes, so give it a quick read before you hand it out.",
+        "sheet": "Cell Division, 10 questions",
+        "print": "Print / PDF",
+        "copy": "Copy",
+        "key": "Answer key"
+      }
+    },
+    "try": {
+      "title": "Try it yourself",
+      "sub": "Pick a sample text and watch its quiz come together. This is a pre-made demo and makes no AI request.",
+      "pickLabel": "Sample text",
+      "building": "Building the quiz",
+      "cta": "Try it with your own text"
+    },
+    "plans": {
+      "title": "Plans",
+      "sub": "Coming soon. For now it's a beta, and everything is free.",
+      "badge": "Free during the beta",
+      "soon": "Coming soon",
+      "free": {
+        "name": "Free",
+        "desc": "To get started and study regularly.",
+        "f1": "Quizzes from text, files and links",
+        "f2": "Step-by-step solutions for photos of math problems",
+        "f3": "Flashcards with spaced repetition",
+        "f4": "Interface in English, Turkish and Western Armenian"
+      },
+      "pro": {
+        "name": "Pro",
+        "desc": "For people who want to do more.",
+        "f1": "Everything in Free",
+        "f2": "Higher usage limits",
+        "f3": "Songs and audio lessons"
+      },
+      "start": "Start for free"
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "what": {
+        "q": "What is Quelio?",
+        "a": "A study tool that uses AI to turn what you write, upload or link into quizzes, flashcards, songs and audio lessons, and solves a photo of a math problem step by step."
+      },
+      "languages": {
+        "q": "Which languages does it work in?",
+        "a": "The interface comes in English, Turkish and Western Armenian. You can make quizzes in many more languages; you choose the output language."
+      },
+      "free": {
+        "q": "Is it free?",
+        "a": "Yes, it's free during the beta. Plans are coming soon, and we'll announce what they include and what they cost here."
+      },
+      "data": {
+        "q": "What happens to my data?",
+        "a": "We keep your email address, your name, and the quizzes, cards, songs and lessons you make, so they're the same on every device. The text or photo you submit is sent to AI providers to produce the content. From your account page you can download everything or delete your account along with all its data."
+      },
+      "files": {
+        "q": "Which files can I use?",
+        "a": "PDF, Word (.docx), plain text (.txt) and Markdown (.md) files, plus web page links. For math problems, a photo is enough. YouTube links aren't supported yet; paste the video's transcript instead."
+      },
+      "teachers": {
+        "q": "Can teachers use it?",
+        "a": "Yes. Make a quiz for your class from your lesson text, choose the question types, then print or copy it. You can get a version with the answer key, too."
+      },
+      "trust": {
+        "q": "Can I trust the questions?",
+        "a": "Questions are based on the source you give; Quelio doesn't fill gaps with facts that aren't there. AI can still make mistakes, so review the questions before an important exam or before you hand them out."
+      },
+      "phone": {
+        "q": "Does it work on my phone?",
+        "a": "Yes. It opens in your browser, so you can use the same account on a phone, tablet or computer. There's nothing to download."
+      }
+    },
+    "cta": {
+      "title": "Whatever you read today, turn it into a quiz.",
+      "sub": "No credit card needed.",
+      "button": "Start for free"
+    },
+    "footer": {
+      "by": "Quelio is a MotiqAI product.",
+      "privacy": "Privacy",
+      "terms": "Terms of Use",
+      "email": "info@motiqai.com",
+      "language": "Language"
+    }
   }
 }

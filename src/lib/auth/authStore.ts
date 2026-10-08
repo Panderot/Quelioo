@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 
 import { isFakeBackend, supabase, supabaseConfigured } from '../supabase'
 import type { Row } from '../supabase'
+import { hasStoredSession } from './storedSession'
 
 /** Who is signed in. One module-level store so the data layer (outside React) can read the user id
  * and the access token, and every tab stays in step through supabase-js (storage + BroadcastChannel). */
@@ -31,9 +32,22 @@ const FAKE_USER: AuthUser = { id: 'e2e-user', email: 'e2e@example.com', provider
 // real admin check (profiles.role, set only by the owner in SQL) is covered in tests/supabase.
 const FAKE_PROFILE: Profile = { id: FAKE_USER.id, display_name: 'E2E User', ui_language: 'en', role: 'admin', created_at: FAKE_USER.createdAt, updated_at: FAKE_USER.createdAt }
 
+/** Test switch for the fake backend only (it is a build-time flag of the Playwright dev server): start signed out. */
+function fakeSignedOut(): boolean {
+  try {
+    return localStorage.getItem('quelio.fake.signedOut.v1') === '1'
+  } catch {
+    return false
+  }
+}
+
 let state: AuthState = isFakeBackend
-  ? { status: 'signedIn', user: FAKE_USER, profile: FAKE_PROFILE, profileFailed: false }
+  ? fakeSignedOut()
+    ? { status: 'signedOut', user: null, profile: null, profileFailed: false }
+    : { status: 'signedIn', user: FAKE_USER, profile: FAKE_PROFILE, profileFailed: false }
   : { status: supabaseConfigured ? 'loading' : 'signedOut', user: null, profile: null, profileFailed: false }
+
+export { hasStoredSession }
 
 const listeners = new Set<() => void>()
 const sessionEndHandlers = new Set<() => void>()

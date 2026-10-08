@@ -39,7 +39,7 @@ The Tailwind v4 `@theme` block in `src/index.css` is the authoritative source fo
 
 - **Background:** flat `paper`. The only gradient is a 480px amber radial glow (8% opacity) at the top-right of the main column (`App.tsx`).
 - **Contrast:** all text WCAG AA (>=4.5:1). Navy text on amber.
-- **Fonts:** headings Fraunces Variable (soft optical, `@fontsource-variable/fraunces`), body/UI Plus Jakarta Sans (Google Fonts, 400-800). Both render Turkish glyphs. Noto Serif/Sans Armenian Variable are appended to `--font-serif`/`--font-sans` as hyw fallbacks.
+- **Fonts:** headings Fraunces Variable (soft optical, `@fontsource-variable/fraunces`), body/UI Plus Jakarta Sans (self-hosted, `@fontsource-variable/plus-jakarta-sans`; no third-party font requests). Both render Turkish glyphs. Noto Serif/Sans Armenian Variable are appended to `--font-serif`/`--font-sans` as hyw fallbacks.
 - **Spacing:** 4px base (Tailwind scale).
 - **Radius:** 8px (`boxed` select) · 10px (param selects, menu rows) · 12px `rounded-xl` (buttons, menus, chips-in-cards) · 14px (cards, panels, Generate) · 16px `rounded-2xl` (textarea, dropzones, file/URL cards, dialogs) · full (avatar, toggle, pills).
 - **Shadow:** borders do most separation. Cards: none. CTA: `shadow-sm`, hover `shadow-lg shadow-amber/30`. Select/language menus: `0 16px 32px -12px rgba(20,23,43,.18), 0 4px 10px -4px rgba(20,23,43,.08)`. Dialogs, More menu, toasts, song panel: `shadow-lg`.
@@ -263,3 +263,9 @@ ConfirmDialog shell (radius 16, scrim, max 448px). Prompt: serif title, "Found 8
 - Don't set fixed pixel widths on text containers.
 
 New screens reuse these tokens and components; add new components here before using them.
+
+## Landing page (`src/landing`)
+
+- Public home for signed-out visitors ("/", fixed-language copies "/en" and "/hyw"). Same Solar Paper tokens; sections: hero with the looping `SampleDemo` (text lines highlight, facts become quiz cards, an answer turns green), How (3 steps), Features (tabs: Create, Solve, Cards, Songs, Audio Lesson), Audiences (tabs), Try it (3 pre-made samples), Plans (no prices, "Coming soon"), FAQ (`details`), CTA band, footer.
+- Every demo is pre-made content played back with animation; the page never calls an API. Motion is transform and opacity only, starts when scrolled into view, shows end states without JS or with `prefers-reduced-motion`. Hero animation has a pause button and pauses on hover/focus.
+- It is prerendered to static HTML (`scripts/prerender.mjs`) with its own light entry (`landing.html` + `src/landing/main.tsx`): no account/app code, only the visitor's language file, CSS inline. Links go to plain pages (`/sign-up`, `/sign-in`), full page loads.

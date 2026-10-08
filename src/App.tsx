@@ -1,27 +1,12 @@
-import { useState } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import AuthLayout from './components/auth/AuthLayout'
-import { ImportPrompt } from './components/auth/ImportDialog'
-import RequireAuth, { ConfigMissing } from './components/auth/RequireAuth'
-import KeptRoute from './components/KeptRoute'
-import RateLimitNotice from './components/RateLimitNotice'
-import Sidebar from './components/Sidebar'
-import TopBar from './components/TopBar'
+import RequireAuth, { AuthSplash, ConfigMissing } from './components/auth/RequireAuth'
+import Landing from './landing/Landing'
+import type { LandingLanguage } from './landing/Landing'
+import { hasStoredSession, useAuth } from './lib/auth/authStore'
 import { isFakeBackend, supabaseConfigured } from './lib/supabase'
-import AccountPage from './pages/AccountPage'
-import ArchivePage from './pages/ArchivePage'
-import ArchiveQuizPage from './pages/ArchiveQuizPage'
-import ArchiveSolutionPage from './pages/ArchiveSolutionPage'
-import CreatePage from './pages/CreatePage'
-import FlashcardDeckPage from './pages/FlashcardDeckPage'
-import FlashcardsPage from './pages/FlashcardsPage'
-import FlashcardStudyPage from './pages/FlashcardStudyPage'
-import LessonPage from './pages/LessonPage'
-import LessonsPage from './pages/LessonsPage'
-import NotFoundPage from './pages/NotFoundPage'
-import OwnerPage from './pages/OwnerPage'
-import SolvePage from './pages/SolvePage'
 import AuthCallbackPage from './pages/auth/AuthCallbackPage'
 import CheckEmailPage from './pages/auth/CheckEmailPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
@@ -29,18 +14,12 @@ import LegalPage from './pages/auth/LegalPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import SignInPage from './pages/auth/SignInPage'
 import SignUpPage from './pages/auth/SignUpPage'
-import SongsPage from './pages/SongsPage'
 
-const KEPT_ROUTES = [
-  { path: '/', element: <CreatePage /> },
-  { path: '/solve', element: <SolvePage /> },
-  { path: '/archive/:id', element: <ArchiveQuizPage /> },
-  { path: '/songs', element: <SongsPage /> },
-  { path: '/flashcards', element: <FlashcardsPage /> },
-  { path: '/flashcards/:deckId', element: <FlashcardDeckPage /> },
-  { path: '/lessons', element: <LessonsPage /> },
-  { path: '/lessons/:id', element: <LessonPage /> },
-]
+// The signed-in app is a separate chunk: a landing-page visitor never downloads it.
+const AppShell = lazy(() => import('./AppShell'))
+
+/** Where the landing page lives: "/" follows the visitor's language, the other two are fixed-language copies (also prerendered for search engines). */
+const LANDING_PATHS: Record<string, LandingLanguage | undefined> = { '/': undefined, '/en': 'en', '/hyw': 'hyw' }
 
 /** Public pages (sign in, sign up, passwords, legal) sit outside the app shell; everything else needs a session. */
 export default function App() {
@@ -57,58 +36,30 @@ export default function App() {
         <Route path="/kullanim-sartlari" element={<LegalPage kind="terms" />} />
         <Route path="/gizlilik" element={<LegalPage kind="privacy" />} />
       </Route>
-      <Route
-        path="*"
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      />
+      <Route path="*" element={<AppOrLanding />} />
     </Routes>
   )
 }
 
-function AppShell() {
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+/** "/" is the landing page for a signed-out visitor and the app home for a signed-in user; no other page changes. */
+function AppOrLanding() {
+  const { status } = useAuth()
+  const location = useLocation()
+  const pathname = location.pathname.replace(/\/+$/, '') || '/'
+  const isLandingPath = Object.hasOwn(LANDING_PATHS, pathname)
 
+  if (isLandingPath && status !== 'signedIn') {
+    // A saved session means the user is almost surely signed in: wait for it instead of flashing the landing page.
+    if (status === 'loading' && hasStoredSession()) return <AuthSplash />
+    return <Landing language={LANDING_PATHS[pathname]} />
+  }
+  if (isLandingPath && pathname !== '/') return <Navigate to="/" replace />
+  // The same element for every app path, so moving between pages never remounts the shell (kept pages stay alive).
   return (
-    <div data-purpose="app-viewport" className="flex min-h-screen bg-paper lg:flex-row">
-      <Sidebar isMobileOpen={isMobileNavOpen} onCloseMobile={() => setIsMobileNavOpen(false)} />
-
-      <main
-        data-purpose="main-layout"
-        className="relative flex min-w-0 flex-1 flex-col overflow-y-auto bg-paper"
-      >
-        <div
-          className="pointer-events-none absolute top-0 right-0 h-[480px] w-[480px] bg-[radial-gradient(circle,rgba(245,165,36,0.08)_0%,rgba(245,165,36,0)_70%)]"
-          aria-hidden
-        />
-
-        <TopBar onOpenMobileNav={() => setIsMobileNavOpen(true)} />
-
-        <div className="animate-fade-in relative mx-auto w-full max-w-5xl space-y-7 p-6 lg:p-8 xl:p-10">
-          {/* Pages that hold unfinished work (photo and crop, forms, results, answers, requests in
-              flight, playback) stay mounted while the user visits other pages; <Routes> renders
-              nothing for them. Lists that other pages change (Archive) are not kept. */}
-          {KEPT_ROUTES.map(({ path, element }) => (
-            <KeptRoute key={path} path={path} element={element} />
-          ))}
-          <Routes>
-            {KEPT_ROUTES.map(({ path }) => (
-              <Route key={path} path={path} element={null} />
-            ))}
-            <Route path="/account" element={<AccountPage />} />
-            <Route path="/owner" element={<OwnerPage />} />
-            <Route path="/archive" element={<ArchivePage />} />
-            <Route path="/archive/solutions/:id" element={<ArchiveSolutionPage />} />
-            <Route path="/flashcards/:deckId/study" element={<FlashcardStudyPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </div>
-      </main>
-      <ImportPrompt />
-      <RateLimitNotice />
-    </div>
+    <RequireAuth>
+      <Suspense fallback={<AuthSplash />}>
+        <AppShell />
+      </Suspense>
+    </RequireAuth>
   )
 }

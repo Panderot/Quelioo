@@ -230,6 +230,8 @@ test.describe('Solve — drag-and-drop and paste', { tag: '@cross' }, () => {
   test('paste a valid PNG from the clipboard shows a preview', async ({ browserName, page }) => {
     test.skip(browserName !== 'chromium', 'a synthetic paste with a file only reaches the page in Chromium')
     await page.goto('/solve?lng=en')
+    // The app shell is a lazy chunk: wait for the page before pasting (the listener is attached once it mounts).
+    await expect(page.locator('[data-purpose="solve-upload-card"]')).toBeVisible()
     await pasteFile(page, fixtureBuffer('transparent.png'), 'transparent.png', 'image/png')
     await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
   })

@@ -111,6 +111,8 @@ export default defineConfig(({ mode }) => {
   }
   return {
     plugins: [react(), tailwindcss(), apiDevMiddleware(), buildVersionPlugin()],
+    // Two pages: the app (index.html) and the light landing entry (landing.html, prerendered by scripts/prerender.mjs).
+    build: { rollupOptions: { input: { index: 'index.html', landing: 'landing.html' } } },
     // Only reached via a lazy import (the similar-problem answer check); pre-bundle it so the dev
     // server doesn't discover it mid-session and reload the page.
     optimizeDeps: { include: ['mathjs/number'] },
