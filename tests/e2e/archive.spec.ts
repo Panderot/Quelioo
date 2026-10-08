@@ -1,5 +1,8 @@
 import { test, expect } from './fixtures'
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
+import en from '../../src/i18n/locales/en.json' with { type: 'json' }
+import tr from '../../src/i18n/locales/tr.json' with { type: 'json' }
+import hyw from '../../src/i18n/locales/hyw.json' with { type: 'json' }
 
 const SEEDED_ENTRY = {
   id: 'seeded-entry-1',
@@ -83,3 +86,35 @@ test('unknown archive id and unknown route both show a not-found state', async (
   await expect(page.getByText('Page not found')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Go to Create' })).toBeVisible()
 })
+
+for (const [lang, strings] of [['tr', tr], ['en', en], ['hyw', hyw]] as const) {
+  test(`Archive study button opens study mode in one click even after the detail page was visited, Back returns to Archive, card still opens detail (${lang})`, async ({ page, seedArchive }) => {
+    await seedArchive([SEEDED_ENTRY])
+    const detailUrl = `/archive/${SEEDED_ENTRY.id}`
+    const study = () => page.getByRole('link', { name: `${strings.archive.study} — ${SAMPLE_QUIZ.title}` })
+
+    await page.goto(`/archive?lng=${lang}`)
+    // Card click (not the button) opens the plain detail page, which then stays mounted (kept route).
+    await page.locator(`[data-purpose="archive-list"] li a[href="${detailUrl}"]`).click()
+    await expect(page).toHaveURL(detailUrl)
+    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toHaveCount(0)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/archive(\?|$)/)
+
+    await study().click()
+    await expect(page).toHaveURL(`${detailUrl}?mode=study`)
+    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toBeVisible()
+
+    // Leave study mode on the detail page (kept mounted), return to Archive and press Study again.
+    await page.getByRole('button', { name: strings.archive.backToEdit }).click()
+    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toHaveCount(0)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/archive(\?|$)/)
+    await study().click()
+    await expect(page.getByRole('button', { name: strings.archive.backToEdit })).toBeVisible()
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/archive(\?|$)/)
+    await expect(study()).toBeVisible()
+  })
+}

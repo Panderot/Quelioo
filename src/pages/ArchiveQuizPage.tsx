@@ -19,7 +19,7 @@ export default function ArchiveQuizPage() {
 
 function ArchiveQuizEntry({ id }: { id: string | undefined }) {
   const { t } = useTranslation()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const archive = useArchive()
   // Read from the store on every render: a deep link or a reload opens this page before the account's
   // quizzes have loaded, and a quiz deleted elsewhere simply stops being found. The version bump
@@ -32,7 +32,9 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
     setVersion((value) => value + 1)
     setSongRefreshKey((key) => key + 1)
   })
-  const [studyMode, setStudyMode] = useState(() => searchParams.get('mode') === 'study')
+  // Study mode lives in the URL: this page stays mounted, so a later visit to ?mode=study must not depend on
+  // initial state. Toggling replaces the entry, so Back still returns to wherever the user came from (Archive).
+  const studyMode = searchParams.get('mode') === 'study'
 
   if (!entry && !archive.loaded) return archive.failed ? <LoadError onRetry={archive.reload} /> : <SkeletonList />
 
@@ -62,7 +64,16 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
     if (updated) setVersion((value) => value + 1)
   }
 
-  const handleToggleStudyMode = () => setStudyMode((current) => !current)
+  const handleToggleStudyMode = () =>
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (studyMode) next.delete('mode')
+        else next.set('mode', 'study')
+        return next
+      },
+      { replace: true },
+    )
 
   return (
     <>
