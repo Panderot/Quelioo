@@ -32,5 +32,7 @@ export default defineConfig({
   projects: [
     { name: 'desktop', grep: /^(?!.*@mobile)/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
     { name: 'mobile', grep: /@mobile/, use: { ...devices['Desktop Chrome'], viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true } },
+    // iPhone Safari matters for the student screen: the whole flow (incl. its own 360px phone context) runs in WebKit on request.
+    { name: 'webkit', testMatch: /live-flow\.spec\.ts/, use: { ...devices['Desktop Safari'], viewport: { width: 1280, height: 800 } } },
   ],
 })
