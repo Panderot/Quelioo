@@ -6,7 +6,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 
 const SECTIONS = {
   terms: ['use', 'content', 'ai'],
-  privacy: ['data', 'ai', 'control'],
+  privacy: ['data', 'ai', 'live', 'control'],
 } as const
 
 /** Placeholder Terms of Use (/kullanim-sartlari) and Privacy Notice (/gizlilik), public, with a visible draft notice. */

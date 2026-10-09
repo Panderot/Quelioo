@@ -36,6 +36,10 @@
     },
     "api/account.ts": {
       "maxDuration": 60
+    },
+    "api/live.ts": {
+      "maxDuration": 30
     }
-  }
+  },
+  "crons": [{ "path": "/api/live?action=cleanup", "schedule": "23 3 * * *" }]
 }

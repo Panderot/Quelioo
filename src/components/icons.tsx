@@ -445,3 +445,16 @@ export function MicIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function TrophyIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M8 4h8v5a4 4 0 01-8 0V4zM8 6H5a1 1 0 00-1 1c0 2.2 1.6 3.8 4 4M16 6h3a1 1 0 011 1c0 2.2-1.6 3.8-4 4M12 13v4M8.5 20h7M10 17h4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.75"
+      />
+    </svg>
+  )
+}

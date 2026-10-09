@@ -11,7 +11,7 @@ import type { EstimateDifficulty } from '../lib/estimateTime'
 import { getQuizIdsWithSongs } from '../lib/songStorage'
 import { LoadError, SkeletonList } from '../components/DataStates'
 import SolutionsList from '../components/SolutionsList'
-import { ArchiveIcon, BookIcon, CalculatorIcon, MusicNoteIcon } from '../components/icons'
+import { ArchiveIcon, BookIcon, CalculatorIcon, MusicNoteIcon, TrophyIcon } from '../components/icons'
 
 type ArchiveTab = 'quizzes' | 'solutions'
 const TAB_ORDER: ArchiveTab[] = ['quizzes', 'solutions']
@@ -175,6 +175,15 @@ export default function ArchivePage() {
                     >
                       <BookIcon className="h-3.5 w-3.5" />
                       {t('archive.study')}
+                    </Link>
+                    <Link
+                      to={`/live/new?quiz=${entry.id}`}
+                      data-purpose="archive-live"
+                      aria-label={`${t('archive.live')} — ${entry.title}`}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-amber"
+                    >
+                      <TrophyIcon className="h-3.5 w-3.5" />
+                      {t('archive.live')}
                     </Link>
                   </div>
                 </li>

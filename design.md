@@ -268,6 +268,13 @@ ConfirmDialog shell (radius 16, scrim, max 448px). Prompt: serif title, "Found 8
 - Don't reintroduce indigo/violet, a blue background, the sparkle icon, or any gradient besides the top-right glow.
 - Don't set fixed pixel widths on text containers.
 
+### Live Game (`/live`, `/live/new`, `/live/:id`, `/live/:id/results`, public `/katil`)
+
+- Hub and setup are normal app pages. The board (`/live/:id`) is a full-window layer built for a projector: question text `clamp(1.9rem, 3.8vw, 4.25rem)`, options 1.5rem+ bold on solid colour blocks, timer 6xl+, nothing under 18px except the header chrome.
+- Answer options carry a colour AND a shape (triangle red, diamond blue, circle amber, square green, pentagon purple; true/false = blue diamond / red triangle) on board and phones, so colour is never the only cue. Colours live in `components/live/shapeStyles.ts`.
+- Reveal: bar chart of choices (correct bar full colour with a check, others faded), explanation card, top 5 with "+points". Final: podium 1st centre, confetti unless reduced motion, then the full ranking.
+- Phone (`PlayScreen`): one column at 360px, 2-column answer grid with 7rem tall buttons, small question text above, result screen with rank/streak. The join page has its own header (logo + language switcher) and the KVKK note.
+
 New screens reuse these tokens and components; add new components here before using them.
 
 ## Landing page (`src/landing`)

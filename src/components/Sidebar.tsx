@@ -6,7 +6,7 @@ import { useSongFeatureStatus } from '../hooks/useSongFeatureStatus'
 import { dueCountForDeck, useFlashcards } from '../lib/flashcardStorage'
 import UserMenu from './auth/UserMenu'
 import { LogoMark } from './Logo'
-import { ArchiveIcon, CalculatorIcon, CardsIcon, HeadphonesIcon, HomeIcon, MusicNoteIcon } from './icons'
+import { ArchiveIcon, CalculatorIcon, CardsIcon, HeadphonesIcon, HomeIcon, MusicNoteIcon, TrophyIcon } from './icons'
 import type { ComponentType, SVGProps } from 'react'
 
 type NavIcon = ComponentType<SVGProps<SVGSVGElement>>
@@ -23,6 +23,7 @@ const solveNavItem: NavItem = { key: 'solve', labelKey: 'nav.solve', Icon: Calcu
 const songsNavItem: NavItem = { key: 'songs', labelKey: 'nav.songs', Icon: MusicNoteIcon, to: '/songs' }
 const archiveNavItem: NavItem = { key: 'archive', labelKey: 'nav.archive', Icon: ArchiveIcon, to: '/archive' }
 const flashcardsNavItem: NavItem = { key: 'flashcards', labelKey: 'nav.flashcards', Icon: CardsIcon, to: '/flashcards' }
+const liveNavItem: NavItem = { key: 'live', labelKey: 'nav.live', Icon: TrophyIcon, to: '/live' }
 const lessonsNavItem: NavItem = { key: 'lessons', labelKey: 'nav.lessons', Icon: HeadphonesIcon, to: '/lessons' }
 
 interface SidebarProps {
@@ -33,10 +34,10 @@ interface SidebarProps {
 export default function Sidebar({ isMobileOpen, onCloseMobile }: SidebarProps) {
   const { t } = useTranslation()
   const songStatus = useSongFeatureStatus()
-  // Flashcards and Audio Lesson sit right after Songs; with Songs hidden they follow Archive in the footer.
+  // Flashcards, Live Game and Audio Lesson sit right after Songs; with Songs hidden they follow Archive in the footer.
   const songsEnabled = songStatus?.enabled === true
-  const mainNavItems: NavItem[] = songsEnabled ? [createNavItem, solveNavItem, songsNavItem, flashcardsNavItem, lessonsNavItem] : [createNavItem, solveNavItem]
-  const footerNavItems: NavItem[] = songsEnabled ? [archiveNavItem] : [archiveNavItem, flashcardsNavItem, lessonsNavItem]
+  const mainNavItems: NavItem[] = songsEnabled ? [createNavItem, solveNavItem, songsNavItem, flashcardsNavItem, liveNavItem, lessonsNavItem] : [createNavItem, solveNavItem]
+  const footerNavItems: NavItem[] = songsEnabled ? [archiveNavItem] : [archiveNavItem, flashcardsNavItem, liveNavItem, lessonsNavItem]
   const flashcards = useFlashcards()
   const now = Math.max(useNow(), flashcards.changedAt)
   const dueToday = flashcards.decks.reduce((sum, deck) => sum + dueCountForDeck(deck, flashcards.cards, now), 0)

@@ -18,6 +18,10 @@ import FlashcardsPage from './pages/FlashcardsPage'
 import FlashcardStudyPage from './pages/FlashcardStudyPage'
 import LessonPage from './pages/LessonPage'
 import LessonsPage from './pages/LessonsPage'
+import LiveHostPage from './pages/LiveHostPage'
+import LivePage from './pages/LivePage'
+import LiveResultsPage from './pages/LiveResultsPage'
+import LiveSetupPage from './pages/LiveSetupPage'
 import NotFoundPage from './pages/NotFoundPage'
 import OwnerPage from './pages/OwnerPage'
 import SolvePage from './pages/SolvePage'
@@ -70,6 +74,10 @@ export default function AppShell() {
             <Route path="/account" element={<AccountPage />} />
             <Route path="/owner" element={<OwnerPage />} />
             <Route path="/archive" element={<ArchivePage />} />
+            <Route path="/live" element={<LivePage />} />
+            <Route path="/live/new" element={<LiveSetupPage />} />
+            <Route path="/live/:id" element={<LiveHostPage />} />
+            <Route path="/live/:id/results" element={<LiveResultsPage />} />
             <Route path="/archive/solutions/:id" element={<ArchiveSolutionPage />} />
             <Route path="/flashcards/:deckId/study" element={<FlashcardStudyPage />} />
             <Route path="*" element={<NotFoundPage />} />

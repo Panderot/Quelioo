@@ -243,6 +243,212 @@ export type Database = {
         }
         Relationships: []
       }
+      live_answers: {
+        Row: {
+          answer: Json
+          correct: boolean
+          elapsed_ms: number
+          game_id: string
+          id: number
+          player_id: string
+          points: number
+          question_index: number
+          received_at: string
+        }
+        Insert: {
+          answer: Json
+          correct: boolean
+          elapsed_ms: number
+          game_id: string
+          id?: never
+          player_id: string
+          points?: number
+          question_index: number
+          received_at?: string
+        }
+        Update: {
+          answer?: Json
+          correct?: boolean
+          elapsed_ms?: number
+          game_id?: string
+          id?: never
+          player_id?: string
+          points?: number
+          question_index?: number
+          received_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_answers_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "live_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_answers_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "live_players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_games: {
+        Row: {
+          code: string
+          channel_key: string
+          created_at: string
+          current_index: number
+          finished_at: string | null
+          id: string
+          last_activity_at: string
+          locked: boolean
+          owner_id: string
+          paused: boolean
+          paused_remaining_ms: number | null
+          played: number[]
+          question_count: number
+          question_deadline: string | null
+          question_started_at: string | null
+          questions: Json
+          quiz_id: string
+          quiz_title: string
+          ranking_purged_at: string | null
+          rev: number
+          settings: Json
+          skipped_count: number
+          started_at: string | null
+          state: string
+          summary: Json | null
+        }
+        Insert: {
+          code: string
+          channel_key: string
+          created_at?: string
+          current_index?: number
+          finished_at?: string | null
+          id?: string
+          last_activity_at?: string
+          locked?: boolean
+          owner_id: string
+          paused?: boolean
+          paused_remaining_ms?: number | null
+          played?: number[]
+          question_count: number
+          question_deadline?: string | null
+          question_started_at?: string | null
+          questions: Json
+          quiz_id: string
+          quiz_title?: string
+          ranking_purged_at?: string | null
+          rev?: number
+          settings: Json
+          skipped_count?: number
+          started_at?: string | null
+          state?: string
+          summary?: Json | null
+        }
+        Update: {
+          code?: string
+          channel_key?: string
+          created_at?: string
+          current_index?: number
+          finished_at?: string | null
+          id?: string
+          last_activity_at?: string
+          locked?: boolean
+          owner_id?: string
+          paused?: boolean
+          paused_remaining_ms?: number | null
+          played?: number[]
+          question_count?: number
+          question_deadline?: string | null
+          question_started_at?: string | null
+          questions?: Json
+          quiz_id?: string
+          quiz_title?: string
+          ranking_purged_at?: string | null
+          rev?: number
+          settings?: Json
+          skipped_count?: number
+          started_at?: string | null
+          state?: string
+          summary?: Json | null
+        }
+        Relationships: []
+      }
+      live_players: {
+        Row: {
+          correct_count: number
+          game_id: string
+          id: string
+          joined_at: string
+          last_seen: string
+          nickname: string
+          nickname_key: string
+          removed: boolean
+          score: number
+          streak: number
+          token_hash: string
+          total_time_ms: number
+        }
+        Insert: {
+          correct_count?: number
+          game_id: string
+          id?: string
+          joined_at?: string
+          last_seen?: string
+          nickname: string
+          nickname_key: string
+          removed?: boolean
+          score?: number
+          streak?: number
+          token_hash: string
+          total_time_ms?: number
+        }
+        Update: {
+          correct_count?: number
+          game_id?: string
+          id?: string
+          joined_at?: string
+          last_seen?: string
+          nickname?: string
+          nickname_key?: string
+          removed?: boolean
+          score?: number
+          streak?: number
+          token_hash?: string
+          total_time_ms?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_players_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "live_games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_rate: {
+        Row: {
+          hits: number
+          key: string
+          window_start: string
+        }
+        Insert: {
+          hits?: number
+          key: string
+          window_start?: string
+        }
+        Update: {
+          hits?: number
+          key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -512,6 +718,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      live_cleanup: {
+        Args: never
+        Returns: Json
+      }
+      live_rate_blocked: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number }
+        Returns: boolean
+      }
+      live_rate_hit: {
+        Args: { p_key: string; p_max: number; p_window_seconds: number }
+        Returns: boolean
+      }
       merge_solve_extras: {
         Args: { p_id: string; p_key: string; p_value: Json }
         Returns: undefined
