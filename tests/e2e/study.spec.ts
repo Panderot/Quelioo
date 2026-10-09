@@ -290,7 +290,12 @@ test.describe('Study Mode', () => {
 
     // "Start over" begins again at question 1 and drops the saved point.
     await page.reload()
+    // With an unfinished session only its card is shown: no type or timer choices until "Start over".
+    await expect(page.getByRole('radio', { name: /Normal/ })).toHaveCount(0)
+    await expect(button(page, 'Start')).toHaveCount(0)
     await button(page, 'Start over').click()
+    await expect(page.locator('[data-purpose="study-resume"]')).toHaveCount(0)
+    await start(page)
     await expect(progress(page)).toHaveText('1 / 5')
     await expect(questionBox(page)).toContainText('Which gas do plants absorb')
     await page.reload()

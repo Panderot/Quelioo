@@ -15,12 +15,14 @@ import {
   evaluateAnswer,
   formatClock,
   hasAnswer,
+  mapLimit,
   matchingKey,
+  matchingScore,
   newRecord,
   newSessionId,
   speechLanguage,
 } from '../../lib/study'
-import type { AnswerValue, Confidence, EvalContext, QuestionRecord, StudyKind, StudyResume, StudySession, TimerSetting } from '../../lib/study'
+import type { AnswerValue, Confidence, EvalContext, EvalOutcome, QuestionRecord, StudyKind, StudyResume, StudySession, TimerSetting } from '../../lib/study'
 import type { StudyPrefs } from '../../lib/studyPrefs'
 import type { ArchiveEntry } from '../../lib/archive'
 import { CheckIcon, ClockIcon, CloseIcon, LightbulbIcon, SpinnerIcon, VolumeIcon } from '../icons'
@@ -57,7 +59,10 @@ const STREAK_PULSE_EVERY = 3
 const isTwoChoice = (question: QuizQuestion | undefined) =>
   question?.type === 'true-false' || (question?.type === 'mcq' && question.options.length === 2)
 
-type Feedback ={ status: 'retry' | 'correct' | 'revealed'; text?: string } | null
+type Feedback = { status: 'retry' | 'correct' | 'revealed'; text?: string; detail?: EvalOutcome['detail']; partial?: boolean } | null
+
+const DRAFT_SAVE_MS = 700
+const EXAM_GRADING_PARALLEL = 3
 
 export default function StudyRun({ entry, kind, scope, qids, timer, initial, prefs, focus, onToggleFocus, onPrefsChange, onSaveResume, onFinish, onExit }: StudyRunProps) {
   const { t, i18n } = useTranslation()
@@ -73,8 +78,11 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
 
   const [index, setIndex] = useState(() => Math.min(initial?.index ?? 0, Math.max(0, total - 1)))
   const [records, setRecords] = useState<Record<string, QuestionRecord>>(() => initial?.records ?? {})
-  const [value, setValue] = useState<AnswerValue>(() => emptyAnswer(questions[Math.min(initial?.index ?? 0, Math.max(0, total - 1))]))
-  const [feedback, setFeedback] = useState<Feedback>(null)
+  const startQuestion = questions[Math.min(initial?.index ?? 0, Math.max(0, total - 1))]
+  const startRecord = initial?.records[startQuestion?.id ?? '']
+  // A reload restores what was typed or picked, the hints taken and a wrong first check (its second try).
+  const [value, setValue] = useState<AnswerValue>(() => (initial?.draft !== undefined && !startRecord?.done ? initial.draft : emptyAnswer(startQuestion)))
+  const [feedback, setFeedback] = useState<Feedback>(() => (startRecord && !startRecord.done && startRecord.attempts > 0 ? { status: 'retry', partial: startRecord.partial } : null))
   const [checking, setChecking] = useState(false)
   const [checkError, setCheckError] = useState(false)
   const [elapsedMs, setElapsedMs] = useState(initial?.elapsedMs ?? 0)
@@ -85,7 +93,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
   const [questionStartAt, setQuestionStartAt] = useState(() => initial?.questionStartAt ?? Date.now())
   const [streak, setStreak] = useState(initial?.streak ?? 0)
   const [pulseKey, setPulseKey] = useState(0)
-  const [hintsShown, setHintsShown] = useState(0)
+  const [hintsShown, setHintsShown] = useState(() => (startRecord && !startRecord.done ? startRecord.hints : 0))
   const [finishing, setFinishing] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
@@ -109,7 +117,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
   const stopSpeech = speech.stop
 
   const persist = useCallback(
-    (nextIndex: number, nextRecords: Record<string, QuestionRecord>, nextStreak: number, nextElapsed: number, nextQuestionStartAt?: number) => {
+    (nextIndex: number, nextRecords: Record<string, QuestionRecord>, nextStreak: number, nextElapsed: number, nextQuestionStartAt?: number, draft?: AnswerValue) => {
       onSaveResume({
         kind,
         scope,
@@ -121,6 +129,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
         streak: nextStreak,
         totalStartAt,
         ...(nextQuestionStartAt !== undefined ? { questionStartAt: nextQuestionStartAt } : {}),
+        ...(draft !== undefined && draft !== null ? { draft } : {}),
       })
     },
     [kind, scope, qids, timer, totalStartAt, onSaveResume],
@@ -146,17 +155,23 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
       }
       if (isExam) {
         // Nothing was checked during the exam: grade every given answer now.
-        const graded = await Promise.all(
-          questions.map(async (item) => {
-            const given = finalRecords[item.id]
-            if (!given || given.answer === undefined || !hasAnswer(item, given.answer)) return [item.id, { ...(given ?? newRecord()), done: true }] as const
-            const correct = await evaluateAnswer(item, given.answer, { outputLanguage, otherAnswers: otherShortAnswers(entry.quiz.questions, item.id) }).then(
-              (outcome) => outcome.status === 'correct',
-              () => false,
-            )
-            return [item.id, { ...given, attempts: 1, firstTry: correct, correct, done: true }] as const
-          }),
-        )
+        const gradeOnce = (item: QuizQuestion, answer: AnswerValue) => evaluateAnswer(item, answer, { outputLanguage, otherAnswers: otherShortAnswers(entry.quiz.questions, item.id) })
+        const graded = await mapLimit(questions, EXAM_GRADING_PARALLEL, async (item) => {
+          const given = finalRecords[item.id]
+          if (!given || given.answer === undefined || !hasAnswer(item, given.answer)) {
+            // Matching: rows picked so far still earn the partly-right note, never the point.
+            const partial = item.type === 'matching' && Array.isArray(given?.answer) && matchingScore(item, given.answer).right > 0
+            return [item.id, { ...(given ?? newRecord()), ...(partial ? { partial: true } : {}), done: true }] as const
+          }
+          // The AI grader can be rate limited: one more try before the answer is reported as not checked.
+          const answer = given.answer
+          const outcome = await gradeOnce(item, answer)
+            .catch(() => new Promise<void>((resolve) => window.setTimeout(resolve, 1500)).then(() => gradeOnce(item, answer)))
+            .catch(() => null)
+          if (!outcome) return [item.id, { ...given, attempts: 1, firstTry: false, correct: false, unchecked: true, done: true }] as const
+          const correct = outcome.status === 'correct'
+          return [item.id, { ...given, attempts: 1, firstTry: correct, correct, ...(outcome.status === 'partial' ? { partial: true } : {}), done: true }] as const
+        })
         finalRecords = Object.fromEntries(graded)
       }
       const session = buildSession({
@@ -214,56 +229,64 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
   // ---- checking (normal / quick) ----------------------------------------------------------------
 
   const applyOutcome = useCallback(
-    (outcomeStatus: 'correct' | 'partial' | 'incorrect', text?: string) => {
+    (outcomeStatus: 'correct' | 'partial' | 'incorrect', text?: string, detail?: EvalOutcome['detail'], answerText?: string) => {
       if (!question) return
       const current = live.current.records[question.id] ?? newRecord()
       const attempts = current.attempts + 1
       const ms = live.current.questionMs
+      const partial = outcomeStatus === 'partial'
+      // Only the AI grader's verdicts are remembered (a local check is free and deterministic).
+      const graded = (question.type === 'short-answer' || question.type === 'open-ended') && outcomeStatus !== 'correct' && answerText ? { graded: { answer: answerText, status: outcomeStatus, feedback: text } } : {}
       let patch: Partial<QuestionRecord>
       let nextStreak: number
       let nextFeedback: Feedback
       if (outcomeStatus === 'correct') {
-        patch = { attempts, firstTry: attempts === 1, correct: true, done: true, ms }
+        patch = { attempts, firstTry: attempts === 1, correct: true, partial: false, done: true, ms }
         nextStreak = attempts === 1 ? live.current.streak + 1 : 0
         nextFeedback = { status: 'correct', text }
       } else if (attempts >= 2 || isTwoChoice(question)) {
-        patch = { attempts, firstTry: false, correct: false, revealed: true, done: true, ms }
+        patch = { attempts, firstTry: false, correct: false, revealed: true, partial, done: true, ms }
         nextStreak = 0
-        nextFeedback = { status: 'revealed', text }
+        nextFeedback = { status: 'revealed', text, detail, partial }
       } else {
-        patch = { attempts }
+        patch = { attempts, partial }
         nextStreak = 0
-        nextFeedback = { status: 'retry', text }
+        nextFeedback = { status: 'retry', text, detail, partial }
       }
-      const nextRecords = { ...live.current.records, [question.id]: { ...current, ...patch, answer: live.current.value, hints: current.hints } }
+      const nextRecords = { ...live.current.records, [question.id]: { ...current, ...patch, ...graded, answer: live.current.value, hints: current.hints } }
       setRecords(nextRecords)
       setStreak(nextStreak)
       setFeedback(nextFeedback)
       if (nextStreak > 0 && nextStreak % STREAK_PULSE_EVERY === 0) setPulseKey((key) => key + 1)
-      if (patch.done) {
-        live.current.records = nextRecords
-        live.current.streak = nextStreak
-        persist(Math.min(live.current.index + 1, total - 1), nextRecords, nextStreak, live.current.elapsedMs)
-      }
+      live.current.records = nextRecords
+      live.current.streak = nextStreak
+      if (patch.done) persist(Math.min(live.current.index + 1, total - 1), nextRecords, nextStreak, live.current.elapsedMs)
+      else persist(live.current.index, nextRecords, nextStreak, live.current.elapsedMs, undefined, live.current.value)
     },
     [question, persist, total],
   )
 
+  // Set synchronously, so a double click or a repeated Enter can never start a second check.
+  const checkingRef = useRef(false)
   const check = useCallback(async () => {
-    if (!question || isExam || checking || live.current.finishing) return
+    if (!question || isExam || checkingRef.current || live.current.finishing) return
     const current = live.current.records[question.id]
     if (current?.done || !hasAnswer(question, live.current.value)) return
+    checkingRef.current = true
     setChecking(true)
     setCheckError(false)
     try {
-      const outcome = await evaluateAnswer(question, live.current.value, context)
-      applyOutcome(outcome.status, outcome.feedback)
+      const answerText = typeof live.current.value === 'string' ? live.current.value.trim() : ''
+      const prior = current?.graded
+      const outcome: EvalOutcome = prior && prior.answer === answerText ? { status: prior.status, feedback: prior.feedback } : await evaluateAnswer(question, live.current.value, context)
+      applyOutcome(outcome.status, outcome.feedback, outcome.detail, answerText)
     } catch {
       setCheckError(true)
     } finally {
+      checkingRef.current = false
       setChecking(false)
     }
-  }, [question, isExam, checking, context, applyOutcome])
+  }, [question, isExam, context, applyOutcome])
 
   const timeOutQuestion = useCallback(() => {
     if (!question) return
@@ -284,6 +307,34 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
     setFeedback({ status: 'revealed' })
     persist(Math.min(live.current.index + 1, total - 1), nextRecords, 0, live.current.elapsedMs)
   }, [question, isExam, next, persist, total])
+
+  // ---- draft -----------------------------------------------------------------------------------
+
+  // What is typed or picked (and the hints taken) is saved shortly after it changes and when the page is
+  // hidden, so a reload or a closed tab brings the question back as it was.
+  const draftDone = record.done && !isExam
+  useEffect(() => {
+    if (finishing || draftDone || !question) return undefined
+    const save = () => {
+      const state = live.current
+      if (state.finishing) return
+      // Opening the first question and touching nothing is not an unfinished session.
+      const untouched = state.index === 0 && Object.keys(state.records).length === 0 && (Array.isArray(state.value) ? !state.value.some(Boolean) : state.value === null || state.value === '')
+      if (untouched) return
+      persist(state.index, state.records, state.streak, state.elapsedMs, undefined, state.value)
+    }
+    const timer = window.setTimeout(save, DRAFT_SAVE_MS)
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') save()
+    }
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', save)
+    return () => {
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', save)
+    }
+  }, [value, hintsShown, record.attempts, finishing, draftDone, question, persist])
 
   // ---- clock -----------------------------------------------------------------------------------
 
@@ -338,6 +389,17 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
         return
       }
       if (done && !isExam) return
+      // Up/Down walk through the options of a choice question (the radio-group convention).
+      if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && (current.type === 'mcq' || current.type === 'true-false')) {
+        const step = event.key === 'ArrowDown' ? 1 : -1
+        const count = current.type === 'mcq' ? current.options.length : 2
+        const at = current.type === 'mcq' ? (typeof state.value === 'number' ? state.value : null) : state.value === true ? 0 : state.value === false ? 1 : null
+        const to = at === null ? (step === 1 ? 0 : count - 1) : (at + step + count) % count
+        event.preventDefault()
+        setValue(current.type === 'mcq' ? to : to === 0)
+        setFeedback(null)
+        return
+      }
       if (current.type === 'mcq') {
         const pressed = /^[1-9]$/.test(event.key) ? Number(event.key) - 1 : /^[a-z]$/i.test(event.key) ? event.key.toUpperCase().charCodeAt(0) - 65 : -1
         if (pressed >= 0 && pressed < current.options.length) {
@@ -390,7 +452,8 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
       stopSpeech()
       return
     }
-    const parts = [mathToPlainText(question.question)]
+    // A blank ("___") is read as the word for a blank, not as "underscore".
+    const parts = [mathToPlainText(question.question).replace(/_{2,}/g, ` ${t('study.run.blankWord')} `).replace(/\s+/g, ' ')]
     if (question.type === 'mcq') question.options.forEach((option, i) => parts.push(`${String.fromCharCode(65 + i)}. ${mathToPlainText(option)}`))
     else if (question.type === 'true-false') parts.push(`${t('create.result.trueLabel')}. ${t('create.result.falseLabel')}.`)
     else if (question.type === 'matching') {
@@ -566,6 +629,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
                 <CloseIcon className="h-4 w-4" />
                 {t('create.result.checkIncorrect')}
               </p>
+              <PartialNote detail={feedback.detail} partial={feedback.partial} />
               {feedback.text && <p className="text-sm break-words text-muted">{feedback.text}</p>}
               {hints.length > 0 && hintsShown < hints.length && <p className="text-sm text-muted">{t('study.run.tryHint')}</p>}
             </div>
@@ -589,6 +653,7 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
                     {record.timedOut ? <ClockIcon className="h-5 w-5" /> : <CloseIcon className="h-5 w-5 text-error" />}
                     {record.timedOut ? t('study.run.timeUp') : t('study.run.revealedTitle')}
                   </p>
+                  <PartialNote detail={feedback?.detail} partial={feedback?.partial} />
                   <CorrectAnswer question={question} />
                 </>
               )}
@@ -654,6 +719,38 @@ export default function StudyRun({ entry, kind, scope, qids, timer, initial, pre
       )}
     </section>
   )
+}
+
+/** Under a mistake on the end screen: partly right (with the pair count for matching) or not checked. */
+export function RecordNote({ question, record }: { question: QuizQuestion; record: QuestionRecord | undefined }) {
+  const { t } = useTranslation()
+  if (!record) return null
+  if (record.unchecked)
+    return (
+      <p data-purpose="study-unchecked" className="text-sm font-semibold text-error">
+        {t('study.end.unchecked')}
+      </p>
+    )
+  if (!record.partial) return null
+  const detail = question.type === 'matching' && Array.isArray(record.answer) ? matchingScore(question, record.answer) : undefined
+  return <PartialNote detail={detail} partial />
+}
+
+/** "3 of 4 pairs are right" / "Partly right": partly right is told, never scored as right. */
+function PartialNote({ detail, partial }: { detail?: EvalOutcome['detail']; partial?: boolean }) {
+  const { t } = useTranslation()
+  if (detail && detail.right > 0 && detail.right < detail.of) {
+    return (
+      <p data-purpose="study-partial" className="text-sm font-semibold text-amber-text">
+        {t('study.run.matchPartial', { right: detail.right, of: detail.of })}
+      </p>
+    )
+  }
+  return partial ? (
+    <p data-purpose="study-partial" className="text-sm font-semibold text-amber-text">
+      {t('study.run.partial')}
+    </p>
+  ) : null
 }
 
 const TYPE_LABEL_KEYS: Record<QuizQuestion['type'], string> = {
@@ -736,7 +833,8 @@ export function YourAnswer({ question, answer }: { question: QuizQuestion; answe
       {label} {t('study.end.noAnswer')}
     </p>
   )
-  if (answer === undefined || !hasAnswer(question, answer)) return blank
+  const partlyPicked = question.type === 'matching' && Array.isArray(answer) && answer.some(Boolean)
+  if (answer === undefined || (!hasAnswer(question, answer) && !partlyPicked)) return blank
   switch (question.type) {
     case 'mcq':
       return (

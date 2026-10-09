@@ -130,23 +130,22 @@ test('matching card: Enter without Shift checks the answer', async ({ page, mock
   await expect(card.getByText('Correct!')).toBeVisible()
 })
 
-test('study mode: matching uses the check field directly (no Reveal answer) and auto-grades', async ({ page, seedArchive }) => {
-  await seedArchive([SEEDED_ENTRY])
-  await page.goto(`/archive/${SEEDED_ENTRY.id}?lng=en`)
-  await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
-
-  await page.getByRole('button', { name: 'Study' }).click()
-  const card = page.locator('[data-purpose="practice-question-card"]', { hasText: 'Match each planet' })
+test('study mode: matching is answered with row selects, has no Reveal answer, and a wrong check gets a second try', async ({ page, seedArchive }) => {
+  const matching = SAMPLE_QUIZ.questions.filter((question) => question.type === 'matching')
+  await seedArchive([{ ...SEEDED_ENTRY, questionCount: '1', quiz: { title: SAMPLE_QUIZ.title, questions: matching } }])
+  await page.goto(`/archive/${SEEDED_ENTRY.id}?mode=study&lng=en`)
+  await page.getByRole('button', { name: 'Start', exact: true }).click()
+  const card = page.locator('[data-purpose="study-question"]')
+  await expect(card).toContainText('Match each planet')
   await expect(card.getByRole('button', { name: 'Reveal answer' })).toHaveCount(0)
 
-  const input = card.getByPlaceholder('Write your matches, e.g. 1-A, 2-B, 3-C')
-  await input.fill('1-A, 2-B, 3-C, 4-D')
-  await card.getByRole('button', { name: 'Check answer' }).click()
-  await expect(card.getByText('Not quite. Check the marked pairs and try again.')).toBeVisible()
+  for (const [index, letter] of ['A', 'B', 'C', 'D'].entries()) await card.getByLabel(`Match for row ${index + 1}`).selectOption(letter)
+  await card.getByRole('button', { name: 'Check', exact: true }).click()
+  await expect(card.getByText('Not yet. Try again.')).toBeVisible()
 
-  await input.fill(CORRECT_ANSWER)
-  await card.getByRole('button', { name: 'Check answer' }).click()
-  await expect(card.getByText('Correct!')).toBeVisible()
+  for (const [index, letter] of ['D', 'A', 'B', 'C'].entries()) await card.getByLabel(`Match for row ${index + 1}`).selectOption(letter)
+  await card.getByRole('button', { name: 'Check', exact: true }).click()
+  await expect(page.locator('[data-purpose="study-feedback"]')).toContainText('Correct!')
 })
 
 test('matching card: localized in Turkish', async ({ page, mockGenerate }) => {

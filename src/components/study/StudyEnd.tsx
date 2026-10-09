@@ -13,7 +13,7 @@ import type { StudyPrefs } from '../../lib/studyPrefs'
 import { CheckIcon, CloseIcon } from '../icons'
 import MathText from '../MathText'
 import Confetti from './Confetti'
-import { CorrectAnswer, YourAnswer } from './StudyRun'
+import { CorrectAnswer, RecordNote, YourAnswer } from './StudyRun'
 import ScoreChart from './ScoreChart'
 
 interface StudyEndProps {
@@ -51,6 +51,7 @@ export default function StudyEnd({ entry, session, records, results, prefs, onRe
   const slowest = session.slowestId ? questionById.get(session.slowestId) : undefined
   const confetti = score >= CONFETTI_MIN_PERCENT && prefs.celebrate && !reducedMotion
   const isExam = session.kind === 'exam'
+  const hasPartial = Object.values(records).some((record) => record.partial)
 
   const makeCards = () => {
     setCardsResult(
@@ -119,6 +120,11 @@ export default function StudyEnd({ entry, session, records, results, prefs, onRe
       ) : (
         <div className="space-y-2">
           <h3 className="text-sm font-bold text-ink">{t('study.end.wrongTitle', { count: wrong.length })}</h3>
+          {hasPartial && (
+            <p data-purpose="study-partial-rule" className="text-xs text-muted">
+              {t('study.end.partialRule')}
+            </p>
+          )}
           <ul data-purpose="study-wrong-list" className={listClasses}>
             {wrong.map((question) => (
               <li key={question.id} className="space-y-1.5 p-4">
@@ -126,6 +132,7 @@ export default function StudyEnd({ entry, session, records, results, prefs, onRe
                   <MathText text={question.question} />
                 </p>
                 <YourAnswer question={question} answer={records[question.id]?.answer} />
+                <RecordNote question={question} record={records[question.id]} />
                 <CorrectAnswer question={question} />
                 {showExplanation(question) && <Explanation text={question.explanation} />}
               </li>
@@ -153,6 +160,7 @@ export default function StudyEnd({ entry, session, records, results, prefs, onRe
                     </span>
                   </p>
                   <YourAnswer question={question} answer={records[question.id]?.answer} />
+                  <RecordNote question={question} record={records[question.id]} />
                   <CorrectAnswer question={question} />
                   {showExplanation(question) && <Explanation text={question.explanation} />}
                 </li>

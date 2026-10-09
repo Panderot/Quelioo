@@ -102,6 +102,13 @@ export default function StudyView({ entry, onExit, onToArchive }: StudyViewProps
   }
 
   const handleStart = (kind: StudyKind, timer: TimerSetting) => {
+    // Starting a new session (from "Start over" or the plain start screen) drops the unfinished one.
+    if (resultsRef.current.resume) {
+      const { resume: dropped, ...rest } = resultsRef.current
+      void dropped
+      store(rest)
+      setResults(rest)
+    }
     changePrefs({ ...prefs, kind, timers: { ...prefs.timers, [kind]: { mode: timer.mode, questionSeconds: timer.questionSeconds, totalMinutes: Math.round(timer.totalSeconds / 60) } } })
     const all = entry.quiz.questions.map((question) => question.id)
     if (kind === 'quick') beginRun(kind, 'subset', quickPoolIds(resultsRef.current, entry.quiz.questions), timer)
@@ -115,18 +122,6 @@ export default function StudyView({ entry, onExit, onToArchive }: StudyViewProps
     const qids = resume.qids.filter((id) => stillThere.has(id))
     if (qids.length === 0) return
     beginRun(resume.kind, resume.scope, qids, resume.timer, { ...resume, qids })
-  }
-
-  /** Start over: drop the unfinished session and begin the same study type and timer from question 1. */
-  const handleDiscardResume = () => {
-    const { resume: old, ...rest } = resultsRef.current
-    const next: StudyResults = rest
-    store(next)
-    setResults(next)
-    if (!old) return
-    const stillThere = new Set(entry.quiz.questions.map((question) => question.id))
-    const qids = old.qids.filter((id) => stillThere.has(id))
-    if (qids.length > 0) beginRun(old.kind, old.scope, qids, old.timer)
   }
 
   const handleSaveResume = useCallback(
@@ -196,7 +191,6 @@ export default function StudyView({ entry, onExit, onToArchive }: StudyViewProps
       prefs={prefs}
       onStart={handleStart}
       onResume={handleResume}
-      onDiscardResume={handleDiscardResume}
       onExit={handleExit}
     />
   )

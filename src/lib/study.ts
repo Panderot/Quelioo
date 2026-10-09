@@ -1,5 +1,5 @@
-﻿import { checkMatchingAnswer, getRightOrder, letterFor } from './matching'
-import { isFillBlankMatch, isLenientMatch, usesTurkishRules } from './answerCheck'
+﻿import { getRightOrder, letterFor } from './matching'
+import { answerSignature, isFillBlankMatch, isLenientMatch, usesTurkishRules } from './answerCheck'
 import { getAcceptableAnswers, getKeyPoints } from './quiz'
 import type { QuizQuestion } from './quiz'
 import { gradeAnswer } from '../api/gradeAnswer'
@@ -42,6 +42,12 @@ export interface QuestionRecord {
   timedOut?: boolean
   /** Exam: the answer given, graded when the session ends. */
   answer?: AnswerValue
+  /** The last check was partly right (some matching pairs, or the AI grader's "partial"). Partly right never counts as correct. */
+  partial?: boolean
+  /** Short/open answers: what the AI grader said about the last wrong text, so checking the same text again (also after a reload) never asks again. */
+  graded?: { answer: string; status: 'partial' | 'incorrect'; feedback?: string }
+  /** Exam: the AI grader could not be reached for this answer, so it could not be checked (counted as not correct). */
+  unchecked?: boolean
 }
 
 export interface StudySession {
@@ -76,6 +82,8 @@ export interface StudyResume {
   /** Wall-clock anchors (epoch ms): countdowns are computed from these, so they survive a reload and keep running while the page is closed. */
   totalStartAt?: number
   questionStartAt?: number
+  /** What was typed or picked on the current question but not yet checked, so a reload restores it. */
+  draft?: AnswerValue
 }
 
 export interface StudyResults {
@@ -203,6 +211,8 @@ export interface EvalContext {
 export interface EvalOutcome {
   status: 'correct' | 'partial' | 'incorrect'
   feedback?: string
+  /** Matching: how many rows were matched right. */
+  detail?: { right: number; of: number }
 }
 
 export function matchingText(value: string[]): string {
@@ -222,6 +232,12 @@ export function emptyAnswer(question: QuizQuestion): AnswerValue {
   }
 }
 
+/** Rows of a matching question matched right so far (a row left empty is wrong). */
+export function matchingScore(question: Extract<QuizQuestion, { type: 'matching' }>, letters: string[]): { right: number; of: number } {
+  const key = matchingKey(question)
+  return { right: key.filter((letter, i) => (letters[i] ?? '').toUpperCase() === letter).length, of: question.pairs.length }
+}
+
 /** True when there is something to check. */
 export function hasAnswer(question: QuizQuestion, value: AnswerValue): boolean {
   switch (question.type) {
@@ -239,6 +255,10 @@ export function hasAnswer(question: QuizQuestion, value: AnswerValue): boolean {
 /** The checks that need no AI; null means the answer needs the AI grader (short/open answers that the
  * lenient local comparison did not accept). */
 export function evaluateLocal(question: QuizQuestion, value: AnswerValue, context: EvalContext): EvalOutcome | null {
+  if (question.type === 'matching' && Array.isArray(value)) {
+    const score = matchingScore(question, value)
+    return { status: score.right === score.of ? 'correct' : score.right > 0 ? 'partial' : 'incorrect', detail: score }
+  }
   if (!hasAnswer(question, value)) return { status: 'incorrect' }
   switch (question.type) {
     case 'mcq':
@@ -259,27 +279,52 @@ export function evaluateLocal(question: QuizQuestion, value: AnswerValue, contex
     case 'open-ended':
       return null
     case 'matching': {
-      const outcome = checkMatchingAnswer(matchingText(value as string[]), question.pairs.length, getRightOrder(question))
-      return { status: outcome.status === 'checked' && outcome.allCorrect ? 'correct' : 'incorrect' }
+      const score = matchingScore(question, value as string[])
+      return { status: score.right === score.of ? 'correct' : score.right > 0 ? 'partial' : 'incorrect', detail: score }
     }
   }
 }
+
+/** The AI grader is asked once per question + answer text: a repeated check of the same text (a double
+ * click, "try again" without editing, an exam graded twice) reuses the first result. A failed call is
+ * forgotten so it can be retried. */
+const aiGrades = new Map<string, Promise<EvalOutcome>>()
 
 /** Local check first; the existing AI grader only for short/open answers the local check did not accept. */
 export async function evaluateAnswer(question: QuizQuestion, value: AnswerValue, context: EvalContext): Promise<EvalOutcome> {
   const local = evaluateLocal(question, value, context)
   if (local) return local
   if (question.type !== 'short-answer' && question.type !== 'open-ended') return { status: 'incorrect' }
-  const graded = await gradeAnswer({
+  const studentAnswer = (value as string).trim()
+  const cacheKey = JSON.stringify([question.id, answerSignature(question), context.outputLanguage, studentAnswer])
+  const known = aiGrades.get(cacheKey)
+  if (known) return known
+  const pending = gradeAnswer({
     type: question.type,
     question: question.question,
     modelAnswer: question.answer,
     keyPoints: question.type === 'open-ended' ? getKeyPoints(question) : [question.answer],
     evidence: question.evidence ?? '',
-    studentAnswer: (value as string).trim(),
+    studentAnswer,
     language: context.outputLanguage,
-  })
-  return { status: graded.verdict, feedback: graded.feedback }
+  }).then((graded): EvalOutcome => ({ status: graded.verdict, feedback: graded.feedback }))
+  aiGrades.set(cacheKey, pending)
+  pending.catch(() => aiGrades.delete(cacheKey))
+  return pending
+}
+
+/** Runs `task` over `items` with at most `limit` in flight (keeps an exam's AI checks under the per-minute limit). */
+export async function mapLimit<T, R>(items: T[], limit: number, task: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let nextIndex = 0
+  const worker = async () => {
+    while (nextIndex < items.length) {
+      const current = nextIndex++
+      results[current] = await task(items[current])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  return results
 }
 
 /** Letters of a matching question's right column that belong to each left row — the answer key. */
