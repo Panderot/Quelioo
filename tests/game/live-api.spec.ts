@@ -416,3 +416,10 @@ async function fetchCleanup() {
   const response = await fetch(`http://localhost:5192/api/live?action=cleanup`, { headers: { authorization: `Bearer ${CRON_SECRET}` } })
   return { status: response.status, body: await response.json() }
 }
+
+test('security: cleanup refuses a missing, wrong, empty or "Bearer undefined" secret', async () => {
+  for (const authorization of [undefined, '', 'Bearer', 'Bearer undefined', 'Bearer null', 'Bearer wrong-secret', CRON_SECRET]) {
+    const response = await fetch(`http://localhost:5192/api/live?action=cleanup`, { headers: authorization === undefined ? {} : { authorization } })
+    expect(response.status, String(authorization === CRON_SECRET ? 'bare secret without Bearer' : authorization)).toBe(401)
+  }
+})

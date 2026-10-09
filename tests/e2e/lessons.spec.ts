@@ -126,7 +126,7 @@ test.describe('Audio Lesson — navigation', () => {
     await mockLesson(page, { plan: { keyPoints: keyPoints(4), episodes: splitPlan([4]) } })
     await page.goto('/lessons')
     const sidebar = page.locator('[data-purpose="sidebar-navigation"]')
-    await expect(sidebar.locator('nav a')).toHaveText(['Create', 'Solve', 'Songs', 'Flashcards', 'Audio Lesson'])
+    await expect(sidebar.locator('nav a')).toHaveText(['Create', 'Solve', 'Songs', 'Flashcards', 'Live Game', 'Audio Lesson'])
     await expect(sidebar.locator('[data-purpose="sidebar-footer"] a')).toHaveText(['Archive'])
     await expect(page).toHaveTitle('Audio Lesson - Quelio')
     await expect(page.getByRole('heading', { level: 1, name: 'Audio Lesson' })).toBeVisible()

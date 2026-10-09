@@ -797,9 +797,9 @@ function sameSecret(given: string, expected: string): boolean {
 
 async function handleCleanup(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const secret = (process.env.CRON_SECRET ?? '').trim()
-  if (!secret) throw new ApiError(503, 'cleanup_not_configured')
-  const header = headerValue(req, 'authorization')
-  if (!sameSecret(header.replace(/^Bearer\s+/i, ''), secret)) throw new ApiError(401, 'unauthorized')
+  if (!secret) throw new ApiError(401, 'unauthorized')
+  const match = /^Bearer\s+(.+)$/i.exec(headerValue(req, 'authorization'))
+  if (!match || !sameSecret(match[1].trim(), secret)) throw new ApiError(401, 'unauthorized')
   const { data, error } = await getServiceClient().rpc('live_cleanup')
   if (error) dbFail('cleanup', error)
   respond(res, 200, data)
