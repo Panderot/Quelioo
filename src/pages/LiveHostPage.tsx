@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -170,7 +171,8 @@ function LiveBoard({ id }: { id: string | undefined }) {
     content = <BoardFinal state={state} busy={playingAgain} onPlayAgain={() => void playAgain()} />
   }
 
-  return (
+  // Rendered in <body>: the app shell's page container animates (a transform), which would keep a "fixed" board inside the content column, next to the sidebar.
+  return createPortal(
     <div data-purpose="live-board" className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-paper text-ink">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-warm-border bg-card px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -210,6 +212,7 @@ function LiveBoard({ id }: { id: string | undefined }) {
         </div>
       </header>
       {content}
-    </div>
+    </div>,
+    document.body,
   )
 }

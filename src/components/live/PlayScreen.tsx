@@ -16,6 +16,8 @@ interface PlayScreenProps {
   token: string
   /** The seat is gone (removed, game deleted): the page goes back to the join form with `reason`. */
   onGone: (reason: 'removed' | 'finished' | 'unavailable') => void
+  /** The student leaves a finished game for the code screen ("Join a new game"). */
+  onLeave: () => void
 }
 
 /** Keeps the phone awake while a game is on (Wake Lock API, where the browser has it). */
@@ -52,7 +54,7 @@ function optionLabelOf(state: LiveState, index: number, trueText: string, falseT
 }
 
 /** The phone during a game: waiting, answering, the result of each question and the final screen. */
-export default function PlayScreen({ token, onGone }: PlayScreenProps) {
+export default function PlayScreen({ token, onGone, onLeave }: PlayScreenProps) {
   const { t } = useTranslation()
   const reducedMotion = useReducedMotion()
   const { state, error, offline, serverNow, refresh } = useLiveState({ kind: 'player', token })
@@ -170,7 +172,9 @@ export default function PlayScreen({ token, onGone }: PlayScreenProps) {
           <div data-purpose="play-sent" className="space-y-1 rounded-2xl border border-warm-border bg-card p-6 text-center">
             <CheckIcon className="mx-auto h-8 w-8 text-success" />
             <p className="font-serif text-2xl font-semibold text-navy">{t('live.play.sent')}</p>
-            <p className="text-sm text-muted">{t('live.play.waitOthers')}</p>
+            <p data-purpose="play-sent-note" className="text-sm text-muted">
+              {state.counts.answered >= state.counts.players ? t('live.play.waitResult') : t('live.play.waitOthers')}
+            </p>
           </div>
         ) : timeUp ? (
           <p data-purpose="play-time-up" className="rounded-2xl border border-warm-border bg-card p-6 text-center font-serif text-2xl font-semibold text-navy">
@@ -240,13 +244,12 @@ export default function PlayScreen({ token, onGone }: PlayScreenProps) {
         >
           {last.correct ? t('live.play.resultCorrect', { points: last.gained }) : me.answered ? t('live.play.resultWrong') : t('live.play.resultNone')}
         </p>
-        {last.correct && last.bonus > 0 && <p className="text-sm font-semibold text-success">{t('live.play.bonus', { bonus: last.bonus })}</p>}
         <p data-purpose="play-rank" className="text-lg font-bold text-navy">
           {t('live.play.rankLine', { rank: me.rank, score: me.score })}
         </p>
-        {last.streak >= 2 && (
+        {last.correct && last.streak >= 2 && (
           <p data-purpose="play-streak" className="inline-block rounded-full bg-amber/20 px-4 py-1 text-sm font-bold text-amber-text">
-            {t('live.play.streak', { count: last.streak })}
+            {t('live.play.streak', { count: last.streak, bonus: last.bonus })}
           </p>
         )}
         <ul className="flex flex-wrap justify-center gap-2" aria-label={t('live.board.reveal.correct')}>
@@ -276,13 +279,21 @@ export default function PlayScreen({ token, onGone }: PlayScreenProps) {
         <p className="text-lg font-semibold text-amber-text tabular-nums">{t('live.play.finalPoints', { score: me?.score ?? 0 })}</p>
         {podium && <p className="text-base font-semibold text-success">{t('live.play.podium')}</p>}
         <p className="text-base text-muted">{t('live.play.finalMessage')}</p>
+        <button type="button" data-purpose="play-join-new" onClick={onLeave} className="mt-4 min-h-12 w-full rounded-xl bg-amber px-5 text-base font-bold text-navy hover:bg-amber-hover">
+          {t('live.play.joinAnother')}
+        </button>
       </div>
     )
   } else {
     body = (
-      <p data-purpose="play-ended" className="py-10 text-center font-serif text-2xl font-semibold text-navy">
-        {t('live.play.ended')}
-      </p>
+      <div className="py-10 text-center">
+        <p data-purpose="play-ended" className="font-serif text-2xl font-semibold text-navy">
+          {t('live.play.ended')}
+        </p>
+        <button type="button" data-purpose="play-join-new" onClick={onLeave} className="mt-4 min-h-12 w-full rounded-xl bg-amber px-5 text-base font-bold text-navy hover:bg-amber-hover">
+          {t('live.play.joinAnother')}
+        </button>
+      </div>
     )
   }
 

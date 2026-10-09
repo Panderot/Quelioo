@@ -366,6 +366,8 @@ export interface LiveRankRow {
   score: number
   /** Points gained in the revealed question (reveal leaderboard). */
   gained?: number
+  /** Part of `gained` that is the streak bonus (reveal leaderboard). */
+  bonus?: number
   streak?: number
   /** Host only. */
   playerId?: string

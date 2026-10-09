@@ -349,7 +349,7 @@ function rankRows(players: PlayerRow[], gained?: Map<string, number>, withIds = 
     nickname: row.nickname,
     score: row.score,
     streak: row.streak,
-    ...(gained ? { gained: gained.get(row.id) ?? 0 } : {}),
+    ...(gained ? { gained: gained.get(row.id) ?? 0, bonus: (gained.get(row.id) ?? 0) > 0 ? streakBonus(row.streak) : 0 } : {}),
     ...(withIds ? { playerId: row.id } : {}),
   }))
 }

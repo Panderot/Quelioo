@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import LanguageSwitcher from '../components/LanguageSwitcher'
@@ -17,21 +17,29 @@ type Step = 'code' | 'nickname'
 /** The student's side, /katil and /katil/123456: no account, no sign-in page, no landing page. A 6-digit code, a nickname,
  * and then the game. A stored player token brings a student who reloaded back to the same seat. */
 export default function JoinPage() {
-  const { code: codeParam } = useParams<{ code?: string }>()
+  const { code } = useParams<{ code?: string }>()
+  // A different code in the link is a different screen: nothing from the previous link (checked code, nickname step, seat) is carried over.
+  return <Join key={code ?? ''} codeParam={code} />
+}
+
+function Join({ codeParam }: { codeParam: string | undefined }) {
   const { t } = useTranslation()
   useDocumentTitle(t('live.join.title'))
   const navigate = useNavigate()
+  // Leaving a game hands its nickname and the reason to the fresh code screen through the navigation state.
+  const carried = (useLocation().state ?? {}) as { nickname?: string; reason?: 'removed' | 'finished' | 'unavailable' }
   const [session, setSession] = useState(() => loadPlayerSession())
   const [step, setStep] = useState<Step>('code')
   const [codeText, setCodeText] = useState(() => (codeParam ? formatCode(codeParam.replace(/\D/g, '').slice(0, LIVE_CODE_LENGTH)) : ''))
   const [validCode, setValidCode] = useState<string | null>(null)
   const [quizTitle, setQuizTitle] = useState('')
-  const [nickname, setNickname] = useState('')
+  // The last nickname is offered again (a seat for a game that is over still remembers it).
+  const [nickname, setNickname] = useState(() => carried.nickname ?? session?.nickname ?? '')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => (carried.reason ? t(`live.join.errors.${carried.reason}`) : null))
   const autoChecked = useRef(false)
 
-  // A stored seat for another code than the one in the link is not this game: the link wins.
+  // A code in the link always wins: a stored seat for another game is not this game, however old or new it is.
   const resumable = session && (!codeParam || session.code === codeParam.replace(/\D/g, '')) ? session : null
 
   const failure = useCallback(
@@ -76,6 +84,11 @@ export default function JoinPage() {
     void checkCode(codeParam)
   }, [codeParam, resumable, checkCode])
 
+  // The code stays in the address while playing, so a reload returns to the same game.
+  useEffect(() => {
+    if (resumable && !codeParam) navigate(`/katil/${resumable.code}`, { replace: true })
+  }, [resumable, codeParam, navigate])
+
   const onCodeSubmit = (event: FormEvent) => {
     event.preventDefault()
     void checkCode(codeText)
@@ -105,10 +118,11 @@ export default function JoinPage() {
       setSession(null)
       setStep('code')
       setValidCode(null)
+      setCodeText('')
       setError(reason ? t(`live.join.errors.${reason}`) : null)
-      navigate('/katil', { replace: true })
+      navigate('/katil', { replace: true, state: { nickname: session?.nickname, reason } })
     },
-    [navigate, t],
+    [navigate, session, t],
   )
 
   const inGame = resumable !== null
@@ -125,7 +139,7 @@ export default function JoinPage() {
         </header>
 
         {inGame ? (
-          <PlayScreen key={resumable.token} token={resumable.token} onGone={backToForm} />
+          <PlayScreen key={resumable.token} token={resumable.token} onGone={backToForm} onLeave={() => backToForm()} />
         ) : (
           <main className="space-y-5 rounded-2xl border border-warm-border bg-card p-5">
             {step === 'code' ? (

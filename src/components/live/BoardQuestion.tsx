@@ -149,7 +149,7 @@ export default function BoardQuestion({ state, remainingMs, busy, onPause, onRes
                     <span className="w-9 font-serif text-3xl font-semibold text-amber-text">{row.rank}</span>
                     <span className="min-w-0 flex-1 truncate font-semibold text-ink">{row.nickname}</span>
                     <span className="font-bold text-navy tabular-nums">{row.score}</span>
-                    {(row.gained ?? 0) > 0 && <span className="rounded-full bg-success/15 px-3 py-0.5 text-xl font-bold text-success tabular-nums">{t('live.board.reveal.gained', { points: row.gained })}</span>}
+                    {(row.gained ?? 0) > 0 && <span data-purpose="live-top5-gain" className="rounded-full bg-success/15 px-3 py-0.5 text-xl font-bold text-success tabular-nums">{(row.bonus ?? 0) > 0 ? t('live.board.reveal.gainedSplit', { points: (row.gained ?? 0) - (row.bonus ?? 0), bonus: row.bonus }) : t('live.board.reveal.gained', { points: row.gained })}</span>}
                   </li>
                 ))}
               </ol>
