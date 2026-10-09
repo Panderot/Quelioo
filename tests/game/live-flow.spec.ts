@@ -155,6 +155,9 @@ test('a whole game with keys, pause, skip, end early, multi-answer, true/false, 
 
   // Q3 (multi-answer): pick two, then confirm.
   await expect(board(page, 'live-question')).toContainText('Choose every right answer')
+  // The phones catch up with the board on their own: click only once each shows question 3.
+  await expect(board(ayse.page, 'play-question-text')).toContainText('Which are prime numbers?')
+  await expect(board(mehmet.page, 'play-question-text')).toContainText('Which are prime numbers?')
   await option(ayse.page, 0).click()
   await expect(option(ayse.page, 0)).toHaveAttribute('aria-pressed', 'true')
   await option(ayse.page, 2).click()
