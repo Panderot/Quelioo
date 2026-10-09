@@ -39,3 +39,6 @@ test-lessons/
 
 # Task prompts live in ../QUELIO-PROMPTS
 *-prompt.txt
+
+# Claude Code local config
+.claude/
