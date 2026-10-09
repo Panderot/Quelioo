@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { test, expect } from './fixtures'
 import type { Page } from '@playwright/test'
 import { RIGHT_ANSWERS, TYPE_QUESTIONS } from '../fixtures/study-types'
@@ -14,7 +14,7 @@ import hyw from '../../src/i18n/locales/hyw.json' with { type: 'json' }
 
 const NOW = new Date(2026, 2, 10, 14, 0, 0)
 const ENTRY_ID = 'types-entry'
-const AUDIT_DIR = '../QUELIO-TEST-STUDY/audit'
+const AUDIT_DIR = 'test-results/study-audit'
 
 const TYPES = Object.keys(TYPE_QUESTIONS)
 const TWO_CHOICE = new Set(['mcq2', 'tf', 'tfNoExplanation'])
@@ -718,7 +718,7 @@ test.describe('layout', () => {
 // ---------------------------------------------------------------------------------------------------------------------
 
 test.describe('audit screenshots', () => {
-  test.skip(!process.env.STUDY_AUDIT_SHOTS, 'set STUDY_AUDIT_SHOTS=1 to regenerate ../QUELIO-TEST-STUDY/audit')
+  test.skip(!process.env.STUDY_AUDIT_SHOTS, 'set STUDY_AUDIT_SHOTS=1 to regenerate test-results/study-audit')
 
   for (const [device, size] of [['desktop', { width: 1366, height: 900 }], ['mobile', { width: 360, height: 740 }]] as const) {
     test(`${device}: question, feedback and end-screen row of every type`, async ({ page, mockGrade }) => {
@@ -785,12 +785,11 @@ test.describe('audit screenshots', () => {
 })
 
 // ---------------------------------------------------------------------------------------------------------------------
-// 13. Real data shapes: a quiz the live generator wrote (kept in ../QUELIO-TEST-STUDY/real-quiz.json by the audit run)
+// 13. Real data shapes: a quiz the live generator wrote (kept in tests/fixtures/real-quiz.json)
 // ---------------------------------------------------------------------------------------------------------------------
 
 test.describe('real generated quiz', () => {
-  const file = '../QUELIO-TEST-STUDY/real-quiz.json'
-  test.skip(!existsSync(file), 'no generated quiz kept at ../QUELIO-TEST-STUDY/real-quiz.json')
+  const file = 'tests/fixtures/real-quiz.json'
 
   for (const kind of [undefined, 'Exam practice'] as const) {
     test(`${kind ?? 'Normal'}: every question the live generator wrote can be answered right and is scored right`, async ({ page, mockGrade }) => {

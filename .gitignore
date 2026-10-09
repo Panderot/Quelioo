@@ -42,3 +42,8 @@ test-lessons/
 
 # Claude Code local config
 .claude/
+skills-lock.json
+test-results/
+playwright-report/
+blob-report/
+*.log

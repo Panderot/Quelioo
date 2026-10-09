@@ -9,7 +9,7 @@ import { createTestUser, insertQuiz, signInBrowser } from './helpers'
 // Run on demand: SHOTS=1 npx playwright test --config=playwright.game.config.ts tests/game/live-screenshots.spec.ts
 test.skip(!process.env.SHOTS, 'screenshots are made on demand (SHOTS=1)')
 
-const DIR = '../QUELIO-TEST-LIVE'
+const DIR = 'test-results/live-shots'
 test.afterAll(async () => {
   await cleanupTestUsers()
 })

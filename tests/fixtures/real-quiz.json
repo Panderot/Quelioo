@@ -1,0 +1,238 @@
+{
+ "title": "Fotosentez",
+ "questions": [
+  {
+   "id": "mixed-0-q_mv062bx0_0",
+   "type": "mcq",
+   "question": "Fotosentezin bitkinin yaşamındaki rolü aşağıdakilerden hangisiyle en doğru açıklanır?",
+   "explanation": "Fotosentez, bitkinin ışık enerjisinden yararlanarak beslenme için gerekli ürünü kendisinin oluşturmasını sağlar.",
+   "options": [
+    "Beslenme için hazır kaynak aramak yerine üretim yapmasını sağlar.",
+    "Köklerin topraktan gerekli maddeleri çekmesini sağlar.",
+    "Yaprakların gaz alışverişini yalnız karanlıkta yapmasını sağlar.",
+    "Oluşan ürünün doğrudan nişasta olarak meydana gelmesini sağlar."
+   ],
+   "answerIndex": 0,
+   "estimatedSeconds": 35,
+   "hints": [
+    "Soruda, sürecin bitkinin beslenmesine etkisine odaklan.",
+    "Depolama biçimiyle ilgili seçenek, oluşan ilk ürünü açıklamaz."
+   ],
+   "factIds": [
+    1
+   ]
+  },
+  {
+   "id": "mixed-1-q_mv062bx0_1",
+   "type": "short-answer",
+   "question": "Fotosentez için gereken maddelerin bitkinin farklı bölgelerinden alınması, kökler ile yapraklardaki stomalar arasında nasıl bir görev paylaşımı olduğunu gösterir? Açıklayınız.",
+   "explanation": "Metin, suyun kökler aracılığıyla topraktan, karbondioksitin ise yapraklardaki stomalardan alındığını belirtir.",
+   "answer": "Bitki, topraktaki suyu kökleriyle; havadaki karbondioksiti ise yapraklarındaki stomalarla alır.",
+   "acceptableAnswers": [
+    "Su topraktan köklerle, karbondioksit yapraklardaki stomalardan alınır.",
+    "Kökler topraktan suyu, yapraklardaki stomalar da karbondioksiti alır."
+   ],
+   "evidence": "“Bitki suyu kökleriyle topraktan emer, karbondioksiti ise yapraklarındaki stomalardan alır.”",
+   "estimatedSeconds": 40,
+   "hints": [
+    "Metindeki madde alımının yer ve yapı bakımından iki ayrı yolunu karşılaştır.",
+    "Bir yol toprağa, diğer yol yaprak yüzeyindeki gaz alışverişine yöneliktir."
+   ],
+   "factIds": [
+    2
+   ],
+   "factItems": {
+    "2": [
+     0,
+     1,
+     2,
+     3
+    ]
+   }
+  },
+  {
+   "id": "mixed-2-q_mv062bx0_2",
+   "type": "fill-blanks",
+   "question": "Bir bitkide ışık enerjisinin besin üretiminde kullanılabilmesi için, kloroplastlarda ışığı soğuran pigment ___ olmalıdır.",
+   "explanation": "Kloroplastlarda bulunan bu pigment ışığı soğurur ve oluşan enerji fotosentezde kullanılır.",
+   "answer": "klorofil",
+   "acceptableAnswers": [
+    "klorofil"
+   ],
+   "estimatedSeconds": 30,
+   "hints": [
+    "Bu pigment, kloroplastlarda ışığı yakalayan ve enerjinin kullanılmasını sağlayan yapıdır.",
+    "\"k\" harfiyle başlıyor ve 8 harfli."
+   ],
+   "factIds": [
+    3
+   ]
+  },
+  {
+   "id": "mixed-3-q_mv062bx0_3",
+   "type": "short-answer",
+   "question": "Işık enerjisi, iki başlangıç maddesi üzerinde hangi dönüşümü sağlar?",
+   "explanation": "Işık enerjisi, fotosentezde başlangıç maddelerinin glikoz oluşturacak şekilde dönüşmesini mümkün kılar.",
+   "answer": "İki başlangıç maddesinin glikoza dönüşmesini sağlar.",
+   "acceptableAnswers": [
+    "Başlangıç maddelerini glikoza dönüştürür.",
+    "İki maddenin glikoz hâline gelmesini sağlar."
+   ],
+   "evidence": "Işık enerjisiyle su ve karbondioksit glikoza dönüşür.",
+   "estimatedSeconds": 30,
+   "hints": [
+    "Sürecin maddeler üzerinde oluşturduğu değişime odaklan.",
+    "Enerjinin, maddeleri hangi ürüne dönüştürdüğünü düşün."
+   ],
+   "factIds": []
+  },
+  {
+   "id": "mixed-4-q_mv062bx0_4",
+   "type": "matching",
+   "question": "Aşağıdaki durumları onları açıklayan sonuç veya koşullarla eşleştiriniz.",
+   "explanation": "Bu olayın yan ürünü oksijendir, gerçekleşmesi için gündüz ışık gerekir, oluşan glikoz nişasta olarak depolanır ve dünya oksijeninin büyük bölümü bu üretim sayesinde oluşur.",
+   "pairs": [
+    {
+     "left": "Üretim sırasında açığa çıkan yan ürün",
+     "right": "Oksijen"
+    },
+    {
+     "left": "Olayın gerçekleştiği zaman ve koşul",
+     "right": "Gündüz, ışık varken"
+    },
+    {
+     "left": "Bitkide depolanan besin biçimi",
+     "right": "Nişasta"
+    },
+    {
+     "left": "Dünya oksijeninin büyük bölümünün kaynağı",
+     "right": "Yeşil bitkilerin ışıkla besin üretimi"
+    }
+   ],
+   "rightOrder": [
+    2,
+    0,
+    3,
+    1
+   ],
+   "estimatedSeconds": 60,
+   "hints": [
+    "Her sol ifadeyi bir ürün, zaman koşulu, depolama biçimi veya küresel etki olarak sınıflandır.",
+    "Depolama ile ilgili eşleştirmede glikozun bitkide hangi biçime dönüştüğünü hatırla."
+   ],
+   "factIds": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  {
+   "id": "mixed-5-q_mv063pcv_m0",
+   "type": "short-answer",
+   "question": "Bitkinin besin üretimi sırasında ışık enerjisi kullanıldığında su ve karbondioksite ne olur?",
+   "explanation": "Işık enerjisi, su ile karbondioksitin glikoza dönüşmesini sağlar.",
+   "answer": "Su ve karbondioksit, ışık enerjisi kullanılarak glikoza dönüşür.",
+   "acceptableAnswers": [
+    "Işık enerjisiyle su ve karbondioksitten glikoz oluşur.",
+    "Su ile karbondioksit ışık enerjisi sayesinde glikoz hâline gelir."
+   ],
+   "evidence": "Kloroplastlardaki klorofil pigmenti ışığı soğurur ve bu enerjiyle su ile karbondioksit glikoza dönüşür.",
+   "estimatedSeconds": 35,
+   "hints": [
+    "Fotosentezde besin üretimi için kullanılan iki ham maddeyi düşün.",
+    "Metinde bu maddelerin ışık enerjisiyle hangi besine dönüştüğü açıklanıyor."
+   ],
+   "factIds": [
+    4
+   ],
+   "factItems": {
+    "4": [
+     0,
+     1
+    ]
+   }
+  },
+  {
+   "id": "open-ended-0-q_mv064h32_0",
+   "type": "open-ended",
+   "question": "Yeşil bitkilerin beslenme biçimini, enerji kaynağı ile elde ettikleri ürün arasındaki ilişkiyi kurarak açıklayınız.",
+   "explanation": "Yeşil bitkiler, ışık enerjisinden yararlanarak kendi besinlerini üretir; bu nedenle süreç bitkinin kendi besinini oluşturmasını sağlar.",
+   "answer": "Yeşil bitkiler ışık enerjisini kullanarak kendi besinlerini üretir.",
+   "keyPoints": [
+    "Yeşil bitkiler",
+    "ışık enerjisinin kullanılması",
+    "kendi besininin üretilmesi"
+   ],
+   "evidence": "Fotosentez, yeşil bitkilerin ışık enerjisini kullanarak kendi besinini ürettiği süreçtir.",
+   "estimatedSeconds": 60,
+   "hints": [
+    "Enerji kaynağını ve bu enerjinin bitkiye sağladığı sonucu düşünün.",
+    "Yanıtınızda bitkinin kullandığı enerji türünü ve elde ettiği ürünü belirtin."
+   ],
+   "factIds": [
+    1
+   ]
+  },
+  {
+   "id": "open-ended-1-q_mv064h32_1",
+   "type": "open-ended",
+   "question": "Klorofil ışığı soğurmadığında glikoz üretiminin neden aksayacağını açıklayınız. Yanıtınızda klorofilin enerji sağlamadaki rolünü ve bu enerjinin maddeler üzerindeki etkisini belirtiniz.",
+   "explanation": "Klorofil ışığı soğurarak gerekli enerjinin kullanılmasını sağlar; bu enerji olmadan su ve karbondioksit glikoza dönüşemez.",
+   "answer": "Klorofil ışığı soğurarak dönüşüm için gerekli enerjiyi sağlar. Bu enerji olmadığında su ve karbondioksit glikoza dönüştürülemez.",
+   "keyPoints": [
+    "Klorofilin ışığı soğurması",
+    "Soğurulan ışığın enerji sağlaması",
+    "Suyun ve karbondioksitin glikoza dönüşmesi",
+    "Işık enerjisi olmadan dönüşümün gerçekleşememesi"
+   ],
+   "evidence": "Klorofil ışığı soğurur; bu enerjiyle su ve karbondioksit glikoza dönüşür.",
+   "estimatedSeconds": 60,
+   "hints": [
+    "Önce ışığın kloroplast içindeki görevini düşününüz.",
+    "Ardından enerji yokluğunun maddelerin dönüşümünü nasıl etkilediğini açıklayınız."
+   ],
+   "factIds": [
+    3,
+    4
+   ],
+   "factItems": {
+    "4": [
+     0,
+     1,
+     2
+    ]
+   }
+  },
+  {
+   "id": "true-false-0-q_mv0655oi_0",
+   "type": "true-false",
+   "question": "Yeşil bitkilerin kendi besinini üretmesini sağlayan temel enerji kaynağı, topraktan alınan sudur.",
+   "explanation": "Bu ifade yanlıştır; fotosentezde bitkinin kendi besinini üretmesini sağlayan enerji kaynağı ışıktır.",
+   "answerBool": false,
+   "estimatedSeconds": 25,
+   "hints": [
+    "Bitkinin besin üretirken kullandığı enerji kaynağını düşün.",
+    "Su ve ışığın fotosentezdeki rollerini birbirinden ayır."
+   ],
+   "factIds": [
+    1
+   ]
+  },
+  {
+   "id": "true-false-1-q_mv0655oi_1",
+   "type": "true-false",
+   "question": "Fotosentez sırasında su ve karbondioksitin glikoza dönüşmesiyle birlikte oksijen de açığa çıkar.",
+   "explanation": "Fotosentezde su ve karbondioksit glikoza dönüşür; oksijen ise bu süreçte yan ürün olarak açığa çıkar.",
+   "answerBool": true,
+   "estimatedSeconds": 25,
+   "hints": [
+    "Süreçte kullanılan maddelerin hangi ürüne dönüştüğünü düşün.",
+    "Glikoz oluşurken ortaya çıkan yan ürünü metindeki bilgiyle karşılaştır."
+   ],
+   "factIds": [
+    5
+   ]
+  }
+ ]
+}
