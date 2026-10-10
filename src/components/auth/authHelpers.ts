@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { getPublicSiteUrl } from '../../lib/publicSite'
 import { supabasePublishableKey, supabaseUrl } from '../../lib/supabase'
 
 /** Small helpers shared by the sign-in, sign-up, password and callback pages. */
@@ -46,7 +47,7 @@ export function resolveNext(search: string): string {
 }
 
 export function callbackUrl(): string {
-  return `${window.location.origin}/auth/callback`
+  return `${getPublicSiteUrl()}/auth/callback`
 }
 
 // ---------------------------------------------------------------------------

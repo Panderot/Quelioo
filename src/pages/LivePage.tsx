@@ -20,7 +20,8 @@ export default function LivePage() {
   const [query, setQuery] = useState('')
 
   const running = mine.games.filter((game) => isActiveState(game.state))
-  const past = mine.games.filter((game) => !isActiveState(game.state))
+  // A lobby cancelled before anyone joined leaves nothing worth listing.
+  const past = mine.games.filter((game) => !isActiveState(game.state) && !(game.state === 'ended' && game.summary?.playerCount === 0))
 
   const choices = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase(i18n.language)
@@ -142,7 +143,7 @@ export default function LivePage() {
                       <p className="truncate text-sm font-semibold text-ink">{game.quizTitle}</p>
                       <p className="truncate text-xs text-muted">{formatWhen(game.createdAt, i18n.language)}</p>
                       <p className="truncate text-xs text-muted">
-                        {game.summary ? t('live.hub.historyMeta', { count: game.summary.playerCount, average: game.summary.averageScore }) : t('live.hub.stateEnded')}
+                        {game.state === 'ended' ? t('live.hub.stateCancelled') : game.summary ? t('live.hub.historyMeta', { count: game.summary.playerCount, average: game.summary.averageScore }) : t('live.hub.stateEnded')}
                       </p>
                     </div>
                     <Link to={`/live/${game.id}/results`} data-purpose="live-history-results" className="shrink-0 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink hover:border-amber">

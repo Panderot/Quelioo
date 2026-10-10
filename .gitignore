@@ -47,3 +47,4 @@ test-results/
 playwright-report/
 blob-report/
 *.log
+dist-prod-test

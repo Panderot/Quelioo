@@ -25,7 +25,7 @@ export default function QrCode({ value, className }: { value: string; className?
 
   if (!drawing) return <p className="text-sm text-muted">{t('live.board.lobby.scanFailed')}</p>
   return (
-    <svg data-purpose="live-qr" role="img" aria-label={t('live.board.lobby.qrLabel')} viewBox={`0 0 ${drawing.box} ${drawing.box}`} className={className} shapeRendering="crispEdges">
+    <svg data-purpose="live-qr" data-value={value} role="img" aria-label={t('live.board.lobby.qrLabel')} viewBox={`0 0 ${drawing.box} ${drawing.box}`} className={className} shapeRendering="crispEdges">
       <rect width={drawing.box} height={drawing.box} fill="#ffffff" />
       <path d={drawing.path} fill="#0e1330" />
     </svg>

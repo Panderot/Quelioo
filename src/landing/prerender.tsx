@@ -10,7 +10,7 @@ import { FAQ_KEYS } from './ui'
 
 export type PrerenderLanguage = 'tr' | 'en' | 'hyw'
 const LOCALES = { tr, en, hyw }
-const SITE = 'https://quelio.vercel.app'
+const SITE = ((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.VITE_PUBLIC_SITE_URL?.trim() || 'https://quelio.vercel.app').replace(/\/+$/, '')
 const PATHS: Record<PrerenderLanguage, string> = { tr: '/', en: '/en', hyw: '/hyw' }
 const OG_LOCALE: Record<PrerenderLanguage, string> = { tr: 'tr_TR', en: 'en_US', hyw: 'hy_AM' }
 

@@ -1818,6 +1818,7 @@
       "stateLobby": "In the lobby",
       "stateRunning": "Running",
       "stateEnded": "Ended",
+      "stateCancelled": "Cancelled",
       "results": "Results"
     },
     "setup": {

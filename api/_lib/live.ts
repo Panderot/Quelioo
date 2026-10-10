@@ -563,6 +563,8 @@ async function runHostCommand(db: Db, game: GameRow, command: HostCommand, body:
     case 'finish':
       return finishGame(db, game)
     case 'close':
+      // A lobby that is closed keeps a summary (player count) so the history can tell cancelled-and-empty from cancelled-with-players.
+      if (game.state === 'lobby') return finishGame(db, game)
       return (await updateGame(db, game.id, { state: 'ended', finished_at: nowIso, paused: false, question_deadline: null })) ?? game
     default:
       throw new ApiError(400, 'bad_request')

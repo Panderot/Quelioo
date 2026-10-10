@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { getPublicSiteUrl } from '../../lib/publicSite'
 import { formatCode } from '../../lib/live/core'
 import type { LiveHostPlayer, LiveState } from '../../lib/live/core'
 import { LockIcon, XIcon } from '../icons'
@@ -23,8 +24,9 @@ export default function BoardLobby({ state, busy, onStart, onToggleLock, onCance
   const [cancelling, setCancelling] = useState(false)
   const players = state.players ?? []
   const { code, locked } = state.game
-  const joinUrl = `${window.location.origin}/katil/${code}`
-  const address = `${window.location.host}/katil`
+  const siteUrl = getPublicSiteUrl()
+  const joinUrl = `${siteUrl}/katil/${code}`
+  const address = `${siteUrl.replace(/^https?:\/\//, '')}/katil`
 
   return (
     <div data-purpose="live-lobby" className="mx-auto flex w-full max-w-[1700px] flex-1 flex-col gap-8 px-6 py-8 lg:px-12">
