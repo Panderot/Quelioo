@@ -1819,6 +1819,14 @@
       "stateRunning": "Running",
       "stateEnded": "Ended",
       "stateCancelled": "Cancelled",
+      "cancel": "Cancel game",
+      "finish": "End game",
+      "cancelTitle": "Cancel this game?",
+      "finishTitle": "End the game now?",
+      "cancelYes": "Cancel game",
+      "finishYes": "End game",
+      "stay": "Never mind",
+      "actionFailed": "This game can no longer be changed. The list was refreshed.",
       "results": "Results"
     },
     "setup": {
@@ -1882,7 +1890,7 @@
         "cancel": "Cancel",
         "closeGame": "Cancel game",
         "closeTitle": "Cancel this game?",
-        "closeBody": "Students will see that the game has ended.",
+        "closeBody": "Students who joined will see that the game was cancelled.",
         "closeYes": "Cancel game",
         "scanFailed": "The QR code could not be drawn. Use the code above."
       },
@@ -1897,7 +1905,7 @@
         "endNow": "Show answer",
         "finish": "End game",
         "finishTitle": "End the game now?",
-        "finishBody": "The ranking so far becomes the final result.",
+        "finishBody": "Points up to now are saved.",
         "keys": "Space or → next · P pause",
         "timeLeft": "{{count}} seconds left",
         "skipNote": "This question is skipped and does not count."
@@ -2015,6 +2023,7 @@
       "reconnecting": "Connection lost. Trying again…",
       "removed": "The teacher removed you from this game.",
       "ended": "This game has ended.",
+      "cancelled": "The teacher cancelled the game",
       "joinAnother": "Join a new game",
       "yourAnswer": "Your answer"
     },

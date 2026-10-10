@@ -1819,6 +1819,14 @@
       "stateRunning": "Sürüyor",
       "stateEnded": "Bitti",
       "stateCancelled": "İptal edildi",
+      "cancel": "İptal et",
+      "finish": "Bitir",
+      "cancelTitle": "Bu yarışma iptal edilsin mi?",
+      "finishTitle": "Yarışma şimdi bitirilsin mi?",
+      "cancelYes": "İptal et",
+      "finishYes": "Bitir",
+      "stay": "Vazgeç",
+      "actionFailed": "Bu yarışma artık değiştirilemez. Liste yenilendi.",
       "results": "Sonuçlar"
     },
     "setup": {
@@ -1882,7 +1890,7 @@
         "cancel": "Vazgeç",
         "closeGame": "Yarışmayı iptal et",
         "closeTitle": "Bu yarışma iptal edilsin mi?",
-        "closeBody": "Öğrenciler yarışmanın bittiğini görür.",
+        "closeBody": "Katılan öğrenciler yarışmanın iptal edildiğini görecek.",
         "closeYes": "İptal et",
         "scanFailed": "QR kodu çizilemedi. Yukarıdaki kodu kullan."
       },
@@ -1897,7 +1905,7 @@
         "endNow": "Cevabı göster",
         "finish": "Yarışmayı bitir",
         "finishTitle": "Yarışma şimdi bitirilsin mi?",
-        "finishBody": "Şimdiye kadarki sıralama sonuç olur.",
+        "finishBody": "O ana kadarki puanlar kaydedilir.",
         "keys": "Boşluk veya → sonraki · P duraklat",
         "timeLeft": "{{count}} saniye kaldı",
         "skipNote": "Bu soru atlanır ve sayılmaz."
@@ -2015,6 +2023,7 @@
       "reconnecting": "Bağlantı koptu. Yeniden deneniyor…",
       "removed": "Öğretmen seni bu yarışmadan çıkardı.",
       "ended": "Bu yarışma sona erdi.",
+      "cancelled": "Öğretmen yarışmayı iptal etti",
       "joinAnother": "Yeni yarışmaya katıl",
       "yourAnswer": "Cevabın"
     },

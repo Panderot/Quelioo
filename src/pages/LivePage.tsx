@@ -4,8 +4,10 @@ import { useTranslation } from 'react-i18next'
 
 import { LoadError, SkeletonList } from '../components/DataStates'
 import { SearchIcon, TrophyIcon } from '../components/icons'
+import ConfirmDialog from '../components/live/ConfirmDialog'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useArchive } from '../lib/archive'
+import { sendHostCommand } from '../lib/live/api'
 import { isActiveState, planLiveQuestions } from '../lib/live/core'
 import { formatWhen } from '../lib/live/format'
 import { useMyLiveGames } from '../lib/live/games'
@@ -18,6 +20,26 @@ export default function LivePage() {
   const mine = useMyLiveGames()
   const [picking, setPicking] = useState(false)
   const [query, setQuery] = useState('')
+
+  const [stopping, setStopping] = useState<{ id: string; lobby: boolean } | null>(null)
+  const [stopBusy, setStopBusy] = useState(false)
+  const [stopFailed, setStopFailed] = useState(false)
+
+  // The game is closed on the server (it checks the owner and that the game is still open); the list is reloaded whatever happens.
+  const stopGame = async (target: { id: string; lobby: boolean }) => {
+    if (stopBusy) return
+    setStopBusy(true)
+    setStopFailed(false)
+    try {
+      await sendHostCommand(target.id, target.lobby ? 'close' : 'finish')
+    } catch {
+      setStopFailed(true)
+    } finally {
+      setStopBusy(false)
+      setStopping(null)
+      mine.reload()
+    }
+  }
 
   const running = mine.games.filter((game) => isActiveState(game.state))
   // A lobby cancelled before anyone joined leaves nothing worth listing.
@@ -122,9 +144,19 @@ export default function LivePage() {
                         {t(game.state === 'lobby' ? 'live.hub.stateLobby' : 'live.hub.stateRunning')} · {t('live.board.lobby.count', { count: game.players })}
                       </p>
                     </div>
-                    <Link to={`/live/${game.id}`} data-purpose="live-resume-game" className="shrink-0 rounded-xl bg-amber px-4 py-2 text-xs font-bold text-navy hover:bg-amber-hover">
-                      {t('live.hub.resume')}
-                    </Link>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        data-purpose="live-stop-game"
+                        onClick={() => setStopping({ id: game.id, lobby: game.state === 'lobby' })}
+                        className="rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-bold text-ink hover:border-error"
+                      >
+                        {t(game.state === 'lobby' ? 'live.hub.cancel' : 'live.hub.finish')}
+                      </button>
+                      <Link to={`/live/${game.id}`} data-purpose="live-resume-game" className="rounded-xl bg-amber px-4 py-2 text-xs font-bold text-navy hover:bg-amber-hover">
+                        {t('live.hub.resume')}
+                      </Link>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -155,6 +187,23 @@ export default function LivePage() {
             )}
           </section>
         </>
+      )}
+
+      {stopping && (
+        <ConfirmDialog
+          title={t(stopping.lobby ? 'live.hub.cancelTitle' : 'live.hub.finishTitle')}
+          body={t(stopping.lobby ? 'live.board.lobby.closeBody' : 'live.board.question.finishBody')}
+          confirmLabel={t(stopping.lobby ? 'live.hub.cancelYes' : 'live.hub.finishYes')}
+          cancelLabel={t('live.hub.stay')}
+          busy={stopBusy}
+          onCancel={() => setStopping(null)}
+          onConfirm={() => void stopGame(stopping)}
+        />
+      )}
+      {stopFailed && (
+        <p role="alert" data-purpose="live-stop-failed" className="text-sm font-semibold text-error">
+          {t('live.hub.actionFailed')}
+        </p>
       )}
     </>
   )
