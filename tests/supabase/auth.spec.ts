@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
@@ -8,6 +10,25 @@ import { admin, adminLink, cleanupTestUsers, createTestUser, PASSWORD, signIn, s
 // Sign-up, sign-in, sign-out, wrong password, password reset, protected routes and link errors
 // against the TEST project. No real email is ever sent: the email endpoints are answered by the test
 // and confirmation / recovery links come from the admin API.
+
+const SAMPLE_ID = '00000000-0000-4000-8000-0000000000aa'
+
+/** Every protected route, read from the router (AppShell.tsx: the kept pages and the <Route>s; "/" is the landing page, "*" the 404). */
+function privatePaths(): string[] {
+  const source = readFileSync('src/AppShell.tsx', 'utf8')
+  const found = [...source.matchAll(/path: '([^']+)'/g), ...source.matchAll(/<Route[^>]*\spath="([^"]+)"/g)].map((match) => match[1])
+  const paths = found.filter((path) => path !== '/' && path !== '*').map((path) => path.replace(/:\w+/g, SAMPLE_ID))
+  // Study mode is the same route with a search string; its return URL has to survive too.
+  return [...new Set([...paths, `/archive/${SAMPLE_ID}?mode=study`])]
+}
+
+const PRIVATE_PATHS = privatePaths()
+
+test('the router yields the pages that matter (guards against an empty or shrunken list)', () => {
+  for (const path of ['/solve', '/archive', '/songs', '/flashcards', '/lessons', '/account', '/owner', '/live', '/live/new', `/live/${SAMPLE_ID}`, `/live/${SAMPLE_ID}/results`, `/archive/${SAMPLE_ID}`, `/archive/${SAMPLE_ID}?mode=study`]) {
+    expect(PRIVATE_PATHS).toContain(path)
+  }
+})
 
 test.afterAll(async () => {
   await cleanupTestUsers()
@@ -170,10 +191,18 @@ test.describe('sign in and out', () => {
     await expect(page.locator('.lp-root')).toBeVisible()
   })
 
-  for (const path of ['/solve', '/archive', '/songs', '/flashcards', '/lessons', '/account', '/owner']) {
+  for (const path of PRIVATE_PATHS) {
     test(`${path} redirects a signed-out visitor to sign-in with a return URL`, async ({ page }) => {
       await page.goto(path)
-      await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=${encodeURIComponent(path)}`))
+      await expect(page).toHaveURL((url) => url.pathname === '/sign-in' && url.searchParams.get('next') === path)
+    })
+  }
+
+  for (const path of ['/katil', '/katil/123456']) {
+    test(`${path} stays open to a signed-out student`, async ({ page }) => {
+      await page.goto(path)
+      await expect(page).toHaveURL(new RegExp(`${path}$`))
+      await expect(page.getByRole('heading').first()).toBeVisible()
     })
   }
 
