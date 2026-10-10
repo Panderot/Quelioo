@@ -164,13 +164,20 @@ test.describe('sign in and out', () => {
     await context.close()
   })
 
-  test('every private page redirects a signed-out visitor to sign-in with a return URL', async ({ page }) => {
-    for (const path of ['/', '/solve', '/archive', '/songs', '/flashcards', '/lessons', '/account', '/owner']) {
+  test('a signed-out visitor sees the landing page at "/", not the sign-in page', async ({ page }) => {
+    await page.goto('/')
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.locator('.lp-root')).toBeVisible()
+  })
+
+  for (const path of ['/solve', '/archive', '/songs', '/flashcards', '/lessons', '/account', '/owner']) {
+    test(`${path} redirects a signed-out visitor to sign-in with a return URL`, async ({ page }) => {
       await page.goto(path)
-      // The home page needs no return URL: signing in lands there anyway.
-      await expect(page).toHaveURL(path === '/' ? /\/sign-in$/ : new RegExp(`/sign-in\\?next=${encodeURIComponent(path)}`))
-    }
-    // The public pages stay open.
+      await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=${encodeURIComponent(path)}`))
+    })
+  }
+
+  test('the public pages stay open', async ({ page }) => {
     for (const path of ['/sign-in', '/sign-up', '/forgot-password', '/kullanim-sartlari', '/gizlilik']) {
       await page.goto(path)
       await expect(page).toHaveURL(new RegExp(`${path}$`))
