@@ -300,6 +300,7 @@ export type Database = {
           channel_key: string
           created_at: string
           current_index: number
+          end_reason: string | null
           finished_at: string | null
           id: string
           last_activity_at: string
@@ -327,6 +328,7 @@ export type Database = {
           channel_key: string
           created_at?: string
           current_index?: number
+          end_reason?: string | null
           finished_at?: string | null
           id?: string
           last_activity_at?: string
@@ -354,6 +356,7 @@ export type Database = {
           channel_key?: string
           created_at?: string
           current_index?: number
+          end_reason?: string | null
           finished_at?: string | null
           id?: string
           last_activity_at?: string

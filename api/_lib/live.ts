@@ -29,6 +29,7 @@ import {
 } from '../../src/lib/live/core.js'
 import type {
   LiveGameInfo,
+  LiveEndReason,
   LiveGameStateName,
   LiveHostPlayer,
   LiveJoinError,
@@ -216,7 +217,7 @@ async function updateGame(db: Db, id: string, patch: Database['public']['Tables'
 async function endIfIdle(db: Db, game: GameRow): Promise<GameRow> {
   if (!isActiveState(game.state)) return game
   if (Date.now() - new Date(game.last_activity_at).getTime() < LIVE_IDLE_MINUTES * 60_000) return game
-  const ended = await updateGame(db, game.id, { state: 'ended', finished_at: new Date().toISOString(), paused: false, question_deadline: null }, { state: game.state })
+  const ended = await updateGame(db, game.id, { state: 'ended', end_reason: 'idle', finished_at: new Date().toISOString(), paused: false, question_deadline: null }, { state: game.state })
   if (ended) {
     await sendHint(ended)
     return ended
@@ -309,6 +310,7 @@ async function finishGame(db: Db, game: GameRow): Promise<GameRow> {
   )
   const finished = await updateGame(db, current.id, {
     state: current.state === 'lobby' ? 'ended' : 'finished',
+    end_reason: current.state === 'lobby' ? 'cancelled' : 'completed',
     finished_at: new Date().toISOString(),
     last_activity_at: new Date().toISOString(),
     paused: false,
@@ -329,6 +331,7 @@ function gameInfo(game: GameRow): LiveGameInfo {
     code: game.code,
     quizId: game.quiz_id,
     state: game.state as LiveGameStateName,
+    endReason: (game.end_reason as LiveEndReason | null) ?? null,
     locked: game.locked,
     paused: game.paused,
     settings: settingsOf(game),
@@ -565,7 +568,7 @@ async function runHostCommand(db: Db, game: GameRow, command: HostCommand, body:
     case 'close':
       // A lobby that is closed keeps a summary (player count) so the history can tell cancelled-and-empty from cancelled-with-players.
       if (game.state === 'lobby') return finishGame(db, game)
-      return (await updateGame(db, game.id, { state: 'ended', finished_at: nowIso, paused: false, question_deadline: null })) ?? game
+      return (await updateGame(db, game.id, { state: 'ended', end_reason: 'cancelled', finished_at: nowIso, paused: false, question_deadline: null })) ?? game
     default:
       throw new ApiError(400, 'bad_request')
   }

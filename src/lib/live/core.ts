@@ -373,12 +373,17 @@ export interface LiveRankRow {
   playerId?: string
 }
 
+/** Why a game closed: played out or ended by the teacher mid-game, lobby cancelled by the teacher, or left idle for 30 minutes. */
+export type LiveEndReason = 'completed' | 'cancelled' | 'idle'
+
 export interface LiveGameInfo {
   id: string
   code: string
   /** The Archive quiz the game was made from (for "play again"). */
   quizId: string
   state: LiveGameStateName
+  /** Null while the game is open and for games closed before the reason was recorded. */
+  endReason: LiveEndReason | null
   locked: boolean
   paused: boolean
   settings: LiveSettings

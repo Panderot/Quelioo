@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { isFakeBackend, supabase } from '../supabase'
-import type { LiveSummary } from './core'
+import type { LiveEndReason, LiveSummary } from './core'
 import { LIVE_IDLE_MINUTES, isActiveState } from './core'
 
 /** The signed-in teacher's own games, read through Row Level Security (a teacher only ever sees their own). */
@@ -12,6 +12,7 @@ export interface MyLiveGame {
   quizTitle: string
   code: string
   state: string
+  endReason: LiveEndReason | null
   questionCount: number
   createdAt: string
   finishedAt: string | null
@@ -40,7 +41,7 @@ export function useMyLiveGames(): MyLiveGames {
     void (async () => {
       const { data, error } = await supabase
         .from('live_games')
-        .select('id, quiz_id, quiz_title, code, state, question_count, created_at, finished_at, last_activity_at, summary, ranking_purged_at')
+        .select('id, quiz_id, quiz_title, code, state, end_reason, question_count, created_at, finished_at, last_activity_at, summary, ranking_purged_at')
         .order('created_at', { ascending: false })
         .limit(60)
       if (cancelled) return
@@ -65,6 +66,7 @@ export function useMyLiveGames(): MyLiveGames {
           quizTitle: game.quiz_title,
           code: game.code,
           state: idle(game) ? 'ended' : game.state,
+          endReason: idle(game) ? 'idle' : (game.end_reason as LiveEndReason | null),
           questionCount: game.question_count,
           createdAt: game.created_at,
           finishedAt: game.finished_at,

@@ -3,7 +3,7 @@ import type { Browser, BrowserContext, Page } from '@playwright/test'
 
 import { cleanupTestUsers } from '../supabase/helpers'
 import type { QuizQuestion } from '../../src/lib/quiz'
-import { command, createGame, createTestUser, hostState, insertQuiz, joinGame, teacherPage } from './helpers'
+import { admin, command, createGame, createTestUser, hostState, insertQuiz, joinGame, teacherPage } from './helpers'
 import type { TestUser } from './helpers'
 
 test.afterAll(async () => {
@@ -164,4 +164,39 @@ test('only the owner can cancel or end a game, and a closed game cannot be chang
   expect(late.status).toBe(409)
   expect((await hostState(teacher, second.body.id)).game.state).toBe('finished')
   await context.close()
+})
+
+test('the closing reason is recorded and the phone says "cancelled" only when the teacher cancelled', async ({ browser }) => {
+  const reasonOf = async (id: string) => (await admin.from('live_games').select('end_reason').eq('id', id).single()).data!.end_reason
+
+  // Teacher cancels the lobby: reason "cancelled", phone says so.
+  const first = await setup(browser, 1)
+  expect((await command(first.teacher, first.id, 'close')).status).toBe(200)
+  expect(await reasonOf(first.id)).toBe('cancelled')
+  await expect(at(first.phones[0].page, 'play-ended')).toHaveText('The teacher cancelled the game')
+  await first.phones[0].context.close()
+  await first.context.close()
+
+  // Left idle for 30 minutes: reason "idle", the phone only says the game has ended.
+  const second = await setup(browser, 1)
+  await admin.from('live_games').update({ last_activity_at: new Date(Date.now() - 40 * 60_000).toISOString() }).eq('id', second.id)
+  await hostState(second.teacher, second.id)
+  expect(await reasonOf(second.id)).toBe('idle')
+  await second.phones[0].page.reload()
+  await expect(at(second.phones[0].page, 'play-ended')).toHaveText('The game has ended.')
+  await second.phones[0].context.close()
+  await second.context.close()
+
+  // Played out: reason "completed"; a started game ended by the teacher is "completed" too.
+  const third = await setup(browser, 1)
+  await command(third.teacher, third.id, 'start')
+  await command(third.teacher, third.id, 'finish')
+  expect(await reasonOf(third.id)).toBe('completed')
+  await third.phones[0].context.close()
+  await third.context.close()
+
+  // A game that was open has no reason yet.
+  const fourth = await setup(browser, 0)
+  expect(await reasonOf(fourth.id)).toBeNull()
+  await fourth.context.close()
 })

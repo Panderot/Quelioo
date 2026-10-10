@@ -175,7 +175,7 @@ export default function LivePage() {
                       <p className="truncate text-sm font-semibold text-ink">{game.quizTitle}</p>
                       <p className="truncate text-xs text-muted">{formatWhen(game.createdAt, i18n.language)}</p>
                       <p className="truncate text-xs text-muted">
-                        {game.state === 'ended' ? t('live.hub.stateCancelled') : game.summary ? t('live.hub.historyMeta', { count: game.summary.playerCount, average: game.summary.averageScore }) : t('live.hub.stateEnded')}
+                        {game.state === 'ended' ? t(game.endReason === 'idle' ? 'live.hub.stateEnded' : 'live.hub.stateCancelled') : game.summary ? t('live.hub.historyMeta', { count: game.summary.playerCount, average: game.summary.averageScore }) : t('live.hub.stateEnded')}
                       </p>
                     </div>
                     <Link to={`/live/${game.id}/results`} data-purpose="live-history-results" className="shrink-0 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink hover:border-amber">

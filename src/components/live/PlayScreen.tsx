@@ -288,7 +288,7 @@ export default function PlayScreen({ token, onGone, onLeave }: PlayScreenProps) 
     body = (
       <div className="py-10 text-center">
         <p data-purpose="play-ended" className="font-serif text-2xl font-semibold text-navy">
-          {t('live.play.cancelled')}
+          {t(state.game.endReason === 'cancelled' ? 'live.play.cancelled' : 'live.play.ended')}
         </p>
         <button type="button" data-purpose="play-join-new" onClick={onLeave} className="mt-4 min-h-12 w-full rounded-xl bg-amber px-5 text-base font-bold text-navy hover:bg-amber-hover">
           {t('live.play.joinAnother')}

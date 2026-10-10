@@ -409,7 +409,10 @@ test('privacy: cleanup deletes players and answers of games finished 30+ days ag
   expect(results.body.summary.playerCount).toBe(2)
   // Recent finished games keep their players; the idle game ended.
   expect((await admin.from('live_players').select('id').eq('game_id', recent.id)).data).toHaveLength(1)
-  expect((await admin.from('live_games').select('state').eq('id', idle.id).single()).data!.state).toBe('ended')
+  {
+    const row = (await admin.from('live_games').select('state, end_reason').eq('id', idle.id).single()).data!
+    expect(row).toEqual({ state: 'ended', end_reason: 'idle' })
+  }
 })
 
 async function fetchCleanup() {
