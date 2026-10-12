@@ -109,7 +109,7 @@ export function chooseFacts<T extends PlanFact>(plan: T[], slots: QuestionSlotIn
   const clusters = clusterTopics(plan, rows)
   const groupCount = rows ? rows.length : Math.max(0, ...clusters) + 1
   const earlier = options.earlier ?? []
-  const candidates = plan.map((entry, index) => ({ entry, index, penalty: earlier.some((old) => factSimilarity(old.fact, entry.fact) >= FACT_REUSE) ? 1 : 0 }))
+  const candidates = plan.map((entry, index) => ({ entry, index, penalty: earlier.filter((old) => factSimilarity(old.fact, entry.fact) >= FACT_REUSE).length }))
   const groups: { entry: T; penalty: number; index: number }[][] = Array.from({ length: groupCount }, () => [])
   candidates.forEach((candidate, index) => {
     const group = clusters[index]

@@ -284,7 +284,8 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   }
   if (!state.plan) {
     onProgress?.(0, sections.length, 'plan')
-    const wanted = Math.min(MAX_PLAN_FACTS, Math.ceil(total * PLAN_SURPLUS))
+    // Facts earlier exams from this source tested are still planned: with a bigger plan a new exam finds facts they did not use.
+    const wanted = Math.min(MAX_PLAN_FACTS, Math.ceil(total * PLAN_SURPLUS) + Math.min(20, new Set((earlier ?? []).map((old) => old.fact)).size))
     const topics = rows.length > 0 ? rows.map((row) => row.text.trim()) : settings.topics
     state.plan = withIds(await callPlan({ text, level: settings.level, outputLanguage: settings.outputLanguage, topics, count: wanted, ...(rows.length > 0 ? { strictTopics: true } : {}) }, signal), 0)
   }
