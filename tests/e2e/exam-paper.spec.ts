@@ -195,6 +195,29 @@ test.describe('Print view to PDF', () => {
   })
 })
 
+test.describe('Print view settings (B10)', () => {
+  test('footer off: the brand is gone, the page numbers stay; tables off: no tables in the key; groups off: one key', async ({ page }) => {
+    const plain = { ...exam, settings: { ...exam.settings, footer: false, topicTable: false, groups: false } }
+    const paper = (await printToPdf(page, '?part=exam&group=A', plain)).join(' ')
+    expect(paper).not.toContain('Quelio ile hazırlandı')
+    expect(paper).toContain('Sayfa 1 /')
+    expect(paper).not.toContain('A GRUBU')
+    const key = (await printToPdf(page, '?part=key&group=both', plain)).join(' ')
+    expect(key).toContain('CEVAP ANAHTARI')
+    expect(key).not.toContain('Belirtke tablosu')
+    expect(key).not.toContain('Konu-soru dağılım tablosu')
+    expect(key).not.toContain('B GRUBU')
+    expect((key.match(/CEVAP ANAHTARI/g) ?? []).length).toBe(1)
+  })
+
+  test('no time: the header has no time line; with a time it shows "Süre: 40 dakika"', async ({ page }) => {
+    const none = (await printToPdf(page, '?part=exam&group=A', { ...exam, settings: { ...exam.settings, durationMinutes: null } })).join(' ')
+    expect(none).not.toContain('Süre')
+    const some = (await printToPdf(page, '?part=exam&group=A')).join(' ')
+    expect(some).toContain('Süre: 40 dakika')
+  })
+})
+
 test('the print page says so when the exam does not exist', async ({ page }) => {
   await page.goto('/exams/00000000-0000-4000-8000-000000000000/print')
   await expect(page.getByRole('alert')).toBeVisible()

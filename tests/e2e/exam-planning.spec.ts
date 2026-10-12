@@ -200,8 +200,14 @@ test.describe('A5: points fit the content', () => {
 })
 
 test.describe('related facts for levels 4 to 6', () => {
-  test('only the higher slots get up to two unused facts of their own topic', () => {
-    const plan: PlanFact[] = [...Array.from({ length: 6 }, (_, i) => fact(i, 'Organeller')), ...Array.from({ length: 6 }, (_, i) => fact(10 + i, 'Mitoz bölünme'))]
+  test('a fact with nothing of its concept and no shared words gets no related fact', () => {
+    const plan: PlanFact[] = [fact(0, 'Organeller', 'bir'), fact(1, 'Organeller', 'iki'), fact(2, 'Organeller', 'üç')]
+    const withFacts = withRelated([plan[0]], plan, [{ type: 'open-ended', bloom: 5, difficulty: 'hard' }])
+    expect(withFacts[0].related).toBeUndefined()
+  })
+
+  test('only the higher slots get up to two unused facts of their own topic and concept', () => {
+    const plan: PlanFact[] = [...Array.from({ length: 6 }, (_, i) => fact(i, 'Organeller', 'organel kavramı')), ...Array.from({ length: 6 }, (_, i) => fact(10 + i, 'Mitoz bölünme', 'mitoz kavramı'))]
     const slots = [
       { type: 'open-ended' as const, bloom: 5 as const, difficulty: 'hard' as const },
       { type: 'short-answer' as const, bloom: 2 as const, difficulty: 'easy' as const },

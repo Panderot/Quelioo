@@ -17,7 +17,7 @@ import { SOFT_RULES, checkExamQuality, correctAnswerText, factSimilarity } from 
 import { buildMemory, earlierFromMemories, memoriesForSource } from '../../src/lib/exam/sourceMemory'
 import type { StoredMemory } from '../../src/lib/exam/sourceMemory'
 import { distributionRows, specRows } from '../../src/lib/exam/tables'
-import { EXAM_QUESTION_TYPES, defaultExamSettings, maxQuestionsForWords } from '../../src/lib/exam/types'
+import { EXAM_QUESTION_TYPES, EXAM_WORDS_PER_QUESTION, defaultExamSettings, maxQuestionsForWords } from '../../src/lib/exam/types'
 import type { BloomSetting, ExamQuestion, ExamSettings, WrittenExam } from '../../src/lib/exam/types'
 import * as sources from '../fixtures/exam-audit-sources'
 import type { AuditSource } from '../fixtures/exam-audit-sources'
@@ -74,9 +74,9 @@ function variantOf(spec: string): Variant {
       suffix: 'meb',
       meb: true,
       distribution: [
-        { text: 'Belgrad ve Rodos fetihleri ile Orta Avrupa seferleri', count: 6 },
-        { text: 'Mohaç Meydan Muharebesi ve Viyana kuşatması', count: 5 },
-        { text: 'Preveze Deniz Savaşı ve denizlerdeki üstünlük', count: 4 },
+        { text: 'Belgrad ve Rodos fetihleri ile Orta Avrupa seferleri', count: 2 },
+        { text: 'Mohaç Meydan Muharebesi ve Viyana kuşatması', count: 3 },
+        { text: 'Preveze Deniz Savaşı ve denizlerdeki üstünlük', count: 3 },
         { text: 'Kanuni dönemi hukuk, mimari ve kültür', count: 5 },
       ],
     }
@@ -147,11 +147,20 @@ async function audit(variant: Variant): Promise<void> {
   const roundIssues: string[] = []
   await runWithRequestContext(context, async () => {
     try {
-      const result = await generateExamQuestions({ settings, text: source.text, state, callSection, callVerify, callPlan, earlier, acceptFewer: words / total < 20, onIssues: (round, issues) => roundIssues.push(`round ${round}: ${issues.map((issue) => issue.rule).join(',') || 'none'}`) })
+      const result = await generateExamQuestions({ settings, text: source.text, state, callSection, callVerify, callPlan, earlier, acceptFewer: words / total < EXAM_WORDS_PER_QUESTION, onIssues: (round, issues) => {
+        roundIssues.push(`round ${round}: ${issues.map((issue) => issue.rule).join(',') || 'none'}`)
+        if (process.env.EXAM_TRACE) {
+          for (const issue of issues) {
+            const found = state.current?.find((candidate) => candidate.id === issue.id)
+            const review = issue.id ? state.judge?.reviews.get(issue.id) : undefined
+            console.log(`  TRACE r${round} ${issue.rule} [${found?.type}] ${found?.stem.slice(0, 70) ?? ''} => ${(found?.answer ?? '').slice(0, 40)} | judge copy=${review?.copy} level=${review?.level}`)
+          }
+        }
+      } })
       questions = result.questions
       missing = result.missing
     } catch (error) {
-      failure = error instanceof ExamApiError ? `${error.code}: ${error.rules.join(' | ')}` : error instanceof ExamShortSourceError ? `short_source(${error.max})` : error instanceof ExamDistributionError ? `distribution(${error.rows.map((row) => row.text).join('; ')})` : String(error)
+      failure = error instanceof ExamApiError ? `${error.code}: ${error.rules.join(' | ')}` : error instanceof ExamShortSourceError ? `short_source(${error.max})` : error instanceof ExamDistributionError ? `distribution(${error.rows.map((row) => `${row.text} ${row.found}/${row.wanted}`).join('; ')})` : String(error)
     }
   })
   const seconds = Math.round((Date.now() - started) / 1000)

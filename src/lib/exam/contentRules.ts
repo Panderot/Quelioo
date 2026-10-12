@@ -38,9 +38,14 @@ export function answerLeaks(question: ExamQuestion): boolean {
   }
   if (question.type === 'short-answer') {
     const answers = [question.answer, ...(question.acceptableAnswers ?? [])]
+    const heard = normalize(plainText(`${question.context ?? ''} ${question.stem}`)).split(' ').map((word) => word.slice(0, 5))
     return answers.some((answer) => {
-      const terms = [...contentStems(answer, 4)]
-      return terms.length > 0 && terms.every((term) => given.has(term) || [...given].some((word) => word.startsWith(term.slice(0, 4))))
+      const words = normalize(plainText(answer)).split(' ').filter((word) => word.length >= 4).map((word) => word.slice(0, 5))
+      if (words.length === 0) return false
+      // One term of the answer in the question gives it away; several terms only when the question holds them one after the other (a phrase copied from it).
+      if (words.length === 1) return heard.includes(words[0]) && !topic.has(words[0])
+      for (let at = 0; at + words.length <= heard.length; at += 1) if (words.every((word, offset) => heard[at + offset] === word)) return true
+      return false
     })
   }
   if (question.type === 'mcq' && question.options && question.answerIndex !== undefined) {

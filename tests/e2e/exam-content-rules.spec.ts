@@ -217,3 +217,14 @@ test.describe('A9 and polish rules found in the real-AI audit', () => {
     expect(idsOf([tf('Hücre zarı cansız değil, canlı bir yapıdır.', true)], 'tf-claims')).toEqual([])
   })
 })
+
+test.describe('A1: a short answer that only shares words with its question is not a giveaway', () => {
+  test('a definition pair is fine, a copied term or phrase is not', () => {
+    const sign = q('short-answer', 'Soru bildiren cümlenin sonuna hangi işaret konur?', { answer: 'Soru işareti', topic: 'Noktalama' })
+    expect(idsOf([sign], 'answer-leak')).toEqual([])
+    const copiedTerm = q('short-answer', 'Hücrenin enerji santrali olan mitokondri hangi görevi üstlenir mitokondri?', { answer: 'mitokondri' })
+    expect(idsOf([copiedTerm], 'answer-leak')).toEqual([copiedTerm.id])
+    const copiedPhrase = q('short-answer', 'Hücrede protein yapan organel olan endoplazmik retikulum granüllü müdür?', { answer: 'endoplazmik retikulum' })
+    expect(idsOf([copiedPhrase], 'answer-leak')).toEqual([copiedPhrase.id])
+  })
+})

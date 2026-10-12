@@ -64,7 +64,7 @@ const MIN_ANSWER_CHARS = 4
 
 /** The scenario and the stem both open with the same capitalised first word (a person's name): the stem retells the scenario. */
 function opensWithSamePerson(question: ExamQuestion): boolean {
-  const first = (text: string) => (/^\s*(\p{Lu}[\p{L}]{2,})/u.exec(text.replace(/^[(\[“"']+/u, ''))?.[1] ?? '').toLocaleLowerCase('tr-TR')
+  const first = (text: string) => (/^\s*(\p{Lu}[\p{L}]{2,})/u.exec(text.replace(/^[([“"']+/u, ''))?.[1] ?? '').toLocaleLowerCase('tr-TR')
   const name = first(question.context ?? '')
   return name !== '' && name === first(question.stem)
 }

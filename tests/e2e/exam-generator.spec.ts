@@ -237,7 +237,7 @@ test.describe('rewrite rounds', () => {
   })
 
   test('levels 4 to 6 get related facts of their topic to combine; lower levels do not', async () => {
-    const server = fake({ facts: fakeFacts(30).map((entry, index) => ({ ...entry, topic: index % 2 === 0 ? 'Organeller' : 'Mitoz bölünme', concept: `kavram ${index}` })) })
+    const server = fake({ facts: fakeFacts(30).map((entry, index) => ({ ...entry, topic: Math.floor(index / 3) % 2 === 0 ? 'Organeller' : 'Mitoz bölünme', concept: `kavram ${Math.floor(index / 3)}` })) })
     await run(server)
     const asked = server.sections.slice(0, 4).flatMap((request) => (request.slots ?? []).map((slot, index) => ({ slot, fact: request.facts?.[index] })))
     const high = asked.filter((entry) => entry.slot.bloom >= 4)

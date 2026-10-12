@@ -28,6 +28,8 @@ export interface ChooseOptions {
 const TOPIC_MERGE = 0.6
 const MAX_TOPIC_SHARE = 0.4
 const FACT_REUSE = 0.5
+/** A related fact shares at least this much of its key words with the main fact (when it is not of the same concept). */
+const RELATED_MIN_SIMILARITY = 0.12
 
 /** Do two topic labels name the same topic? They share most of their key words, or one is a single word the other contains. */
 function sameTopic(a: Set<string>, b: Set<string>): boolean {
@@ -204,7 +206,11 @@ export function withRelated<T extends PlanFact>(chosen: T[], plan: T[], slots: Q
     if ((slots[index]?.bloom ?? 1) < minBloom) return entry
     const at = plan.findIndex((candidate) => candidate.fact === entry.fact)
     const group = at >= 0 ? clusters[at] : -1
-    const related = plan.filter((candidate, i) => group >= 0 && clusters[i] === group && !taken.has(candidate.fact)).slice(0, 2)
+    const pool = plan.filter((candidate, i) => group >= 0 && clusters[i] === group && !taken.has(candidate.fact))
+    // The same concept first, then facts that share some words with it: a comparison or an evaluation needs two things that belong together, not two things of one topic.
+    const sameConcept = pool.filter((candidate) => conceptKey(candidate.concept) !== '' && conceptKey(candidate.concept) === conceptKey(entry.concept))
+    const close = pool.filter((candidate) => !sameConcept.includes(candidate) && factSimilarity(candidate.fact, entry.fact) >= RELATED_MIN_SIMILARITY)
+    const related = [...sameConcept, ...close.sort((a, b) => factSimilarity(b.fact, entry.fact) - factSimilarity(a.fact, entry.fact))].slice(0, 2)
     return related.length > 0 ? { ...entry, related: related.map((candidate) => candidate.fact) } : entry
   })
 }
