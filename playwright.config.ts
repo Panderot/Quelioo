@@ -1,11 +1,17 @@
 import { defineConfig, devices } from '@playwright/test'
+import { blockRealAi } from './tests/guards/guard'
 
 const PORT = 5190
 const BASE_URL = `http://localhost:${PORT}`
 const isCI = !!process.env.CI
 const DESKTOP_VIEWPORT = { width: 1280, height: 800 }
 
+// No test may reach a real AI provider: workers and the dev server preload a guard, and the run fails if it blocked a call.
+blockRealAi()
+
 export default defineConfig({
+  globalSetup: './tests/guards/global-setup.ts',
+  globalTeardown: './tests/guards/global-teardown.ts',
   testDir: 'tests/e2e',
   fullyParallel: true,
   // This PC has 16 GB RAM: at most 2 workers, and 1 when free memory is under 6 GB; override with PW_WORKERS (or --workers).

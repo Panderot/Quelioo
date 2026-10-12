@@ -30,6 +30,12 @@ import type { AuditSource } from '../fixtures/exam-audit-sources'
 const BUDGET_USD = 2.5
 const OUT = '../QUELIO-TEST-EXAM'
 const COST_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-cost.jsonl'
+const STATE_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-durum.md'
+/** One exam costing more than this stops the run: something loops. */
+const MAX_EXAM_USD = 0.1
+// Every rejection the server and the generator make is recorded next to the exam, so a short exam can be explained without another AI call.
+process.env.EXAM_TRACE = '1'
+const stopOnMissing = process.env.EXAM_STOP_ON_MISSING === '1'
 
 const BASE: Record<string, AuditSource> = {
   'turkce-4': sources.TURKCE_4,
@@ -96,7 +102,7 @@ function spent(): number {
 const memories: StoredMemory[] = []
 
 async function audit(variant: Variant): Promise<void> {
-  if (spent() >= BUDGET_USD) {
+  if (spent() >= BUDGET_USD - 0.05) {
     console.log(`BUDGET REACHED: $${spent().toFixed(4)} of $${BUDGET_USD}. Stop and ask.`)
     process.exit(2)
   }
@@ -120,12 +126,24 @@ async function audit(variant: Variant): Promise<void> {
   let calls = 0
   let sectionCalls = 0
   let plan: ExamFact[] = []
+  const trace: unknown[] = []
+  const realLog = console.log
+  console.log = (...args: unknown[]) => {
+    const line = args.map(String).join(' ')
+    if (line.startsWith('  TRACE')) trace.push(line.trim())
+    realLog(...args)
+  }
   const callSection = async (request: ExamSectionRequest) => {
     calls += 1
     sectionCalls += 1
     const { status, body } = await handleGenerateRequest({ mode: 'exam_section', ...request })
-    if (status !== 200 || !('questions' in body)) throw new ExamApiError('error' in body && body.error === 'parse' ? 'parse' : 'upstream')
-    return body.questions as ExamQuestion[]
+    if (status !== 200 || !('questions' in body)) {
+      trace.push({ section: request.type, count: request.count, error: 'error' in body ? body.error : status })
+      throw new ExamApiError('error' in body && body.error === 'parse' ? 'parse' : 'upstream')
+    }
+    const got = body.questions as ExamQuestion[]
+    trace.push({ section: request.type, count: request.count, asked: (request.facts ?? []).map((fact) => fact.id), returned: got.map((q) => ({ factId: q.factId, stem: q.stem.slice(0, 90) })) })
+    return got
   }
   const callVerify = async (request: ExamVerifyRequest): Promise<ExamVerifyResult> => {
     calls += 1
@@ -137,7 +155,8 @@ async function audit(variant: Variant): Promise<void> {
     calls += 1
     const { status, body } = await handleGenerateRequest({ mode: 'exam_plan', ...request })
     if (status !== 200 || !('facts' in body)) throw new ExamApiError('upstream')
-    plan = body.facts
+    if (!request.existing || request.existing.length === 0) plan = body.facts
+    trace.push({ plan: request.count, existing: request.existing?.length ?? 0, got: body.facts.length })
     return body.facts
   }
 
@@ -169,11 +188,19 @@ async function audit(variant: Variant): Promise<void> {
   })
   const seconds = Math.round((Date.now() - started) / 1000)
   const costUsd = events.reduce((sum, event) => sum + event.costUsd, 0)
+  console.log = realLog
   appendFileSync(COST_FILE, JSON.stringify({ case: variant.key, costUsd, calls, seconds }) + '\n')
+  appendFileSync(STATE_FILE, `- ${new Date().toISOString().slice(0, 16)} ${variant.key}: $${costUsd.toFixed(4)}, ${calls} calls, ${seconds}s, ${failure ? 'FAIL ' + failure.slice(0, 80) : missing > 0 ? `eksik ${missing}` : 'tam'} (toplam $${spent().toFixed(4)})\n`)
 
   const folder = `${OUT}/${source.folder}`
   mkdirSync(folder, { recursive: true })
+  writeFileSync(`${folder}/${variant.suffix}.trace.json`, JSON.stringify(trace, null, 1))
+  if (costUsd > MAX_EXAM_USD) {
+    console.log(`COST LIMIT: ${variant.key} cost $${costUsd.toFixed(4)} (> $${MAX_EXAM_USD}). Stopped to find out why.`)
+    process.exitCode = 4
+  }
   if (failure) {
+    if (stopOnMissing) process.exitCode = 3
     console.log(`${variant.key}: FAIL ${failure} | ${seconds}s | $${costUsd.toFixed(4)} | calls ${calls} | ${roundIssues.join(' ; ')}`)
     return
   }
@@ -258,6 +285,7 @@ async function audit(variant: Variant): Promise<void> {
   void chooseFacts
   void correctAnswerText
   void factSimilarity
+  if (stopOnMissing && missing > 0) process.exitCode = 3
   console.log(`${variant.key}: ${report.ok ? 'RULES OK' : 'RULES ' + JSON.stringify(report.remainingRules)} | ${seconds}s | $${costUsd.toFixed(4)} | calls ${calls} | ${JSON.stringify(counts)} | missing ${missing} | bloom ${gotBloom.join('/')} (wanted ${wanted.join('/')}) | total spent $${spent().toFixed(4)}`)
 }
 
@@ -265,4 +293,6 @@ mkdirSync('../QUELIO-PROMPTS', { recursive: true })
 for (const spec of process.argv.slice(2)) {
   // The memory of earlier V5 exams from the same text is what makes the next one different (V1).
   await audit(variantOf(spec))
+  // A cost overrun, or (with EXAM_STOP_ON_MISSING=1) an exam that came out short, stops the sequence.
+  if (process.exitCode) break
 }

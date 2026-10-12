@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { blockRealAi } from './tests/guards/guard'
 
 import { testEnv } from './tests/supabase/env'
 
@@ -7,7 +8,12 @@ import { testEnv } from './tests/supabase/env'
 const PORT = 5192
 const BASE_URL = `http://localhost:${PORT}`
 
+// No test may reach a real AI provider: workers and the dev server preload a guard, and the run fails if it blocked a call.
+blockRealAi()
+
 export default defineConfig({
+  globalSetup: './tests/guards/global-setup.ts',
+  globalTeardown: './tests/guards/global-teardown.ts',
   testDir: 'tests/game',
   fullyParallel: true,
   workers: 1,
