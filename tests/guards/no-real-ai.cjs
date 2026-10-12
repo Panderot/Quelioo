@@ -38,7 +38,14 @@ const realFetch = globalThis.fetch
 if (typeof realFetch === 'function') {
   globalThis.fetch = function guardedFetch(input, init) {
     const host = hostOf(input)
-    if (HOSTS.test(host)) block(host)
+    if (HOSTS.test(host)) {
+      try {
+        block(host)
+      } catch (error) {
+        // fetch never throws synchronously: callers see a rejected promise.
+        return Promise.reject(error)
+      }
+    }
     return realFetch.call(this, input, init)
   }
 }
