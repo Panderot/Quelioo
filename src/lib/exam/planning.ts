@@ -195,3 +195,16 @@ function separateRepeatedForms<T extends PlanFact>(result: (T | undefined)[], sl
     }
   }
 }
+
+/** Level 4-6 questions compare, relate, evaluate or design: they get up to two more facts of the same topic (not chosen for another question) to combine with their own. */
+export function withRelated<T extends PlanFact>(chosen: T[], plan: T[], slots: QuestionSlotInfo[], minBloom = 4): (T & { related?: string[] })[] {
+  const clusters = clusterTopics(plan)
+  const taken = new Set(chosen.map((entry) => entry.fact))
+  return chosen.map((entry, index) => {
+    if ((slots[index]?.bloom ?? 1) < minBloom) return entry
+    const at = plan.findIndex((candidate) => candidate.fact === entry.fact)
+    const group = at >= 0 ? clusters[at] : -1
+    const related = plan.filter((candidate, i) => group >= 0 && clusters[i] === group && !taken.has(candidate.fact)).slice(0, 2)
+    return related.length > 0 ? { ...entry, related: related.map((candidate) => candidate.fact) } : entry
+  })
+}

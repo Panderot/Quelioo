@@ -127,7 +127,7 @@ test.describe('exam groups', () => {
     }
     for (const q of b.filter((item) => item.type === 'matching')) {
       const source = a[q.aNumber - 1]
-      expect([...q.rightOrder!].sort()).toEqual([0, 1, 2, 3])
+      expect([...q.rightOrder!].sort()).toEqual(Array.from({ length: (q.pairs?.length ?? 0) + (q.extras?.length ?? 0) }, (_, index) => index))
       expect(q.rightOrder!.every((pairIndex, position) => pairIndex !== position)).toBe(true)
       expect(q.rightOrder).not.toEqual(source.rightOrder)
       expect(q.pairs).toEqual(source.pairs)

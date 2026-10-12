@@ -198,3 +198,22 @@ test.describe('A7: true-false, fill-in, matching', () => {
     expect(rules([q('matching', 'Eşleştiriniz.', { pairs, extras: ['Boşaltım', 'Depolama'], rightOrder: [1, 2, 3, 4, 5, 0] })])).not.toContain('matching')
   })
 })
+
+test.describe('A9 and polish rules found in the real-AI audit', () => {
+  test('"Verilen tarih ve süreleri kullanarak" without the data in the question is a dangling reference; with a scenario that holds it, it passes', () => {
+    const dangling = q('open-ended', 'Verilen tarih ve süreleri kullanarak kuşatmanın uzun sürdüğünü savununuz.')
+    expect(idsOf([dangling], 'reference')).toEqual([dangling.id])
+    const printed = q('open-ended', 'Verilen tarih ve süreleri kullanarak kuşatmanın uzun sürdüğünü savununuz.', { context: 'Kuşatma 6 Nisan 1453 tarihinde başladı ve 29 Mayıs 1453 tarihinde, yaklaşık elli üç gün sonra, kent alındı.' })
+    expect(idsOf([printed], 'reference')).toEqual([])
+    expect(idsOf([q('short-answer', 'Haritada gösterilen nehir hangisidir?')], 'reference')).toHaveLength(1)
+  })
+
+  test('a false true-false statement written as a plain negation is caught, a changed detail is not', () => {
+    const tf = (stem: string, answerBool: boolean) => q('true-false', stem, { answerBool, answer: String(answerBool) })
+    expect(idsOf([tf('Olay, kişilerin başından geçen durumlar değil, hikâyenin geçtiği yerdir.', false)], 'tf-claims')).toHaveLength(1)
+    expect(idsOf([tf('The cell wall is not found in plant cells at all.', false)], 'tf-claims')).toHaveLength(1)
+    expect(idsOf([tf('Olay, hikâyenin geçtiği yerdir.', false)], 'tf-claims')).toEqual([])
+    // A true statement may use "değil".
+    expect(idsOf([tf('Hücre zarı cansız değil, canlı bir yapıdır.', true)], 'tf-claims')).toEqual([])
+  })
+})

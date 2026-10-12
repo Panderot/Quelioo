@@ -94,7 +94,7 @@ test('exam_section returns sanitised questions and drops malformed or duplicate 
 
 test('every type is shaped for the exam (rubrics, lines, pairs, blanks)', async () => {
   stubOpenAi((call) => {
-    if (call.text.includes('matching question')) {
+    if (/Write exactly \d+ matching question/.test(call.text)) {
       return {
         questions: [
           {
@@ -115,7 +115,7 @@ test('every type is shaped for the exam (rubrics, lines, pairs, blanks)', async 
         ],
       }
     }
-    if (call.text.includes('fill-blanks question')) {
+    if (/Write exactly \d+ fill-blanks question/.test(call.text)) {
       return {
         questions: [
           { type: 'fill-blanks', stem: 'Osmanlı ___ yılında kuruldu.', answer: '1299', acceptableAnswers: ['1299 yılı'], topic: 't', difficulty: 'easy' },
@@ -123,7 +123,7 @@ test('every type is shaped for the exam (rubrics, lines, pairs, blanks)', async 
         ],
       }
     }
-    if (call.text.includes('open-ended question')) {
+    if (/Write exactly \d+ open-ended question/.test(call.text)) {
       return {
         questions: [
           { type: 'open-ended', stem: 'Kuruluşu açıklayınız.', answer: 'Model', rubric: [{ text: 'Tarihi doğru verir', weight: 2 }, { text: 'Lideri doğru belirtir', weight: 99 }], topic: 't', difficulty: 'hard', lines: 40 },

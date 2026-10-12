@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test'
 
 import { allowedDifficulties, bloomMixOk, bloomTargetCounts, clampBloom, fitDifficulty, planBloom, planSlots } from '../../src/lib/exam/bloom'
 import { BLOOM_CAP, BLOOM_MIX } from '../../src/lib/exam/bloomConfig'
-import { chooseFacts, clusterTopics, topicShares } from '../../src/lib/exam/planning'
+import { chooseFacts, clusterTopics, topicShares, withRelated } from '../../src/lib/exam/planning'
+import { distributePoints } from '../../src/lib/exam/points'
 import type { PlanFact } from '../../src/lib/exam/planning'
 import { emptyCounts } from '../../src/lib/exam/types'
 import { fakeFacts } from './examHelpers'
@@ -184,5 +185,36 @@ test.describe('A6 and V1: one question per concept, earlier facts last', () => {
     expect(reused).toHaveLength(20)
     const mcqSlotIndexes = slots.map((slot, index) => ({ slot, index })).filter(({ slot }) => slot.type === 'mcq' && slot.bloom === 2).map(({ index }) => index)
     if (mcqSlotIndexes.length > 0 && mcqSlotIndexes.length < 20) expect(mcqSlotIndexes.some((index) => reused[index] !== undefined)).toBe(true)
+  })
+})
+
+test.describe('A5: points fit the content', () => {
+  test('an open-ended question with one gradable idea is worth less than one with three', () => {
+    const open = (id: string, items: number) => ({ id, type: 'open-ended' as const, stem: 's', answer: 'a', rubric: Array.from({ length: items }, (_, i) => ({ text: `ölçüt ${i}`, points: 1 })), points: 0, topic: 't', difficulty: 'medium' as const, lines: 3 })
+    const scored = distributePoints([open('one', 1), open('three', 3), open('two', 2)], 100)
+    const byId = Object.fromEntries(scored.map((question) => [question.id, question.points]))
+    expect(byId.one).toBeLessThan(byId.two)
+    expect(byId.two).toBeLessThan(byId.three)
+    expect(scored.reduce((sum, question) => sum + question.points, 0)).toBe(100)
+  })
+})
+
+test.describe('related facts for levels 4 to 6', () => {
+  test('only the higher slots get up to two unused facts of their own topic', () => {
+    const plan: PlanFact[] = [...Array.from({ length: 6 }, (_, i) => fact(i, 'Organeller')), ...Array.from({ length: 6 }, (_, i) => fact(10 + i, 'Mitoz bölünme'))]
+    const slots = [
+      { type: 'open-ended' as const, bloom: 5 as const, difficulty: 'hard' as const },
+      { type: 'short-answer' as const, bloom: 2 as const, difficulty: 'easy' as const },
+      { type: 'open-ended' as const, bloom: 4 as const, difficulty: 'medium' as const },
+    ]
+    const chosen = [plan[0], plan[1], plan[10]]
+    const withFacts = withRelated(chosen, plan, slots)
+    expect(withFacts[1].related).toBeUndefined()
+    expect(withFacts[0].related).toHaveLength(2)
+    expect(withFacts[2].related).toHaveLength(2)
+    for (const entry of [withFacts[0], withFacts[2]]) for (const value of entry.related ?? []) {
+      expect(chosen.map((item) => item.fact)).not.toContain(value)
+      expect(plan.find((item) => item.fact === value)?.topic).toBe(entry.topic)
+    }
   })
 })

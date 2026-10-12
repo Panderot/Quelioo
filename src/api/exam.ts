@@ -63,6 +63,8 @@ export interface ExamSectionFact {
   fact: string
   topic: string
   concept?: string
+  /** Related facts of the same topic that a level 4-6 question may combine with this one. */
+  related?: string[]
 }
 
 export interface ExamSectionRequest extends ExamRequestBase {
@@ -222,6 +224,8 @@ export interface ExamVerifyRequest {
   questions: ExamQuestion[]
   /** Pairs of questions the judge says are about the same fact or not (at most 10 per request). */
   pairs?: { id: string; a: string; b: string }[]
+  /** Only ask whether the scenario or the stem gives the correct option away: the correct option is shown to the judge, no key is checked. */
+  copyOnly?: boolean
 }
 
 export interface ExamKeyFix {
@@ -253,6 +257,10 @@ export interface ExamVerifyResult {
 
 const NUMERIC_ANSWER = /^[-−+]?[0-9]/
 
+function correctOptionText(question: ExamQuestion): string {
+  return question.type === 'mcq' && question.options && question.answerIndex !== undefined ? (question.options[question.answerIndex] ?? question.answer) : question.answer
+}
+
 /** The request body of the judge: keys of true-false / multiple choice, repeats, and a blind reading of every question. */
 export function examVerifyPayload(request: ExamVerifyRequest): Record<string, unknown> {
   const items = request.questions.map((question) => {
@@ -262,9 +270,9 @@ export function examVerifyPayload(request: ExamVerifyRequest): Record<string, un
       type: question.type,
       stem: question.stem,
       ...(question.context ? { context: question.context } : {}),
-      ...(question.options ? { options: question.options, answerIndex: question.answerIndex } : {}),
+      ...(question.options ? { options: question.options, ...(request.copyOnly ? {} : { answerIndex: question.answerIndex }) } : {}),
       ...(question.answerBool === undefined ? {} : { answerBool: question.answerBool }),
-      ...(written ? { expected: question.answer.slice(0, 400) } : {}),
+      ...(written || request.copyOnly ? { expected: (request.copyOnly ? correctOptionText(question) : question.answer).slice(0, 400) } : {}),
       // A calculation: the judge works it out blind and the result is compared with the key.
       ...((question.type === 'short-answer' || question.type === 'fill-blanks') && NUMERIC_ANSWER.test(question.answer.trim()) ? { solve: true } : {}),
     }
@@ -310,6 +318,8 @@ export interface ExamFact {
   topic: string
   /** The skill or rule the fact belongs to (applications of one formula share it). */
   concept?: string
+  /** Related facts of the same topic that a level 4-6 question may combine with this one. */
+  related?: string[]
 }
 
 export interface ExamPlanRequest {

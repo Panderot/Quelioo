@@ -1,6 +1,6 @@
 import { EXAM_QUESTION_TYPES, EXAM_TOTAL_POINTS } from './types.js'
 import type { ExamQuestion, ExamQuestionType } from './types.js'
-import { answerLeaks, fillBlankProblems, optionsUneven, joinsTwoClaims, matchingProblems, mcqExamIssues, rubricProblems, shortAnswerProblems, trueFalseAbsoluteIds } from './contentRules.js'
+import { answerLeaks, fillBlankProblems, isPlainNegation, optionsUneven, joinsTwoClaims, matchingProblems, mcqExamIssues, rubricProblems, shortAnswerProblems, trueFalseAbsoluteIds } from './contentRules.js'
 import { normalize, overlap, shareOfUnion, stems, wordShare } from './text.js'
 
 /** One whole-exam check, used by the server (api/_lib/exam.ts) and by the generator that stitches sections together.
@@ -61,6 +61,13 @@ const RETOLD_SHARE = 0.7
 const CONTEXT_OVERLAP = 0.85
 const MATCHING_OVERLAP = 0.5
 const MIN_ANSWER_CHARS = 4
+
+/** The scenario and the stem both open with the same capitalised first word (a person's name): the stem retells the scenario. */
+function opensWithSamePerson(question: ExamQuestion): boolean {
+  const first = (text: string) => (/^\s*(\p{Lu}[\p{L}]{2,})/u.exec(text.replace(/^[(\[“"']+/u, ''))?.[1] ?? '').toLocaleLowerCase('tr-TR')
+  const name = first(question.context ?? '')
+  return name !== '' && name === first(question.stem)
+}
 
 function optionsUnevenFor(question: ExamQuestion): boolean {
   return optionsUneven(question)
@@ -213,6 +220,12 @@ export function trueFalseRange(total: number): [number, number] {
 // "this model / according to the table / the text above": only works when that thing is printed in the question itself.
 const TR_THING = 'model|şekil|tablo|grafik|diyagram|harita|resim|görsel|şema|metin|parça|paragraf|pasaj'
 const REFERENCE_PATTERNS: RegExp[] = [
+  // "Verilen tarih ve süreleri kullanarak ..." / "using the given dates": the data must be printed in the question.
+  /(?:^|[^\p{L}])verilen\s+([\p{L}]+)/iu,
+  /(?:^|[^\p{L}])(bilgilere)\s+göre/iu,
+  /(?:^|[^\p{L}])((?:aşağıdaki|yukarıdaki)\s+gibi)/iu,
+  /\b(as (?:shown|given) (?:below|above))/i,
+  /\bthe given\s+(\w+)/i,
   /(haritada|grafikte|tabloda|diyagramda|şemada|resimde|görselde)(?![\p{L}])/iu,
   new RegExp(`(?:bu|şu|yukarıdaki|aşağıdaki|verilen)\\s+((?:${TR_THING})[\\p{L}]*)`, 'iu'),
   /(şekle|tabloya|grafiğe|diyagrama|haritaya|resme|görsele|şemaya|metne|parçaya|paragrafa|pasaja)\s+göre/iu,
@@ -378,8 +391,8 @@ export function checkExamQuality(questions: ExamQuestion[], counts: Record<ExamQ
   for (const [index, question] of questions.entries()) {
     if (hasBrokenReference(question)) flag('reference', question)
     if (blankLeaks(question)) flag('blank-leak', question)
-    // The stem must not retell its own scenario.
-    if (question.context && sentencesOf(question.stem).some((sentence) => sentences[index].some((other) => sentence === other || wordShare(sentence, other) >= RETOLD_SHARE))) flag('scenario', question)
+    // The stem must not retell its own scenario (not even by opening with the same person).
+    if (question.context && (sentencesOf(question.stem).some((sentence) => sentences[index].some((other) => sentence === other || wordShare(sentence, other) >= RETOLD_SHARE)) || opensWithSamePerson(question))) flag('scenario', question)
   }
 
   for (const question of questions) {
@@ -388,7 +401,7 @@ export function checkExamQuality(questions: ExamQuestion[], counts: Record<ExamQ
     if (question.type === 'fill-blanks' && fillBlankProblems(question).length > 0) flag('fill-blank', question)
     if (question.type === 'matching' && matchingProblems(question).length > 0) flag('matching', question)
     if (question.type === 'open-ended' && rubricProblems(question).length > 0) flag('rubric', question)
-    if (question.type === 'true-false' && joinsTwoClaims(question.stem)) flag('tf-claims', question)
+    if (question.type === 'true-false' && (joinsTwoClaims(question.stem) || (question.answerBool === false && isPlainNegation(question.stem)))) flag('tf-claims', question)
     if (question.type === 'mcq' && optionsUnevenFor(question)) flag('mcq-options', question)
   }
   const byId = new Map(questions.map((question) => [question.id, question]))

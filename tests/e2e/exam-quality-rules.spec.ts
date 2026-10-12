@@ -403,3 +403,12 @@ test.describe('concepts: the same skill with other numbers', () => {
     expect(idsOf(plain, 'concept-cap')).toEqual([])
   })
 })
+
+test.describe('scenario rule: the stem does not retell the scenario', () => {
+  test('a stem that opens with the same person as the scenario fails; one that starts with the question passes', () => {
+    const retold = q('mcq', 'Zeynep, kütüphanedeki etkinlikte çekirdek zarı olmayan bir canlı grubu görüyor. Hangisi bu gruba örnektir?', { context: 'Zeynep, şehir kütüphanesinde canlıların hücre yapılarını sınıflandıran bir etkinliğe katılıyor.' })
+    expect(idsOf([retold], 'scenario')).toEqual([retold.id])
+    const clean = q('mcq', 'Bu etkinlikte çekirdek zarı olmayan canlı grubu için hangisi örnektir?', { context: 'Zeynep, şehir kütüphanesinde canlıların hücre yapılarını sınıflandıran bir etkinliğe katılıyor.' })
+    expect(idsOf([clean], 'scenario')).toEqual([])
+  })
+})

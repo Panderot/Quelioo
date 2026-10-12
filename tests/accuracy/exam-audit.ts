@@ -13,7 +13,7 @@ import { ExamDistributionError, ExamShortSourceError, generateExamQuestions } fr
 import type { ExamGenerationState } from '../../src/lib/exam/generate'
 import { paperLabels } from '../../src/lib/exam/paperLabels'
 import { chooseFacts, clusterTopics } from '../../src/lib/exam/planning'
-import { checkExamQuality, correctAnswerText, factSimilarity } from '../../src/lib/exam/quality'
+import { SOFT_RULES, checkExamQuality, correctAnswerText, factSimilarity } from '../../src/lib/exam/quality'
 import { buildMemory, earlierFromMemories, memoriesForSource } from '../../src/lib/exam/sourceMemory'
 import type { StoredMemory } from '../../src/lib/exam/sourceMemory'
 import { distributionRows, specRows } from '../../src/lib/exam/tables'
@@ -198,7 +198,8 @@ async function audit(variant: Variant): Promise<void> {
   const dist = distributionRows(questions.map((q, i) => ({ ...q, number: i + 1 })))
   const report = {
     case: variant.key,
-    ok: rules.filter((issue) => !['term-repeat'].includes(issue.rule)).length === 0 && missing === 0,
+    ok: rules.filter((issue) => !SOFT_RULES.includes(issue.rule)).length === 0 && missing === 0,
+    softLeft: rules.filter((issue) => SOFT_RULES.includes(issue.rule) && issue.rule !== 'term-repeat').map((issue) => `${issue.rule}:${issue.id}`),
     seconds,
     costUsd: Number(costUsd.toFixed(4)),
     calls,
@@ -207,7 +208,7 @@ async function audit(variant: Variant): Promise<void> {
     wordsPerQuestionAvailable: Number((words / total).toFixed(1)),
     maxQuestionsForWords: maxQuestionsForWords(words),
     rounds: roundIssues,
-    remainingRules: rules.map((issue) => `${issue.rule}:${issue.id}`),
+    remainingRules: rules.filter((issue) => !SOFT_RULES.includes(issue.rule)).map((issue) => `${issue.rule}:${issue.id}`),
     counts,
     bloomWanted: wanted,
     bloomGot: gotBloom,

@@ -155,6 +155,8 @@ export function rubricProblems(question: ExamQuestion): string[] {
   const problems: string[] = []
   const items = question.rubric
   if (items.some((item) => isEmptyRubricItem(item.text))) problems.push('empty-item')
+  // An open-ended question with one gradable idea is a short question in disguise.
+  if (items.length < 2) problems.push('one-item')
   for (let i = 1; i < items.length; i += 1) {
     if (items.slice(0, i).some((other) => wordShare(normalize(other.text), normalize(items[i].text)) >= 0.6 || contentOverlap(other.text, items[i].text) >= 0.75)) {
       problems.push('repeated-item')
@@ -198,6 +200,11 @@ const ABSOLUTE_WORDS = /(?:^|[^\p{L}])(?:her zaman|hiçbir|hiç bir|asla|daima|k
 
 export function hasAbsoluteWord(statement: string): boolean {
   return ABSOLUTE_WORDS.test(statement)
+}
+
+/** A false statement written as a plain negation of the true one ("X değil, Y'dir", "X is not Y"): too easy to spot. */
+export function isPlainNegation(statement: string): boolean {
+  return /(?<![\p{L}])değil(?:dir)?[,;]/iu.test(statement) || /\b(?:is|are|was|were|does|do) not\b/i.test(statement)
 }
 
 // "X yapar ve Y eder": the part before "ve" ends in a finite verb, so two claims are joined.

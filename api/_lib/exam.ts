@@ -89,7 +89,7 @@ const EXAM_QUALITY_RULES = [
   'QUALITY RULES (every question, every type):',
   '1) Every question must be answerable from <source_text> alone; never test facts the text does not give. Cover the whole source evenly, and the <topics> when given.',
   '2) No two questions test the same fact or have the same answer; word them differently; one question never reveals another one’s answer.',
-  '3) Stems are self-contained, unambiguous, grammatical, free of spelling mistakes, and make sense printed on paper without the source (never "according to the text" unless the question really is about the text). Natural, correct language; exactly one defensible answer (except evaluation and creation questions, which accept different valid answers).',
+  '3) Stems are self-contained, unambiguous, grammatical, free of spelling mistakes, and make sense printed on paper without the source (never "according to the text" unless the question really is about the text). Natural, correct language; exactly one defensible answer (except evaluation and creation questions, which accept different valid answers). The stem names what it asks about (never "a city" or "an event" when the source names it) and contains every piece of data the student needs: never "the given dates" or "the information above" unless the data is written in the question.',
   '4) Vocabulary, sentence length and depth fit the exam level. Each question has the cognitive level (Bloom) and difficulty given for it in <slots>: easy = recall of one fact, medium = connecting two facts or applying one rule, hard = multi-step reasoning, comparison or applying knowledge to a new case.',
   '5) FORMULAS: write maths and chemistry formulas as LaTeX between single dollar signs ($x^2+3x=0$, $\\frac{a}{b}$, $\\sqrt{2}$, $\\mathrm{H_2SO_4}$, $\\mathrm{Ca^{2+}}$, $\\rightarrow$); plain words stay outside the dollars; never use dollar signs for money.',
   '6) Never pad: if the source supports fewer good questions than requested, return fewer.',
@@ -99,13 +99,13 @@ const EXAM_QUALITY_RULES = [
   '10) FILL-IN-THE-BLANK: the answer (in any form) must NOT appear anywhere else in the sentence, nor in the context; and never leave the stem depending on a word like "this" without saying what it refers to.',
   '11) If a stem refers to a situation ("this student", "this document", "the text above"), the "context" field MUST hold that situation; every stem stays understandable on its own paper.',
   '12) Never refer to a model, figure, table, graph, map, picture or passage ("according to the model/figure/table/text", "on the map", "in the graph") unless that content is written out in the question’s own "context" or stem; the paper has no attachments.',
-  '13) Every scenario in "context" is new: a different situation, different people and a different opening; never reuse a sentence from another question’s scenario. Use the settings given in <variety> when they are listed.',
-  '14) Ask about many different facts of the source; never ask about the same term, name or concept in more than one question, and no two questions share the same correct answer, whatever their type.',
+  '13) Every scenario in "context" is new: a different situation, different people and a different opening; never reuse a sentence from another question’s scenario. Use the settings given in <variety> only when they fit the question naturally.',
+  '14) Ask the question directly and briefly; never write meta stems such as "which option should the student mark?". Ask about many different facts of the source; never ask about the same term, name or concept in more than one question, and no two questions share the same correct answer, whatever their type.',
   '15) NO GIVEAWAYS: the stem and the scenario must NOT contain the key terms of the expected answer or of any rubric item, and the question must not be answerable by copying words from the stem or the scenario. A scenario sets a situation and a problem; it never states the facts the student is asked to supply. A hard question is never plain recall.',
 ].join(' ')
 
 const CONTEXT_RULE =
-  'CONTEXT-BASED QUESTIONS: for about two thirds of the questions (never matching) put a short real-life scenario or situation (1-3 sentences, <= 350 characters) in "context" and let the stem refer to it; the stem must still be answerable from the source knowledge. Other questions omit "context".'
+  'CONTEXT-BASED QUESTIONS: only about one third of the questions carry a "context" (a short real-life situation of 1-3 sentences, <= 350 characters), and only open-ended and multiple-choice questions at level 3 (Apply) or higher, where a case really is needed (data, a situation to analyse or judge, a problem to solve). Recall and understanding questions, short-answer, true-false, fill-in-the-blank and matching questions have NO "context". The scenario sets a situation and a problem; it never states the facts the student must supply. The stem never repeats the people or the setting of the scenario: it starts with the question itself. Use the settings in <variety> only where they fit the topic naturally; otherwise choose a setting that fits.'
 const NO_CONTEXT_RULE = 'Do not write "context" (leave it out of every question).'
 
 const TYPE_SHAPE: Record<ExamQuestionType, string> = {
@@ -125,7 +125,7 @@ const TYPE_SHAPE: Record<ExamQuestionType, string> = {
 /** Rules of each question type for the written exam (the quiz keeps its own wording in quiz-rules.ts). */
 const EXAM_TYPE_RULES: Record<ExamQuestionType, string> = {
   mcq: 'MCQ RULES: one unambiguously correct option; distractors come from real misconceptions or close concepts in the source, are of the same kind and about the same length as the correct option; the correct option is NOT the longest by habit and never repeats the key words of the stem; no option contains another; use "hepsi" / "hiçbiri" (all / none of the above) only when it really fits; open stems in different ways (never most of them "Aşağıdakilerden hangisi doğrudur?"); at most ONE negative stem in the whole exam, and its negative word is written in bold with ** (for example **değildir**); the correct option is not always in the same position.',
-  'true-false': 'TRUE/FALSE RULES: each statement tests exactly ONE idea (never two claims joined with "ve" / "and"); absolute words (her zaman, asla, hiçbir, sadece, always, never, only) appear as often in TRUE statements as in false ones, or not at all; a false statement changes one key detail and sounds as plausible as a true one.',
+  'true-false': 'TRUE/FALSE RULES: each statement tests exactly ONE idea (never two claims joined with "ve" / "and"); absolute words (her zaman, asla, hiçbir, sadece, always, never, only) appear as often in TRUE statements as in false ones, or not at all; a false statement changes one key detail and sounds as plausible as a true one, and is never a plain negation of the true one (never “X değil, Y’dir”, never “X is not Y”).',
   'fill-blanks': 'FILL-IN RULES: exactly ONE blank written as "___" per sentence; the answer is ONE specific key term (1-3 words) a student who knows the topic gives, never a guessable filler or function word, never a word that appears elsewhere in the sentence; give "acceptableAnswers" only for real synonyms and inflected forms that fit the blank.',
   'short-answer': 'SHORT-ANSWER RULES: the expected answer is 1 to 4 words, a number or a formula (for example "ribozom", "merkezi koful", "fosfolipit ve protein"); the stem is a DIRECT question or a fill-in and NEVER says "açıklayınız", "açıklayın", "neden", "niçin", "explain" or "why"; "acceptableAnswers" lists at most 3 real alternatives (synonyms, spelling variants, the English or Latin term), never the same sentence reworded; the rubric has exactly ONE item worth the full points.',
   matching: 'MATCHING RULES: 4 to 6 pairs; the left items are all of one kind (for example all organelles); every left item matches exactly one right item; "extras" holds at least 2 more right-column items that match nothing on the left but are of the same kind (so the right column is longer than the left); no synonyms or overlapping meanings; a left item and its own right item share no word that gives the match away; items are short; each pair covers a different fact; the right-hand values do not follow a mirrored or alphabetical order.',
@@ -141,7 +141,7 @@ function subjectRules(course: string, level: ExamLevel): string {
   const name = course.toLocaleLowerCase('tr-TR')
   const rules: string[] = []
   if (/matematik|math|geometri|fizik|physics|kimya|chem/.test(name)) {
-    rules.push('SUBJECT (calculation): every numeric answer is exact and checked twice; units are written wherever they apply (m/s, N, mol, g/L); show the numbers in the question so it can be solved on paper; chemical formulas and ions use LaTeX ($\\mathrm{H_2SO_4}$, $\\mathrm{Ca^{2+}}$) and reaction arrows $\\rightarrow$.')
+    rules.push('SUBJECT (calculation): every numeric answer is exact and checked twice; units are written wherever they apply (m/s, N, mol, g/L); calculation questions use NEW numbers of your own (the method of the source, never the numbers of its worked examples) and show every number in the question so it can be solved on paper; chemical formulas and ions use LaTeX ($\\mathrm{H_2SO_4}$, $\\mathrm{Ca^{2+}}$) and reaction arrows $\\rightarrow$.')
   }
   if (/türkçe|edebiyat|turkish|literature|dil ve anlatım/.test(name)) {
     rules.push('SUBJECT (language and literature): a question that needs a passage holds the passage itself in "context" (up to 900 characters; an original text or a public-domain one); never write "yukarıdaki metin" without printing the text.')
@@ -178,6 +178,8 @@ export interface ExamFact {
   topic: string
   /** The skill or rule the fact belongs to (worked applications of one formula share it). */
   concept?: string
+  /** Other facts of the same topic a level 4-6 question may use together with this one (compare, relate, evaluate, design). */
+  related?: string[]
 }
 
 /** What question k of a section must be: its cognitive level and difficulty. */
@@ -257,7 +259,7 @@ function buildSystemPrompt(request: ExamGenerationRequest, count: number): strin
         : `TRUE-FALSE BALANCE: every statement in this reply must be ${request.trueFalseAnswer ? 'TRUE ("answerBool": true)' : 'FALSE ("answerBool": false): a plausible statement that changes one key fact of the source, never a plain negation'}.`
   const factRule =
     request.facts.length > 0
-      ? `FACTS: <facts> lists the ${request.facts.length} facts of this call, numbered. Question k tests ONLY fact k, in this order, and nothing else: never test another fact, never test the same fact twice. Copy the fact verbatim into the "fact" field of the question and its topic into "topic". A true-false statement is the fact (true) or the fact with one detail changed (false); the correct option or answer of any other type is the fact itself.`
+      ? `FACTS: <facts> lists the ${request.facts.length} facts of this call, numbered. Question k tests ONLY fact k, in this order, and nothing else: never test another fact, never test the same fact twice. Copy the fact verbatim into the "fact" field of the question and its topic into "topic". A true-false statement is the fact (true) or the fact with one detail changed (false); the correct option or answer of any other type is the fact itself. A fact with related facts may be asked together with them at levels 4-6 (compare, relate, evaluate, design): then the answer and the rubric use only the main fact and its related facts, and the main fact is still copied into "fact".`
       : ''
   const part =
     request.partCount > 1 && request.facts.length === 0
@@ -291,7 +293,8 @@ function buildUserMessage(request: ExamGenerationRequest): string {
   if (request.facts.length > 0) {
     const numbered = request.facts.map((entry, index) => {
       const mark = request.type === 'true-false' && request.trueFalseAnswers[index] !== undefined ? ` => the statement must be ${request.trueFalseAnswers[index] ? 'TRUE' : 'FALSE'}` : ''
-      return `${index + 1}. ${neutralizeTag(entry.fact, 'facts')}${entry.topic ? ` (topic: ${neutralizeTag(entry.topic, 'facts')})` : ''}${mark}`
+      const related = entry.related && entry.related.length > 0 ? ` [related facts you may combine with it: ${entry.related.map((value) => neutralizeTag(value, 'facts')).join(' | ')}]` : ''
+      return `${index + 1}. ${neutralizeTag(entry.fact, 'facts')}${entry.topic ? ` (topic: ${neutralizeTag(entry.topic, 'facts')})` : ''}${related}${mark}`
     })
     lines.push(`<facts>\n${numbered.join('\n')}\n</facts>`)
   }
@@ -314,7 +317,9 @@ function buildUserMessage(request: ExamGenerationRequest): string {
 
 /** JSON turns an unescaped \frac into a form feed plus "rac" (\theta, \right, \beta the same way); the backslash goes back so LaTeX survives. */
 export function restoreLatex(text: string): string {
-  return text
+  // Word-processor style delimiters \( ... \) and \[ ... \] become the $...$ and $$...$$ the paper renders.
+  const delimited = text.replace(/\\\(([\s\S]+?)\\\)/g, (_, math: string) => `$${math}$`).replace(/\\\[([\s\S]+?)\\\]/g, (_, math: string) => `$$${math}$$`)
+  return delimited
     .replace(/\f(?=[a-z])/g, '\\f')
     .replace(/\u0008(?=[a-z])/g, '\\b')
     .replace(/\t(?=[a-z])/g, '\\t')
@@ -390,6 +395,7 @@ function nearDuplicate(a: Set<string>, b: Set<string>): boolean {
 /** One raw model item into an ExamQuestion of the requested type, or null when it is unusable. */
 export function sanitizeExamQuestion(raw: unknown, type: ExamQuestionType, optionsCount: 4 | 5, allowContext: boolean, contextLimit = MAX_CONTEXT_CHARS): ExamQuestion | null {
   if (!isRecord(raw)) return null
+  if (hasCorruptText(raw)) return null
   if (typeof raw.type === 'string' && raw.type !== type) return null
   const rawStem = str(raw.stem ?? raw.question, MAX_STEM_CHARS)
   const stem = type === 'mcq' && hasNegativeStem(rawStem) ? boldNegative(rawStem) : rawStem
@@ -569,7 +575,8 @@ function parseFacts(value: unknown, max: number): ExamFact[] {
     if (!isRecord(entry)) continue
     const fact = str(entry.fact, MAX_FACT_CHARS)
     const concept = str(entry.concept, 80)
-    if (fact) facts.push({ fact, topic: str(entry.topic, 120), ...(concept ? { concept } : {}) })
+    const related = stringList(entry.related, 2, MAX_FACT_CHARS)
+    if (fact) facts.push({ fact, topic: str(entry.topic, 120), ...(concept ? { concept } : {}), ...(related.length > 0 ? { related } : {}) })
   }
   return facts
 }
@@ -952,7 +959,7 @@ function parseVerifyItems(value: unknown): VerifyItem[] {
     const type = typeof entry.type === 'string' && TYPE_SET.has(entry.type) ? (entry.type as ExamQuestionType) : null
     if (!id || !stem || !type) continue
     const context = str(entry.context, 1200)
-    const expected = type === 'open-ended' || type === 'short-answer' || type === 'fill-blanks' ? str(entry.expected, 400) : ''
+    const expected = type === 'open-ended' || type === 'short-answer' || type === 'fill-blanks' || type === 'mcq' ? str(entry.expected, 400) : ''
     const solve = entry.solve === true && (type === 'short-answer' || type === 'fill-blanks')
     const base = { id, type, stem, context, options: [] as string[], key: '', expected, solve }
     if (type === 'true-false') {
@@ -1086,4 +1093,12 @@ export async function handleExamRequest(mode: ExamMode, payload: Record<string, 
   if (mode === 'exam_verify') return handleVerify(payload)
   if (mode === 'exam_plan') return handlePlan(payload)
   return handleRubric(payload)
+}
+
+/** A reply with a stray control character inside a text (a LaTeX backslash that turned into one) is corrupt: the question is dropped and written again. */
+export function hasCorruptText(raw: unknown): boolean {
+  if (typeof raw === 'string') return /[\u0000-\u0007\u000e-\u001f]/.test(raw)
+  if (Array.isArray(raw)) return raw.some(hasCorruptText)
+  if (isRecord(raw)) return Object.values(raw).some(hasCorruptText)
+  return false
 }

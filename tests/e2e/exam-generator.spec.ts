@@ -194,6 +194,61 @@ test.describe('answer keys', () => {
 })
 
 test.describe('rewrite rounds', () => {
+  test('a question that failed for how it was written is written again on its own fact, so the reserve stays for repeats', async () => {
+    let planted: string | null = null
+    const server = fake({
+      shape: (made, request) => {
+        if (request.type === 'short-answer' && planted === null) {
+          planted = made.fact ?? ''
+          return { ...made, answer: 'Bu çok uzun bir cevap cümlesidir ve yalnızca bir kelime olmalıydı' }
+        }
+        return made
+      },
+    })
+    const questions = await run(server)
+    expect(questions).toHaveLength(20)
+    const rewrite = server.sections.find((request) => request.avoidAnswers !== undefined && request.type === 'short-answer')
+    expect(rewrite?.facts?.map((entry) => entry.fact)).toEqual([planted])
+  })
+
+  test('a scenario question whose correct option the scenario gives away is written again (the judge sees the option in a separate call)', async () => {
+    let planted: string | null = null
+    let flagged = false
+    const server = fake({
+      shape: (made, request) => {
+        if (request.type === 'mcq' && planted === null) {
+          planted = made.id
+          return { ...made, context: 'Elif okulda bir etkinliğe katılıyor ve gördüğü yapının adını öğreniyor.' }
+        }
+        return made
+      },
+      verify: (request) => {
+        const reviews = request.copyOnly && !flagged ? request.questions.map((entry) => ({ id: entry.id, copy: true, level: 3 as const, difficulty: 'medium' as const })) : []
+        if (request.copyOnly) flagged = true
+        return { wrong: [], fixes: [], same: [], reviews }
+      },
+    })
+    const questions = await run(server)
+    expect(questions).toHaveLength(20)
+    expect(server.verifies.some((request) => request.copyOnly === true)).toBe(true)
+    // Copy-only requests carry the scenario questions only, and never ask for a key.
+    expect(server.verifies.filter((request) => request.copyOnly).every((request) => request.questions.every((entry) => entry.type === 'mcq' && Boolean(entry.context)))).toBe(true)
+    expect(questions.some((entry) => entry.id === planted)).toBe(false)
+  })
+
+  test('levels 4 to 6 get related facts of their topic to combine; lower levels do not', async () => {
+    const server = fake({ facts: fakeFacts(30).map((entry, index) => ({ ...entry, topic: index % 2 === 0 ? 'Organeller' : 'Mitoz bölünme', concept: `kavram ${index}` })) })
+    await run(server)
+    const asked = server.sections.slice(0, 4).flatMap((request) => (request.slots ?? []).map((slot, index) => ({ slot, fact: request.facts?.[index] })))
+    const high = asked.filter((entry) => entry.slot.bloom >= 4)
+    const low = asked.filter((entry) => entry.slot.bloom < 4)
+    expect(high.length).toBeGreaterThan(0)
+    expect(high.every((entry) => (entry.fact?.related?.length ?? 0) > 0)).toBe(true)
+    expect(low.every((entry) => entry.fact?.related === undefined)).toBe(true)
+    // A related fact belongs to the same topic and is not the fact of another question.
+    const used = new Set(asked.map((entry) => entry.fact?.fact))
+    for (const entry of high) for (const related of entry.fact?.related ?? []) expect(used.has(related)).toBe(false)
+  })
   test('a defect that keeps coming back leaves those questions out; the rest is kept with exactly 100 points', async () => {
     // Every multiple-choice question reaches the reference rule: it never passes.
     const server = fake({ shape: (made) => (made.type === 'mcq' ? { ...made, stem: 'Bu modele göre hangi şık doğrudur?' } : made) })

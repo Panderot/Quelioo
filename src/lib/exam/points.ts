@@ -48,8 +48,14 @@ const DIFFICULTY_WEIGHT: Record<ExamDifficulty, number> = { easy: 0.8, medium: 1
 /** A recall answer is worth less than a reasoning answer (A5: points fit the content). */
 const LEVEL_WEIGHT: Record<number, number> = { 1: 0.75, 2: 0.9, 3: 1, 4: 1.15, 5: 1.3, 6: 1.4 }
 
-export function questionWeight(question: Pick<ExamQuestion, 'type' | 'difficulty'> & { bloomLevel?: number }): number {
-  return TYPE_WEIGHT[question.type] * DIFFICULTY_WEIGHT[question.difficulty] * (question.bloomLevel ? (LEVEL_WEIGHT[question.bloomLevel] ?? 1) : 1)
+/** An open-ended answer with one gradable idea is worth less than one with three (a one-line answer is not worth 9 points). */
+function contentWeight(question: Pick<ExamQuestion, 'type'> & { rubric?: unknown[] }): number {
+  if (question.type !== 'open-ended' || !question.rubric) return 1
+  return question.rubric.length >= 3 ? 1 : question.rubric.length === 2 ? 0.8 : 0.55
+}
+
+export function questionWeight(question: Pick<ExamQuestion, 'type' | 'difficulty'> & { bloomLevel?: number; rubric?: unknown[] }): number {
+  return TYPE_WEIGHT[question.type] * DIFFICULTY_WEIGHT[question.difficulty] * (question.bloomLevel ? (LEVEL_WEIGHT[question.bloomLevel] ?? 1) : 1) * contentWeight(question)
 }
 
 /** Sets a question's points and rescales its rubric to match. */

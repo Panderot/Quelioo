@@ -3,7 +3,7 @@ import type { ExamFact, ExamPlanRequest, ExamReview, ExamSectionRequest, ExamVer
 import { balanceMcqLetters } from './balance'
 import { bloomMixOk, bloomTargetCounts, clampBloom, fitDifficulty, planSlots } from './bloom'
 import type { BloomPlan } from './bloom'
-import { chooseFacts } from './planning'
+import { chooseFacts, withRelated } from './planning'
 import { distributePoints } from './points'
 import { IGNORED_RULES, MAX_QUESTIONS_PER_CONCEPT, SOFT_RULES, checkExamQuality, conceptCapacity, conceptKey, correctAnswerText, factSimilarity, pairKey, questionsToRewrite, repeatedTerms, trueFalseRange, uncertainPairs } from './quality'
 import type { ExamQualityIssue } from './quality'
@@ -19,10 +19,12 @@ const CONCURRENCY = 3
 const VERIFY_ITEMS = 12
 const VERIFY_PAIRS = 10
 /** Facts planned per question asked for: the surplus is what a rewritten question draws its new fact from. */
-export const PLAN_SURPLUS = 1.5
+export const PLAN_SURPLUS = 2
 export const MAX_PLAN_FACTS = 60
 /** Targeted rewrite rounds; a question still broken after them stops the exam. */
 export const MAX_REPAIR_ROUNDS = 3
+/** Problems with the fact itself or with how it repeats another question: the rewrite takes a different fact. Every other problem is rewritten on the same fact. */
+const NEW_FACT_RULES = ['duplicate', 'same-answer', 'concept-cap']
 /** A relabelled level that is further away than this from the planned one is a different question: it is written again. */
 const BLOOM_REWRITE_GAP = 2
 /** A calculation the judge solved differently by more than this share is flagged. */
@@ -173,6 +175,8 @@ export interface ExamGenerationState {
   current?: ExamQuestion[]
   /** The last result left questions out: the next run asks only for the missing ones. */
   partial?: boolean
+  /** How often a fact was already written again after a failed check (a fact is rewritten twice at most before a new one is taken). */
+  attempts?: Map<string, number>
 }
 
 export interface GenerateExamOptions {
@@ -266,8 +270,10 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
       if (choice.rowShortfall.length > 0 && !acceptFewer) throw new ExamDistributionError(choice.rowShortfall)
       state.assigned = new Map()
       let cursor = 0
+      // Questions of level 4-6 get related facts of their topic to combine with their own.
+      const facts = withRelated(choice.facts, plan, slots)
       for (const section of sections) {
-        state.assigned.set(section.key, choice.facts.slice(cursor, cursor + section.count))
+        state.assigned.set(section.key, facts.slice(cursor, cursor + section.count))
         cursor += section.count
       }
       for (const entry of choice.facts) usedFacts.add(entry.fact)
@@ -316,6 +322,11 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
     // Polish rules (a subject word used a little too often, a stem opening used twice) are worth one rewrite, not more.
     if (round >= 1 && issues.every((issue) => SOFT_RULES.includes(issue.rule))) break
     const drop = questionsToRewrite(issues)
+    const attempts = (state.attempts ??= new Map<string, number>())
+    // A question that failed for how it was written (a giveaway, a long short-answer, an uneven option list) is written again on its own fact: the reserve stays for repeats.
+    const needsNewFact = new Set(issues.filter((issue) => NEW_FACT_RULES.includes(issue.rule)).map((issue) => issue.id))
+    const reuse = new Set(current.filter((question) => drop.has(question.id) && question.fact && !needsNewFact.has(question.id) && (attempts.get(question.fact) ?? 0) < 2).map((question) => question.id))
+    for (const question of current) if (reuse.has(question.id) && question.fact) attempts.set(question.fact, (attempts.get(question.fact) ?? 0) + 1)
     const before = current
     current = await rewriteQuestions({
       settings,
@@ -327,6 +338,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
       dropped: current.filter((question) => drop.has(question.id)),
       planned: slots,
       lang,
+      reuse,
       // A fact that already failed is not asked again when the teacher retries only the missing questions.
       allowSpent: !retryingMissing,
       signal,
@@ -339,6 +351,8 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
     issues = await issuesOf(current, settings, text, judge, calls, targets, signal)
     onIssues?.(round + 1, issues)
   }
+  // Whatever still disagrees with the judge after the rounds is labelled as the judge reads it: a true label matters more than the planned mix.
+  relabelToJudge(current, judge.reviews)
   const blocking = issues.filter((issue) => !SOFT_RULES.includes(issue.rule))
   const failing = new Set(blocking.map((issue) => issue.id).filter((id): id is string => id !== null))
   const kept = current.filter((question) => !failing.has(question.id))
@@ -364,6 +378,8 @@ export interface JudgeState {
   judged: Map<string, boolean>
   /** The judge's blind reading of each question. */
   reviews: Map<string, ExamReview>
+  /** Ids of the scenario questions whose correct option was checked for being given away. */
+  copyChecked?: Set<string>
 }
 
 function copyableOf(judge: JudgeState): Map<string, boolean> {
@@ -427,7 +443,38 @@ async function consult(list: ExamQuestion[], settings: ExamSettings, text: strin
     }),
   )
   void settings
-  return list.map((question) => corrected.get(question.id) ?? question)
+  const checked = list.map((question) => corrected.get(question.id) ?? question)
+  await checkGiveaways(checked, text, judge, calls, signal)
+  return checked
+}
+
+/** A scenario question with options: the judge sees the correct option and says whether the scenario or the stem gives it away (the key check stays blind, so this is a separate call). */
+async function checkGiveaways(list: ExamQuestion[], text: string, judge: JudgeState, calls: Calls, signal?: AbortSignal): Promise<void> {
+  const done = (judge.copyChecked ??= new Set<string>())
+  const open = list.filter((question) => question.type === 'mcq' && question.context && !done.has(question.id))
+  for (let at = 0; at < open.length; at += VERIFY_ITEMS) {
+    const questions = open.slice(at, at + VERIFY_ITEMS)
+    try {
+      const result = await calls.verify({ text, questions, copyOnly: true }, signal)
+      for (const question of questions) done.add(question.id)
+      for (const review of result.reviews) {
+        const before = judge.reviews.get(review.id)
+        judge.reviews.set(review.id, before ? { ...before, copy: before.copy || review.copy } : review)
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error
+    }
+  }
+}
+
+function relabelToJudge(list: ExamQuestion[], reviews: Map<string, ExamReview>): void {
+  for (const [index, question] of list.entries()) {
+    const review = reviews.get(question.id)
+    if (!review || question.bloomLevel === undefined) continue
+    const bloomLevel = clampBloom(question.type, review.level)
+    const difficulty = fitDifficulty(question.type, bloomLevel, question.difficulty)
+    if (bloomLevel !== question.bloomLevel || difficulty !== question.difficulty) list[index] = { ...question, bloomLevel, difficulty }
+  }
 }
 
 function firstNumber(text: string): number | null {
@@ -468,8 +515,11 @@ function reconcileLevels(list: ExamQuestion[], reviews: Map<string, ExamReview>,
     const review = reviews.get(question.id)
     const bloomLevel = level ?? question.bloomLevel
     if (bloomLevel === undefined && !review) continue
-    // The judge corrects a wrong difficulty label; the label always fits the level and the type.
-    const difficulty = fitDifficulty(question.type, bloomLevel, review?.difficulty ?? question.difficulty)
+    // The judge corrects a clearly wrong difficulty label (easy against hard); a neighbouring label is judge noise and the planned one stays. The label always fits the level and the type.
+    const order: ExamDifficulty[] = ['easy', 'medium', 'hard']
+    // "Hard" has to be confirmed by the judge: a question the judge reads as easier is not labelled hard.
+    const far = review !== undefined && (Math.abs(order.indexOf(review.difficulty) - order.indexOf(question.difficulty)) >= 2 || (question.difficulty === 'hard' && review.difficulty !== 'hard'))
+    const difficulty = fitDifficulty(question.type, bloomLevel, far ? (review as ExamReview).difficulty : question.difficulty)
     if (bloomLevel !== question.bloomLevel || difficulty !== question.difficulty) list[index] = { ...question, ...(bloomLevel !== undefined ? { bloomLevel } : {}), difficulty }
   }
   return rewrite
@@ -500,6 +550,8 @@ interface RewriteOptions {
   avoidTerms: string[]
   planned: ExamSlot[]
   lang: ReturnType<typeof examPaperLang>
+  /** Ids of the dropped questions that are written again on their own fact. */
+  reuse: Set<string>
   /** When the reserve is empty, a failed question's own fact may be tried again (not on a retry of the missing questions). */
   allowSpent: boolean
   signal?: AbortSignal
@@ -507,7 +559,7 @@ interface RewriteOptions {
 }
 
 /** Asks for exactly the questions the exam is short of (per type, true-false split by answer), each on a fact not used yet. */
-async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped, avoidTerms, planned, lang, allowSpent, signal, callSection }: RewriteOptions): Promise<ExamQuestion[]> {
+async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped, avoidTerms, planned, lang, reuse, allowSpent, signal, callSection }: RewriteOptions): Promise<ExamQuestion[]> {
   const avoidStems = kept.map((question) => question.stem)
   const avoidAnswers = kept.map(correctAnswerText).filter(Boolean)
   // The facts of the questions being rewritten are spent; if the reserve is empty the oldest of them is tried again.
@@ -572,7 +624,14 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
       const sectionSlots = Array.from({ length: count }, (_, i) => slotFor(done + i))
       const difficulty: Record<ExamDifficulty, number> = { easy: 0, medium: 0, hard: 0 }
       for (const slot of sectionSlots) difficulty[slot.difficulty] += 1
-      const facts = Array.from({ length: count }, takeFact).filter((entry): entry is ExamFact => entry !== undefined)
+      const facts = Array.from({ length: count }, (_, i) => {
+        const old = droppedOfType[done + i]
+        if (old && reuse.has(old.id) && old.fact) {
+          const own = plan.find((entry) => entry.fact === old.fact)
+          if (own) return own
+        }
+        return takeFact()
+      }).filter((entry): entry is ExamFact => entry !== undefined)
       // No fact left to give: the call would only repeat what the exam already has.
       if (facts.length < count) continue
       const base = requestFor(settings, text, { key: `fix-${type}`, type, count, difficulty, slots: sectionSlots, partIndex: 0, partCount: 1 }, facts, avoidStems, scenarioVariety(lang, Math.min(3, count)))
