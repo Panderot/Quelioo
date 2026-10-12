@@ -208,6 +208,8 @@ export interface ExamGenerationState {
   partial?: boolean
   /** How many extra plan calls were made for more facts. */
   extensions?: number
+  /** Facts handed out a second time after every unused fact was gone (a fact whose question failed and sits on no question now). */
+  retried?: Set<string>
 }
 
 export interface GenerateExamOptions {
@@ -273,6 +275,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
     state.current = undefined
     state.usedFacts = undefined
     state.extensions = 0
+    state.retried = undefined
     state.judge = undefined
     state.partial = false
     state.done.clear()
@@ -368,7 +371,8 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   let issues = await issuesOf(current, settings, text, judge, calls, targets, signal)
   onIssues?.(0, issues)
   for (let round = 0; round < MAX_REPAIR_ROUNDS + MAX_FILL_ROUNDS && issues.length > 0; round += 1) {
-    if (round >= MAX_REPAIR_ROUNDS && !issues.some((issue) => issue.rule === 'count')) break
+    // Past the usual rounds only a missing question, or one that still breaks a hard rule (it would be left out), is worth another try.
+    if (round >= MAX_REPAIR_ROUNDS && !issues.some((issue) => issue.rule === 'count' || !SOFT_RULES.includes(issue.rule))) break
     // Polish rules (a subject word used a little too often, a stem opening used twice) are worth one rewrite, not more.
     // A level the judge reads lower than the slot's keeps being worth a rewrite.
     if (round >= 1 && issues.every((issue) => SOFT_RULES.includes(issue.rule) && issue.rule !== 'bloom')) break
@@ -386,6 +390,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
       dropped: current.filter((question) => drop.has(question.id)),
       planned: slots,
       lang,
+      retried: (state.retried ??= new Set<string>()),
       signal,
       callSection,
     })
@@ -406,7 +411,9 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   const labelled = (list: ExamQuestion[]): ExamQuestion[] => (rows.length === 0 ? list : list.map((question) => ({ ...question, topic: plan.find((entry) => entry.fact === question.fact)?.topic || question.topic })))
   if (blocking.length === 0) {
     const scored = distributePoints(sortByType(labelled(balanceMcqLetters(kept))), 100)
-    if (checkExamQuality(scored, settings.counts, { topics: settings.topics, judged: judge.judged, copyable: copyableOf(judge) }).some((issue) => !SOFT_RULES.includes(issue.rule))) throw new ExamApiError('quality')
+    // The same rules as every round (the points rule is repaired by `distributePoints`, a repeated subject word is a topic).
+    const final = checkExamQuality(scored, settings.counts, { topics: settings.topics, judged: judge.judged, copyable: copyableOf(judge) }).filter((issue) => !IGNORED_RULES.includes(issue.rule) && !SOFT_RULES.includes(issue.rule))
+    if (final.length > 0) throw new ExamApiError('quality', final.map((issue) => issue.rule))
     state.current = scored
     return { questions: scored, requested: total, missing: 0 }
   }
@@ -596,13 +603,15 @@ interface RewriteOptions {
   avoidTerms: string[]
   planned: ExamSlot[]
   lang: ReturnType<typeof examPaperLang>
+  /** Facts already handed out a second time: never a third. */
+  retried: Set<string>
   signal?: AbortSignal
   callSection: SectionCaller
 }
 
 /** Asks for exactly the questions the exam is short of (per type, true-false split by answer), each on a fact not used yet. */
-async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped, avoidTerms, planned, lang, signal, callSection }: RewriteOptions): Promise<ExamQuestion[]> {
-  const avoidStems = kept.map((question) => question.stem)
+async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped, avoidTerms, planned, lang, retried, signal, callSection }: RewriteOptions): Promise<ExamQuestion[]> {
+  const avoidStems = [...kept, ...dropped].map((question) => question.stem)
   const avoidAnswers = kept.map(correctAnswerText).filter(Boolean)
   // The facts of the questions being rewritten are spent for good: a slot never gets one of them again.
   const reserve = plan.filter((entry) => !usedFacts.has(entry.fact))
@@ -634,7 +643,16 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
       topicCounts.set(normalize(fresh.topic), topicLoad(fresh) + 1)
       return fresh
     }
-    return undefined
+    // Every unused fact is gone and the source has no more: a fact whose question failed and now sits on no question gets one more try (never a fact a kept question tests).
+    const onKept = new Set(kept.map((question) => question.fact))
+    const orphan = plan.filter((entry) => usedFacts.has(entry.fact) && !onKept.has(entry.fact) && !retried.has(entry.fact) && roomFor(entry)).sort((a, b) => topicLoad(a) - topicLoad(b) || likeness(a) - likeness(b))[0]
+    if (!orphan) return undefined
+    retried.add(orphan.fact)
+    onExam.push(orphan.fact)
+    const key = conceptKey(orphan.concept)
+    if (key) perConcept.set(key, (perConcept.get(key) ?? 0) + 1)
+    topicCounts.set(normalize(orphan.topic), topicLoad(orphan) + 1)
+    return orphan
   }
   // What the new questions must stay away from: the facts and concepts already on the exam or spent on a failed question.
   const avoidConcepts = [

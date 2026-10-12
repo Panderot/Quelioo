@@ -160,14 +160,28 @@ function questionText(question: ExamQuestion): string {
 /** A question written for a fact has to carry the key terms of that fact; a share below this means the writer drifted to another fact. */
 export const FACT_DRIFT_MIN = 0.15
 
-/** The share of the fact's key terms (content-word stems) that the question uses, or 1 when the fact has too few terms to tell. */
+/** The commands and numbers inside the formulas of a text ($\cos(a-b)$ gives \cos and nothing else): what tells two formula facts apart. */
+function formulaTokens(text: string): Set<string> {
+  const tokens = new Set<string>()
+  for (const part of text.matchAll(/\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/g)) {
+    for (const token of part[0].matchAll(/\\[a-zA-Z]+|\d+(?:[.,]\d+)?/g)) tokens.add(token[0])
+  }
+  return tokens
+}
+
+/** The share of the fact's key terms (content-word stems, and the commands and numbers of its formulas) that the question uses, or 1 when the fact has too few terms to tell. */
 export function factCoverage(question: ExamQuestion, fact: string): number {
-  const terms = contentStems(fact)
-  if (terms.size < 3) return 1
-  const used = contentStems(questionText(question))
-  let found = 0
-  for (const term of terms) if (used.has(term)) found += 1
-  return found / terms.size
+  const full = questionText(question)
+  const shareOf = (terms: Set<string>, used: Set<string>) => {
+    let found = 0
+    for (const term of terms) if (used.has(term)) found += 1
+    return found / terms.size
+  }
+  const words = contentStems(fact)
+  const byWords = words.size < 3 ? 1 : shareOf(words, contentStems(full))
+  const formulas = formulaTokens(fact)
+  const byFormula = formulas.size < 2 ? 0 : shareOf(formulas, formulaTokens(full))
+  return Math.max(byWords, byFormula)
 }
 
 /** True when the question does not test the fact it was written for (key-term check). */

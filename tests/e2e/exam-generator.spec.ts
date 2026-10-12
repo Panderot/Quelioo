@@ -54,7 +54,7 @@ function question(type: ExamQuestionType, fact: ExamFact, extra: Partial<ExamQue
 }
 
 /** A fake server. `shape` can change the question a fact produces (to plant a defect). */
-function fake(options: { facts?: ExamFact[]; shape?: (q: ExamQuestion, request: ExamSectionRequest, index: number) => ExamQuestion; verify?: (request: ExamVerifyRequest) => ExamVerifyResult } = {}): Fake {
+function fake(options: { facts?: ExamFact[]; noMoreFacts?: boolean; shape?: (q: ExamQuestion, request: ExamSectionRequest, index: number) => ExamQuestion; verify?: (request: ExamVerifyRequest) => ExamVerifyResult } = {}): Fake {
   const state: Fake = {
     sections: [],
     verifies: [],
@@ -63,6 +63,7 @@ function fake(options: { facts?: ExamFact[]; shape?: (q: ExamQuestion, request: 
     callPlan: async ({ count, existing, focusTopics }) => {
       if (existing && existing.length > 0) {
         state.extensions.push({ existing, focusTopics: focusTopics ?? [] })
+        if (options.noMoreFacts) throw new ExamApiError('parse')
         return fakeFacts(existing.length + count).slice(existing.length)
       }
       state.plans += 1
@@ -246,6 +247,27 @@ test.describe('rewrite rounds', () => {
     expect(result.missing).toBe(0)
     expect(result.questions).toHaveLength(20)
     // No fact tests two questions.
+    const facts = result.questions.map((entry) => entry.factId)
+    expect(new Set(facts).size).toBe(facts.length)
+  })
+
+  test('no unused fact and no more facts in the source: a fact whose question failed gets one more try, and the exam still completes', async () => {
+    let planted = 0
+    const server = fake({
+      facts: fakeFacts(20),
+      noMoreFacts: true,
+      shape: (made, request) => {
+        if (request.type === 'short-answer' && request.avoidAnswers === undefined && planted < 2) {
+          planted += 1
+          return { ...made, answer: 'Bu çok uzun bir cevap cümlesidir ve yalnızca bir kelime olmalıydı' }
+        }
+        return made
+      },
+    })
+    const result = await runResult(server)
+    expect(server.extensions.length).toBeGreaterThanOrEqual(1)
+    expect(result.missing).toBe(0)
+    expect(result.questions).toHaveLength(20)
     const facts = result.questions.map((entry) => entry.factId)
     expect(new Set(facts).size).toBe(facts.length)
   })

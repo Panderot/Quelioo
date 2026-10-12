@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { restoreLatex, sanitizeExamQuestion, sanitizeExamQuestions } from '../../api/_lib/exam'
 import type { ExamGenerationRequest } from '../../api/_lib/exam'
 import { distributePoints } from '../../src/lib/exam/points'
-import { SOFT_RULES, checkExamQuality, conceptCapacity, pairKey, repeatedTerms, repeatsExistingQuestion, termLimit, trueFalseRange } from '../../src/lib/exam/quality'
+import { SOFT_RULES, checkExamQuality, conceptCapacity, driftedFromFact, factCoverage, pairKey, repeatedTerms, repeatsExistingQuestion, termLimit, trueFalseRange } from '../../src/lib/exam/quality'
 import type { ExamQualityRule } from '../../src/lib/exam/quality'
 import { emptyCounts } from '../../src/lib/exam/types'
 import type { ExamQuestion, ExamQuestionType } from '../../src/lib/exam/types'
@@ -354,6 +354,15 @@ test.describe('fact ids and the key-term check', () => {
     const drifted = item('Bitki hücrelerinde klorofil hangi organelde bulunur?', 'Kloroplast', 'f1', facts[0].fact)
     const kept = sanitizeExamQuestions({ questions: [drifted, item('Protein sentezinin yapıldığı yapı nedir?', 'Ribozom', 'f2', facts[1].fact)] }, request, 2)
     expect(kept.map((question) => question.factId)).toEqual(['f2'])
+  })
+
+  test('a formula fact is recognised by the commands in its formula, not only by words', () => {
+    const fact = 'Kosinüs fark formülü $\\cos(a-b)=\\cos a\\cdot\\cos b+\\sin a\\cdot\\sin b$ şeklindedir'
+    const onFact = q('mcq', 'Aşağıdaki seçeneklerden hangisi iki bağıntıyı doğru biçimde birlikte verir?', { options: ['$\\cos(a-b)=\\cos a\\cos b+\\sin a\\sin b$', 'b', 'c', 'd'] })
+    const offFact = q('mcq', 'Bitki hücresi hangisidir?', { options: ['$\\tan x$', 'b', 'c', 'd'] })
+    expect(factCoverage(onFact, fact)).toBeGreaterThanOrEqual(0.5)
+    expect(driftedFromFact(onFact, fact)).toBe(false)
+    expect(driftedFromFact(offFact, fact)).toBe(true)
   })
 
   test('a second question that claims an id already taken does not get another fact’s place', () => {
