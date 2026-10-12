@@ -44,7 +44,7 @@ const baseline = nodeCount()
 console.log(`node processes before: ${baseline}`)
 let failedFiles = 0
 for (const file of files) {
-  const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', ...(gameMode ? ['--config=playwright.game.config.ts'] : supabaseMode ? ['--config=playwright.supabase.config.ts'] : []), file, '--project=desktop', '--project=mobile', `--workers=${process.env.PW_WORKERS ?? 2}`, '--reporter=line', ...(process.env.PW_EXTRA ? process.env.PW_EXTRA.split(' ') : [])], { encoding: 'utf8', maxBuffer: 1 << 28 })
+  const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', ...(gameMode ? ['--config=playwright.game.config.ts'] : supabaseMode ? ['--config=playwright.supabase.config.ts'] : []), file, '--project=desktop', '--project=mobile', `--workers=${gameMode ? 1 : process.env.PW_WORKERS ?? 2}`, '--reporter=line', ...(process.env.PW_EXTRA ? process.env.PW_EXTRA.split(' ') : [])], { encoding: 'utf8', maxBuffer: 1 << 28 })
   const lines = `${run.stdout}${run.stderr}`.split('\n')
   const summary = lines.filter((l) => /^\s+\d+ (passed|failed|flaky|skipped)/.test(l)).map((l) => l.trim()).join(', ')
   console.log(`${run.status === 0 ? 'ok  ' : 'FAIL'} ${file} — ${summary || 'no summary'} (node: ${nodeCount()})`)

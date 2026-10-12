@@ -10,7 +10,7 @@ const BASE_URL = `http://localhost:${PORT}`
 export default defineConfig({
   testDir: 'tests/game',
   fullyParallel: true,
-  workers: Number(process.env.PW_WORKERS) || 2,
+  workers: 1,
   timeout: 90_000,
   expect: { timeout: 15_000 },
   retries: 0,

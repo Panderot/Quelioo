@@ -8,7 +8,7 @@ const DESKTOP_VIEWPORT = { width: 1280, height: 800 }
 export default defineConfig({
   testDir: 'tests/e2e',
   fullyParallel: true,
-  // This PC has 16 GB RAM: 2 workers locally; override with PW_WORKERS (or --workers).
+  // This PC has 16 GB RAM: at most 2 workers, and 1 when free memory is under 6 GB; override with PW_WORKERS (or --workers).
   workers: Number(process.env.PW_WORKERS) || 2,
   timeout: 30_000,
   expect: { timeout: 10_000 },

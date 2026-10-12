@@ -20,10 +20,10 @@ AI quiz / solve / cards / song / audio-lesson / live-game / written-exam web app
 - Production test users only as `baretgungormezer+qtest-…`; never create other users on production.
 - Student data: nickname only, deleted after 30 days.
 
-## Tests (32 GB machine)
+## Tests (16 GB machine)
 - Commands: `npm run test:each [files]` (`PW_WORKERS`, `PW_EXTRA`), `npm run test:game`, `npm run test:supabase`, `playwright.prod.config.ts` for prod.
 - New or changed specs run with `--repeat-each=3`. Never use fixed sleeps.
-- At most 4 workers, at most 2 for `test:game`. Free memory under 4 GB: 1 worker. Under 1.5 GB: stop and ask.
+- At most 2 workers; `test:game` always 1. Free memory under 6 GB: 1 worker. Under 4 GB: stop and ask.
 - Playwright headless, not Claude in Chrome. Only kill processes you started.
 
 ## Deploy
