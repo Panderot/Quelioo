@@ -407,7 +407,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   relabelToJudge(current, judge.reviews)
   const blocking = issues.filter((issue) => !SOFT_RULES.includes(issue.rule))
   const failing = new Set(blocking.map((issue) => issue.id).filter((id): id is string => id !== null))
-  const kept = current.filter((question) => !failing.has(question.id))
+  let kept = current.filter((question) => !failing.has(question.id))
   if (blocking.length > 0 && kept.length === 0) throw new ExamApiError('quality', blocking.map((issue) => `${issue.rule}${issue.type ? `:${issue.type}` : ''}`))
   // With the teacher's own rows, each question carries the exact text of its row, so the tables list the rows as written.
   const labelled = (list: ExamQuestion[]): ExamQuestion[] => (rows.length === 0 ? list : list.map((question) => ({ ...question, topic: plan.find((entry) => entry.fact === question.fact)?.topic || question.topic })))
@@ -415,9 +415,14 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
     const scored = distributePoints(sortByType(labelled(balanceMcqLetters(kept))), 100)
     // The same rules as every round (the points rule is repaired by `distributePoints`, a repeated subject word is a topic).
     const final = checkExamQuality(scored, settings.counts, { topics: settings.topics, judged: judge.judged, copyable: copyableOf(judge) }).filter((issue) => !IGNORED_RULES.includes(issue.rule) && !SOFT_RULES.includes(issue.rule))
-    if (final.length > 0) throw new ExamApiError('quality', final.map((issue) => issue.rule))
-    state.current = scored
-    return { questions: scored, requested: total, missing: 0 }
+    if (final.length === 0) {
+      state.current = scored
+      return { questions: scored, requested: total, missing: 0 }
+    }
+    // The pair order of the sorted exam can flag another question than the rounds did: those are left out like any question that still fails, never the whole exam.
+    const flagged = new Set(final.map((issue) => issue.id).filter((id): id is string => id !== null))
+    kept = kept.filter((question) => !flagged.has(question.id))
+    if (kept.length === 0) throw new ExamApiError('quality', final.map((issue) => issue.rule))
   }
   // Some questions still fail after the last round: they are left out, the ones that passed are kept for the teacher (and for a retry of just the missing ones).
   state.current = kept
