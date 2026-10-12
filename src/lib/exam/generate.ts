@@ -694,7 +694,9 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
       // No fact left to give: the call would only repeat what the exam already has.
       if (facts.length < count) continue
       const base = requestFor(settings, text, { key: `fix-${type}`, type, count, difficulty, slots: sectionSlots, partIndex: 0, partCount: 1 }, facts, avoidStems, scenarioVariety(lang, Math.min(3, count)))
-      requests.push({ type, request: { ...base, avoidAnswers: avoidAnswers.slice(-40), avoidTerms: avoidTerms.slice(0, 10), avoidConcepts, ...(type === 'true-false' ? { trueFalseAnswers: answers.slice(done, done + count) } : {}) } })
+      // A fact that failed once is written without a scenario: the scenario is what usually gave the first try away.
+      const again = facts.some((fact) => (retried.get(fact.fact) ?? 0) > 0)
+      requests.push({ type, request: { ...base, ...(again ? { contextBased: false } : {}), avoidAnswers: avoidAnswers.slice(-40), avoidTerms: avoidTerms.slice(0, 10), avoidConcepts, ...(type === 'true-false' ? { trueFalseAnswers: answers.slice(done, done + count) } : {}) } })
     }
   }
   const fresh: ExamQuestion[][] = new Array(requests.length).fill(null).map(() => [])
@@ -726,7 +728,7 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
     for (const slot of slots) difficulty[slot.difficulty] += 1
     const answers = entry.request.trueFalseAnswers?.slice(-facts.length)
     const spentIds = (entry.request.facts ?? []).map((fact) => fact.id).filter((id): id is string => Boolean(id))
-    again.push({ index, request: { ...entry.request, count: facts.length, facts, slots, difficulty, ...(answers ? { trueFalseAnswers: answers } : {}), avoidConcepts: [...(entry.request.avoidConcepts ?? []), ...spentIds].slice(0, 60) } })
+    again.push({ index, request: { ...entry.request, count: facts.length, facts, slots, difficulty, contextBased: false, ...(answers ? { trueFalseAnswers: answers } : {}), avoidConcepts: [...(entry.request.avoidConcepts ?? []), ...spentIds].slice(0, 60) } })
   }
   await Promise.all(
     again.map(async ({ index, request }) => {
