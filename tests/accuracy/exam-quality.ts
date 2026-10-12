@@ -70,6 +70,8 @@ function line(label: string, value: unknown) {
 
 interface RunResult {
   key: string
+  /** Questions left out because they kept failing (the teacher then sees the "X ready" screen, not an error). */
+  missing?: number
   run: number
   ok: boolean
   failure: string
@@ -137,9 +139,12 @@ async function generate(key: string, run: number): Promise<RunResult> {
   const started = Date.now()
   let questions: ExamQuestion[] = []
   let failure = ''
+  let missing = 0
   await runWithRequestContext(context, async () => {
     try {
-      questions = await generateExamQuestions({ settings, text: src.text, state: { done: new Map() }, callSection, callVerify, callPlan, onIssues: (round, found) => logRound(key, run, round, found.map((issue) => issue.rule)) })
+      const outcome = await generateExamQuestions({ settings, text: src.text, state: { done: new Map() }, callSection, callVerify, callPlan, onIssues: (round, found) => logRound(key, run, round, found.map((issue) => issue.rule)) })
+      questions = outcome.questions
+      missing = outcome.missing
     } catch (error) {
       failure = error instanceof ExamApiError ? `${error.code}: ${error.rules.join(' | ')}` : error instanceof ExamShortSourceError ? `short_source(${error.max})` : String(error)
     }
@@ -150,6 +155,7 @@ async function generate(key: string, run: number): Promise<RunResult> {
     key,
     run,
     ok: failure === '',
+    missing,
     failure,
     seconds: Math.round((Date.now() - started) / 1000),
     costUsd: events.reduce((sum, event) => sum + event.costUsd, 0),
@@ -200,7 +206,7 @@ for (let run = 1; run <= runs; run += 1) {
     results.push(result)
     const { exam, ...row } = result
     appendFileSync(logFile, JSON.stringify(row) + '\n')
-    line(`${result.key} #${run}`, `${result.ok ? 'OK' : 'FAIL ' + result.failure} | ${result.seconds}s | $${result.costUsd.toFixed(4)} | calls ${result.calls} | ${JSON.stringify(result.produced)} | issues ${JSON.stringify(result.issues)}`)
+    line(`${result.key} #${run}`, `${result.ok ? (result.missing ? `PARTIAL (${result.missing} missing)` : 'OK') : 'FAIL ' + result.failure} | ${result.seconds}s | $${result.costUsd.toFixed(4)} | calls ${result.calls} | ${JSON.stringify(result.produced)} | issues ${JSON.stringify(result.issues)}`)
     if (exam) writeFileSync(`${outDir}/${result.key}.json`, JSON.stringify(exam, null, 2))
   }
 }

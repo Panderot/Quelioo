@@ -219,8 +219,14 @@ test('the sidebar is on the hub, the settings page and the results page, and off
   await page.goto(`/live/${game.id}`)
   await expect(at(page, 'live-board')).toBeVisible()
   // The board covers the whole window: whatever is at the sidebar's place belongs to the board.
-  const hit = await page.evaluate(() => { const el = document.elementFromPoint(20, 300); return el ? el.tagName + ' ' + String(el.getAttribute('class')).slice(0, 80) + ' | ' + (el.closest('[data-purpose]')?.getAttribute('data-purpose') ?? '-') : 'none' })
-  expect(hit).toContain('live-board')
+  // The board shows its lobby a moment after it opens, so the nearest data-purpose of the element at that point is the board or something inside it:
+  // what matters is that the board is an ancestor (the sidebar would not have it).
+  await expect(at(page, 'live-lobby')).toBeVisible()
+  const insideBoard = await page.evaluate(() => {
+    const el = document.elementFromPoint(20, 300)
+    return el ? el.closest('[data-purpose="live-board"]') !== null : false
+  })
+  expect(insideBoard).toBe(true)
   await expect(page.getByRole('button', { name: 'Full screen' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Back to Live Game' })).toBeVisible()
 

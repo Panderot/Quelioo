@@ -81,6 +81,7 @@ export function sanitizeQuestion(raw: unknown): ExamQuestion | null {
   }
   if (typeof raw.context === 'string' && raw.context.trim()) question.context = raw.context
   if (typeof raw.fact === 'string' && raw.fact.trim()) question.fact = raw.fact.trim().slice(0, 400)
+  if (typeof raw.concept === 'string' && raw.concept.trim()) question.concept = raw.concept.trim().slice(0, 120)
   const acceptable = strings(raw.acceptableAnswers, 8)
   if (acceptable.length > 0) question.acceptableAnswers = acceptable
   if (type === 'mcq') {

@@ -15,8 +15,8 @@ import { newExamId } from '../lib/exam/factory'
 import { ExamShortSourceError, generateExamQuestions, reduceCounts } from '../lib/exam/generate'
 import type { ExamGenerationState } from '../lib/exam/generate'
 import { createExam, loadExamDefaults, saveExamDefaults } from '../lib/exam/store'
-import { EXAM_LEVELS, EXAM_QUESTION_TYPES, MAX_EXAM_QUESTIONS, MAX_EXAM_TYPE_QUESTIONS, defaultExamSettings, totalQuestionCount } from '../lib/exam/types'
-import type { ExamLevel, ExamQuestionType, ExamSettings, WrittenExam } from '../lib/exam/types'
+import { EXAM_LEVELS, EXAM_QUESTION_TYPES, MAX_EXAM_QUESTIONS, MAX_EXAM_TYPE_QUESTIONS, defaultExamSettings, emptyCounts, totalQuestionCount } from '../lib/exam/types'
+import type { ExamLevel, ExamQuestion, ExamQuestionType, ExamSettings, WrittenExam } from '../lib/exam/types'
 import { MAX_QUIZ_WORDS, MAX_SOURCE_TEXT_CHARS, MIN_QUIZ_WORDS } from '../lib/textStats'
 
 const COUNT_LABEL_KEYS: Record<ExamQuestionType, string> = {
@@ -68,6 +68,8 @@ function ExamSetup({ setupId }: { setupId: string }) {
   const [sourceError, setSourceError] = useState(false)
   /** The source holds fewer distinct facts than questions asked for: how many questions it can carry. */
   const [shortSource, setShortSource] = useState<number | null>(null)
+  /** The exam came out with questions missing: what passed, waiting for the teacher's choice (nothing is saved yet). */
+  const [partial, setPartial] = useState<{ questions: ExamQuestion[]; requested: number; missing: number; settings: ExamSettings; text: string } | null>(null)
   const generationRef = useRef<{ signature: string; state: ExamGenerationState } | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const generating = progress !== null
@@ -125,6 +127,7 @@ function ExamSetup({ setupId }: { setupId: string }) {
   const handleGenerate = async (acceptMax?: number) => {
     setError(null)
     setShortSource(null)
+    setPartial(null)
     const text = source.content.trim()
     if (!text) {
       setSourceError(true)
@@ -146,12 +149,12 @@ function ExamSetup({ setupId }: { setupId: string }) {
     if (acceptMax !== undefined) setSettings((current) => ({ ...current, counts }))
     const signature = JSON.stringify([text, finalSettings.counts, finalSettings.difficultyMix, finalSettings.level, finalSettings.outputLanguage, finalSettings.contextBased, finalSettings.optionsCount, finalSettings.topics])
     // The plan of the source does not depend on how many questions are asked for: it survives a smaller exam.
-    if (generationRef.current?.signature !== signature) generationRef.current = { signature, state: { done: new Map(), plan: generationRef.current?.state.plan } }
+    if (generationRef.current?.signature !== signature) generationRef.current = { signature, state: { done: new Map(), plan: generationRef.current?.state.plan, planKey: generationRef.current?.state.planKey } }
     const controller = new AbortController()
     abortRef.current = controller
     setProgress({ done: 0, total: 1, phase: 'plan' })
     try {
-      const questions = await generateExamQuestions({
+      const result = await generateExamQuestions({
         settings: finalSettings,
         text,
         state: generationRef.current.state,
@@ -159,27 +162,13 @@ function ExamSetup({ setupId }: { setupId: string }) {
         signal: controller.signal,
         onProgress: (done, totalSections, phase) => setProgress({ done, total: totalSections, phase }),
       })
-      if (questions.length === 0) throw new ExamApiError('upstream')
-      const now = new Date().toISOString()
-      const exam: WrittenExam = {
-        id: newExamId(),
-        title: defaultTitle(finalSettings, t),
-        settings: finalSettings,
-        questions,
-        sourceQuizId: null,
-        sourceText: text.slice(0, MAX_SOURCE_TEXT_CHARS),
-        createdAt: now,
-        updatedAt: now,
-      }
-      const saved = await createExam(exam)
-      if (saved.status !== 'ok') {
-        setError('save')
+      if (result.questions.length === 0) throw new ExamApiError('upstream')
+      // Questions that could not be written without breaking a rule are left out; nothing is saved until the teacher chooses.
+      if (result.missing > 0) {
+        setPartial({ questions: result.questions, requested: result.requested, missing: result.missing, settings: finalSettings, text })
         return
       }
-      void saveExamDefaults(finalSettings.header)
-      if (userId && setupId) clearSetupDraft(userId, setupId)
-      generationRef.current = null
-      navigate(`/exams/${exam.id}`)
+      await saveFinished(result.questions, finalSettings, text)
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === 'AbortError') return
       if (caught instanceof ExamShortSourceError) {
@@ -190,6 +179,41 @@ function ExamSetup({ setupId }: { setupId: string }) {
     } finally {
       setProgress(null)
     }
+  }
+
+  /** Saves one finished exam (the only place an exam is created, so a retry never makes a second one). */
+  const saveFinished = async (questions: ExamQuestion[], finalSettings: ExamSettings, text: string) => {
+    const counts = emptyCounts()
+    for (const question of questions) counts[question.type] += 1
+    const now = new Date().toISOString()
+    const exam: WrittenExam = {
+      id: newExamId(),
+      title: defaultTitle(finalSettings, t),
+      settings: { ...finalSettings, counts },
+      questions,
+      sourceQuizId: null,
+      sourceText: text.slice(0, MAX_SOURCE_TEXT_CHARS),
+      createdAt: now,
+      updatedAt: now,
+    }
+    const saved = await createExam(exam)
+    if (saved.status !== 'ok') {
+      setError('save')
+      return
+    }
+    void saveExamDefaults(finalSettings.header)
+    if (userId && setupId) clearSetupDraft(userId, setupId)
+    generationRef.current = null
+    navigate(`/exams/${exam.id}`)
+  }
+
+  /** Back to the source: the text and the settings stay as they are. */
+  const goToSource = () => {
+    setShortSource(null)
+    setPartial(null)
+    const field = document.getElementById('quiz-content-input')
+    field?.scrollIntoView({ block: 'center' })
+    field?.focus()
   }
 
   const errorKey = error === null ? null : ['empty', 'too_short', 'too_long', 'model', 'not_configured', 'rate_limited', 'unauthorized', 'network', 'quality', 'save'].includes(error) ? error : 'upstream'
@@ -283,6 +307,11 @@ function ExamSetup({ setupId }: { setupId: string }) {
             <p data-purpose="exam-total-count" className={`text-xs font-semibold ${countsValid ? 'text-muted' : 'text-error'}`}>
               {t('exam.setup.total', { count: total })}
             </p>
+            {total >= 30 && countsValid && (
+              <p data-purpose="exam-estimate" className="text-xs text-muted">
+                {t('exam.setup.estimate', { count: total, minutes: Math.ceil((total * 4.5) / 60) })}
+              </p>
+            )}
           </div>
           <p className="text-xs text-muted">{t('exam.setup.countsHint', { max: MAX_EXAM_TYPE_QUESTIONS, total: MAX_EXAM_QUESTIONS })}</p>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -372,8 +401,28 @@ function ExamSetup({ setupId }: { setupId: string }) {
                 <button type="button" data-purpose="exam-short-continue" onClick={() => void handleGenerate(shortSource)} disabled={generating} className="min-h-10 rounded-xl bg-amber px-4 text-sm font-bold text-navy hover:bg-amber-hover disabled:opacity-60">
                   {t('exam.shortSource.continue', { max: shortSource })}
                 </button>
+                <button type="button" data-purpose="exam-short-add-text" onClick={goToSource} className="min-h-10 rounded-xl border border-warm-border bg-card px-4 text-sm font-bold text-navy hover:border-amber">
+                  {t('exam.shortSource.addText')}
+                </button>
                 <button type="button" data-purpose="exam-short-dismiss" onClick={() => setShortSource(null)} className="min-h-10 rounded-xl border border-warm-border bg-card px-4 text-sm font-bold text-navy hover:border-amber">
                   {t('exam.shortSource.dismiss')}
+                </button>
+              </div>
+            </div>
+          )}
+          {partial && (
+            <div role="status" data-purpose="exam-partial" className="space-y-3 rounded-[14px] border border-amber/50 bg-amber/10 p-4 text-center">
+              <p className="text-sm font-semibold text-navy">{t('exam.partial.message', { ready: partial.questions.length, missing: partial.missing })}</p>
+              {partial.missing / partial.requested > 0.2 && <p data-purpose="exam-partial-recommend" className="text-sm text-navy">{t('exam.partial.recommend')}</p>}
+              <div className="flex flex-wrap justify-center gap-2">
+                <button type="button" data-purpose="exam-partial-add-text" onClick={goToSource} disabled={generating} className={`min-h-10 rounded-xl px-4 text-sm font-bold text-navy disabled:opacity-60 ${partial.missing / partial.requested > 0.2 ? 'order-first bg-amber hover:bg-amber-hover' : 'border border-warm-border bg-card hover:border-amber'}`}>
+                  {t('exam.partial.addText')}
+                </button>
+                <button type="button" data-purpose="exam-partial-continue" onClick={() => void saveFinished(partial.questions, partial.settings, partial.text)} disabled={generating} className="min-h-10 rounded-xl border border-warm-border bg-card px-4 text-sm font-bold text-navy hover:border-amber disabled:opacity-60">
+                  {t('exam.partial.continue', { ready: partial.questions.length })}
+                </button>
+                <button type="button" data-purpose="exam-partial-retry" onClick={() => void handleGenerate()} disabled={generating} className="min-h-10 rounded-xl border border-warm-border bg-card px-4 text-sm font-bold text-navy hover:border-amber disabled:opacity-60">
+                  {t('exam.partial.retry')}
                 </button>
               </div>
             </div>

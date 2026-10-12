@@ -49,6 +49,8 @@ export interface ExamQuestion {
   points: number
   /** The one fact of the source this question tests (kept for the quality checks; never shown on the paper). */
   fact?: string
+  /** The concept or skill the fact belongs to; worked applications of one formula share a concept (at most two questions per concept). */
+  concept?: string
   /** Topic or learning outcome the question tests. */
   topic: string
   difficulty: ExamDifficulty

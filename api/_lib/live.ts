@@ -596,7 +596,9 @@ async function handleHost(req: IncomingMessage, res: ServerResponse, action: str
   if (action === 'host-state') {
     let game = await ownedGame(db, url.searchParams.get('id'), userId)
     // A board that is open and polling is teacher activity: the 30-minute idle timer restarts (written at most once a minute).
-    if (isActiveState(game.state) && Date.now() - new Date(game.last_activity_at).getTime() > HEARTBEAT_MS) {
+    // A game that already sat idle for the full 30 minutes is not revived by the board that opens afterwards: it ends (see tick).
+    const quietFor = Date.now() - new Date(game.last_activity_at).getTime()
+    if (isActiveState(game.state) && quietFor > HEARTBEAT_MS && quietFor < LIVE_IDLE_MINUTES * 60_000) {
       game = (await updateGame(db, game.id, { last_activity_at: new Date().toISOString() })) ?? game
     }
     game = await tick(db, game)

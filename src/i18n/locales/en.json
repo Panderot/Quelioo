@@ -2109,7 +2109,8 @@
       "phase": {
         "plan": "Finding the different facts in the text…",
         "check": "Checking the whole exam and rewriting questions where needed…"
-      }
+      },
+      "estimate": "{{count}} questions take about {{minutes}} minutes."
     },
     "header": {
       "school": "School name",
@@ -2248,7 +2249,15 @@
     "shortSource": {
       "message": "This text holds at most {{max}} different questions. Add more material for more.",
       "continue": "Continue with {{max}} questions",
-      "dismiss": "Cancel"
+      "dismiss": "Cancel",
+      "addText": "Add text"
+    },
+    "partial": {
+      "message": "{{ready}} questions are ready. For the remaining {{missing}}, the text does not hold enough different content.",
+      "recommend": "Many questions are missing: we recommend adding more material first.",
+      "continue": "Continue with {{ready}} questions",
+      "retry": "Retry the missing questions",
+      "addText": "Add text"
     }
   }
 }

@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test'
 import { ExamApiError } from '../../src/api/exam'
 import type { ExamFact, ExamSectionRequest, ExamVerifyRequest, ExamVerifyResult } from '../../src/api/exam'
 import { ExamShortSourceError, MAX_REPAIR_ROUNDS, generateExamQuestions, reduceCounts } from '../../src/lib/exam/generate'
+import type { ExamGenerationState } from '../../src/lib/exam/generate'
 import { checkExamQuality } from '../../src/lib/exam/quality'
 import { defaultExamSettings } from '../../src/lib/exam/types'
 import type { ExamQuestion, ExamQuestionType } from '../../src/lib/exam/types'
@@ -69,8 +70,11 @@ function fake(options: { facts?: ExamFact[]; shape?: (q: ExamQuestion, request: 
   return state
 }
 
-const run = (server: Fake, overrides: Partial<Parameters<typeof generateExamQuestions>[0]> = {}) =>
+const runResult = (server: Fake, overrides: Partial<Parameters<typeof generateExamQuestions>[0]> = {}) =>
   generateExamQuestions({ settings: defaultExamSettings(new Date('2026-10-10')), text: SOURCE, state: { done: new Map() }, callSection: server.callSection, callVerify: server.callVerify, callPlan: server.callPlan, ...overrides })
+
+/** The questions of a complete exam. */
+const run = async (server: Fake, overrides: Partial<Parameters<typeof generateExamQuestions>[0]> = {}) => (await runResult(server, overrides)).questions
 
 test.describe('plan and facts', () => {
   test('asks for 30 % more facts than questions and gives every question its own fact', async () => {
@@ -184,14 +188,69 @@ test.describe('answer keys', () => {
 })
 
 test.describe('rewrite rounds', () => {
-  test('a defect that keeps coming back stops the exam after the last round, with a quality error', async () => {
+  test('a defect that keeps coming back leaves those questions out; the rest is kept with exactly 100 points', async () => {
     // Every multiple-choice question reaches the reference rule: it never passes.
     const server = fake({ shape: (made) => (made.type === 'mcq' ? { ...made, stem: 'Bu modele göre hangi şık doğrudur?' } : made) })
-    const error = await run(server).catch((caught: unknown) => caught)
-    expect(error).toBeInstanceOf(ExamApiError)
-    expect((error as ExamApiError).code).toBe('quality')
+    const state: ExamGenerationState = { done: new Map() }
+    const result = await runResult(server, { state })
+    expect(result.requested).toBe(20)
+    expect(result.missing).toBe(5)
+    expect(result.questions).toHaveLength(15)
+    // No failing question is shown or saved; the type mix of the others is untouched.
+    expect(result.questions.some((entry) => entry.type === 'mcq')).toBe(false)
+    expect(result.questions.filter((entry) => entry.type === 'true-false')).toHaveLength(5)
+    expect(result.questions.every((entry) => Number.isInteger(entry.points) && entry.points >= 1)).toBe(true)
+    expect(result.questions.reduce((sum, entry) => sum + entry.points, 0)).toBe(100)
+    expect(state.partial).toBe(true)
     // First pass: 4 sections; then at most MAX_REPAIR_ROUNDS rewrites of the 5 broken questions (one call each).
     expect(server.sections.length).toBeLessThanOrEqual(4 + MAX_REPAIR_ROUNDS * 2)
+  })
+
+  test('retrying the missing questions asks for only those, on facts never used, and keeps what passed', async () => {
+    let broken = true
+    const server = fake({ facts: fakeFacts(60), shape: (made) => (broken && made.type === 'mcq' ? { ...made, stem: 'Bu modele göre hangi şık doğrudur?' } : made) })
+    const state: ExamGenerationState = { done: new Map() }
+    const first = await runResult(server, { state })
+    expect(first.missing).toBe(5)
+    const usedBefore = new Set(server.sections.flatMap((request) => (request.facts ?? []).map((entry) => entry.fact)))
+    const keptIds = new Set(first.questions.map((entry) => entry.id))
+    const callsBefore = server.sections.length
+    broken = false
+    const second = await runResult(server, { state })
+    expect(second.missing).toBe(0)
+    expect(second.questions).toHaveLength(20)
+    // Everything that passed is still there, untouched.
+    for (const id of keptIds) expect(second.questions.some((entry) => entry.id === id)).toBe(true)
+    // Only the five missing questions were asked for, on facts nobody had been given.
+    const retryRequests = server.sections.slice(callsBefore)
+    expect(retryRequests.reduce((sum, request) => sum + request.count, 0)).toBe(5)
+    for (const request of retryRequests) for (const entry of request.facts ?? []) expect(usedBefore.has(entry.fact)).toBe(false)
+    expect(second.questions.reduce((sum, entry) => sum + entry.points, 0)).toBe(100)
+  })
+
+  test('a technical failure keeps the plan and what is written: trying again repeats none of it', async () => {
+    const server = fake({ shape: (made) => (made.type === 'mcq' ? { ...made, stem: 'Bu modele göre hangi şık doğrudur?' } : made) })
+    const state: ExamGenerationState = { done: new Map() }
+    const realSection = server.callSection
+    let outage = true
+    server.callSection = async (request) => {
+      // The first pass works; the rewrites run into an outage.
+      if (outage && (request.facts ?? []).length > 0 && server.sections.length >= 4) throw new ExamApiError('upstream')
+      return realSection(request)
+    }
+    const error = await runResult(server, { state }).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(ExamApiError)
+    expect((error as ExamApiError).code).toBe('upstream')
+    expect(state.plan).toBeDefined()
+    expect(state.current?.length).toBe(20)
+    const plans = server.plans
+    const written = server.sections.length
+    outage = false
+    const result = await runResult(server, { state })
+    expect(server.plans).toBe(plans)
+    // The first-pass sections were not asked again; only rewrites ran.
+    expect(server.sections.slice(written).every((request) => request.type === 'mcq')).toBe(true)
+    expect(result.questions.length).toBeGreaterThanOrEqual(15)
   })
 
   test('a question that breaks a rule once is replaced on another fact and the exam is saved', async () => {
@@ -209,5 +268,34 @@ test.describe('rewrite rounds', () => {
     expect(questions).toHaveLength(20)
     expect(checkExamQuality(questions, defaultExamSettings().counts).filter((issue) => issue.rule !== 'term-repeat')).toEqual([])
     expect(new Set(questions.map((entry) => entry.fact)).size).toBe(20)
+  })
+})
+
+test.describe('concepts', () => {
+  const withConcepts = (perConcept: number[]): ExamFact[] => {
+    const facts: ExamFact[] = []
+    perConcept.forEach((count, concept) => {
+      for (let index = 0; index < count; index += 1) facts.push({ fact: `${fakeFacts(1)[0].fact.split(' ')[0]}${concept}x${index} uygulaması`, topic: 'Konu', concept: `Beceri numarası ${concept}` })
+    })
+    return facts
+  }
+
+  test('a plan of ten applications of three skills carries six questions, so the exam stops before anything is written', async () => {
+    const server = fake({ facts: withConcepts([4, 3, 3]) })
+    const settings = defaultExamSettings(new Date('2026-10-10'))
+    settings.counts = { ...settings.counts, 'open-ended': 2, 'short-answer': 2, 'true-false': 2, mcq: 2 }
+    const error = await run(server, { settings }).catch((caught: unknown) => caught)
+    expect(error).toBeInstanceOf(ExamShortSourceError)
+    expect((error as ExamShortSourceError).max).toBe(6)
+    expect(server.sections).toHaveLength(0)
+  })
+
+  test('questions are given facts of at most two per concept, in plan order', async () => {
+    // Ten applications of one skill come first, then thirty different facts: only two of the ten may be used.
+    const facts = [...withConcepts([10]), ...fakeFacts(30).map((entry, index) => ({ ...entry, fact: `${entry.fact} ${index}`, concept: `Başka beceri ${index}` }))]
+    const server = fake({ facts })
+    const questions = await run(server)
+    expect(questions).toHaveLength(20)
+    expect(questions.filter((entry) => entry.concept === 'Beceri numarası 0').length).toBeLessThanOrEqual(2)
   })
 })

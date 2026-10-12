@@ -54,6 +54,7 @@ interface ExamRequestBase {
 export interface ExamSectionFact {
   fact: string
   topic: string
+  concept?: string
 }
 
 export interface ExamSectionRequest extends ExamRequestBase {
@@ -122,6 +123,8 @@ function normaliseQuestion(value: unknown): ExamQuestion | null {
   }
   const fact = text(value.fact).trim()
   if (fact) question.fact = fact
+  const concept = text(value.concept).trim()
+  if (concept) question.concept = concept
   const context = text(value.context).trim()
   if (context) question.context = context
   if (question.type === 'mcq') {
@@ -263,6 +266,8 @@ export function parseVerifyResult(body: Record<string, unknown>): ExamVerifyResu
 export interface ExamFact {
   fact: string
   topic: string
+  /** The skill or rule the fact belongs to (applications of one formula share it). */
+  concept?: string
 }
 
 export interface ExamPlanRequest {
@@ -278,7 +283,7 @@ export interface ExamPlanRequest {
 export async function planExamFacts(request: ExamPlanRequest, signal?: AbortSignal): Promise<ExamFact[]> {
   const body = await post({ mode: 'exam_plan', text: request.text, level: request.level, outputLanguage: request.outputLanguage, topics: request.topics, count: request.count }, signal)
   const facts = Array.isArray(body.facts)
-    ? body.facts.filter(isRecord).map((entry) => ({ fact: text(entry.fact).trim(), topic: text(entry.topic).trim() })).filter((entry) => entry.fact)
+    ? body.facts.filter(isRecord).map((entry) => ({ fact: text(entry.fact).trim(), topic: text(entry.topic).trim(), ...(text(entry.concept).trim() ? { concept: text(entry.concept).trim() } : {}) })).filter((entry) => entry.fact)
     : []
   if (facts.length === 0) throw new ExamApiError('parse')
   return facts

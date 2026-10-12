@@ -2109,7 +2109,8 @@
       "phase": {
         "plan": "Metindeki farklı olgular çıkarılıyor…",
         "check": "Sınav kontrol ediliyor, gerekirse sorular yenileniyor…"
-      }
+      },
+      "estimate": "{{count}} soru yaklaşık {{minutes}} dakika sürer."
     },
     "header": {
       "school": "Okul adı",
@@ -2248,7 +2249,15 @@
     "shortSource": {
       "message": "Bu metinden en fazla {{max}} farklı soru çıkar. Daha çok soru istersen metne içerik ekle.",
       "continue": "{{max}} soru ile devam et",
-      "dismiss": "Vazgeç"
+      "dismiss": "Vazgeç",
+      "addText": "Metin ekle"
+    },
+    "partial": {
+      "message": "{{ready}} soru hazır. Kalan {{missing}} soru için metinde yeterince farklı içerik bulunamadı.",
+      "recommend": "Eksik soru sayısı fazla: önce metne içerik eklemeni öneririz.",
+      "continue": "{{ready}} soru ile devam et",
+      "retry": "Eksik soruları tekrar dene",
+      "addText": "Metin ekle"
     }
   }
 }

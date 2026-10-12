@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { restoreLatex, sanitizeExamQuestion, sanitizeExamQuestions } from '../../api/_lib/exam'
 import type { ExamGenerationRequest } from '../../api/_lib/exam'
 import { distributePoints } from '../../src/lib/exam/points'
-import { SOFT_RULES, checkExamQuality, repeatedTerms, repeatsExistingQuestion, termLimit, trueFalseRange } from '../../src/lib/exam/quality'
+import { SOFT_RULES, checkExamQuality, conceptCapacity, pairKey, repeatedTerms, repeatsExistingQuestion, termLimit, trueFalseRange } from '../../src/lib/exam/quality'
 import type { ExamQualityRule } from '../../src/lib/exam/quality'
 import { emptyCounts } from '../../src/lib/exam/types'
 import type { ExamQuestion, ExamQuestionType } from '../../src/lib/exam/types'
@@ -352,5 +352,50 @@ test.describe('what the model hands back', () => {
     const question = sanitizeExamQuestion({ type: 'mcq', stem: 'Hangisi?', options: ['Yalnız I', 'Yalnız II', 'I ve II', 'Hiçbiri'], answerIndex: 2, topic: 't', difficulty: 'easy' }, 'mcq', 4, false)!
     expect(question.options).toEqual(['Yalnız I', 'Yalnız II', 'I ve II', 'Hiçbiri'])
     expect(question.answerIndex).toBe(2)
+  })
+})
+
+test.describe('concepts: the same skill with other numbers', () => {
+  const skill = (type: ExamQuestionType, fact: string, difficulty: 'easy' | 'medium' | 'hard', stem: string, extra: Partial<ExamQuestion> = {}) =>
+    q(type, stem, { fact, concept: 'İkinci dereceden denklemde diskriminant', difficulty, ...extra })
+
+  test('capacity counts a concept at most twice and a fact without a concept once', () => {
+    expect(conceptCapacity([{ concept: 'A' }, { concept: 'A' }, { concept: 'A' }, { concept: 'B' }, {}, {}])).toBe(5)
+    expect(conceptCapacity([{ concept: 'Diskriminant' }, { concept: ' diskriminant ' }, { concept: 'DİSKRİMİNANT' }])).toBe(2)
+    expect(conceptCapacity([])).toBe(0)
+  })
+
+  test('two questions on one skill with other numbers are allowed when they differ in type or difficulty', () => {
+    const a = skill('short-answer', 'x²−5x+6=0 denkleminin diskriminantı 1 olur', 'easy', '$x^2-5x+6=0$ denkleminin diskriminantını hesaplayınız.')
+    const b = skill('mcq', 'x²+2x+5=0 denkleminin diskriminantı −16 olur', 'medium', '$x^2+2x+5=0$ denkleminin diskriminantı kaçtır?')
+    // The facts share words, so the pair goes to the judge; it says they are different (other numbers, another form).
+    const verdicts = { judged: new Map([[pairKey(a, b), false]]) }
+    const rules = checkExamQuality([a, b], null, verdicts).map((issue) => issue.rule)
+    expect(rules).not.toContain('concept-cap')
+    expect(rules).not.toContain('duplicate')
+    // Without that verdict the close pair is treated as a repeat; the judge decides, never the word count alone.
+    expect(rulesOf([a, b])).toContain('duplicate')
+    const sameType = skill('short-answer', 'x²+2x+5=0 denkleminin diskriminantı −16 olur', 'easy', '$x^2+2x+5=0$ denkleminin diskriminantını bulunuz.')
+    // Same type and same difficulty: the cap's "differ in type or difficulty" condition is not met.
+    expect(idsOf([a, sameType], 'concept-cap')).toEqual([sameType.id])
+  })
+
+  test('a third question on the same skill is always flagged, whatever it looks like', () => {
+    const a = skill('short-answer', 'birinci uygulama diskriminant 1', 'easy', '$x^2-5x+6=0$ denkleminin diskriminantını hesaplayınız.')
+    const b = skill('mcq', 'ikinci uygulama diskriminant −16', 'medium', '$x^2+2x+5=0$ denkleminin diskriminantı kaçtır?')
+    const c = skill('open-ended', 'üçüncü uygulama diskriminant 0', 'hard', '$x^2+4x+4=0$ denkleminin kökleri için diskriminantın anlamını açıklayınız.')
+    expect(idsOf([a, b, c], 'concept-cap')).toEqual([c.id])
+  })
+
+  test('the same question again is never allowed: same fact is a duplicate, even inside the cap', () => {
+    const a = skill('short-answer', 'x²−5x+6=0 denkleminin diskriminantı 1 olur', 'easy', '$x^2-5x+6=0$ denkleminin diskriminantını hesaplayınız.')
+    const again = skill('mcq', 'x²−5x+6=0 denkleminin diskriminantı 1 olur', 'medium', '$x^2-5x+6=0$ denkleminde diskriminant kaçtır?')
+    expect(idsOf([a, again], 'duplicate')).toEqual([again.id])
+    expect(idsOf([a, again], 'concept-cap')).toEqual([])
+  })
+
+  test('questions without a concept are never grouped', () => {
+    const plain = [0, 1, 2].map((index) => q('short-answer', `Bambaşka ${index} soru metni ${'abc'[index]}${index}sözcük farklı olgu`, { difficulty: 'easy' }))
+    expect(idsOf(plain, 'concept-cap')).toEqual([])
   })
 })

@@ -4,7 +4,7 @@ import type { ExamQuestion, ExamQuestionType } from './types.js'
 /** One whole-exam check, used by the server (api/_lib/exam.ts) and by the generator that stitches sections together.
  * Every rule returns the questions that break it; the later question of a pair is the one reported. */
 
-export type ExamQualityRule = 'count' | 'duplicate' | 'same-answer' | 'true-false-balance' | 'reference' | 'scenario' | 'blank-leak' | 'term-repeat' | 'key-check' | 'points'
+export type ExamQualityRule = 'count' | 'duplicate' | 'same-answer' | 'true-false-balance' | 'reference' | 'scenario' | 'blank-leak' | 'term-repeat' | 'concept-cap' | 'key-check' | 'points'
 
 /** Rules that trigger a rewrite but never stop an exam from being saved (a source that really is about one thing). */
 export const SOFT_RULES: ExamQualityRule[] = ['term-repeat']
@@ -74,6 +74,19 @@ function factWords(question: ExamQuestion): Set<string> {
   return stems(question.fact ?? '', 4)
 }
 
+function numbersIn(text: string): Set<string> {
+  return new Set([...text.replace(/−/g, '-').matchAll(/-?\d+(?:[.,]\d+)?/g)].map((match) => match[0].replace(',', '.')))
+}
+
+/** Both facts work with numbers and share at most half of them. */
+function factNumbersDiffer(a: string, b: string): boolean {
+  const first = numbersIn(a)
+  const second = numbersIn(b)
+  if (first.size === 0 || second.size === 0) return false
+  const shared = [...first].filter((value) => second.has(value)).length
+  return shared / Math.min(first.size, second.size) <= 0.5
+}
+
 /** Do two questions test the same fact? Facts decide when both questions carry one; stems decide otherwise. */
 function pairTier(a: ExamQuestion, b: ExamQuestion): PairTier {
   const wordsA = stemSignature(a)
@@ -95,10 +108,32 @@ function pairTier(a: ExamQuestion, b: ExamQuestion): PairTier {
   if (!a.fact || !b.fact) return stemTier
   if (normalize(a.fact) === normalize(b.fact)) return 'yes'
   const factShare = shareOfUnion(factWords(a), factWords(b))
-  if (factShare >= FACT_SAME) return 'yes'
+  // The same skill on other numbers shares nearly every word: the numbers tell the two facts apart, and a judge decides.
+  if (factShare >= FACT_SAME) return factNumbersDiffer(a.fact, b.fact) ? 'maybe' : 'yes'
   if (factShare >= FACT_CLOSE) return 'maybe'
   // The plan gave the two questions different facts: only near-identical wording still counts.
   return stemTier === 'yes' ? 'maybe' : 'no'
+}
+
+/** At most this many questions on one concept (one skill, applied to different numbers): and only when they differ in type or difficulty. */
+export const MAX_QUESTIONS_PER_CONCEPT = 2
+
+export function conceptKey(concept: string | undefined): string {
+  return concept ? normalize(concept) : ''
+}
+
+/** How many different questions a plan can carry: every concept counts at most twice, a fact without a concept is its own concept. */
+export function conceptCapacity(facts: { concept?: string }[]): number {
+  const perConcept = new Map<string, number>()
+  let alone = 0
+  for (const entry of facts) {
+    const key = conceptKey(entry.concept)
+    if (key) perConcept.set(key, (perConcept.get(key) ?? 0) + 1)
+    else alone += 1
+  }
+  let total = alone
+  for (const count of perConcept.values()) total += Math.min(MAX_QUESTIONS_PER_CONCEPT, count)
+  return total
 }
 
 /** How alike two fact sentences are, 0 to 1 (shared key words / all key words). */
@@ -343,6 +378,18 @@ export function checkExamQuality(questions: ExamQuestion[], counts: Record<ExamQ
       const question = questions.find((candidate) => candidate.id === id)
       if (question) flag('term-repeat', question)
     }
+  }
+
+  // A concept may carry two questions at most, and only when they differ in type or difficulty.
+  const perConcept = new Map<string, ExamQuestion[]>()
+  for (const question of questions) {
+    const key = conceptKey(question.concept)
+    if (!key) continue
+    const accepted = perConcept.get(key) ?? []
+    const clash = accepted.length >= MAX_QUESTIONS_PER_CONCEPT || accepted.some((other) => other.type === question.type && other.difficulty === question.difficulty)
+    if (clash) flag('concept-cap', question)
+    else accepted.push(question)
+    perConcept.set(key, accepted)
   }
 
   const trueFalse = questions.filter((question) => question.type === 'true-false')

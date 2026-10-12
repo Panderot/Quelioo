@@ -1,7 +1,7 @@
 import { ExamApiError, generateExamSection, planExamFacts, verifyExamKeys } from '../../api/exam'
 import type { ExamFact, ExamPlanRequest, ExamSectionRequest, ExamVerifyRequest, ExamVerifyResult } from '../../api/exam'
 import { distributePoints } from './points'
-import { SOFT_RULES, checkExamQuality, correctAnswerText, factSimilarity, pairKey, questionsToRewrite, repeatedTerms, trueFalseRange, uncertainPairs } from './quality'
+import { MAX_QUESTIONS_PER_CONCEPT, SOFT_RULES, checkExamQuality, conceptCapacity, conceptKey, correctAnswerText, factSimilarity, pairKey, questionsToRewrite, repeatedTerms, trueFalseRange, uncertainPairs } from './quality'
 import type { ExamQualityIssue } from './quality'
 import { EXAM_QUESTION_TYPES } from './types'
 import type { ExamDifficulty, ExamQuestion, ExamQuestionType, ExamSettings } from './types'
@@ -143,6 +143,16 @@ export interface ExamGenerationState {
   plan?: ExamFact[]
   /** Facts handed to each section, so a retry asks for the same ones. */
   assigned?: Map<string, ExamFact[]>
+  /** What the plan was made from; a different source, topic list, level or language starts over. */
+  planKey?: string
+  /** Facts already given to a question, passed or failed: never handed out twice. */
+  usedFacts?: Set<string>
+  /** Verdicts of the judge and the second reading of keys, kept so nothing is judged twice. */
+  judge?: JudgeState
+  /** The questions as they stand (written, rewritten, or the ones that passed): a retry resumes from here. */
+  current?: ExamQuestion[]
+  /** The last result left questions out: the next run asks only for the missing ones. */
+  partial?: boolean
 }
 
 export interface GenerateExamOptions {
@@ -167,73 +177,112 @@ interface Calls {
   verify: VerifyCaller
 }
 
+export interface ExamGenerationResult {
+  /** The questions that passed every check, points spread to exactly 100. */
+  questions: ExamQuestion[]
+  /** How many questions were asked for. */
+  requested: number
+  /** How many of them could not be written without breaking a rule (0 for a complete exam). */
+  missing: number
+}
+
 /** Plans the facts, writes one question per fact (3 sections at a time), checks the whole exam and rewrites what breaks a rule
- * with unused facts (at most 3 rounds). Throws the first API error after the running sections have finished; finished
- * sections and the plan stay in `state`. */
-export async function generateExamQuestions({ settings, text, state, signal, onProgress, acceptFewer = false, callSection = generateExamSection, callVerify = verifyExamKeys, callPlan = planExamFacts, onIssues }: GenerateExamOptions): Promise<ExamQuestion[]> {
+ * with unused facts (at most 3 rounds). Questions that still fail are left out: the result then holds the rest and says how many
+ * are missing. A technical failure throws the first API error; the plan, the finished sections and the questions that passed
+ * stay in `state`, so trying again repeats nothing that is done. */
+export async function generateExamQuestions({ settings, text, state, signal, onProgress, acceptFewer = false, callSection = generateExamSection, callVerify = verifyExamKeys, callPlan = planExamFacts, onIssues }: GenerateExamOptions): Promise<ExamGenerationResult> {
   const total = examQuestionTotal(settings)
   const sections = planExamSections(settings)
   const report = () => onProgress?.(sections.filter((section) => state.done.has(section.key)).length, sections.length, 'write')
+
+  // A plan belongs to one source, topic list, level and language; a changed source starts over.
+  const planKey = JSON.stringify([text, settings.topics, settings.level, settings.outputLanguage])
+  if (state.planKey !== planKey) {
+    state.planKey = planKey
+    state.plan = undefined
+    state.assigned = undefined
+    state.current = undefined
+    state.usedFacts = undefined
+    state.judge = undefined
+    state.partial = false
+    state.done.clear()
+  }
   if (!state.plan) {
     onProgress?.(0, sections.length, 'plan')
     const wanted = Math.min(MAX_PLAN_FACTS, Math.ceil(total * PLAN_SURPLUS))
     state.plan = await callPlan({ text, level: settings.level, outputLanguage: settings.outputLanguage, topics: settings.topics, count: wanted }, signal)
   }
   const plan = state.plan
-  if (plan.length < total && !acceptFewer) throw new ExamShortSourceError(plan.length)
+  // Worked applications of one formula count as one concept, and a concept carries two questions at most.
+  const capacity = conceptCapacity(plan)
+  if (capacity < total && !acceptFewer) throw new ExamShortSourceError(capacity)
 
-  // One distinct fact for every question slot, in plan order; the rest of the plan is the reserve for rewrites.
-  const usedFacts = new Set<string>()
-  state.assigned ??= new Map()
-  let cursor = 0
-  for (const section of sections) {
-    let facts = state.assigned.get(section.key)
-    if (!facts) {
-      facts = plan.slice(cursor, cursor + section.count)
-      state.assigned.set(section.key, facts)
+  const usedFacts = (state.usedFacts ??= new Set<string>())
+  const judge = (state.judge ??= { verified: new Set(), judged: new Map() })
+  const calls: Calls = { section: callSection, verify: callVerify }
+  const retryingMissing = state.partial === true
+  state.partial = false
+
+  let current = state.current
+  if (!current) {
+    // One distinct fact for every question slot, in plan order, at most two per concept; the rest of the plan is the reserve for rewrites.
+    if (!state.assigned) {
+      state.assigned = new Map()
+      const chosen: ExamFact[] = []
+      const perConcept = new Map<string, number>()
+      for (const entry of plan) {
+        if (chosen.length >= total) break
+        const key = conceptKey(entry.concept)
+        if (key && (perConcept.get(key) ?? 0) >= MAX_QUESTIONS_PER_CONCEPT) continue
+        if (key) perConcept.set(key, (perConcept.get(key) ?? 0) + 1)
+        chosen.push(entry)
+      }
+      for (const entry of plan) if (chosen.length < total && !chosen.includes(entry)) chosen.push(entry)
+      let cursor = 0
+      for (const section of sections) {
+        state.assigned.set(section.key, chosen.slice(cursor, cursor + section.count))
+        cursor += section.count
+      }
+      for (const entry of chosen) usedFacts.add(entry.fact)
     }
-    cursor += section.count
-    for (const entry of facts) usedFacts.add(entry.fact)
-  }
 
-  report()
-  const pending = sections.filter((section) => !state.done.has(section.key))
-  const skipped = new Set<string>()
-  let failure: unknown = null
-  let next = 0
-  const worker = async () => {
-    while (failure === null && next < pending.length) {
-      const section = pending[next++]
-      try {
-        const request = requestFor(settings, text, section, state.assigned?.get(section.key) ?? [], [])
-        if (section.type === 'true-false') request.trueFalseAnswers = trueFalsePattern(settings.counts['true-false']).slice(trueFalseOffset(sections, section), trueFalseOffset(sections, section) + section.count)
-        const questions = await callSection(request, signal)
-        state.done.set(section.key, questions)
-        report()
-      } catch (error) {
-        // A reply the server filtered down to nothing is not an outage: the questions are asked again below (and again on a retry).
-        if (error instanceof ExamApiError && error.code === 'parse') skipped.add(section.key)
-        else failure ??= error
+    report()
+    const pending = sections.filter((section) => !state.done.has(section.key))
+    const skipped = new Set<string>()
+    let failure: unknown = null
+    let next = 0
+    const worker = async () => {
+      while (failure === null && next < pending.length) {
+        const section = pending[next++]
+        try {
+          const request = requestFor(settings, text, section, state.assigned?.get(section.key) ?? [], [])
+          if (section.type === 'true-false') request.trueFalseAnswers = trueFalsePattern(settings.counts['true-false']).slice(trueFalseOffset(sections, section), trueFalseOffset(sections, section) + section.count)
+          const questions = await callSection(request, signal)
+          state.done.set(section.key, questions)
+          report()
+        } catch (error) {
+          // A reply the server filtered down to nothing is not an outage: the questions are asked again below (and again on a retry).
+          if (error instanceof ExamApiError && error.code === 'parse') skipped.add(section.key)
+          else failure ??= error
+        }
       }
     }
-  }
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pending.length) }, worker))
-  if (failure !== null) throw failure
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, pending.length) }, worker))
+    if (failure !== null) throw failure
 
-  // Canonical order: by type, chunks in order.
-  const merged: ExamQuestion[] = []
-  for (const type of EXAM_QUESTION_TYPES) {
-    const wanted = settings.counts[type]
-    if (wanted <= 0) continue
-    merged.push(...sections.filter((section) => section.type === type && !skipped.has(section.key)).flatMap((section) => state.done.get(section.key) ?? []).slice(0, wanted))
+    // Canonical order: by type, chunks in order.
+    current = []
+    for (const type of EXAM_QUESTION_TYPES) {
+      const wanted = settings.counts[type]
+      if (wanted <= 0) continue
+      current.push(...sections.filter((section) => section.type === type && !skipped.has(section.key)).flatMap((section) => state.done.get(section.key) ?? []).slice(0, wanted))
+    }
+    state.current = current
   }
 
   onProgress?.(sections.length, sections.length, 'check')
   // Whole-exam quality check. Keys of true-false and multiple-choice questions are read a second time against the source (a
   // wrong key is corrected from that reading), uncertain pairs are put to a judge, and whatever still breaks a rule is rewritten.
-  const calls: Calls = { section: callSection, verify: callVerify }
-  const judge: JudgeState = { verified: new Set(), judged: new Map() }
-  let current = merged
   let issues = await issuesOf(current, settings, text, judge, calls, signal)
   onIssues?.(0, issues)
   for (let round = 0; round < MAX_REPAIR_ROUNDS && issues.length > 0; round += 1) {
@@ -248,22 +297,33 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
       avoidTerms: repeatedTerms(current, settings.topics),
       kept: current.filter((question) => !drop.has(question.id)),
       dropped: current.filter((question) => drop.has(question.id)),
+      // A fact that already failed is not asked again when the teacher retries only the missing questions.
+      allowSpent: !retryingMissing,
       signal,
       callSection,
     })
+    state.current = current
     onProgress?.(sections.length, sections.length, 'check')
     issues = await issuesOf(current, settings, text, judge, calls, signal)
     onIssues?.(round + 1, issues)
   }
   const blocking = issues.filter((issue) => !SOFT_RULES.includes(issue.rule))
-  if (blocking.length > 0) throw new ExamApiError('quality', blocking.map((issue) => `${issue.rule}${issue.type ? `:${issue.type}` : ''}${issue.with ? ` (${issue.with.how} with: ${current.find((question) => question.id === issue.with?.id)?.stem.slice(0, 70) ?? ''})` : ''} ${current.find((question) => question.id === issue.id)?.stem.slice(0, 90) ?? ''}`))
-
-  const scored = distributePoints(sortByType(current), 100)
-  if (checkExamQuality(scored, settings.counts, { topics: settings.topics, judged: judge.judged }).some((issue) => !SOFT_RULES.includes(issue.rule))) throw new ExamApiError('quality')
-  return scored
+  const failing = new Set(blocking.map((issue) => issue.id).filter((id): id is string => id !== null))
+  const kept = current.filter((question) => !failing.has(question.id))
+  if (blocking.length > 0 && kept.length === 0) throw new ExamApiError('quality', blocking.map((issue) => `${issue.rule}${issue.type ? `:${issue.type}` : ''}`))
+  if (blocking.length === 0) {
+    const scored = distributePoints(sortByType(kept), 100)
+    if (checkExamQuality(scored, settings.counts, { topics: settings.topics, judged: judge.judged }).some((issue) => !SOFT_RULES.includes(issue.rule))) throw new ExamApiError('quality')
+    state.current = scored
+    return { questions: scored, requested: total, missing: 0 }
+  }
+  // Some questions still fail after the last round: they are left out, the ones that passed are kept for the teacher (and for a retry of just the missing ones).
+  state.current = kept
+  state.partial = true
+  return { questions: distributePoints(sortByType(kept), 100), requested: total, missing: total - kept.length }
 }
 
-interface JudgeState {
+export interface JudgeState {
   /** Ids of the questions whose key has been read a second time. */
   verified: Set<string>
   /** Verdicts on uncertain pairs (`pairKey` → both test the same fact). */
@@ -334,12 +394,14 @@ interface RewriteOptions {
   kept: ExamQuestion[]
   dropped: ExamQuestion[]
   avoidTerms: string[]
+  /** When the reserve is empty, a failed question's own fact may be tried again (not on a retry of the missing questions). */
+  allowSpent: boolean
   signal?: AbortSignal
   callSection: SectionCaller
 }
 
 /** Asks for exactly the questions the exam is short of (per type, true-false split by answer), each on a fact not used yet. */
-async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped, avoidTerms, signal, callSection }: RewriteOptions): Promise<ExamQuestion[]> {
+async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped, avoidTerms, allowSpent, signal, callSection }: RewriteOptions): Promise<ExamQuestion[]> {
   const avoidStems = kept.map((question) => question.stem)
   const avoidAnswers = kept.map(correctAnswerText).filter(Boolean)
   // The facts of the questions being rewritten are spent; if the reserve is empty the oldest of them is tried again.
@@ -348,14 +410,28 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
   // The new fact is the one least like any fact already on the exam, so a rewrite does not land next to the question it replaces.
   const onExam = kept.map((question) => question.fact).filter((fact): fact is string => Boolean(fact))
   const likeness = (entry: ExamFact) => onExam.reduce((most, fact) => Math.max(most, factSimilarity(entry.fact, fact)), 0)
+  // A concept carries two questions at most: facts of a full concept stay in the reserve.
+  const perConcept = new Map<string, number>()
+  for (const question of kept) {
+    const key = conceptKey(question.concept)
+    if (key) perConcept.set(key, (perConcept.get(key) ?? 0) + 1)
+  }
+  const roomFor = (entry: ExamFact) => {
+    const key = conceptKey(entry.concept)
+    return !key || (perConcept.get(key) ?? 0) < MAX_QUESTIONS_PER_CONCEPT
+  }
   const takeFact = (): ExamFact | undefined => {
-    reserve.sort((a, b) => likeness(a) - likeness(b))
-    const fresh = reserve.shift()
+    const open = reserve.filter(roomFor).sort((a, b) => likeness(a) - likeness(b))
+    const fresh = open[0]
     if (fresh) {
+      reserve.splice(reserve.indexOf(fresh), 1)
       usedFacts.add(fresh.fact)
       onExam.push(fresh.fact)
+      const key = conceptKey(fresh.concept)
+      if (key) perConcept.set(key, (perConcept.get(key) ?? 0) + 1)
       return fresh
     }
+    if (!allowSpent) return undefined
     const again = spent.shift()
     return again ? plan.find((entry) => entry.fact === again) : undefined
   }

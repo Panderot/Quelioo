@@ -437,7 +437,7 @@ test('a quality-check failure (the model ignores the planned answers and writes 
   expect(stored.questions.reduce((sum, question) => sum + question.points, 0)).toBe(100)
 })
 
-test('an exam that still breaks a rule after three rewrites is not saved and shows the quality error', async ({ page }) => {
+test('questions that still break a rule after three rewrites are left out: the screen says what is ready and nothing is saved yet', async ({ page }) => {
   await onlyTrueFalse(page, 'q2', 4)
   let calls = 0
   let serial = 200
@@ -457,11 +457,33 @@ test('an exam that still breaks a rule after three rewrites is not saved and sho
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ questions }) })
   })
   await page.locator('[data-purpose="exam-generate"]').click()
-  await expect(page.locator('[data-purpose="exam-generate-error"]')).toContainText('did not pass the quality check')
-  // The first pass and three rewrite rounds.
-  expect(calls).toBe(4)
+  // Two of the four true-false statements stay (the answers are balanced by the plan), two never pass: half is missing.
+  await expect(page.locator('[data-purpose="exam-partial"]')).toContainText('2 questions are ready. For the remaining 2')
+  await expect(page.locator('[data-purpose="exam-partial-recommend"]')).toBeVisible()
+  expect(calls).toBeGreaterThanOrEqual(2)
   expect(await storedExams(page)).toEqual([])
   await expect(page).toHaveURL(/\/exams\/new/)
+})
+
+test('when not one question passes there is nothing to keep: the error stays, with Try again', async ({ page }) => {
+  await page.goto('/exams/new?d=q3&lng=en')
+  for (const type of ['open-ended', 'short-answer', 'true-false']) await page.locator(`#exam-count-${type}`).fill('0')
+  await page.locator('#exam-count-mcq').fill('4')
+  const box = page.locator('#quiz-content-input')
+  await box.click()
+  await box.fill(EXAM_SOURCE)
+  await page.route('**/api/generate', async (route) => {
+    const payload = route.request().postDataJSON() as { mode: string; type: string; count: number; facts?: { fact: string }[] }
+    const reply = (body: unknown) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+    if (payload.mode === 'exam_plan') return reply({ facts: fakeFacts(payload.count) })
+    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [] })
+    const { fakeQuestion } = await import('./examHelpers')
+    return reply({ questions: Array.from({ length: payload.count }, (_, index) => ({ ...fakeQuestion('mcq', `m${index}-${Math.random()}`), fact: payload.facts?.[index]?.fact, stem: 'Bu modele göre hangi şık doğrudur?' })) })
+  })
+  await page.locator('[data-purpose="exam-generate"]').click()
+  await expect(page.locator('[data-purpose="exam-generate-error"]')).toContainText('did not pass the quality check')
+  await expect(page.locator('[data-purpose="exam-retry"]')).toBeVisible()
+  expect(await storedExams(page)).toEqual([])
 })
 
 test('old drafts never open in a new exam; drafts of other users or older than 7 days are dropped', async ({ page }) => {
@@ -666,4 +688,188 @@ test('dismissing the short-source notice changes nothing', async ({ page }) => {
   await expect(page.locator('[data-purpose="exam-short-source"]')).toBeHidden()
   await expect(page.locator('#exam-count-mcq')).toHaveValue('5')
   expect(await storedExams(page)).toEqual([])
+})
+
+// ---------------------------------------------------------------------------
+// Partial results: a 40-question exam where some questions keep failing the quality check
+// ---------------------------------------------------------------------------
+
+interface FortyOptions {
+  /** How many multiple-choice questions of the first pass break a rule (a stem that points at a model that is not there). */
+  brokenFirst: number
+  /** While true, every rewritten multiple-choice question breaks the rule again. */
+  failRewrites: { value: boolean }
+  /** While true, rewrite calls fail with a server error. */
+  outage?: { value: boolean }
+}
+
+interface SectionCall {
+  type: string
+  count: number
+  facts: string[]
+  rewrite: boolean
+}
+
+async function mockForty(page: import('@playwright/test').Page, options: FortyOptions): Promise<{ sections: SectionCall[]; plans: () => number }> {
+  const sections: SectionCall[] = []
+  let plans = 0
+  let brokenLeft = options.brokenFirst
+  await page.route('**/api/generate', async (route) => {
+    const payload = route.request().postDataJSON() as { mode: string; type: string; count: number; facts?: { fact: string }[]; trueFalseAnswers?: boolean[]; avoidAnswers?: string[] }
+    const reply = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
+    if (payload.mode === 'exam_plan') {
+      plans += 1
+      return reply({ facts: fakeFacts(payload.count) })
+    }
+    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [] })
+    const rewrite = payload.avoidAnswers !== undefined
+    if (rewrite && options.outage?.value) return reply({ error: 'upstream' }, 502)
+    sections.push({ type: payload.type, count: payload.count, facts: (payload.facts ?? []).map((entry) => entry.fact), rewrite })
+    const { fakeQuestion } = await import('./examHelpers')
+    return reply({
+      questions: Array.from({ length: payload.count }, (_, index) => {
+        const tag = `${payload.type}-${sections.length}-${index}`
+        const base = { ...fakeQuestion(payload.type as never, tag), fact: payload.facts?.[index]?.fact }
+        if (payload.type === 'true-false') return { ...base, answerBool: payload.trueFalseAnswers?.[index] ?? true }
+        const breaks = payload.type === 'mcq' && (rewrite ? options.failRewrites.value : brokenLeft > 0 && (brokenLeft -= 1) >= 0)
+        return breaks ? { ...base, stem: `Bu modele göre hangi şık doğrudur? ${tag}` } : base
+      }),
+    })
+  })
+  return { sections, plans: () => plans }
+}
+
+async function startForty(page: import('@playwright/test').Page, setupId: string) {
+  await page.goto(`/exams/new?d=${setupId}&lng=en`)
+  for (const type of ['open-ended', 'short-answer', 'true-false', 'mcq']) await page.locator(`#exam-count-${type}`).fill('10')
+  await fillSource(page)
+}
+
+test('an early warning after the plan: Add text, Continue and Cancel; the text stays and nothing was written yet', async ({ page }) => {
+  await page.goto('/exams/new?d=w1&lng=en')
+  await fillSource(page)
+  const sections: number[] = []
+  await page.route('**/api/generate', async (route) => {
+    const payload = route.request().postDataJSON() as { mode: string; count: number }
+    if (payload.mode === 'exam_plan') return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ facts: fakeFacts(8) }) })
+    sections.push(payload.count)
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ wrong: [], fixes: [], same: [] }) })
+  })
+  await page.locator('[data-purpose="exam-generate"]').click()
+  const notice = page.locator('[data-purpose="exam-short-source"]')
+  await expect(notice).toContainText('at most 8 different questions')
+  for (const purpose of ['exam-short-continue', 'exam-short-add-text', 'exam-short-dismiss']) await expect(page.locator(`[data-purpose="${purpose}"]`)).toBeVisible()
+  expect(sections).toHaveLength(0)
+  await page.locator('[data-purpose="exam-short-add-text"]').click()
+  await expect(notice).toBeHidden()
+  await expect(page.locator('#quiz-content-input')).toBeFocused()
+  await expect(page.locator('#quiz-content-input')).toHaveValue(EXAM_SOURCE)
+  await expect(page.locator('#exam-count-mcq')).toHaveValue('5')
+  expect(await storedExams(page)).toEqual([])
+})
+
+test('the settings screen estimates the time of a large exam', async ({ page }) => {
+  await page.goto('/exams/new?d=e1&lng=en')
+  await expect(page.locator('[data-purpose="exam-estimate"]')).toHaveCount(0)
+  for (const type of ['open-ended', 'short-answer', 'true-false', 'mcq']) await page.locator(`#exam-count-${type}`).fill('10')
+  await expect(page.locator('[data-purpose="exam-estimate"]')).toHaveText('40 questions take about 3 minutes.')
+})
+
+test('40 questions where 2 keep failing: "38 questions are ready"; Continue opens the editor with 38 questions and exactly 100 points', async ({ page }) => {
+  test.setTimeout(120_000)
+  const server = await mockForty(page, { brokenFirst: 2, failRewrites: { value: true } })
+  await startForty(page, 'p1')
+  await page.locator('[data-purpose="exam-generate"]').click()
+  const partial = page.locator('[data-purpose="exam-partial"]')
+  await expect(partial).toContainText('38 questions are ready. For the remaining 2, the text does not hold enough different content.')
+  await expect(page.locator('[data-purpose="exam-partial-recommend"]')).toHaveCount(0)
+  for (const purpose of ['exam-partial-continue', 'exam-partial-retry', 'exam-partial-add-text']) await expect(page.locator(`[data-purpose="${purpose}"]`)).toBeVisible()
+  // Nothing is saved before the teacher chooses.
+  expect(await storedExams(page)).toEqual([])
+  expect(server.plans()).toBe(1)
+  await page.locator('[data-purpose="exam-partial-continue"]').click()
+  await expect(page).toHaveURL(/\/exams\/[0-9a-f-]{36}$/)
+  await expect(questionCards(page)).toHaveCount(38)
+  await expect(page.locator('[data-purpose="exam-total"]')).toContainText('100 / 100')
+  const stored = await storedExams(page)
+  expect(stored).toHaveLength(1)
+  const counts: Record<string, number> = {}
+  for (const question of stored[0].questions) counts[question.type] = (counts[question.type] ?? 0) + 1
+  // Only the failing questions are gone; the mix of the rest is untouched and the settings follow what was made.
+  expect(counts).toEqual({ 'open-ended': 10, 'short-answer': 10, 'true-false': 10, mcq: 8 })
+  expect(stored[0].settings.counts.mcq).toBe(8)
+  expect(stored[0].questions.every((question) => Number.isInteger(question.points) && question.points >= 1)).toBe(true)
+  expect(stored[0].questions.reduce((sum, question) => sum + question.points, 0)).toBe(100)
+  expect(stored[0].questions.some((question) => question.stem.includes('Bu modele göre'))).toBe(false)
+})
+
+test('"Retry the missing questions" asks for only those 2, on new facts, and the finished exam is saved once', async ({ page }) => {
+  test.setTimeout(120_000)
+  const failRewrites = { value: true }
+  const server = await mockForty(page, { brokenFirst: 2, failRewrites })
+  await startForty(page, 'p2')
+  await page.locator('[data-purpose="exam-generate"]').click()
+  await expect(page.locator('[data-purpose="exam-partial"]')).toContainText('38 questions are ready')
+  const used = new Set(server.sections.flatMap((call) => call.facts))
+  const before = server.sections.length
+  failRewrites.value = false
+  await page.locator('[data-purpose="exam-partial-retry"]').click()
+  await expect(page).toHaveURL(/\/exams\/[0-9a-f-]{36}$/)
+  const retry = server.sections.slice(before)
+  // Only the two missing questions were requested, all of them rewrites, every fact one that had not been used.
+  expect(retry.reduce((sum, call) => sum + call.count, 0)).toBe(2)
+  expect(retry.every((call) => call.rewrite && call.type === 'mcq')).toBe(true)
+  for (const call of retry) for (const fact of call.facts) expect(used.has(fact)).toBe(false)
+  expect(server.plans()).toBe(1)
+  await expect(questionCards(page)).toHaveCount(40)
+  const stored = await storedExams(page)
+  expect(stored).toHaveLength(1)
+  expect(stored[0].questions.reduce((sum, question) => sum + question.points, 0)).toBe(100)
+})
+
+test('"Add text" on the partial screen goes back to the source with the text and settings kept', async ({ page }) => {
+  test.setTimeout(120_000)
+  await mockForty(page, { brokenFirst: 2, failRewrites: { value: true } })
+  await startForty(page, 'p3')
+  await page.locator('[data-purpose="exam-generate"]').click()
+  await expect(page.locator('[data-purpose="exam-partial"]')).toBeVisible()
+  await page.locator('[data-purpose="exam-partial-add-text"]').click()
+  await expect(page.locator('[data-purpose="exam-partial"]')).toBeHidden()
+  await expect(page.locator('#quiz-content-input')).toBeFocused()
+  await expect(page.locator('#quiz-content-input')).toHaveValue(EXAM_SOURCE)
+  await expect(page.locator('#exam-count-mcq')).toHaveValue('10')
+  expect(await storedExams(page)).toEqual([])
+})
+
+test('more than 20 % missing says so and puts "Add text" first', async ({ page }) => {
+  test.setTimeout(120_000)
+  // 5 of 10 multiple-choice questions never pass: 5 of 40 is 12 %, so also break the first pass of two more types? Use 9 of 10 instead.
+  await mockForty(page, { brokenFirst: 10, failRewrites: { value: true } })
+  await startForty(page, 'p4')
+  await page.locator('[data-purpose="exam-generate"]').click()
+  const partial = page.locator('[data-purpose="exam-partial"]')
+  await expect(partial).toContainText('30 questions are ready. For the remaining 10')
+  await expect(page.locator('[data-purpose="exam-partial-recommend"]')).toContainText('adding more material first')
+  const labels = await partial.locator('button').allInnerTexts()
+  expect(labels[0]).toBe('Add text')
+})
+
+test('a technical failure keeps what passed: Try again repeats only the rewrites, not the first pass', async ({ page }) => {
+  test.setTimeout(120_000)
+  const outage = { value: true }
+  const server = await mockForty(page, { brokenFirst: 2, failRewrites: { value: false }, outage })
+  await startForty(page, 'p5')
+  await page.locator('[data-purpose="exam-generate"]').click()
+  await expect(page.locator('[data-purpose="exam-generate-error"]')).toContainText('Nothing was saved')
+  expect(await storedExams(page)).toEqual([])
+  const firstPass = server.sections.filter((call) => !call.rewrite).length
+  expect(firstPass).toBeGreaterThanOrEqual(8)
+  outage.value = false
+  await page.locator('[data-purpose="exam-retry"]').click()
+  await expect(page).toHaveURL(/\/exams\/[0-9a-f-]{36}$/)
+  // The first pass was not asked again and the plan was made once.
+  expect(server.sections.filter((call) => !call.rewrite).length).toBe(firstPass)
+  expect(server.plans()).toBe(1)
+  await expect(questionCards(page)).toHaveCount(40)
+  expect(await storedExams(page)).toHaveLength(1)
 })

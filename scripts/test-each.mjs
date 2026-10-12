@@ -1,4 +1,4 @@
-// Runs the Playwright specs one file at a time (2 workers, desktop + mobile) against ONE Vite dev server
+// Runs the Playwright specs one file at a time (2 workers unless PW_WORKERS says otherwise; PW_EXTRA adds playwright flags such as --repeat-each=5; desktop + mobile) against ONE Vite dev server
 // that this script starts once and always kills (whole process tree) at the end, even on Ctrl+C.
 // Usage: node scripts/test-each.mjs [spec-file ...]   (default: every tests/e2e/*.spec.ts)
 import { spawn, spawnSync } from 'node:child_process'
@@ -44,7 +44,7 @@ const baseline = nodeCount()
 console.log(`node processes before: ${baseline}`)
 let failedFiles = 0
 for (const file of files) {
-  const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', ...(gameMode ? ['--config=playwright.game.config.ts'] : supabaseMode ? ['--config=playwright.supabase.config.ts'] : []), file, '--project=desktop', '--project=mobile', '--workers=2', '--reporter=line'], { encoding: 'utf8', maxBuffer: 1 << 28 })
+  const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js', 'test', ...(gameMode ? ['--config=playwright.game.config.ts'] : supabaseMode ? ['--config=playwright.supabase.config.ts'] : []), file, '--project=desktop', '--project=mobile', `--workers=${process.env.PW_WORKERS ?? 2}`, '--reporter=line', ...(process.env.PW_EXTRA ? process.env.PW_EXTRA.split(' ') : [])], { encoding: 'utf8', maxBuffer: 1 << 28 })
   const lines = `${run.stdout}${run.stderr}`.split('\n')
   const summary = lines.filter((l) => /^\s+\d+ (passed|failed|flaky|skipped)/.test(l)).map((l) => l.trim()).join(', ')
   console.log(`${run.status === 0 ? 'ok  ' : 'FAIL'} ${file} — ${summary || 'no summary'} (node: ${nodeCount()})`)
