@@ -2143,7 +2143,8 @@
       "distributionAdd": "+ Add row",
       "distributionSum": "Total {{sum}} / {{total}}",
       "durationHint": "A whole number from {{min}} to {{max}}; leave it empty to print no time on the paper.",
-      "wordLimit": "Use 30 to 5,000 words per exam."
+      "wordLimit": "Use 30 to 5,000 words per exam.",
+      "bloomAdjust": "Adjust question types to this"
     },
     "header": {
       "school": "School name",

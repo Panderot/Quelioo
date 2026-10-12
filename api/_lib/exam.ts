@@ -6,7 +6,7 @@ import { qualityLanguageFor } from '../../src/lib/quizQuality.js'
 import { OUTPUT_LANGUAGE_CODES, getOutputLanguageEnglishName } from '../../src/data/outputLanguages.js'
 import { EXAM_LEVELS, EXAM_QUESTION_TYPES } from '../../src/lib/exam/types.js'
 import type { BloomLevel, ExamDifficulty, ExamLevel, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem } from '../../src/lib/exam/types.js'
-import { SOFT_RULES, answerKey, checkExamQuality, factSimilarity, normalizeAnswer } from '../../src/lib/exam/quality.js'
+import { SOFT_RULES, answerKey, checkExamQuality, driftedFromFact, factSimilarity, normalizeAnswer } from '../../src/lib/exam/quality.js'
 import { ORDER_BOUND_OPTION, boldNegative, cleanAccepted, cleanRubric, hasNegativeStem } from '../../src/lib/exam/contentRules.js'
 import { clampBloom, fitDifficulty } from '../../src/lib/exam/bloom.js'
 import { computeDerangement } from '../../src/lib/matching.js'
@@ -105,7 +105,44 @@ const EXAM_QUALITY_RULES = [
 ].join(' ')
 
 const CONTEXT_RULE =
-  'CONTEXT-BASED QUESTIONS: only about one third of the questions carry a "context" (a short real-life situation of 1-3 sentences, <= 350 characters), and only open-ended and multiple-choice questions at level 3 (Apply) or higher, where a case really is needed (data, a situation to analyse or judge, a problem to solve). Recall and understanding questions, short-answer, true-false, fill-in-the-blank and matching questions have NO "context". The scenario sets a situation and a problem; it never states the facts the student must supply. The stem never repeats the people or the setting of the scenario: it starts with the question itself. The setting must be one where the topic really occurs (a classroom, a text excerpt, a student claim, a lab, a map, a shop for maths); never drag in an unrelated place (zoo, gym, observatory, poster workshop) just for variety. Use the settings in <variety> only where they fit the topic naturally; otherwise choose a setting that fits.'
+  'CONTEXT-BASED QUESTIONS: only about one third of the questions carry a "context" (a multiple-choice or open-ended question of level 4-6 whose pattern needs a case always may) (a short real-life situation of 1-3 sentences, <= 350 characters), and only open-ended and multiple-choice questions at level 3 (Apply) or higher, where a case really is needed (data, a situation to analyse or judge, a problem to solve). Recall and understanding questions, short-answer, true-false, fill-in-the-blank and matching questions have NO "context". The scenario sets a situation and a problem; it never states the facts the student must supply. The stem never repeats the people or the setting of the scenario: it starts with the question itself. The setting must be one where the topic really occurs (a classroom, a text excerpt, a student claim, a lab, a map, a shop for maths); never drag in an unrelated place (zoo, gym, observatory, poster workshop) just for variety. Use the settings in <variety> only where they fit the topic naturally; otherwise choose a setting that fits.'
+/** What a question of each cognitive level looks like, by type: the writer gets the patterns of the levels in its <slots>. */
+const LEVEL_PATTERNS: Record<BloomLevel, { all: string; mcq?: string; 'open-ended'?: string; 'true-false'?: string; 'short-answer'?: string }> = {
+  1: { all: 'ask for ONE fact directly (a name, date, term or definition).' },
+  2: {
+    all: 'ask to explain, recognise or give an example in other words.',
+    'true-false': 'the statement restates a rule or states a consequence in different words from the source; never a sentence copied from it.',
+    mcq: 'ask which statement describes or explains the idea, or which example illustrates it.',
+  },
+  3: {
+    all: 'a NEW small case or new numbers where one rule or method of the source is used once.',
+    'short-answer': 'the new case ends in ONE term or number the student works out.',
+    mcq: 'the options are the results of using the rule correctly and of the typical mistakes.',
+  },
+  4: {
+    all: 'split a case into parts, compare two things, or find cause and effect.',
+    mcq: 'a short NEW case (data, an observation or two situations) in "context", then a stem like "Which of the following best explains this situation?" or "What is the cause of ...?"; every option is plausible and only one fits the case.',
+    'open-ended': 'compare two things or explain why something happens in a case; the rubric lists the parts the answer must separate.',
+  },
+  5: {
+    all: 'judge a claim, decision or solution against criteria.',
+    mcq: 'a claim, decision or solution in "context", then "Which judgement is best supported?" or "Which choice is best by the stated criterion?".',
+    'open-ended': 'a judgement based on two or three CRITERIA given in the stem: the student says whether the claim or decision holds and justifies it with those criteria; the rubric is the criteria.',
+  },
+  6: { all: 'design, compose or propose something new.', 'open-ended': 'a plan, experiment, text or solution that must meet two or three REQUIREMENTS stated in the stem; the rubric lists the requirements as criteria.' },
+}
+
+function levelGuide(type: ExamQuestionType, slots: ExamSlotSpec[]): string {
+  const levels = [...new Set(slots.map((slot) => slot.bloom))].sort((a, b) => a - b)
+  if (levels.length === 0) return ''
+  const lines = levels.map((level) => {
+    const pattern = LEVEL_PATTERNS[level]
+    const specific = (pattern as Record<string, string | undefined>)[type]
+    return `level ${level} (${BLOOM_NAMES[level]}): ${pattern.all}${specific ? ` For this question type: ${specific}` : ''}`
+  })
+  return `LEVEL PATTERNS: write each question at EXACTLY the level of its slot, never at a lower one (a question that only asks to name or define a fact is level 1, whatever its wording). ${lines.join(' ')}`
+}
+
 const NO_CONTEXT_RULE = 'Do not write "context" (leave it out of every question).'
 
 const TYPE_SHAPE: Record<ExamQuestionType, string> = {
@@ -174,6 +211,8 @@ function buildStaticPrefix(): string {
 
 /** One checkable statement of the source that a question tests (the plan of the exam). */
 export interface ExamFact {
+  /** Short id of the fact in the plan (f1, f2, ...); the writer returns it with the question. */
+  id?: string
   fact: string
   topic: string
   /** The skill or rule the fact belongs to (worked applications of one formula share it). */
@@ -220,6 +259,8 @@ export interface ExamGenerationRequest {
   avoidAnswers: string[]
   /** Subject words the exam already leans on; no new question is built around them. */
   avoidTerms: string[]
+  /** Concepts and fact ids already on the exam (a regenerated slot): the new question is about none of them. */
+  avoidConcepts: string[]
   /** The facts assigned to this call's questions, in order (question k tests fact k); empty for a single replacement question. */
   facts: ExamFact[]
   partIndex: number
@@ -259,7 +300,7 @@ function buildSystemPrompt(request: ExamGenerationRequest, count: number): strin
         : `TRUE-FALSE BALANCE: every statement in this reply must be ${request.trueFalseAnswer ? 'TRUE ("answerBool": true)' : 'FALSE ("answerBool": false): a plausible statement that changes one key fact of the source, never a plain negation'}.`
   const factRule =
     request.facts.length > 0
-      ? `FACTS: <facts> lists the ${request.facts.length} facts of this call, numbered. Question k tests ONLY fact k, in this order, and nothing else: never test another fact, never test the same fact twice. Copy the fact verbatim into the "fact" field of the question and its topic into "topic". A true-false statement is the fact (true) or the fact with one detail changed (false); the correct option or answer of any other type is the fact itself. A fact with related facts may be asked together with them at levels 4-6 (compare, relate, evaluate, design): then the answer and the rubric use only the main fact and its related facts, and the main fact is still copied into "fact".`
+      ? `FACTS: <facts> lists the ${request.facts.length} facts of this call, numbered. Question k tests ONLY fact k, in this order, and nothing else: never test another fact, never test the same fact twice. Copy the fact verbatim into the "fact" field of the question, the fact id in square brackets (for example f3) into "factId", and its topic into "topic". A question that is about another fact than the one assigned to its place is thrown away. A true-false statement is the fact (true) or the fact with one detail changed (false); the correct option or answer of any other type is the fact itself. A fact with related facts may be asked together with them at levels 4-6 (compare, relate, evaluate, design): then the answer and the rubric use only the main fact and its related facts, and the main fact is still copied into "fact".`
       : ''
   const part =
     request.partCount > 1 && request.facts.length === 0
@@ -272,12 +313,13 @@ function buildSystemPrompt(request: ExamGenerationRequest, count: number): strin
     trueFalseRule,
     request.contextBased && request.type !== 'matching' ? CONTEXT_RULE : NO_CONTEXT_RULE,
     subjectRules(request.course, request.level),
+    levelGuide(request.type, request.slots),
     factRule,
     part,
     request.avoidFacts.length > 0 && request.facts.length === 0 ? 'The question tests ONE fact of the source that is NOT listed in <avoid_facts> (a different fact, never the same one asked in other words); copy that fact, in a short sentence, into the "fact" field of the question.' : '',
-    'Do not repeat or closely paraphrase any stem listed in <avoid_stems>, and none of your questions may have an answer listed in <avoid_answers> or be built around a term listed in <avoid_terms>: test other facts of the source.',
+    'Never write about a fact id or concept listed in <used_concepts>: those are already on the exam. Do not repeat or closely paraphrase any stem listed in <avoid_stems>, and none of your questions may have an answer listed in <avoid_answers> or be built around a term listed in <avoid_terms>: test other facts of the source.',
     examTypeRules(request.type),
-    `JSON shape: {"questions":[${TYPE_SHAPE[request.type]}]}${request.facts.length > 0 ? ' Every question object also has "fact": the assigned fact copied verbatim. Return the questions in the order of the facts.' : ''}`,
+    `JSON shape: {"questions":[${TYPE_SHAPE[request.type]}]}${request.facts.length > 0 ? ' Every question object also has "fact": the assigned fact copied verbatim, and "factId": its id. Return the questions in the order of the facts.' : ''}`,
   ]
     .filter(Boolean)
     .join('\n')
@@ -294,7 +336,7 @@ function buildUserMessage(request: ExamGenerationRequest): string {
     const numbered = request.facts.map((entry, index) => {
       const mark = request.type === 'true-false' && request.trueFalseAnswers[index] !== undefined ? ` => the statement must be ${request.trueFalseAnswers[index] ? 'TRUE' : 'FALSE'}` : ''
       const related = entry.related && entry.related.length > 0 ? ` [related facts you may combine with it: ${entry.related.map((value) => neutralizeTag(value, 'facts')).join(' | ')}]` : ''
-      return `${index + 1}. ${neutralizeTag(entry.fact, 'facts')}${entry.topic ? ` (topic: ${neutralizeTag(entry.topic, 'facts')})` : ''}${related}${mark}`
+      return `${index + 1}. ${entry.id ? `[${neutralizeTag(entry.id, 'facts')}] ` : ''}${neutralizeTag(entry.fact, 'facts')}${entry.topic ? ` (topic: ${neutralizeTag(entry.topic, 'facts')})` : ''}${related}${mark}`
     })
     lines.push(`<facts>\n${numbered.join('\n')}\n</facts>`)
   }
@@ -306,6 +348,7 @@ function buildUserMessage(request: ExamGenerationRequest): string {
   const avoid = request.replaceStem ? [request.replaceStem, ...request.avoidStems] : request.avoidStems
   if (avoid.length > 0) lines.push(`<avoid_stems>\n${avoid.map((stem) => neutralizeTag(stem, 'avoid_stems')).join('\n')}\n</avoid_stems>`)
   if (request.avoidAnswers.length > 0) lines.push(`<avoid_answers>\n${request.avoidAnswers.map((answer) => neutralizeTag(answer, 'avoid_answers')).join('\n')}\n</avoid_answers>`)
+  if (request.avoidConcepts.length > 0) lines.push(`<used_concepts>\n${request.avoidConcepts.map((entry) => neutralizeTag(entry, 'used_concepts')).join('\n')}\n</used_concepts>`)
   if (request.avoidTerms.length > 0) lines.push(`<avoid_terms>\n${request.avoidTerms.map((term) => neutralizeTag(term, 'avoid_terms')).join('\n')}\n</avoid_terms>`)
   lines.push('Write the questions now.')
   return lines.join('\n\n')
@@ -491,22 +534,33 @@ export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationReque
   const usedFacts = new Set<number>()
   for (const [position, item] of items.entries()) {
     const question = sanitizeExamQuestion(item, request.type, request.optionsCount, request.contextBased, contextLimitFor(request.course))
-    if (!question) continue
+    if (!question) {
+      if (process.env.EXAM_TRACE) console.log(`  TRACE malformed [${request.type}] ${JSON.stringify(item).slice(0, 140)}`)
+      continue
+    }
     if (request.facts.length > 0) {
       // The question must say which assigned fact it tests, and each fact is tested once.
       const claimed = isRecord(item) && typeof item.fact === 'string' ? item.fact : ''
-      let best = -1
+      const claimedId = isRecord(item) && typeof item.factId === 'string' ? item.factId.trim() : ''
+      let best = claimedId ? request.facts.findIndex((entry, index) => entry.id === claimedId && !usedFacts.has(index)) : -1
       let bestShare = FACT_MATCH
-      request.facts.forEach((entry, index) => {
-        const share = claimed ? factSimilarity(claimed, entry.fact) : 0
-        if (!usedFacts.has(index) && share >= bestShare) {
-          best = index
-          bestShare = share
-        }
-      })
+      if (best < 0) {
+        request.facts.forEach((entry, index) => {
+          const share = claimed ? factSimilarity(claimed, entry.fact) : 0
+          if (!usedFacts.has(index) && share >= bestShare) {
+            best = index
+            bestShare = share
+          }
+        })
+      }
       // A question that does not name its fact takes the one at its own position (the prompt asks for the order of the facts), else the first unused.
       if (best < 0) best = !usedFacts.has(position) && position < request.facts.length ? position : request.facts.findIndex((_, index) => !usedFacts.has(index))
       if (best < 0) continue
+      // Key-term check: a question that carries too little of its fact's key terms drifted to another fact and is thrown away before the judge.
+      if (driftedFromFact(question, request.facts[best].fact)) {
+        if (process.env.EXAM_TRACE) console.log(`  TRACE drift [${request.type}] ${question.stem.slice(0, 80)} || fact: ${request.facts[best].fact.slice(0, 80)}`)
+        continue
+      }
       usedFacts.add(best)
       // The slot decides the cognitive level and the difficulty of the question written for the fact (the model's own label is only a hint).
       const slot = request.slots[best]
@@ -515,6 +569,7 @@ export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationReque
         question.difficulty = fitDifficulty(request.type, question.bloomLevel, slot.difficulty)
       }
       question.fact = request.facts[best].fact
+      if (request.facts[best].id) question.factId = request.facts[best].id
       if (request.facts[best].concept) question.concept = request.facts[best].concept
       if (!question.topic) question.topic = request.facts[best].topic
     }
@@ -530,7 +585,10 @@ export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationReque
     }
     if (request.trueFalseAnswer !== undefined && question.answerBool !== request.trueFalseAnswer) continue
     const wantedAnswer = question.fact === undefined ? undefined : request.trueFalseAnswers[request.facts.findIndex((entry) => entry.fact === question.fact)]
-    if (wantedAnswer !== undefined && question.answerBool !== wantedAnswer) continue
+    if (wantedAnswer !== undefined && question.answerBool !== wantedAnswer) {
+      if (process.env.EXAM_TRACE) console.log(`  TRACE tf-answer [${request.type}] wanted ${wantedAnswer} ${question.stem.slice(0, 80)}`)
+      continue
+    }
     const words = normalizedWords(question.stem)
     // Every matching question opens with the same kind of instruction; its pairs, not its heading, tell two of them apart.
     if (request.facts.length === 0 && question.type !== 'matching' && seen.some((other) => nearDuplicate(words, other))) continue
@@ -544,6 +602,7 @@ export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationReque
       .filter((issue) => issue.id !== null && issue.rule !== 'true-false-balance' && issue.rule !== 'points' && !SOFT_RULES.includes(issue.rule))
       .map((issue) => issue.id),
   )
+  if (process.env.EXAM_TRACE && broken.size > 0) console.log(`  TRACE broken ${checkExamQuality(questions, null, { uncertainIsDuplicate: false }).filter((issue) => broken.has(issue.id)).map((issue) => issue.rule).join(',')}`)
   return questions.filter((question) => !broken.has(question.id)).slice(0, count)
 }
 
@@ -575,8 +634,9 @@ function parseFacts(value: unknown, max: number): ExamFact[] {
     if (!isRecord(entry)) continue
     const fact = str(entry.fact, MAX_FACT_CHARS)
     const concept = str(entry.concept, 80)
+    const id = str(entry.id, 16)
     const related = stringList(entry.related, 2, MAX_FACT_CHARS)
-    if (fact) facts.push({ fact, topic: str(entry.topic, 120), ...(concept ? { concept } : {}), ...(related.length > 0 ? { related } : {}) })
+    if (fact) facts.push({ ...(id ? { id } : {}), fact, topic: str(entry.topic, 120), ...(concept ? { concept } : {}), ...(related.length > 0 ? { related } : {}) })
   }
   return facts
 }
@@ -634,6 +694,7 @@ function parseCommon(payload: Record<string, unknown>): Omit<ExamGenerationReque
     avoidStems: stringList(payload.avoidStems, MAX_AVOID_STEMS, MAX_AVOID_STEM_CHARS),
     avoidAnswers: stringList(payload.avoidAnswers, MAX_AVOID_STEMS, MAX_ANSWER_CHARS),
     avoidTerms: stringList(payload.avoidTerms, 10, 60),
+    avoidConcepts: stringList(payload.avoidConcepts, 60, 100),
     course: str(payload.course, 120),
     slots: parseSlots(payload.slots),
     variety: stringList(payload.variety, 8, 120),
@@ -827,6 +888,9 @@ async function handlePlan(payload: Record<string, unknown>) {
   if (want < 1) return fail('not_supported')
   const languageName = resolveLanguageName(common.outputLanguage, common.text)
   const strict = payload.strictTopics === true && common.topics.length > 0
+  // More facts for an exam that ran out of spare ones: all different from the facts the plan already holds, looked for in the parts of the source with the fewest questions.
+  const existing = stringList(payload.existing, MAX_PLAN_FACTS, MAX_FACT_CHARS)
+  const focusTopics = stringList(payload.focusTopics, 6, 120)
   const system = [
     `List the distinct facts of <source_text> that a written exam for ${LEVEL_TEXT[common.level]} can test: up to ${want} facts.`,
     'Each fact is ONE short, self-contained, checkable statement taken from the source (a name, date, number, cause, definition, rule, formula or worked result), written so that it can be understood without the source. Keep every number, name and formula exact.',
@@ -835,6 +899,7 @@ async function handlePlan(payload: Record<string, unknown>) {
     'FORMULAS AND METHODS: if the source gives a formula, rule or method (maths, physics, chemistry), first list every fact the source states, then fill the remaining places up to the requested number with worked applications of it to NEW numbers of your own: state the numbers and the exact, checked result (for example "for x^2-7x+10=0, a=1, b=-7, c=10, so the discriminant is 9 and the roots are 2 and 5"). Two applications with different numbers are two facts; the same numbers are one. Check every result twice. Sources without a formula or method get no such facts.',
     'Never pad and never invent: if, after that, the source still holds fewer distinct testable facts than requested, return fewer.',
     'Each fact also has a "topic" and a "concept". TOPIC: use a small, consistent set of labels (3 to 7 for the whole source, at most 6 words each) and the exact same wording for every fact of the same topic, so the facts of one topic can be counted. CONCEPT: a short label (at most 6 words) naming the MAIN ENTITY or skill the fact is about (the organelle, person, event, formula or skill): every fact about the same entity shares ONE concept label word for word (for example "Kloroplast" for both "the chloroplast is where photosynthesis happens" and "the chloroplast contains chlorophyll"); worked applications of the same formula share one label too; facts about different entities get different labels.',
+    existing.length > 0 ? 'MORE FACTS: <existing_facts> are already planned; list ONLY facts that are different from every one of them (never the same thing in other words), and if <focus_topics> are given, look there first: the exam has the fewest questions on them.' : '',
     strict ? 'The <topics> are the teacher’s own learning outcomes: copy the "topic" of every fact EXACTLY from <topics> (the one it belongs to), or use "" when it fits none of them.' : '',
     languageName ? `Write the facts and topics in ${languageName}.` : 'Write the facts and topics in the language of <source_text>.',
     'Write formulas as LaTeX between single dollar signs ($x^2+3x=0$).',
@@ -845,6 +910,8 @@ async function handlePlan(payload: Record<string, unknown>) {
     .join('\n')
   const lines = [`<source_text>\n${neutralizeTag(common.text, 'source_text')}\n</source_text>`]
   if (common.topics.length > 0) lines.push(`<topics>\n${common.topics.map((topic) => neutralizeTag(topic, 'topics')).join('\n')}\n</topics>`)
+  if (existing.length > 0) lines.push(`<existing_facts>\n${existing.map((entry) => neutralizeTag(entry, 'existing_facts')).join('\n')}\n</existing_facts>`)
+  if (focusTopics.length > 0) lines.push(`<focus_topics>\n${focusTopics.map((entry) => neutralizeTag(entry, 'focus_topics')).join('\n')}\n</focus_topics>`)
   const start = Date.now()
   let facts: ExamFact[] = []
   let outcome: { provider: LlmProvider; fallbackUsed: boolean } | { error: ExamErrorCode }
@@ -854,10 +921,10 @@ async function handlePlan(payload: Record<string, unknown>) {
     else if (result.status === 'error') outcome = { error: result.error }
     else {
       const parsed = extractJson(result.text)
-      facts = await judgeDistinct(common.text, distinctFacts(parseFacts(isRecord(parsed) ? parsed.facts : null, MAX_PLAN_FACTS)))
+      facts = await judgeDistinct(common.text, distinctFacts(parseFacts(isRecord(parsed) ? parsed.facts : null, MAX_PLAN_FACTS)).filter((entry) => !existing.some((old) => factSimilarity(entry.fact, old) >= FACT_DUPLICATE)))
       facts = facts.slice(0, want)
       // A source that teaches a formula can always carry more questions: worked applications on new numbers.
-      if (facts.length > 0 && facts.length < want && teachesMethod(common.text)) {
+      if (existing.length === 0 && facts.length > 0 && facts.length < want && teachesMethod(common.text)) {
         const more = await askApplications(common.text, facts, want - facts.length, languageName, common.level)
         facts = (await judgeDistinct(common.text, distinctFacts([...facts, ...more]))).slice(0, want)
       }

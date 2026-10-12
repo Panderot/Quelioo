@@ -44,6 +44,8 @@ interface ExamRequestBase {
   avoidAnswers?: string[]
   /** Subject words the exam already leans on; no new question may be built around them. */
   avoidTerms?: string[]
+  /** Concepts and fact ids already on the exam; a regenerated slot is about none of them. */
+  avoidConcepts?: string[]
   /** True-false only: every new statement must have this answer. */
   trueFalseAnswer?: boolean
   /** True-false only: the answer of the statement on fact k (one per assigned fact). */
@@ -60,6 +62,7 @@ interface ExamRequestBase {
 
 /** One statement of the source that a question tests. */
 export interface ExamSectionFact {
+  id?: string
   fact: string
   topic: string
   concept?: string
@@ -133,6 +136,8 @@ function normaliseQuestion(value: unknown): ExamQuestion | null {
   }
   const fact = text(value.fact).trim()
   if (fact) question.fact = fact
+  const factId = text(value.factId).trim()
+  if (factId) question.factId = factId
   const concept = text(value.concept).trim()
   if (concept) question.concept = concept
   const bloom = typeof value.bloomLevel === 'number' ? Math.round(value.bloomLevel) : 0
@@ -314,6 +319,8 @@ export function parseVerifyResult(body: Record<string, unknown>): ExamVerifyResu
 }
 
 export interface ExamFact {
+  /** Id in the plan (f1, f2, ...); set by the generator. */
+  id?: string
   fact: string
   topic: string
   /** The skill or rule the fact belongs to (applications of one formula share it). */
@@ -331,11 +338,15 @@ export interface ExamPlanRequest {
   count: number
   /** The teacher's own rows: every fact's topic is copied exactly from `topics`. */
   strictTopics?: boolean
+  /** Facts the plan already holds: the new facts are different from all of them. */
+  existing?: string[]
+  /** Topics the exam has the fewest questions on: look there first. */
+  focusTopics?: string[]
 }
 
 /** The distinct, testable facts of the source (fewer than asked when the source holds fewer). */
 export async function planExamFacts(request: ExamPlanRequest, signal?: AbortSignal): Promise<ExamFact[]> {
-  const body = await post({ mode: 'exam_plan', text: request.text, level: request.level, outputLanguage: request.outputLanguage, topics: request.topics, count: request.count, ...(request.strictTopics ? { strictTopics: true } : {}) }, signal)
+  const body = await post({ mode: 'exam_plan', text: request.text, level: request.level, outputLanguage: request.outputLanguage, topics: request.topics, count: request.count, ...(request.strictTopics ? { strictTopics: true } : {}), ...(request.existing && request.existing.length > 0 ? { existing: request.existing } : {}), ...(request.focusTopics && request.focusTopics.length > 0 ? { focusTopics: request.focusTopics } : {}) }, signal)
   const facts = Array.isArray(body.facts)
     ? body.facts.filter(isRecord).map((entry) => ({ fact: text(entry.fact).trim(), topic: text(entry.topic).trim(), ...(text(entry.concept).trim() ? { concept: text(entry.concept).trim() } : {}) })).filter((entry) => entry.fact)
     : []

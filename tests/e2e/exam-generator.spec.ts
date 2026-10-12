@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { ExamApiError } from '../../src/api/exam'
 import type { ExamFact, ExamSectionRequest, ExamVerifyRequest, ExamVerifyResult } from '../../src/api/exam'
-import { ExamShortSourceError, MAX_REPAIR_ROUNDS, generateExamQuestions, reduceCounts } from '../../src/lib/exam/generate'
+import { ExamShortSourceError, MAX_FILL_ROUNDS, MAX_REPAIR_ROUNDS, generateExamQuestions, reduceCounts } from '../../src/lib/exam/generate'
 import type { ExamGenerationState } from '../../src/lib/exam/generate'
 import { checkExamQuality } from '../../src/lib/exam/quality'
 import { defaultExamSettings } from '../../src/lib/exam/types'
@@ -18,9 +18,11 @@ interface Fake {
   sections: ExamSectionRequest[]
   verifies: ExamVerifyRequest[]
   plans: number
+  /** Extra plan calls for more facts (they carry `existing`). */
+  extensions: { existing: string[]; focusTopics: string[] }[]
   callSection: (request: ExamSectionRequest) => Promise<ExamQuestion[]>
   callVerify: (request: ExamVerifyRequest) => Promise<ExamVerifyResult>
-  callPlan: (request: { count: number }) => Promise<ExamFact[]>
+  callPlan: (request: { count: number; existing?: string[]; focusTopics?: string[] }) => Promise<ExamFact[]>
 }
 
 let serial = 0
@@ -38,6 +40,7 @@ function question(type: ExamQuestionType, fact: ExamFact, extra: Partial<ExamQue
     difficulty: 'medium',
     lines: 0,
     fact: fact.fact,
+    ...(fact.id ? { factId: fact.id } : {}),
   }
   if (type === 'mcq') {
     // The correct option is not the longest and sits in a different place from question to question.
@@ -56,7 +59,12 @@ function fake(options: { facts?: ExamFact[]; shape?: (q: ExamQuestion, request: 
     sections: [],
     verifies: [],
     plans: 0,
-    callPlan: async ({ count }) => {
+    extensions: [],
+    callPlan: async ({ count, existing, focusTopics }) => {
+      if (existing && existing.length > 0) {
+        state.extensions.push({ existing, focusTopics: focusTopics ?? [] })
+        return fakeFacts(existing.length + count).slice(existing.length)
+      }
       state.plans += 1
       return options.facts ?? fakeFacts(count)
     },
@@ -194,7 +202,7 @@ test.describe('answer keys', () => {
 })
 
 test.describe('rewrite rounds', () => {
-  test('a question that failed for how it was written is written again on its own fact, so the reserve stays for repeats', async () => {
+  test('a question that failed for how it was written is regenerated on a NEW unused fact, never on the one that failed', async () => {
     let planted: string | null = null
     const server = fake({
       shape: (made, request) => {
@@ -208,7 +216,57 @@ test.describe('rewrite rounds', () => {
     const questions = await run(server)
     expect(questions).toHaveLength(20)
     const rewrite = server.sections.find((request) => request.avoidAnswers !== undefined && request.type === 'short-answer')
-    expect(rewrite?.facts?.map((entry) => entry.fact)).toEqual([planted])
+    expect(rewrite?.facts).toHaveLength(1)
+    expect(rewrite?.facts?.[0].fact).not.toBe(planted)
+    const firstPass = server.sections.filter((request) => request.avoidAnswers === undefined).flatMap((request) => (request.facts ?? []).map((entry) => entry.fact))
+    expect(firstPass).not.toContain(rewrite?.facts?.[0].fact)
+    // The regenerated slot is told which facts and concepts are used up.
+    expect(rewrite?.avoidConcepts?.length).toBeGreaterThan(0)
+  })
+
+  test('a writer that keeps answering with a fact that is already used does not fill the slot: the slot gets another fact and the exam completes', async () => {
+    let usedFact: ExamFact | null = null
+    let calls = 0
+    const server = fake({
+      shape: (made, request) => {
+        // The first short answer is too long (so it is regenerated); the first two replies for the regenerated slot ignore the new fact and give back the old, used one.
+        if (request.type === 'short-answer' && request.avoidAnswers === undefined && usedFact === null) {
+          usedFact = { id: made.factId, fact: made.fact ?? '', topic: made.topic }
+          return { ...made, answer: 'Bu çok uzun bir cevap cümlesidir ve yalnızca bir kelime olmalıydı' }
+        }
+        if (request.type === 'short-answer' && request.avoidAnswers !== undefined && calls < 2 && usedFact) {
+          calls += 1
+          return { ...made, fact: usedFact.fact, factId: usedFact.id }
+        }
+        return made
+      },
+    })
+    const result = await runResult(server)
+    expect(calls).toBeGreaterThan(0)
+    expect(result.missing).toBe(0)
+    expect(result.questions).toHaveLength(20)
+    // No fact tests two questions.
+    const facts = result.questions.map((entry) => entry.factId)
+    expect(new Set(facts).size).toBe(facts.length)
+  })
+
+  test('when the spare facts run out, one extra plan call brings more distinct facts and the exam completes', async () => {
+    let planted = 0
+    const server = fake({
+      facts: fakeFacts(21),
+      shape: (made, request) => {
+        if (request.type === 'short-answer' && request.avoidAnswers === undefined && planted < 3) {
+          planted += 1
+          return { ...made, answer: 'Bu çok uzun bir cevap cümlesidir ve yalnızca bir kelime olmalıydı' }
+        }
+        return made
+      },
+    })
+    const result = await runResult(server, { acceptFewer: true })
+    expect(server.extensions.length).toBeGreaterThanOrEqual(1)
+    expect(server.extensions[0].existing).toHaveLength(21)
+    expect(result.missing).toBe(0)
+    expect(result.questions).toHaveLength(20)
   })
 
   test('a scenario question whose correct option the scenario gives away is written again (the judge sees the option in a separate call)', async () => {
@@ -264,7 +322,7 @@ test.describe('rewrite rounds', () => {
     expect(result.questions.reduce((sum, entry) => sum + entry.points, 0)).toBe(100)
     expect(state.partial).toBe(true)
     // First pass: 4 sections; then at most MAX_REPAIR_ROUNDS rewrites of the 5 broken questions (one call each).
-    expect(server.sections.length).toBeLessThanOrEqual(4 + MAX_REPAIR_ROUNDS * 2)
+    expect(server.sections.length).toBeLessThanOrEqual(4 + (MAX_REPAIR_ROUNDS + MAX_FILL_ROUNDS) * 2)
   })
 
   test('retrying the missing questions asks for only those, on facts never used, and keeps what passed', async () => {

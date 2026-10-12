@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { allowedDifficulties, bloomMixOk, bloomTargetCounts, clampBloom, fitDifficulty, planBloom, planSlots } from '../../src/lib/exam/bloom'
+import { allowedDifficulties, bloomMixOk, bloomTargetCounts, clampBloom, countsForBloom, fitDifficulty, planBloom, planSlots } from '../../src/lib/exam/bloom'
 import { BLOOM_CAP, BLOOM_MIX } from '../../src/lib/exam/bloomConfig'
 import { chooseFacts, clusterTopics, topicShares, withRelated } from '../../src/lib/exam/planning'
 import { distributePoints } from '../../src/lib/exam/points'
@@ -8,6 +8,32 @@ import type { PlanFact } from '../../src/lib/exam/planning'
 import { emptyCounts } from '../../src/lib/exam/types'
 import { fakeFacts } from './examHelpers'
 import type { ExamQuestionType } from '../../src/lib/exam/types'
+
+test.describe('types adjusted to a high Bloom target', () => {
+  const total = (counts: Record<ExamQuestionType, number>) => Object.values(counts).reduce((a, b) => a + b, 0)
+
+  test('"higher-order" with the default types moves questions to open-ended and multiple-choice; the total stays and every level is reachable', () => {
+    const targets = bloomTargetCounts('higher', '9', 20)
+    expect(planBloom(DEFAULT_COUNTS, targets).capped.length).toBeGreaterThan(0)
+    const counts = countsForBloom(DEFAULT_COUNTS, targets)
+    expect(total(counts)).toBe(20)
+    expect(counts['open-ended']).toBeGreaterThanOrEqual(targets[5])
+    expect(counts['open-ended'] + counts.mcq).toBeGreaterThanOrEqual(targets[3] + targets[4] + targets[5])
+    expect(planBloom(counts, targets).capped).toEqual([])
+    expect(planBloom(counts, targets).achieved).toEqual(targets)
+  })
+
+  test('a mix the types already reach is left as it is', () => {
+    const targets = bloomTargetCounts('balanced', '9', 20)
+    expect(countsForBloom(DEFAULT_COUNTS, targets)).toEqual(DEFAULT_COUNTS)
+  })
+
+  test('Apply for everything needs nothing more than short-answer questions and above', () => {
+    const counts = countsForBloom(DEFAULT_COUNTS, bloomTargetCounts('3', '9', 20))
+    expect(counts['true-false'] + counts['fill-blanks'] + counts.matching).toBe(0)
+    expect(total(counts)).toBe(20)
+  })
+})
 
 // Bloom planning (E2, E3, E4) and which fact goes to which slot (A2, A6, V1): pure logic, no browser.
 

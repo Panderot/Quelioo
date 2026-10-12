@@ -1,7 +1,7 @@
 import { EXAM_QUESTION_TYPES, EXAM_TOTAL_POINTS } from './types.js'
 import type { ExamQuestion, ExamQuestionType } from './types.js'
 import { answerLeaks, fillBlankProblems, isPlainNegation, optionsUneven, joinsTwoClaims, matchingProblems, mcqExamIssues, rubricProblems, shortAnswerProblems, trueFalseAbsoluteIds } from './contentRules.js'
-import { normalize, overlap, shareOfUnion, stems, wordShare } from './text.js'
+import { contentStems, normalize, overlap, shareOfUnion, stems, wordShare } from './text.js'
 
 /** One whole-exam check, used by the server (api/_lib/exam.ts) and by the generator that stitches sections together.
  * Every rule returns the questions that break it; the later question of a pair is the one reported. */
@@ -150,6 +150,29 @@ export function conceptCapacity(facts: { concept?: string }[]): number {
   let total = alone
   for (const count of perConcept.values()) total += Math.min(MAX_QUESTIONS_PER_CONCEPT, count)
   return total
+}
+
+/** Everything a question says, as one text: scenario, stem, options, pairs, answer and rubric. */
+function questionText(question: ExamQuestion): string {
+  return [question.context, question.stem, ...(question.options ?? []), ...(question.pairs ?? []).flatMap((pair) => [pair.left, pair.right]), question.answer, ...question.rubric.map((item) => item.text)].filter(Boolean).join(' ')
+}
+
+/** A question written for a fact has to carry the key terms of that fact; a share below this means the writer drifted to another fact. */
+export const FACT_DRIFT_MIN = 0.15
+
+/** The share of the fact's key terms (content-word stems) that the question uses, or 1 when the fact has too few terms to tell. */
+export function factCoverage(question: ExamQuestion, fact: string): number {
+  const terms = contentStems(fact)
+  if (terms.size < 3) return 1
+  const used = contentStems(questionText(question))
+  let found = 0
+  for (const term of terms) if (used.has(term)) found += 1
+  return found / terms.size
+}
+
+/** True when the question does not test the fact it was written for (key-term check). */
+export function driftedFromFact(question: ExamQuestion, fact: string): boolean {
+  return factCoverage(question, fact) < FACT_DRIFT_MIN
 }
 
 /** How alike two fact sentences are, 0 to 1 (shared key words / all key words). */

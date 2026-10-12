@@ -286,6 +286,7 @@ test.describe('server reply filter', () => {
     avoidStems: [],
     avoidAnswers: ['Kurultay'],
     avoidTerms: [],
+    avoidConcepts: [],
     facts: [],
     trueFalseAnswers: [],
     partIndex: 0,
@@ -312,6 +313,52 @@ test.describe('server reply filter', () => {
     const tf = (stem: string, answerBool: boolean) => ({ type: 'true-false', stem, answerBool, rubric: [{ text: 'a', weight: 1 }], topic: 't', difficulty: 'medium' })
     const kept = sanitizeExamQuestions({ questions: [tf('Birinci ifade hakkında bir cümle yazılmıştır burada.', true), tf('Tamamen farklı ikinci ifade hakkında başka cümle.', false)] }, tfRequest, 2)
     expect(kept.map((question) => question.answerBool)).toEqual([false])
+  })
+})
+
+test.describe('fact ids and the key-term check', () => {
+  const facts = [
+    { id: 'f1', fact: 'Mitokondri hücrenin enerji santralidir ve ATP üretir.', topic: 'Hücre' },
+    { id: 'f2', fact: 'Ribozomlar protein sentezlenen yapılardır ve sitoplazmada bulunur.', topic: 'Hücre' },
+  ]
+  const request: ExamGenerationRequest = {
+    text: 'kaynak',
+    type: 'short-answer',
+    course: '',
+    slots: [],
+    variety: [],
+    avoidFacts: [],
+    difficulty: { easy: 2, medium: 0, hard: 0 },
+    level: '9',
+    outputLanguage: 'tr',
+    contextBased: false,
+    optionsCount: 4,
+    topics: [],
+    avoidStems: [],
+    avoidAnswers: [],
+    avoidTerms: [],
+    avoidConcepts: [],
+    facts,
+    trueFalseAnswers: [],
+    partIndex: 0,
+    partCount: 1,
+  }
+  const item = (stem: string, answer: string, factId: string, fact: string) => ({ type: 'short-answer', stem, answer, rubric: [{ text: 'a', weight: 1 }], topic: 'Hücre', difficulty: 'easy', lines: 1, factId, fact })
+
+  test('the writer returns the fact id and the question is bound to that fact', () => {
+    const kept = sanitizeExamQuestions({ questions: [item('Hücrede ATP üretiminin yapıldığı organel hangisidir?', 'Mitokondri', 'f1', facts[0].fact), item('Protein sentezinin yapıldığı yapı nedir?', 'Ribozom', 'f2', facts[1].fact)] }, request, 2)
+    expect(kept.map((question) => question.factId)).toEqual(['f1', 'f2'])
+  })
+
+  test('a question that carries none of its fact’s key terms drifted to another fact and is rejected', () => {
+    const drifted = item('Bitki hücrelerinde klorofil hangi organelde bulunur?', 'Kloroplast', 'f1', facts[0].fact)
+    const kept = sanitizeExamQuestions({ questions: [drifted, item('Protein sentezinin yapıldığı yapı nedir?', 'Ribozom', 'f2', facts[1].fact)] }, request, 2)
+    expect(kept.map((question) => question.factId)).toEqual(['f2'])
+  })
+
+  test('a second question that claims an id already taken does not get another fact’s place', () => {
+    const kept = sanitizeExamQuestions({ questions: [item('Protein sentezinin yapıldığı yapı nedir?', 'Ribozom', 'f2', facts[1].fact), item('Ribozomlar proteinleri nerede sentezler, sitoplazmada mı?', 'Sitoplazma', 'f2', facts[1].fact)] }, request, 2)
+    expect(kept.map((question) => question.factId)).toEqual(['f2'])
   })
 })
 

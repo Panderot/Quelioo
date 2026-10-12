@@ -27,7 +27,7 @@ import type { AuditSource } from '../fixtures/exam-audit-sources'
 // Cases: turkce-4 matematik-7 fen-6 sosyal-7 ingilizce-8 edebiyat-10 matematik-11 fizik-10 kimya-11 biyoloji-9 tarih-10 cografya-9 felsefe-10 din-9 universite
 //        biyoloji-9:higher biyoloji-9:recall tarih-10:meb v5:1 v5:2 v5:3
 
-const BUDGET_USD = 1.5
+const BUDGET_USD = 2.5
 const OUT = '../QUELIO-TEST-EXAM'
 const COST_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-cost.jsonl'
 
@@ -55,12 +55,16 @@ interface Variant {
   key: string
   source: AuditSource
   suffix: string
+  /** `#n` cases: an independent run, made as if no earlier exam of the teacher existed (reliability runs). */
+  fresh?: boolean
   bloom?: BloomSetting
   meb?: boolean
   distribution?: { text: string; count: number }[]
 }
 
 function variantOf(spec: string): Variant {
+  const [plain, run] = spec.split('#')
+  if (run) return { ...variantOf(plain), key: spec, suffix: `${variantOf(plain).suffix}-${run}`, fresh: true }
   const [base, extra = ''] = spec.split(':')
   const source = BASE[base]
   if (!source) throw new Error(`unknown case ${spec}`)
@@ -137,7 +141,7 @@ async function audit(variant: Variant): Promise<void> {
     return body.facts
   }
 
-  const same = memoriesForSource(source.text, memories)
+  const same = variant.fresh ? [] : memoriesForSource(source.text, memories)
   const earlier = earlierFromMemories(same)
   const state: ExamGenerationState = { done: new Map() }
   const started = Date.now()
@@ -184,7 +188,7 @@ async function audit(variant: Variant): Promise<void> {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
-  memories.push({ id: exam.id, createdAt: exam.createdAt, memory: exam.settings.sourceMemory as NonNullable<ExamSettings['sourceMemory']> })
+  if (!variant.fresh) memories.push({ id: exam.id, createdAt: exam.createdAt, memory: exam.settings.sourceMemory as NonNullable<ExamSettings['sourceMemory']> })
 
   // --- the automatic rule report -------------------------------------------------------------------------
   const judge = state.judge

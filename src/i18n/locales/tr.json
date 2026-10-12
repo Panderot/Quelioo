@@ -2143,7 +2143,8 @@
       "distributionAdd": "+ Satır ekle",
       "distributionSum": "Toplam {{sum}} / {{total}}",
       "durationHint": "{{min}} ile {{max}} arasında bir tam sayı; boş bırakırsan kâğıtta süre yazmaz.",
-      "wordLimit": "Her sınav için 30 ile 5.000 kelime arası metin kullanabilirsin."
+      "wordLimit": "Her sınav için 30 ile 5.000 kelime arası metin kullanabilirsin.",
+      "bloomAdjust": "Soru türlerini buna göre ayarla"
     },
     "header": {
       "school": "Okul adı",

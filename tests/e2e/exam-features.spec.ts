@@ -75,6 +75,23 @@ test.describe('Bloom setting (E1, E2, E3)', () => {
     await expect(page.locator('[data-purpose="exam-bloom-preview"]')).toHaveText('Mix: Remember 20')
   })
 
+  test('"Adjust question types to this" moves the counts towards open-ended and multiple-choice, and the notes go away', async ({ page }) => {
+    await page.goto('/exams/new?d=bl3b&lng=en')
+    await pick(page, '#exam-bloom', 'Higher-order thinking (Analyze, Evaluate, Create)')
+    const adjust = page.locator('[data-purpose="exam-bloom-adjust"]')
+    await expect(adjust).toHaveText('Adjust question types to this')
+    await expect(page.locator('[data-purpose="exam-bloom-note"]').first()).toBeVisible()
+    await adjust.click()
+    await expect(page.locator('[data-purpose="exam-bloom-note"]')).toHaveCount(0)
+    await expect(adjust).toHaveCount(0)
+    const value = async (type: string) => Number(await page.locator(`#exam-count-${type}`).inputValue())
+    expect(await value('true-false')).toBe(0)
+    expect(await value('open-ended')).toBeGreaterThanOrEqual(5)
+    // The teacher can still change them back.
+    await page.locator('#exam-count-true-false').fill('4')
+    await expect(page.locator('[data-purpose="exam-bloom-note"]').first()).toBeVisible()
+  })
+
   test('the setting is sent with the slots: every section asks for its levels and the questions store them', async ({ page }) => {
     const api = await mockExamApi(page)
     await page.goto('/exams/new?d=bl4&lng=en')

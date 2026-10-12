@@ -13,7 +13,7 @@ import { useExamSource } from '../hooks/useExamSource'
 import { getAuthState } from '../lib/auth/authStore'
 import { clearSetupDraft, purgeStaleDrafts, readSetupDraft, writeSetupDraft } from '../lib/exam/drafts'
 import { newExamId, settingsWithHeader } from '../lib/exam/factory'
-import { bloomTargetCounts, planBloom } from '../lib/exam/bloom'
+import { bloomTargetCounts, countsForBloom, planBloom } from '../lib/exam/bloom'
 import { ExamDistributionError, ExamShortSourceError, generateExamQuestions, reduceCounts } from '../lib/exam/generate'
 import type { ExamGenerationState } from '../lib/exam/generate'
 import { buildMemory, earlierFromMemories, memoriesForSource } from '../lib/exam/sourceMemory'
@@ -444,6 +444,16 @@ function ExamSetup({ setupId }: { setupId: string }) {
               {t(entry.wanted === 6 ? 'exam.setup.bloomCapOpen' : 'exam.setup.bloomCapMcq', { type: t(COUNT_LABEL_KEYS[entry.type]), cap: bloomName(entry.used), wanted: bloomName(entry.wanted) })}
             </p>
           ))}
+          {bloomPlan.capped.length > 0 && !meb && (
+            <button
+              type="button"
+              data-purpose="exam-bloom-adjust"
+              onClick={() => patch({ counts: countsForBloom(settings.counts, bloomTargets) })}
+              className="inline-flex min-h-9 items-center rounded-[10px] border border-warm-border bg-card px-3.5 text-xs font-bold text-navy hover:border-focus-neutral"
+            >
+              {t('exam.setup.bloomAdjust')}
+            </button>
+          )}
           {meb && (
             <p data-purpose="exam-meb-hint" className="text-xs text-muted">
               {t('exam.setup.formatMebHint')}

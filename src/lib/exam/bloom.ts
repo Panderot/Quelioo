@@ -62,6 +62,30 @@ export function planBloom(counts: Record<ExamQuestionType, number>, targets: num
   return { perType, achieved, capped }
 }
 
+/** The type counts moved just far enough that the target levels can be reached: open-ended questions for Yaratma, multiple-choice or open-ended for Analiz and Değerlendirme, short-answer or above for Uygulama. The total stays; the teacher can change the counts back. */
+export function countsForBloom(counts: Record<ExamQuestionType, number>, targets: number[]): Record<ExamQuestionType, number> {
+  const result = { ...counts }
+  const sum = (from: number) => targets.slice(from).reduce((a, b) => a + b, 0)
+  // Move `need` questions from the donors (in order) to `to`.
+  const move = (to: ExamQuestionType, need: number, donors: ExamQuestionType[]) => {
+    for (const donor of donors) {
+      if (need <= 0) break
+      const take = Math.min(need, result[donor])
+      result[donor] -= take
+      result[to] += take
+      need -= take
+    }
+  }
+  const lowest: ExamQuestionType[] = ['true-false', 'fill-blanks', 'matching']
+  // Yaratma: open-ended only.
+  move('open-ended', sum(5) - result['open-ended'], [...lowest, 'short-answer', 'mcq'])
+  // Analiz and above: multiple-choice or open-ended.
+  move('mcq', sum(3) - result['open-ended'] - result.mcq, [...lowest, 'short-answer'])
+  // Uygulama and above: short-answer, multiple-choice or open-ended.
+  move('short-answer', sum(2) - result['open-ended'] - result.mcq - result['short-answer'], lowest)
+  return result
+}
+
 /** The difficulty labels a question of this type and level may carry: recall is never hard, evaluation and creation are never easy, true-false / fill-in / matching are easy or medium. */
 export function allowedDifficulties(type: ExamQuestionType, bloom: BloomLevel | undefined): ExamDifficulty[] {
   const all: ExamDifficulty[] = ['easy', 'medium', 'hard']

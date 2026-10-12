@@ -7,7 +7,9 @@ import type { WrittenExam } from '../../src/lib/exam/types'
 // V5: how much three exams made from one source repeat each other.
 // Usage: npx tsx tests/accuracy/exam-variety.ts <folder> run1 run2 run3   (files ../QUELIO-TEST-EXAM/<folder>/<run>.json)
 
-const [folder, ...runs] = process.argv.slice(2)
+const [folder, ...given] = process.argv.slice(2)
+// A bare number means the audit's run file: 1 -> run1.
+const runs = given.map((run) => (/^\d+$/.test(run) ? `run${run}` : run))
 const exams = runs.map((run) => JSON.parse(readFileSync(`../QUELIO-TEST-EXAM/${folder}/${run}.json`, 'utf8')) as WrittenExam)
 
 function words(text: string): Set<string> {
