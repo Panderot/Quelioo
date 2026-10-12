@@ -619,7 +619,9 @@ interface RewriteOptions {
 
 /** Asks for exactly the questions the exam is short of (per type, true-false split by answer), each on a fact not used yet. */
 async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped, avoidTerms, planned, lang, retried, signal, callSection }: RewriteOptions): Promise<ExamQuestion[]> {
-  const avoidStems = [...kept, ...dropped].map((question) => question.stem)
+  const avoidStems = kept.map((question) => question.stem)
+  // A fact handed out again must not come back as the question that just failed.
+  const failedStems = dropped.map((question) => question.stem)
   const avoidAnswers = kept.map(correctAnswerText).filter(Boolean)
   // The facts of the questions being rewritten are spent for good: a slot never gets one of them again.
   const reserve = plan.filter((entry) => !usedFacts.has(entry.fact))
@@ -699,7 +701,7 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
       const facts = withRelated(taken, plan.filter((entry) => !usedFacts.has(entry.fact) || taken.includes(entry)), sectionSlots)
       // No fact left to give: the call would only repeat what the exam already has.
       if (facts.length < count) continue
-      const base = requestFor(settings, text, { key: `fix-${type}`, type, count, difficulty, slots: sectionSlots, partIndex: 0, partCount: 1 }, facts, avoidStems, scenarioVariety(lang, Math.min(3, count)))
+      const base = requestFor(settings, text, { key: `fix-${type}`, type, count, difficulty, slots: sectionSlots, partIndex: 0, partCount: 1 }, facts, facts.some((fact) => (retried.get(fact.fact) ?? 0) > 0) ? [...avoidStems, ...failedStems] : avoidStems, scenarioVariety(lang, Math.min(3, count)))
       // A fact that failed once is written without a scenario: the scenario is what usually gave the first try away.
       const again = facts.some((fact) => (retried.get(fact.fact) ?? 0) > 0)
       requests.push({ type, request: { ...base, ...(again ? { contextBased: false } : {}), avoidAnswers: avoidAnswers.slice(-40), avoidTerms: avoidTerms.slice(0, 10), avoidConcepts, ...(type === 'true-false' ? { trueFalseAnswers: answers.slice(done, done + count) } : {}) } })
