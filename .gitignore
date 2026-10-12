@@ -10,7 +10,10 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-prod-test
 *.local
+*.tsbuildinfo
+.eslintcache
 
 # Editor directories and files
 .vscode/*
@@ -27,24 +30,18 @@ dist-ssr
 .env*
 !.env.example
 
-# Playwright
+# Test output
 test-results/
 playwright-report/
 blob-report/
 coverage/
-
-# Local-only Phase 3 'song test' output (real Gemini audio, never committed)
 test-songs/
 test-lessons/
 
 # Task prompts live in ../QUELIO-PROMPTS
 *-prompt.txt
+quelio-*.txt
 
 # Claude Code local config
 .claude/
 skills-lock.json
-test-results/
-playwright-report/
-blob-report/
-*.log
-dist-prod-test
