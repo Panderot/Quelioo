@@ -27,6 +27,8 @@ export const MAX_REPAIR_ROUNDS = 3
 export const MAX_FILL_ROUNDS = 3
 /** Extra plan calls for more distinct facts when the spare ones run out (twice in all). */
 const MAX_PLAN_EXTENSIONS = 2
+/** A fact whose question failed and sits on no question is handed out again at most this many times. */
+const MAX_FACT_RETRIES = 2
 /** A fact from an extra plan call this alike to one already planned is the same fact. */
 const EXTENSION_DUPLICATE = 0.6
 /** A relabelled level that is further away than this from the planned one is a different question: it is written again. */
@@ -208,8 +210,8 @@ export interface ExamGenerationState {
   partial?: boolean
   /** How many extra plan calls were made for more facts. */
   extensions?: number
-  /** Facts handed out a second time after every unused fact was gone (a fact whose question failed and sits on no question now). */
-  retried?: Set<string>
+  /** How often a fact was handed out again after every unused fact was gone (a fact whose question failed and sits on no question now). */
+  retried?: Map<string, number>
 }
 
 export interface GenerateExamOptions {
@@ -390,7 +392,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
       dropped: current.filter((question) => drop.has(question.id)),
       planned: slots,
       lang,
-      retried: (state.retried ??= new Set<string>()),
+      retried: (state.retried ??= new Map<string, number>()),
       signal,
       callSection,
     })
@@ -604,7 +606,7 @@ interface RewriteOptions {
   planned: ExamSlot[]
   lang: ReturnType<typeof examPaperLang>
   /** Facts already handed out a second time: never a third. */
-  retried: Set<string>
+  retried: Map<string, number>
   signal?: AbortSignal
   callSection: SectionCaller
 }
@@ -645,9 +647,9 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
     }
     // Every unused fact is gone and the source has no more: a fact whose question failed and now sits on no question gets one more try (never a fact a kept question tests).
     const onKept = new Set(kept.map((question) => question.fact))
-    const orphan = plan.filter((entry) => usedFacts.has(entry.fact) && !onKept.has(entry.fact) && !retried.has(entry.fact) && roomFor(entry)).sort((a, b) => topicLoad(a) - topicLoad(b) || likeness(a) - likeness(b))[0]
+    const orphan = plan.filter((entry) => usedFacts.has(entry.fact) && !onKept.has(entry.fact) && (retried.get(entry.fact) ?? 0) < MAX_FACT_RETRIES && roomFor(entry)).sort((a, b) => topicLoad(a) - topicLoad(b) || likeness(a) - likeness(b))[0]
     if (!orphan) return undefined
-    retried.add(orphan.fact)
+    retried.set(orphan.fact, (retried.get(orphan.fact) ?? 0) + 1)
     onExam.push(orphan.fact)
     const key = conceptKey(orphan.concept)
     if (key) perConcept.set(key, (perConcept.get(key) ?? 0) + 1)
