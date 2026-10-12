@@ -312,6 +312,7 @@ function buildSystemPrompt(request: ExamGenerationRequest, count: number): strin
     optionRule,
     trueFalseRule,
     request.contextBased && request.type !== 'matching' ? CONTEXT_RULE : NO_CONTEXT_RULE,
+    request.contextBased && request.type !== 'matching' && request.slots.some((slot) => slot.bloom >= 4) ? 'HIGHER LEVELS NEED A CASE: every question of level 4-6 in <slots> has a "context" holding the case, data, claim, decision or criteria it works on (the one-third limit does not apply to them); without it the question stays a recall question.' : '',
     subjectRules(request.course, request.level),
     levelGuide(request.type, request.slots),
     factRule,

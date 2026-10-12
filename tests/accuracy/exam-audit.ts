@@ -5,7 +5,7 @@ import { runWithRequestContext } from '../../api/_lib/request-context'
 import type { RequestContext } from '../../api/_lib/request-context'
 import { ExamApiError, examVerifyPayload, parseVerifyResult } from '../../src/api/exam'
 import type { ExamFact, ExamPlanRequest, ExamSectionRequest, ExamVerifyRequest, ExamVerifyResult } from '../../src/api/exam'
-import { bloomTargetCounts, planBloom } from '../../src/lib/exam/bloom'
+import { bloomTargetCounts, countsForBloom, planBloom } from '../../src/lib/exam/bloom'
 import { BLOOM_CAP } from '../../src/lib/exam/bloomConfig'
 import { correctIsLongest, shortAnswerProblems, stemPattern } from '../../src/lib/exam/contentRules'
 import { newExamId, settingsWithHeader } from '../../src/lib/exam/factory'
@@ -27,7 +27,7 @@ import type { AuditSource } from '../fixtures/exam-audit-sources'
 // Cases: turkce-4 matematik-7 fen-6 sosyal-7 ingilizce-8 edebiyat-10 matematik-11 fizik-10 kimya-11 biyoloji-9 tarih-10 cografya-9 felsefe-10 din-9 universite
 //        biyoloji-9:higher biyoloji-9:recall tarih-10:meb v5:1 v5:2 v5:3
 
-const BUDGET_USD = 2.5
+const BUDGET_USD = 3.1
 const OUT = '../QUELIO-TEST-EXAM'
 const COST_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-cost.jsonl'
 const STATE_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-durum.md'
@@ -63,6 +63,8 @@ interface Variant {
   suffix: string
   /** `#n` cases: an independent run, made as if no earlier exam of the teacher existed (reliability runs). */
   fresh?: boolean
+  /** The setup screen's "adjust question types" button was pressed. */
+  adjustTypes?: boolean
   bloom?: BloomSetting
   meb?: boolean
   distribution?: { text: string; count: number }[]
@@ -76,6 +78,8 @@ function variantOf(spec: string): Variant {
   if (!source) throw new Error(`unknown case ${spec}`)
   if (base === 'v5') return { key: spec, source, suffix: `run${extra || '1'}` }
   if (extra === 'higher') return { key: spec, source, suffix: 'higher', bloom: 'higher' }
+  if (extra === 'higher-adj') return { key: spec, source, suffix: 'higher-adj', bloom: 'higher', adjustTypes: true }
+  if (extra === 'apply') return { key: spec, source, suffix: 'apply', bloom: '3' }
   if (extra === 'recall') return { key: spec, source, suffix: 'recall', bloom: '1' }
   if (extra === 'meb') {
     return {
@@ -112,6 +116,7 @@ async function audit(variant: Variant): Promise<void> {
   settings.outputLanguage = source.outputLanguage
   settings.groups = true
   if (variant.bloom) settings.bloom = variant.bloom
+  if (variant.adjustTypes) settings.counts = countsForBloom(settings.counts, bloomTargetCounts(settings.bloom, settings.level, EXAM_QUESTION_TYPES.reduce((sum, type) => sum + settings.counts[type], 0)))
   if (variant.meb) {
     settings.format = 'meb'
     settings.counts = { ...settings.counts, 'true-false': 0, mcq: 0, 'fill-blanks': 0, matching: 0, 'open-ended': 10, 'short-answer': 10 }
@@ -251,6 +256,8 @@ async function audit(variant: Variant): Promise<void> {
     remainingRules: rules.filter((issue) => !SOFT_RULES.includes(issue.rule)).map((issue) => `${issue.rule}:${issue.id}`),
     counts,
     bloomWanted: wanted,
+    // Per type: the levels the plan gave its slots against the levels the exam ended with (the judge's reading); equal where the type can reach the level.
+    levelsByType: Object.fromEntries(EXAM_QUESTION_TYPES.filter((type) => settings.counts[type] > 0).map((type) => [type, { planned: planBloom(settings.counts, targets).perType[type], got: questions.filter((q) => q.type === type).map((q) => q.bloomLevel ?? 0).sort((a, b) => a - b) }])),
     bloomGot: gotBloom,
     difficulty: { easy: questions.filter((q) => q.difficulty === 'easy').length, medium: questions.filter((q) => q.difficulty === 'medium').length, hard: questions.filter((q) => q.difficulty === 'hard').length },
     typeLimitViolations: questions.filter((q) => q.bloomLevel !== undefined && q.bloomLevel > BLOOM_CAP[q.type]).map((q) => q.id),
