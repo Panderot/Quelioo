@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { ArchiveEntry } from '../../lib/archive'
 import { fullSessions, parseStudyResults } from '../../lib/study'
+import ConvertToExamButton from '../exam/ConvertToExamButton'
 import { BookIcon, TrophyIcon } from '../icons'
 import ScoreChart from './ScoreChart'
 
@@ -32,6 +33,11 @@ export default function StudyHistory({ entry }: { entry: ArchiveEntry }) {
             <TrophyIcon className="h-4 w-4" />
             {t('archive.live')}
           </Link>
+          <ConvertToExamButton
+            entry={entry}
+            iconClassName="h-4 w-4"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-warm-border bg-card px-3.5 text-sm font-semibold text-ink transition-colors hover:border-amber disabled:opacity-60"
+          />
         </div>
       </div>
       {hasHistory ? <ScoreChart results={results} /> : <p className="text-sm text-muted">{t('study.history.empty')}</p>}

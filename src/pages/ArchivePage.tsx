@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
+import ConvertToExamButton from '../components/exam/ConvertToExamButton'
 import { useArchive } from '../lib/archive'
 import { daysAgo, lastFullSession, parseStudyResults } from '../lib/study'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
@@ -185,6 +186,11 @@ export default function ArchivePage() {
                       <TrophyIcon className="h-3.5 w-3.5" />
                       {t('archive.live')}
                     </Link>
+                    <ConvertToExamButton
+                      entry={entry}
+                      withTitleInLabel
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-warm-border bg-card px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:border-amber disabled:opacity-60"
+                    />
                   </div>
                 </li>
               )

@@ -135,6 +135,24 @@ export type Database = {
         }
         Relationships: []
       }
+      exam_settings: {
+        Row: {
+          header: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          header: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          header?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lesson_plans: {
         Row: {
           created_at: string
@@ -712,6 +730,45 @@ export type Database = {
           model?: string
           output_tokens?: number
           provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      written_exams: {
+        Row: {
+          created_at: string
+          id: string
+          questions: Json
+          question_count: number
+          settings: Json
+          source_quiz_id: string | null
+          source_text: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          questions: Json
+          question_count?: never
+          settings: Json
+          source_quiz_id?: string | null
+          source_text?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          questions?: Json
+          question_count?: never
+          settings?: Json
+          source_quiz_id?: string | null
+          source_text?: string
+          title?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

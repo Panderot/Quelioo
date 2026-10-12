@@ -295,7 +295,8 @@ test('sidebar item and Archive actions', async ({ browser }) => {
   const live = labels.findIndex((label) => label.includes('Live Game'))
   expect(live).toBeGreaterThan(-1)
   expect(labels[live - 1]).toContain('Flashcards')
-  expect(labels[live + 1]).toContain('Audio Lesson')
+  expect(labels[live + 1]).toContain('Written Exam')
+  expect(labels[live + 2]).toContain('Audio Lesson')
   await expect(page.locator('[data-purpose="sidebar-navigation"] a[href="/live"]')).toBeVisible()
 
   await expect(board(page, 'archive-live')).toHaveCount(1)

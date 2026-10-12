@@ -458,3 +458,16 @@ export function TrophyIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function ExamIcon(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path
+        d="M7 3h7l4 4v14H7a1 1 0 01-1-1V4a1 1 0 011-1zM14 3v4h4M9 12h6M9 15.5h6M9 8.5h2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.75"
+      />
+    </svg>
+  )
+}

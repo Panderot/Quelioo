@@ -1,6 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import { extractJson, isRecord, readRequestBody } from './anthropic.js'
+import { handleExamRequest, isExamMode } from './exam.js'
+import type { ExamErrorBody, ExamResponseBody } from './exam.js'
 import { generateJson } from './llm.js'
 import type { LlmProvider, LlmUsage } from './llm.js'
 import { GENERAL_QUALITY_RULES, typeRules, typeRulesFor } from './quiz-rules.js'
@@ -80,7 +82,7 @@ export interface TopUpResponseBody {
   fallbackUsed: boolean
 }
 
-export type GenerateResponseBody = GenerateQuizResponseBody | RegenerateOneResponseBody | TopUpResponseBody | GenerateApiErrorBody
+export type GenerateResponseBody = GenerateQuizResponseBody | RegenerateOneResponseBody | TopUpResponseBody | GenerateApiErrorBody | ExamResponseBody | ExamErrorBody
 
 /** Server-side cost/latency of one request — logged (never content) and handed to test harnesses. */
 export interface GenerateMetrics {
@@ -1671,6 +1673,9 @@ export async function handleGenerateRequest(payload: unknown, hooks: GenerateReq
   if (!isRecord(payload)) {
     return { status: 400, body: { error: 'not_supported' } }
   }
+
+  // Written-exam modes validate their own fields.
+  if (isExamMode(payload.mode)) return handleExamRequest(payload.mode, payload)
 
   const mode: 'generate' | 'regenerate_one' | 'top_up' | 'cover_missing' | null =
     payload.mode === 'regenerate_one'
