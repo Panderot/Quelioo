@@ -52,7 +52,8 @@ export function quizToExam(entry: ArchiveEntry, defaults: ExamHeader, now = new 
   const counts = emptyCounts()
   for (const question of questions) counts[question.type] += 1
   const settings = defaultExamSettings(now)
-  settings.header = { ...defaults }
+  // School, teacher and year may be remembered; course, class and section belong to the exam, and a quiz does not know them.
+  settings.header = { ...defaults, course: '', grade: '', section: '' }
   settings.counts = counts
   settings.optionsCount = questions.some((question) => question.type === 'mcq' && (question.options?.length ?? 0) >= 5) ? 5 : 4
   settings.level = 'other'

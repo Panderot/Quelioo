@@ -2068,7 +2068,6 @@
       "topicsHint": "Her satıra bir konu ya da kazanım yaz; sorular bunları kapsar.",
       "headerTitle": "Sınav kâğıdı bilgileri",
       "duration": "Süre (dakika)",
-      "levelLabel": "Seviye",
       "levelGrade": "{{grade}}. sınıf",
       "level": {
         "university": "Üniversite",
@@ -2099,7 +2098,7 @@
       "contextBased": "Bağlam temelli sorular (soru öncesinde kısa bir günlük hayat durumu)",
       "answerKey": "Cevap anahtarı ve puanlama ölçütleri",
       "groups": "A ve B grubu",
-      "topicTable": "Konu tablosu",
+      "topicTable": "Konu ve Bloom tabloları",
       "footer": "Altbilgide “Quelio ile hazırlandı” yazsın",
       "generate": "Sınavı hazırla",
       "generating": "Sınav hazırlanıyor…",
@@ -2110,7 +2109,41 @@
         "plan": "Metindeki farklı olgular çıkarılıyor…",
         "check": "Sınav kontrol ediliyor, gerekirse sorular yenileniyor…"
       },
-      "estimate": "{{count}} soru yaklaşık {{minutes}} dakika sürer."
+      "estimate": "{{count}} soru yaklaşık {{minutes}} dakika sürer.",
+      "previousExams": "Bu metinden daha önce {{count}} sınav hazırladınız; bazı konular tekrar edebilir.",
+      "bloomTitle": "Bilişsel düzey ve sınav biçimi",
+      "bloomLabel": "Bilişsel düzey (Bloom)",
+      "bloomInfoLabel": "Bloom taksonomisi hakkında bilgi",
+      "bloomInfo": "Revize Bloom taksonomisi. Eski adlarıyla: Bilgi, Kavrama, Uygulama, Analiz, Sentez, Değerlendirme.",
+      "bloom": {
+        "balanced": "Tüm düzeyler (dengeli)",
+        "1": "1 · Hatırlama",
+        "2": "2 · Anlama",
+        "3": "3 · Uygulama",
+        "4": "4 · Analiz",
+        "5": "5 · Değerlendirme",
+        "6": "6 · Yaratma",
+        "higher": "Üst düzey düşünme (Analiz, Değerlendirme, Yaratma)"
+      },
+      "bloomPreview": "Dağılım: {{parts}}",
+      "bloomCapOpen": "{{type}} soruları en fazla {{cap}} düzeyinde olabilir. {{wanted}} için açık uçlu soru ekleyin.",
+      "bloomCapMcq": "{{type}} soruları en fazla {{cap}} düzeyinde olabilir. {{wanted}} için çoktan seçmeli ya da açık uçlu soru ekleyin.",
+      "formatLabel": "Sınav biçimi",
+      "format": {
+        "free": "Serbest",
+        "meb": "MEB ortak yazılı"
+      },
+      "formatMebHint": "Yalnızca açık uçlu ve kısa cevap soruları sorulur; cevap anahtarı ve dereceli puanlama anahtarı her zaman hazırlanır.",
+      "distributionToggle": "Konu-soru dağılımını ben belirleyeyim",
+      "distributionHint": "Zümrenizin senaryosundaki kazanımı ve soru sayısını yazın. Toplam, yukarıdaki soru sayısına eşit olmalı.",
+      "distributionPlaceholder": "Kazanım / öğrenme çıktısı",
+      "distributionRowText": "{{number}}. satır, kazanım",
+      "distributionRowCount": "{{number}}. satır, soru sayısı",
+      "distributionRemove": "{{number}}. satırı kaldır",
+      "distributionAdd": "+ Satır ekle",
+      "distributionSum": "Toplam {{sum}} / {{total}}",
+      "durationHint": "{{min}} ile {{max}} arasında bir tam sayı; boş bırakırsan kâğıtta süre yazmaz.",
+      "wordLimit": "Her sınav için 30 ile 5.000 kelime arası metin kullanabilirsin."
     },
     "header": {
       "school": "Okul adı",
@@ -2127,7 +2160,10 @@
       "section": "Şube",
       "sectionPlaceholder": "Örn. A",
       "teacher": "Öğretmen adı (isteğe bağlı)",
-      "teacherPlaceholder": "Ad Soyad"
+      "teacherPlaceholder": "Ad Soyad",
+      "gradeChoose": "Seçin",
+      "gradeOther": "Sınıf (diğer)",
+      "gradeOtherDefault": "Hazırlık"
     },
     "edit": {
       "backToList": "Yazılı sınavlarım",
@@ -2217,7 +2253,17 @@
       "rubricPoints": "{{number}}. ölçüt puanı",
       "removeRubric": "{{number}}. ölçütü kaldır",
       "addRubric": "+ Ölçüt ekle",
-      "rubricFit": "Ölçütleri soru puanına eşitle"
+      "rubricFit": "Ölçütleri soru puanına eşitle",
+      "bloom": "Bilişsel düzey",
+      "moveOptionUp": "{{letter}} şıkkını yukarı taşı",
+      "moveOptionDown": "{{letter}} şıkkını aşağı taşı",
+      "insertBlank": "Boşluk ekle (___)",
+      "extras": "Fazladan sağ sütun maddeleri (hiçbiriyle eşleşmeyen)",
+      "extraLabel": "{{number}}. fazla madde",
+      "removeExtra": "{{number}}. fazla maddeyi kaldır",
+      "addExtra": "+ Fazla madde ekle",
+      "headerHint": "Ders ve sınıfı girin",
+      "headerHintOpen": "Bilgileri aç"
     },
     "errors": {
       "retry": "Tekrar dene",
@@ -2240,7 +2286,8 @@
       "notFound": "Bu sınav bulunamadı.",
       "print": "Yazdır / PDF kaydet",
       "close": "Kapat",
-      "pageNumbersNote": "Sayfa numaraları için Chrome veya Edge'den yazdır."
+      "pageNumbersNote": "Sayfa numaraları için Chrome veya Edge'den yazdır.",
+      "pdfHint": "Açılan pencerede Hedef: “PDF olarak kaydet” seçin."
     },
     "fromQuiz": {
       "action": "Yazılı sınava çevir",
@@ -2258,6 +2305,47 @@
       "continue": "{{ready}} soru ile devam et",
       "retry": "Eksik soruları tekrar dene",
       "addText": "Metin ekle"
+    },
+    "bloom": {
+      "names": {
+        "1": "Hatırlama",
+        "2": "Anlama",
+        "3": "Uygulama",
+        "4": "Analiz",
+        "5": "Değerlendirme",
+        "6": "Yaratma"
+      },
+      "notSet": "Belirtilmedi"
+    },
+    "distributionShort": {
+      "row": "“{{row}}” için metinde yeterli içerik yok ({{found}} / {{wanted}} soru).",
+      "continue": "Yine de devam et",
+      "change": "Dağılımı değiştir"
+    },
+    "export": {
+      "title": "Dışa aktarmadan önce",
+      "ready": "Her şey hazır.",
+      "points": "Puan toplamı {{total}}.",
+      "header": "Ders ya da sınıf boş: kâğıdın başlığında eksik görünecek.",
+      "incomplete": "Tamamlanmamış sorular:",
+      "problemLine": "{{number}}. soruda {{reasons}}",
+      "redistribute": "100'e dağıt",
+      "anyway": "Yine de indir",
+      "go": "Devam et",
+      "cancel": "Vazgeç"
+    },
+    "problems": {
+      "stem": "soru metni boş",
+      "options": "en az iki şık gerekli",
+      "optionEmpty": "boş şık var",
+      "correctOption": "doğru şık seçilmedi",
+      "truth": "doğru / yanlış seçilmedi",
+      "blank": "boşluk işaretlenmedi",
+      "answer": "cevap yazılmadı",
+      "pairs": "en az iki çift gerekli",
+      "pairEmpty": "boş eşleştirme maddesi var",
+      "extraEmpty": "boş fazla madde var",
+      "rubricEmpty": "boş puanlama ölçütü var"
     }
   }
 }

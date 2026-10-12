@@ -47,16 +47,27 @@ const SHORT_OPTION_CHARS = 28
 /** Options short enough to sit in two columns. */
 export const optionsAreShort = (options: string[]): boolean => options.every((option) => withoutMath(option).length <= SHORT_OPTION_CHARS)
 
-/** Matching: pair index shown at each position of the right column (a valid order, else a rotation). */
-export function matchingOrder(question: Pick<ExamQuestion, 'pairs' | 'rightOrder'>): number[] {
-  const count = question.pairs?.length ?? 0
+/** The right column of a matching question in stored order: the pairs' rights, then the extra items. */
+export function rightItems(question: Pick<ExamQuestion, 'pairs' | 'extras'>): string[] {
+  return [...(question.pairs ?? []).map((pair) => pair.right), ...(question.extras ?? [])]
+}
+
+/** Matching: the item shown at each position of the right column, as an index into `rightItems` (a valid order, else a rotation). */
+export function matchingOrder(question: Pick<ExamQuestion, 'pairs' | 'extras' | 'rightOrder'>): number[] {
+  const count = rightItems(question).length
   const order = question.rightOrder
   if (order && order.length === count && new Set(order).size === count && order.every((index) => index >= 0 && index < count)) return order
   return Array.from({ length: count }, (_, index) => (index + 1) % Math.max(count, 1))
 }
 
+/** The text of the right column, top to bottom (one entry per position). */
+export function rightColumn(question: Pick<ExamQuestion, 'pairs' | 'extras' | 'rightOrder'>): string[] {
+  const items = rightItems(question)
+  return matchingOrder(question).map((index) => items[index] ?? '')
+}
+
 /** "1-C, 2-A …": the right-column letter of each left item. */
-export function matchingKey(question: Pick<ExamQuestion, 'pairs' | 'rightOrder'>): string {
+export function matchingKey(question: Pick<ExamQuestion, 'pairs' | 'extras' | 'rightOrder'>): string {
   const order = matchingOrder(question)
   return (question.pairs ?? []).map((_, left) => `${left + 1}-${answerLetter(order.indexOf(left))}`).join(', ')
 }
@@ -66,41 +77,49 @@ export interface KeyAnswer {
   answer: string
   /** Fuller expected answer for written questions */
   expected: string | null
+  /** "Beklenen cevap", or "Örnek cevap" when the question accepts other valid answers (evaluation and creation). */
+  expectedLabel: string
+  /** Other accepted answers, each without trailing punctuation. */
   accepted: string[]
 }
 
-/** Accepted answers other than the answer itself (the model often repeats it). */
+/** Accepted answers other than the answer itself (the model often repeats it), without ".", ";" and the like at the end. */
 const otherAccepted = (question: ExamQuestion): string[] => {
-  const same = (value: string) => value.trim().toLocaleLowerCase() === question.answer.trim().toLocaleLowerCase()
-  return (question.acceptableAnswers ?? []).filter((value) => value.trim() && !same(value))
+  const clean = (value: string) => value.trim().replace(/[\s.;,:!]+$/u, '')
+  const same = (value: string) => value.toLocaleLowerCase('tr-TR') === clean(question.answer).toLocaleLowerCase('tr-TR')
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const raw of question.acceptableAnswers ?? []) {
+    const value = clean(raw)
+    const key = value.toLocaleLowerCase('tr-TR')
+    if (!value || same(value) || seen.has(key)) continue
+    seen.add(key)
+    result.push(value)
+  }
+  return result
 }
 
+/** Accepted answers as one line: "a / b / c". */
+export const acceptedLine = (accepted: string[]): string => accepted.join(' / ')
+
 export function keyAnswer(question: ExamQuestion, labels: PaperLabels): KeyAnswer {
+  const sample = question.type === 'open-ended' && (question.bloomLevel ?? 0) >= 5
+  const expectedLabel = sample ? labels.sample : labels.expected
   switch (question.type) {
     case 'mcq': {
       const index = question.answerIndex ?? 0
-      return { answer: `${answerLetter(index)}) ${question.options?.[index] ?? ''}`, expected: null, accepted: [] }
+      return { answer: `${answerLetter(index)}) ${question.options?.[index] ?? ''}`, expected: null, expectedLabel, accepted: [] }
     }
     case 'true-false':
-      return { answer: question.answerBool ? labels.true : labels.false, expected: null, accepted: [] }
+      return { answer: question.answerBool ? labels.true : labels.false, expected: null, expectedLabel, accepted: [] }
     case 'matching':
-      return { answer: matchingKey(question), expected: null, accepted: [] }
+      return { answer: matchingKey(question), expected: null, expectedLabel, accepted: [] }
     case 'fill-blanks':
-      return { answer: question.answer, expected: null, accepted: otherAccepted(question) }
+      return { answer: question.answer, expected: null, expectedLabel, accepted: otherAccepted(question) }
     default:
-      return { answer: '', expected: question.answer, accepted: question.type === 'short-answer' ? otherAccepted(question) : [] }
+      return { answer: '', expected: question.answer, expectedLabel, accepted: question.type === 'short-answer' ? otherAccepted(question) : [] }
   }
 }
-
-export interface TopicRow {
-  number: number
-  topic: string
-  difficulty: string
-  points: number
-}
-
-export const topicRows = (questions: PaperQuestion[], labels: PaperLabels): TopicRow[] =>
-  questions.map((question) => ({ number: question.number, topic: question.topic, difficulty: labels.difficulty[question.difficulty], points: question.points }))
 
 /** Slug for file names and the document title: ASCII only. */
 export function asciiSlug(value: string): string {
@@ -112,10 +131,13 @@ export function asciiSlug(value: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+/** "Biyoloji-9-Sinif-Yazili-A-Grubu-Cevap-Anahtari": the name a saved paper gets (title of the print page, name of the Word file). */
 export function examFileBase(exam: Pick<WrittenExam, 'settings'>, part: 'exam' | 'key', group: ExamGroup | 'both'): string {
   const { header, groups } = exam.settings
-  const bits = ['yazili', asciiSlug(header.grade) ? `${asciiSlug(header.grade)}-sinif` : '', asciiSlug(header.course)].filter(Boolean)
-  if (part === 'key') bits.push('cevap-anahtari')
-  if (groups && group !== 'both') bits.push(group)
+  const cap = (value: string) => value.replace(/(^|-)([a-z])/g, (_, dash: string, letter: string) => `${dash}${letter.toUpperCase()}`)
+  const grade = asciiSlug(header.grade)
+  const bits = [cap(asciiSlug(header.course)), grade ? (/^\d+$/.test(grade) ? `${grade}-Sinif` : cap(grade)) : '', 'Yazili'].filter(Boolean)
+  if (groups && group !== 'both') bits.push(`${group}-Grubu`)
+  if (part === 'key') bits.push('Cevap-Anahtari')
   return bits.join('-')
 }

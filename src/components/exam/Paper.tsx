@@ -4,7 +4,8 @@ import type { ReactNode } from 'react'
 import { buildGroup } from '../../lib/exam/groups'
 import { examPaperLabels } from '../../lib/exam/paperLabels'
 import type { PaperLabels } from '../../lib/exam/paperLabels'
-import { answerLetter, keyAnswer, matchingOrder, optionsAreShort, paperSections, topicRows } from '../../lib/exam/paperText'
+import { acceptedLine, answerLetter, keyAnswer, optionsAreShort, paperSections, rightColumn } from '../../lib/exam/paperText'
+import { distributionRows, numbersText, specRows, specTotals } from '../../lib/exam/tables'
 import type { ExamGroup, PaperQuestion, WrittenExam } from '../../lib/exam/types'
 import MathText from '../MathText'
 
@@ -30,6 +31,7 @@ const PAPER_CSS = `
 @media print { .xp-sheet { width: auto; min-height: 0; padding: 0; margin: 0 !important; box-shadow: none !important; } }
 .xp-head { text-align: center; position: relative; margin-bottom: 4mm; }
 .xp-head p { margin: 0; font-weight: 700; }
+.xp-head p.xp-time { font-weight: 400; font-size: 10pt; }
 .xp-group { position: absolute; top: 0; right: 0; border: 1.5px solid #000; padding: 0 3mm; font-weight: 700; font-size: 12pt; }
 .xp-boxes { display: grid; grid-template-columns: 3fr 1fr 1fr 1fr; border: 1px solid #000; margin-top: 3mm; text-align: left; }
 .xp-boxes div { padding: 1.5mm 2mm; min-height: 11mm; border-left: 1px solid #000; font-size: 10pt; }
@@ -63,7 +65,9 @@ const PAPER_CSS = `
 .xp-table { border-collapse: collapse; width: 100%; margin-top: 3mm; break-inside: avoid; }
 .xp-table th, .xp-table td { border: 1px solid #000; padding: 1mm 2mm; text-align: left; }
 .xp-table td.num, .xp-table th.num { text-align: center; }
-.xp-keytitle { text-align: center; font-weight: 700; font-size: 13pt; margin: 0 0 3mm; break-after: avoid; }
+.xp-keytitle { text-align: center; font-weight: 700; font-size: 13pt; margin: 3mm 0; break-after: avoid; }
+.xp-tabletitle { font-weight: 700; margin: 5mm 0 1mm; break-after: avoid; }
+.xp-table { font-size: 9.5pt; }
 .xp-break { break-before: page; page-break-before: always; }
 .xp-print-only-footer { display: none; }
 `
@@ -79,7 +83,7 @@ function printCss(footer: boolean, labels: PaperLabels): string {
 }
 
 /** Text with $...$ formulas; a "___" in a fill-in sentence becomes a line to write on. */
-function Rich({ text, blanks = false, blankLabel = 'blank' }: { text: string; blanks?: boolean; blankLabel?: string }) {
+function Plain({ text, blanks = false, blankLabel = 'blank' }: { text: string; blanks?: boolean; blankLabel?: string }) {
   if (!blanks) return <MathText text={text} />
   const parts = text.split(/_{3,}/)
   return (
@@ -94,20 +98,36 @@ function Rich({ text, blanks = false, blankLabel = 'blank' }: { text: string; bl
   )
 }
 
-function Header({ exam, group, labels }: { exam: WrittenExam; group: ExamGroup | null; labels: PaperLabels }) {
+/** Like `Plain`, and **word** is bold (the negative word of a "which is NOT" stem). */
+function Rich({ text, blanks = false, blankLabel = 'blank' }: { text: string; blanks?: boolean; blankLabel?: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  if (parts.length === 1) return <Plain text={text} blanks={blanks} blankLabel={blankLabel} />
+  return (
+    <>
+      {parts.map((part, index) => (/^\*\*[^*]+\*\*$/.test(part) ? <b key={index}>{part.slice(2, -2)}</b> : <Plain key={index} text={part} blanks={blanks} blankLabel={blankLabel} />))}
+    </>
+  )
+}
+
+/** The header of the paper and of its answer key: the same school, year, class, course, exam number and group; the key has no boxes for the student. */
+function Header({ exam, group, labels, boxes = true }: { exam: WrittenExam; group: ExamGroup | null; labels: PaperLabels; boxes?: boolean }) {
   const { header } = exam.settings
+  const time = labels.timeLine(exam.settings.durationMinutes)
   return (
     <div className="xp-head">
       {group && <div className="xp-group">{labels.groupLabel(group)}</div>}
       <p>{labels.yearLine(header)}</p>
-      {header.school.trim() && <p>{header.school.trim()}</p>}
+      {header.school.trim() && <p>{labels.schoolLine(header)}</p>}
       <p>{labels.titleLine(header)}</p>
-      <div className="xp-boxes">
-        <div>{labels.name}:</div>
-        <div>{labels.className}:</div>
-        <div>{labels.number}:</div>
-        <div>{labels.score}:</div>
-      </div>
+      {time && <p className="xp-time">{time}</p>}
+      {boxes && (
+        <div className="xp-boxes">
+          <div>{labels.name}:</div>
+          <div>{labels.className}:</div>
+          <div>{labels.number}:</div>
+          <div>{labels.score}:</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -135,7 +155,7 @@ function GradingGrid({ questions, labels }: { questions: PaperQuestion[]; labels
 function QuestionBlock({ question, labels }: { question: PaperQuestion; labels: PaperLabels }) {
   const options = question.options ?? []
   const pairs = question.pairs ?? []
-  const order = matchingOrder(question)
+  const right = rightColumn(question)
   return (
     <div className="xp-q" data-question={question.number}>
       <div className="xp-qline">
@@ -165,19 +185,23 @@ function QuestionBlock({ question, labels }: { question: PaperQuestion; labels: 
       {question.type === 'true-false' && <div className="xp-tf">{labels.tfMarks}</div>}
       {question.type === 'matching' && (
         <div className="xp-match">
-          {pairs.map((pair, index) => (
+          {Array.from({ length: Math.max(pairs.length, right.length) }, (_, index) => (
             <Fragment key={index}>
               <div>
-                <span className="ans" />
-                <span>{index + 1}.</span>
-                <span>
-                  <Rich text={pair.left} />
-                </span>
+                {pairs[index] ? (
+                  <>
+                    <span className="ans" />
+                    <span>{index + 1}.</span>
+                    <span>
+                      <Rich text={pairs[index].left} />
+                    </span>
+                  </>
+                ) : null}
               </div>
               <div>
                 <span>{answerLetter(index)})</span>
                 <span>
-                  <Rich text={pairs[order[index]]?.right ?? ''} />
+                  <Rich text={right[index] ?? ''} />
                 </span>
               </div>
             </Fragment>
@@ -199,7 +223,7 @@ function ExamPages({ exam, group, labels }: { exam: WrittenExam; group: ExamGrou
     <>
       <Header exam={exam} group={exam.settings.groups ? group : null} labels={labels} />
       <GradingGrid questions={questions} labels={labels} />
-      <p className="xp-instr">{labels.instructionLine(exam.settings.durationMinutes)}</p>
+      <p className="xp-instr">{labels.instructionLine()}</p>
       {sections.map((section, sectionIndex) => (
         <Fragment key={sectionIndex}>
           <div className="xp-section">{labels.section[section.type]}</div>
@@ -241,12 +265,12 @@ function KeyQuestion({ question, mapped, labels }: { question: PaperQuestion; ma
       </div>
       {key.expected && (
         <div>
-          {labels.expected}: <Rich text={key.expected} />
+          {key.expectedLabel}: <Rich text={key.expected} />
         </div>
       )}
       {key.accepted.length > 0 && (
         <div>
-          {labels.alsoAccepted}: {key.accepted.join('; ')}
+          {labels.alsoAccepted}: {acceptedLine(key.accepted)}
         </div>
       )}
       {question.rubric.length > 0 && (
@@ -262,47 +286,109 @@ function KeyQuestion({ question, mapped, labels }: { question: PaperQuestion; ma
   )
 }
 
-function KeyPages({ exam, group, labels }: { exam: WrittenExam; group: ExamGroup; labels: PaperLabels }) {
-  const questions = buildGroup(exam, group)
-  const rows = topicRows(questions, labels)
-  const total = questions.reduce((sum, question) => sum + question.points, 0)
+/** E6: the topic distribution and the table of specifications, computed from the questions as they stand. */
+function BloomTables({ questions, labels, meb }: { questions: PaperQuestion[]; labels: PaperLabels; meb: boolean }) {
+  const distribution = distributionRows(questions)
+  const spec = specRows(questions)
+  const totals = specTotals(spec)
+  const topicHead = meb ? labels.mebTopic : labels.distributionCols[0]
+  const hasUnset = totals.unset > 0
+  const points = questions.reduce((sum, question) => sum + question.points, 0)
   return (
     <>
-      <p className="xp-keytitle">{exam.settings.groups ? labels.keyHeading(group) : labels.keyTitle}</p>
+      <p className="xp-tabletitle">{meb ? labels.mebDistributionTitle : labels.distributionTitle}</p>
+      <table className="xp-table" data-table="distribution">
+        <thead>
+          <tr>
+            <th>{topicHead}</th>
+            <th>{labels.distributionCols[1]}</th>
+            <th className="num">{labels.distributionCols[2]}</th>
+            <th className="num">{labels.distributionCols[3]}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {distribution.map((row, index) => (
+            <tr key={index}>
+              <td>{row.topic || '—'}</td>
+              <td>{numbersText(row.numbers)}</td>
+              <td className="num">{row.count}</td>
+              <td className="num">{row.points}</td>
+            </tr>
+          ))}
+          <tr>
+            <td colSpan={2}>
+              <b>{labels.total}</b>
+            </td>
+            <td className="num">
+              <b>{questions.length}</b>
+            </td>
+            <td className="num">
+              <b>{points}</b>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p className="xp-tabletitle">{meb ? labels.mebSpecTitle : labels.specTitle}</p>
+      <table className="xp-table" data-table="specification">
+        <thead>
+          <tr>
+            <th>{meb ? labels.mebTopic : labels.specTopic}</th>
+            {([1, 2, 3, 4, 5, 6] as const).map((level) => (
+              <th key={level} className="num">
+                {labels.bloomNames[level]}
+              </th>
+            ))}
+            {hasUnset && <th className="num">{labels.notSet}</th>}
+            <th className="num">{labels.total}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {spec.map((row, index) => (
+            <tr key={index}>
+              <td>{row.topic || '—'}</td>
+              {row.cells.map((cell, level) => (
+                <td key={level} className="num">
+                  {numbersText(cell)}
+                </td>
+              ))}
+              {hasUnset && <td className="num">{numbersText(row.unset)}</td>}
+              <td className="num">{row.count}</td>
+            </tr>
+          ))}
+          <tr>
+            <td>
+              <b>{labels.total}</b>
+            </td>
+            {totals.perLevel.map((count, level) => (
+              <td key={level} className="num">
+                <b>{count}</b>
+              </td>
+            ))}
+            {hasUnset && (
+              <td className="num">
+                <b>{totals.unset}</b>
+              </td>
+            )}
+            <td className="num">
+              <b>{totals.total}</b>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </>
+  )
+}
+
+function KeyPages({ exam, group, labels }: { exam: WrittenExam; group: ExamGroup; labels: PaperLabels }) {
+  const questions = buildGroup(exam, group)
+  return (
+    <>
+      <Header exam={exam} group={exam.settings.groups ? group : null} labels={labels} boxes={false} />
+      <p className="xp-keytitle">{labels.keyTitle}</p>
       {questions.map((question) => (
         <KeyQuestion key={question.id} question={question} mapped={group === 'B'} labels={labels} />
       ))}
-      {exam.settings.topicTable && (
-        <table className="xp-table">
-          <thead>
-            <tr>
-              {labels.topicCols.map((column, index) => (
-                <th key={column} className={index === 0 || index === 3 ? 'num' : undefined}>
-                  {column}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.number}>
-                <td className="num">{row.number}</td>
-                <td>{row.topic}</td>
-                <td>{row.difficulty}</td>
-                <td className="num">{row.points}</td>
-              </tr>
-            ))}
-            <tr>
-              <td colSpan={3}>
-                <b>{labels.total}</b>
-              </td>
-              <td className="num">
-                <b>{total}</b>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      )}
+      {exam.settings.topicTable && <BloomTables questions={questions} labels={labels} meb={exam.settings.format === 'meb'} />}
     </>
   )
 }
@@ -318,7 +404,7 @@ export default function ExamPaper({ exam, group, part, scale = 1, print = false 
     </div>
   ))
   return (
-    <div className={`xp-root ${print ? 'xp-print' : 'xp-screen'}`} data-purpose="exam-paper" data-part={part} data-paper-lang={labels.lang} style={!print && scale !== 1 ? { zoom: scale } : undefined}>
+    <div className={`xp-root ${print ? 'xp-print' : 'xp-screen'}`} data-purpose="exam-paper" data-part={part} data-paper-lang={labels.lang} lang={labels.lang} style={!print && scale !== 1 ? { zoom: scale } : undefined}>
       <style>{PAPER_CSS + (print ? printCss(exam.settings.footer, labels) : '')}</style>
       <div className="xp-sheet">
         {body}

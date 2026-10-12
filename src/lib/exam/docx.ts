@@ -4,7 +4,8 @@ import { buildGroup } from './groups'
 import { latexToOmml, escapeXml } from './omml'
 import { examPaperLabels } from './paperLabels'
 import type { PaperLabels } from './paperLabels'
-import { answerLetter, examFileBase, keyAnswer, matchingOrder, optionsAreShort, paperSections, splitMath, topicRows } from './paperText'
+import { acceptedLine, answerLetter, examFileBase, keyAnswer, optionsAreShort, paperSections, rightColumn, splitMath } from './paperText'
+import { distributionRows, numbersText, specRows, specTotals } from './tables'
 import type { ExamGroup, PaperQuestion, WrittenExam } from './types'
 
 /** Word (.docx) output, written by hand as WordprocessingML: no library, runs in the browser. */
@@ -16,6 +17,8 @@ const PAGE_W = 11906
 const PAGE_H = 16838
 const MARGIN = 850
 const INDENT = 420
+/** Height of one writing line: 0.8 cm in twips. */
+const LINE_HEIGHT = 454
 const NBSP = ' '
 
 interface RunStyle {
@@ -34,8 +37,15 @@ const run = (text: string, style: RunStyle = {}): string => (text ? `<w:r>${rPr(
 const tab = '<w:r><w:tab/></w:r>'
 const pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'
 
-/** Runs for a text with $...$ formulas (editable Word equations) and, optionally, "___" blanks. */
+/** Runs for a text with $...$ formulas (editable Word equations) and, optionally, "___" blanks. **word** is bold. */
 function inline(text: string, style: RunStyle = {}, blanks = false): string {
+  return text
+    .split(/(\*\*[^*]+\*\*)/g)
+    .map((chunk) => (/^\*\*[^*]+\*\*$/.test(chunk) ? inlinePlain(chunk.slice(2, -2), { ...style, bold: true }, blanks) : inlinePlain(chunk, style, blanks)))
+    .join('')
+}
+
+function inlinePlain(text: string, style: RunStyle, blanks: boolean): string {
   return splitMath(text)
     .map((piece) => {
       if (piece.math) return latexToOmml(piece.value)
@@ -78,18 +88,20 @@ interface Cell {
   paras: string
   width: number
   shade?: boolean
+  /** Only a bottom border (a line to write on). */
+  bottom?: boolean
 }
 
-function table(rows: Cell[][], options: { borders?: boolean; height?: number; indent?: number; header?: boolean } = {}): string {
+function table(rows: Cell[][], options: { borders?: boolean; height?: number; exactHeight?: boolean; indent?: number; header?: boolean } = {}): string {
   const widths = rows.reduce((best, row) => (row.length > best.length ? row.map((cell) => cell.width) : best), [] as number[])
   const edge = options.borders ? 'single' : 'nil'
   const borders = ['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map((side) => `<w:${side} w:val="${edge}" w:sz="4" w:space="0" w:color="000000"/>`).join('')
   const grid = widths.map((width) => `<w:gridCol w:w="${width}"/>`).join('')
   const body = rows
     .map((row, rowIndex) => {
-      const trPr = `<w:trPr><w:cantSplit/>${options.height ? `<w:trHeight w:val="${options.height}" w:hRule="atLeast"/>` : ''}${options.header && rowIndex === 0 ? '<w:tblHeader/>' : ''}</w:trPr>`
+      const trPr = `<w:trPr><w:cantSplit/>${options.height ? `<w:trHeight w:val="${options.height}" w:hRule="${options.exactHeight ? 'exact' : 'atLeast'}"/>` : ''}${options.header && rowIndex === 0 ? '<w:tblHeader/>' : ''}</w:trPr>`
       const cells = row
-        .map((cell) => `<w:tc><w:tcPr><w:tcW w:w="${cell.width}" w:type="dxa"/>${cell.shade ? '<w:shd w:val="clear" w:color="auto" w:fill="E7E7E7"/>' : ''}</w:tcPr>${cell.paras}</w:tc>`)
+        .map((cell) => `<w:tc><w:tcPr><w:tcW w:w="${cell.width}" w:type="dxa"/>${cell.bottom ? '<w:tcBorders><w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/></w:tcBorders>' : ''}${cell.shade ? '<w:shd w:val="clear" w:color="auto" w:fill="E7E7E7"/>' : ''}</w:tcPr>${cell.paras}</w:tc>`)
         .join('')
       return `<w:tr>${trPr}${cells}</w:tr>`
     })
@@ -98,17 +110,22 @@ function table(rows: Cell[][], options: { borders?: boolean; height?: number; in
   return `<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/>${options.indent ? `<w:tblInd w:w="${options.indent}" w:type="dxa"/>` : ''}<w:tblBorders>${borders}</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="80" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${grid}</w:tblGrid>${body}</w:tbl>`
 }
 
-function headerBlock(exam: WrittenExam, group: ExamGroup | null, paper: PaperLabels): string {
+/** The header of the paper and of its answer key (same school, year, class, course, exam number, group and time); the key has no boxes for the student. */
+function headerBlock(exam: WrittenExam, group: ExamGroup | null, paper: PaperLabels, boxes = true): string {
   const { header } = exam.settings
   const center = (text: string) => para(run(text, { bold: true, size: 24 }), { jc: 'center', after: 40 })
   const out: string[] = []
   if (group) out.push(para(run(paper.groupLabel(group), { bold: true, size: 26 }), { jc: 'right', box: true, after: 80 }))
   out.push(center(paper.yearLine(header)))
-  if (header.school.trim()) out.push(center(header.school.trim()))
+  if (header.school.trim()) out.push(center(paper.schoolLine(header)))
   out.push(center(paper.titleLine(header)))
-  const widths = [4800, 1700, 1700, 2006]
-  const labels = [paper.name, paper.className, paper.number, paper.score]
-  out.push(table([labels.map((label, index) => ({ width: widths[index], paras: para(run(`${label}:`, { size: 20 })) }))], { borders: true, height: 620 }))
+  const time = paper.timeLine(exam.settings.durationMinutes)
+  if (time) out.push(para(run(time, { size: 20 }), { jc: 'center', after: 60 }))
+  if (boxes) {
+    const widths = [4800, 1700, 1700, 2006]
+    const labels = [paper.name, paper.className, paper.number, paper.score]
+    out.push(table([labels.map((label, index) => ({ width: widths[index], paras: para(run(`${label}:`, { size: 20 })) }))], { borders: true, height: 620 }))
+  }
   return out.join('')
 }
 
@@ -161,20 +178,20 @@ function questionBlock(question: PaperQuestion, paper: PaperLabels): string {
   } else if (question.type === 'true-false') {
     out.push(para(run(paper.tfMarks, { bold: true }), { left: INDENT, after: 60 }))
   } else if (question.type === 'matching') {
-    const order = matchingOrder(question)
-    const rows: Cell[][] = pairs.map((pair, index) => {
-      const keep = index < pairs.length - 1
+    const right = rightColumn(question)
+    const size = Math.max(pairs.length, right.length)
+    const rows: Cell[][] = Array.from({ length: size }, (_, index) => {
+      const keep = index < size - 1
+      const pair = pairs[index]
       return [
-        { width: 4700, paras: para(run('(     ) ') + run(`${index + 1}. `) + inline(pair.left), { keepNext: keep, after: 20 }) },
-        { width: 4400, paras: para(run(`${answerLetter(index)}) `) + inline(pairs[order[index]]?.right ?? ''), { keepNext: keep, after: 20 }) },
+        { width: 4700, paras: para(pair ? run('(     ) ') + run(`${index + 1}. `) + inline(pair.left) : '', { keepNext: keep, after: 20 }) },
+        { width: 4400, paras: para(run(`${answerLetter(index)}) `) + inline(right[index] ?? ''), { keepNext: keep, after: 20 }) },
       ]
     })
     out.push(table(rows, { indent: INDENT }), para('', { after: 0, line: 40 }))
   } else if (lines > 0) {
-    for (let index = 0; index < lines; index += 1) {
-      out.push(para('', { left: INDENT, bottomBorder: true, line: 500, after: 0, keepNext: index < lines - 1 }))
-    }
-    out.push(para('', { after: 60, line: 120 }))
+    const rows: Cell[][] = Array.from({ length: lines }, (_, index) => [{ width: PAGE_W - 2 * MARGIN - INDENT, bottom: true, paras: para('', { after: 0, line: 240, keepNext: index < lines - 1 }) }])
+    out.push(table(rows, { indent: INDENT, height: LINE_HEIGHT, exactHeight: true }), para('', { after: 60, line: 120 }))
   }
   return out.join('')
 }
@@ -182,7 +199,7 @@ function questionBlock(question: PaperQuestion, paper: PaperLabels): string {
 function examBody(exam: WrittenExam, group: ExamGroup, paper: PaperLabels): string {
   const questions = buildGroup(exam, group)
   const out: string[] = [headerBlock(exam, exam.settings.groups ? group : null, paper), gradingGrid(questions, paper)]
-  out.push(para(run(paper.instructionLine(exam.settings.durationMinutes), { italic: true, size: 20 }), { after: 120 }))
+  out.push(para(run(paper.instructionLine(), { italic: true, size: 20 }), { after: 120 }))
   for (const section of paperSections(questions)) {
     out.push(para(run(paper.section[section.type], { bold: true }), { keepNext: true, before: 120, after: 80 }))
     section.questions.forEach((question) => out.push(questionBlock(question, paper)))
@@ -193,9 +210,55 @@ function examBody(exam: WrittenExam, group: ExamGroup, paper: PaperLabels): stri
   return out.join('')
 }
 
+/** E6: the topic distribution and the table of specifications. */
+function bloomTables(questions: PaperQuestion[], paper: PaperLabels, meb: boolean): string {
+  const total = PAGE_W - 2 * MARGIN
+  const head = (text: string, width: number): Cell => ({ width, shade: true, paras: para(run(text, { bold: true, size: 18 }), { after: 0 }) })
+  const cell = (text: string, width: number, bold = false): Cell => ({ width, paras: para(run(text, { bold, size: 19 }), { after: 0 }) })
+  const distribution = distributionRows(questions)
+  const dWidths = [total - 1300 * 2 - 2400, 2400, 1300, 1300]
+  const sumPoints = questions.reduce((sum, question) => sum + question.points, 0)
+  const dRows: Cell[][] = [
+    [head(meb ? paper.mebTopic : paper.distributionCols[0], dWidths[0]), head(paper.distributionCols[1], dWidths[1]), head(paper.distributionCols[2], dWidths[2]), head(paper.distributionCols[3], dWidths[3])],
+    ...distribution.map((row) => [cell(row.topic || '—', dWidths[0]), cell(numbersText(row.numbers), dWidths[1]), cell(String(row.count), dWidths[2]), cell(String(row.points), dWidths[3])]),
+    [
+      { width: dWidths[0] + dWidths[1], paras: para(run(paper.total, { bold: true, size: 19 }), { after: 0 }) },
+      cell(String(questions.length), dWidths[2], true),
+      cell(String(sumPoints), dWidths[3], true),
+    ],
+  ]
+  const spec = specRows(questions)
+  const totals = specTotals(spec)
+  const hasUnset = totals.unset > 0
+  const levelWidth = hasUnset ? 1000 : 1100
+  const tailWidth = hasUnset ? 1050 : 1000
+  const sWidths = [total - levelWidth * 6 - tailWidth * (hasUnset ? 2 : 1), ...Array(6).fill(levelWidth), ...(hasUnset ? [tailWidth] : []), tailWidth] as number[]
+  const levels = [1, 2, 3, 4, 5, 6] as const
+  const sHead: Cell[] = [head(meb ? paper.mebTopic : paper.specTopic, sWidths[0]), ...levels.map((level, index) => head(paper.bloomNames[level], sWidths[index + 1])), ...(hasUnset ? [head(paper.notSet, sWidths[7])] : []), head(paper.total, sWidths[sWidths.length - 1])]
+  const sRows: Cell[][] = spec.map((row) => [
+    cell(row.topic || '—', sWidths[0]),
+    ...row.cells.map((numbers, index) => cell(numbersText(numbers), sWidths[index + 1])),
+    ...(hasUnset ? [cell(numbersText(row.unset), sWidths[7])] : []),
+    cell(String(row.count), sWidths[sWidths.length - 1]),
+  ])
+  const sTotal: Cell[] = [
+    cell(paper.total, sWidths[0], true),
+    ...totals.perLevel.map((count, index) => cell(String(count), sWidths[index + 1], true)),
+    ...(hasUnset ? [cell(String(totals.unset), sWidths[7], true)] : []),
+    cell(String(totals.total), sWidths[sWidths.length - 1], true),
+  ]
+  return [
+    para(run(meb ? paper.mebDistributionTitle : paper.distributionTitle, { bold: true }), { keepNext: true, before: 160 }),
+    table(dRows, { borders: true, header: true }),
+    para(run(meb ? paper.mebSpecTitle : paper.specTitle, { bold: true }), { keepNext: true, before: 200 }),
+    table([sHead, ...sRows, sTotal], { borders: true, header: true }),
+    para('', { after: 0 }),
+  ].join('')
+}
+
 function keyBody(exam: WrittenExam, group: ExamGroup, paper: PaperLabels): string {
   const questions = buildGroup(exam, group)
-  const out: string[] = [para(run(exam.settings.groups ? paper.keyHeading(group) : paper.keyTitle, { bold: true, size: 26 }), { jc: 'center', after: 160, keepNext: true })]
+  const out: string[] = [headerBlock(exam, exam.settings.groups ? group : null, paper, false), para(run(paper.keyTitle, { bold: true, size: 26 }), { jc: 'center', before: 120, after: 160, keepNext: true })]
   for (const question of questions) {
     const key = keyAnswer(question, paper)
     const rubric = question.rubric
@@ -206,26 +269,14 @@ function keyBody(exam: WrittenExam, group: ExamGroup, paper: PaperLabels): strin
       run(` ${paper.pointsLabel(question.points)}`, { bold: true }) +
       (group === 'B' ? run(` — ${paper.mappingLine(question)}`, { italic: true, size: 19 }) : '')
     out.push(para(head, { keepNext: hasMore, after: 20 }))
-    if (key.expected) out.push(para(run(`${paper.expected}: `) + inline(key.expected), { left: INDENT, keepNext: key.accepted.length > 0 || rubric.length > 0, after: 20 }))
-    if (key.accepted.length > 0) out.push(para(run(`${paper.alsoAccepted}: ${key.accepted.join('; ')}`), { left: INDENT, keepNext: rubric.length > 0, after: 20 }))
+    if (key.expected) out.push(para(run(`${key.expectedLabel}: `) + inline(key.expected), { left: INDENT, keepNext: key.accepted.length > 0 || rubric.length > 0, after: 20 }))
+    if (key.accepted.length > 0) out.push(para(run(`${paper.alsoAccepted}: ${acceptedLine(key.accepted)}`), { left: INDENT, keepNext: rubric.length > 0, after: 20 }))
     rubric.forEach((item, index) => {
       out.push(para(run('• ') + inline(item.text) + run(` — ${paper.pointsLabel(item.points)}`), { left: INDENT + 240, hanging: 240, keepNext: index < rubric.length - 1, after: 10 }))
     })
     out.push(para('', { after: 60, line: 100 }))
   }
-  if (exam.settings.topicTable) {
-    const widths = [1100, 5900, 1700, 1400]
-    const head: Cell[] = paper.topicCols.map((column, index) => ({ width: widths[index], shade: true, paras: para(run(column, { bold: true }), { after: 0 }) }))
-    const rows: Cell[][] = topicRows(questions, paper).map((row) =>
-      [String(row.number), row.topic, row.difficulty, String(row.points)].map((text, index) => ({ width: widths[index], paras: para(inline(text), { after: 0 }) })),
-    )
-    const total = questions.reduce((sum, question) => sum + question.points, 0)
-    rows.push([
-      { width: widths[0] + widths[1] + widths[2], paras: para(run(paper.total, { bold: true }), { after: 0 }) },
-      { width: widths[3], paras: para(run(String(total), { bold: true }), { after: 0 }) },
-    ])
-    out.push(para(run(paper.topicTable, { bold: true }), { keepNext: true, before: 160 }), table([head, ...rows], { borders: true, header: true }), para('', { after: 0 }))
-  }
+  if (exam.settings.topicTable) out.push(bloomTables(questions, paper, exam.settings.format === 'meb'))
   return out.join('')
 }
 
@@ -276,6 +327,11 @@ export async function buildExamDocx(exam: WrittenExam, part: 'exam' | 'key', gro
 
 export function examFileName(exam: WrittenExam, part: 'exam' | 'key', group: ExamGroup | 'both'): string {
   return `${examFileBase(exam, part, group)}.docx`
+}
+
+/** The zip with every part: "Biyoloji-10-Sinif-Yazili-Tumu.zip". */
+export function examZipName(exam: WrittenExam): string {
+  return `${examFileBase(exam, 'exam', 'both')}-Tumu.zip`
 }
 
 export const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'

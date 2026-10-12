@@ -1,4 +1,5 @@
-import { getRightOrder } from '../matching'
+import { computeRightOrder } from './factory'
+import { rightItems } from './paperText'
 import type { ExamGroup, ExamQuestion, ExamQuestionType, PaperQuestion, WrittenExam } from './types'
 
 export interface ExamSection {
@@ -62,6 +63,14 @@ function permutation(n: number, rng: () => number, accept: (order: number[]) => 
 
 const same = (a: number[], b: number[]) => a.length === b.length && a.every((value, index) => value === b[index])
 
+/** The stored shuffle of a matching question's right column when it fits the column, else a stable one from the question id. */
+function storedRightOrder(question: ExamQuestion): number[] {
+  const size = rightItems(question).length
+  const order = question.rightOrder
+  if (order && order.length === size && new Set(order).size === size && order.every((value) => Number.isInteger(value) && value >= 0 && value < size)) return order
+  return computeRightOrder(question.pairs?.length ?? 0, question.extras?.length ?? 0, question.id)
+}
+
 /** The questions as printed on paper A or B. B keeps every question and its points; inside each run
  * of one type the order differs, multiple choice options and the matching right column are shuffled.
  * Deterministic from the exam id, so the paper, the key, the print view and Word agree. */
@@ -70,7 +79,7 @@ export function buildGroup(exam: WrittenExam, group: ExamGroup): PaperQuestion[]
   if (group === 'A') {
     return questions.map((question, index) => ({
       ...question,
-      ...(question.type === 'matching' && question.pairs ? { rightOrder: getRightOrder({ id: question.id, pairs: question.pairs, rightOrder: question.rightOrder }) } : {}),
+      ...(question.type === 'matching' && question.pairs ? { rightOrder: storedRightOrder(question) } : {}),
       number: index + 1,
       aNumber: index + 1,
     }))
@@ -93,8 +102,8 @@ export function buildGroup(exam: WrittenExam, group: ExamGroup): PaperQuestion[]
       paper.answerIndex = order.indexOf(question.answerIndex ?? 0)
     }
     if (question.type === 'matching' && question.pairs) {
-      const n = question.pairs.length
-      const aOrder = getRightOrder({ id: question.id, pairs: question.pairs, rightOrder: question.rightOrder })
+      const n = rightItems(question).length
+      const aOrder = storedRightOrder(question)
       paper.rightOrder = permutation(n, rng, (candidate) => candidate.every((value, index) => value !== index) && (n < 3 || !same(candidate, aOrder)))
     }
     return paper

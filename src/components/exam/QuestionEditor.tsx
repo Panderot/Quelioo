@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { fitRubric, rubricTotal, withPairs } from '../../lib/exam/edit'
+import { fitDifficulty } from '../../lib/exam/bloom'
+import { BLOOM_CAP } from '../../lib/exam/bloomConfig'
+import { fitRubric, moveItem, rubricTotal, withExtras, withPairs } from '../../lib/exam/edit'
 import { setQuestionPoints } from '../../lib/exam/points'
-import type { ExamDifficulty, ExamQuestion } from '../../lib/exam/types'
+import type { BloomLevel, ExamDifficulty, ExamQuestion } from '../../lib/exam/types'
 import { ArrowDownIcon, ArrowUpIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../icons'
 
 const TYPE_LABEL_KEYS: Record<ExamQuestion['type'], string> = {
@@ -29,6 +31,8 @@ interface QuestionEditorProps {
   canRegenerate: boolean
   onGenerateRubric: () => void
   rubricBusy: boolean
+  /** Language of the exam paper: spell checking of every field follows it, not the language of the app. */
+  lang: string
   /** Messages shown inside this card (a failed regenerate, for instance). */
   notice?: string
   dragging: boolean
@@ -45,13 +49,26 @@ const smallButton =
 
 /** One question as editable fields: stem, options/answer by type, points, grading criteria, answer lines. */
 export default function QuestionEditor(props: QuestionEditorProps) {
-  const { question, number, count, onChange, onMove, onDelete, onRegenerate, regenerating, canRegenerate, onGenerateRubric, rubricBusy, notice } = props
+  const { question, number, count, onChange, onMove, onDelete, onRegenerate, regenerating, canRegenerate, onGenerateRubric, rubricBusy, notice, lang } = props
   const { t } = useTranslation()
   const [showContext, setShowContext] = useState(Boolean(question.context))
   const set = (patch: Partial<ExamQuestion>, coalesce?: string) => onChange({ ...question, ...patch }, coalesce)
   const sum = rubricTotal(question)
   const rubricOff = question.rubric.length > 0 && sum !== question.points
   const label = (key: string) => `${t(key)} — ${number}`
+  // Every editable field is checked against the language of the paper (a Turkish exam is not spell-checked as English).
+  const text = { lang, spellCheck: true }
+  const stemRef = useRef<HTMLTextAreaElement>(null)
+  const insertBlank = () => {
+    const box = stemRef.current
+    const start = box?.selectionStart ?? question.stem.length
+    const end = box?.selectionEnd ?? start
+    set({ stem: `${question.stem.slice(0, start)}___${question.stem.slice(end)}` }, 'stem')
+    requestAnimationFrame(() => {
+      box?.focus()
+      box?.setSelectionRange(start + 3, start + 3)
+    })
+  }
 
   return (
     <article
@@ -88,6 +105,29 @@ export default function QuestionEditor(props: QuestionEditorProps) {
         <h3 className="text-sm font-bold text-ink">
           {t('exam.edit.questionNumber', { number })} <span className="font-semibold text-muted">· {t(TYPE_LABEL_KEYS[question.type])}</span>
         </h3>
+        <select
+          aria-label={label('exam.edit.bloom')}
+          data-purpose="exam-bloom-chip"
+          value={question.bloomLevel ?? ''}
+          onChange={(event) => {
+            const bloomLevel = event.target.value === '' ? undefined : (Number(event.target.value) as BloomLevel)
+            // The difficulty label never contradicts the level (recall is not hard, evaluation is not easy).
+            const next: ExamQuestion = { ...question, difficulty: fitDifficulty(question.type, bloomLevel, question.difficulty) }
+            if (bloomLevel === undefined) delete next.bloomLevel
+            else next.bloomLevel = bloomLevel
+            onChange(next)
+          }}
+          className="h-7 rounded-full border border-warm-border bg-paper px-2.5 text-[11px] font-bold text-navy hover:border-amber"
+        >
+          <option value="">{t('exam.bloom.notSet')}</option>
+          {([1, 2, 3, 4, 5, 6] as const)
+            .filter((level) => level <= BLOOM_CAP[question.type])
+            .map((level) => (
+              <option key={level} value={level}>
+                {t(`exam.bloom.names.${level}`)}
+              </option>
+            ))}
+        </select>
         <div className="ml-auto flex flex-wrap items-center gap-1.5">
           <label className="flex items-center gap-1.5 text-xs font-semibold text-muted">
             {t('exam.edit.points')}
@@ -136,7 +176,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
           <label className="block text-xs font-bold text-ink" htmlFor={`ctx-${question.id}`}>
             {t('exam.edit.context')}
           </label>
-          <textarea id={`ctx-${question.id}`} rows={2} value={question.context ?? ''} onChange={(event) => set({ context: event.target.value || undefined }, 'context')} className={field} />
+          <textarea id={`ctx-${question.id}`} {...text} rows={2} value={question.context ?? ''} onChange={(event) => set({ context: event.target.value || undefined }, 'context')} className={field} />
         </div>
       ) : (
         <button type="button" onClick={() => setShowContext(true)} className="text-xs font-bold text-amber-text hover:underline">
@@ -148,7 +188,12 @@ export default function QuestionEditor(props: QuestionEditorProps) {
         <label className="block text-xs font-bold text-ink" htmlFor={`stem-${question.id}`}>
           {question.type === 'fill-blanks' ? t('exam.edit.stemBlank') : t('exam.edit.stem')}
         </label>
-        <textarea id={`stem-${question.id}`} data-purpose="exam-stem" rows={3} value={question.stem} onChange={(event) => set({ stem: event.target.value }, 'stem')} className={field} />
+        <textarea id={`stem-${question.id}`} ref={stemRef} {...text} data-purpose="exam-stem" rows={3} value={question.stem} onChange={(event) => set({ stem: event.target.value }, 'stem')} className={field} />
+        {question.type === 'fill-blanks' && (
+          <button type="button" data-purpose="exam-insert-blank" onClick={insertBlank} className="text-xs font-bold text-amber-text hover:underline">
+            {t('exam.edit.insertBlank')}
+          </button>
+        )}
       </div>
 
       {question.type === 'mcq' && (
@@ -167,6 +212,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
               <span className="w-5 text-xs font-bold text-muted">{String.fromCharCode(65 + index)}</span>
               <input
                 aria-label={t('exam.edit.optionLabel', { letter: String.fromCharCode(65 + index) })}
+                {...text}
                 value={option}
                 onChange={(event) => {
                   const options = (question.options ?? []).map((existing, at) => (at === index ? event.target.value : existing))
@@ -176,13 +222,43 @@ export default function QuestionEditor(props: QuestionEditorProps) {
               />
               <button
                 type="button"
+                aria-label={t('exam.edit.moveOptionUp', { letter: String.fromCharCode(65 + index) })}
+                disabled={index === 0}
+                onClick={() => {
+                  const options = moveItem(question.options ?? [], index, -1)
+                  const current = question.answerIndex
+                  set({ options, ...(current === undefined ? {} : { answerIndex: current === index ? index - 1 : current === index - 1 ? index : current }) })
+                }}
+                className={smallButton}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                aria-label={t('exam.edit.moveOptionDown', { letter: String.fromCharCode(65 + index) })}
+                disabled={index === (question.options ?? []).length - 1}
+                onClick={() => {
+                  const options = moveItem(question.options ?? [], index, 1)
+                  const current = question.answerIndex
+                  set({ options, ...(current === undefined ? {} : { answerIndex: current === index ? index + 1 : current === index + 1 ? index : current }) })
+                }}
+                className={smallButton}
+              >
+                ↓
+              </button>
+              <button
+                type="button"
                 aria-label={t('exam.edit.removeOption', { letter: String.fromCharCode(65 + index) })}
                 disabled={(question.options ?? []).length <= 2}
                 onClick={() => {
                   const options = (question.options ?? []).filter((_, at) => at !== index)
-                  const current = question.answerIndex ?? 0
-                  const answerIndex = index === current ? 0 : index < current ? current - 1 : current
-                  set({ options, answerIndex, answer: options[answerIndex] ?? '' })
+                  const current = question.answerIndex
+                  // Removing the correct option leaves the correct one unset; removing an earlier option shifts the key.
+                  const answerIndex = current === undefined || index === current ? undefined : index < current ? current - 1 : current
+                  const next: ExamQuestion = { ...question, options, answer: answerIndex === undefined ? '' : (options[answerIndex] ?? '') }
+                  if (answerIndex === undefined) delete next.answerIndex
+                  else next.answerIndex = answerIndex
+                  onChange(next)
                 }}
                 className={smallButton}
               >
@@ -225,6 +301,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
               <span className="w-5 text-xs font-bold text-muted">{index + 1}</span>
               <input
                 aria-label={t('exam.edit.pairLeft', { number: index + 1 })}
+                {...text}
                 value={pair.left}
                 onChange={(event) => onChange(withPairs(question, (question.pairs ?? []).map((existing, at) => (at === index ? { ...existing, left: event.target.value } : existing))), `left-${index}`)}
                 className={field}
@@ -232,6 +309,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
               <span aria-hidden className="text-muted">↔</span>
               <input
                 aria-label={t('exam.edit.pairRight', { number: index + 1 })}
+                {...text}
                 value={pair.right}
                 onChange={(event) => onChange(withPairs(question, (question.pairs ?? []).map((existing, at) => (at === index ? { ...existing, right: event.target.value } : existing))), `right-${index}`)}
                 className={field}
@@ -252,6 +330,26 @@ export default function QuestionEditor(props: QuestionEditorProps) {
               {t('exam.edit.addPair')}
             </button>
           )}
+          <p className="pt-1 text-xs font-bold text-ink">{t('exam.edit.extras')}</p>
+          {(question.extras ?? []).map((extra, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                aria-label={t('exam.edit.extraLabel', { number: index + 1 })}
+                {...text}
+                value={extra}
+                onChange={(event) => onChange(withExtras(question, (question.extras ?? []).map((existing, at) => (at === index ? event.target.value : existing))), `extra-${index}`)}
+                className={field}
+              />
+              <button type="button" aria-label={t('exam.edit.removeExtra', { number: index + 1 })} onClick={() => onChange(withExtras(question, (question.extras ?? []).filter((_, at) => at !== index)))} className={smallButton}>
+                ×
+              </button>
+            </div>
+          ))}
+          {(question.extras ?? []).length < 4 && (
+            <button type="button" data-purpose="exam-add-extra" onClick={() => onChange(withExtras(question, [...(question.extras ?? []), '']))} className="text-xs font-bold text-amber-text hover:underline">
+              {t('exam.edit.addExtra')}
+            </button>
+          )}
         </fieldset>
       )}
 
@@ -260,7 +358,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
           <label className="block text-xs font-bold text-ink" htmlFor={`answer-${question.id}`}>
             {t('exam.edit.expectedAnswer')}
           </label>
-          <textarea id={`answer-${question.id}`} data-purpose="exam-answer" rows={question.type === 'open-ended' ? 3 : 2} value={question.answer} onChange={(event) => set({ answer: event.target.value }, 'answer')} className={field} />
+          <textarea id={`answer-${question.id}`} {...text} data-purpose="exam-answer" rows={question.type === 'open-ended' ? 3 : 2} value={question.answer} onChange={(event) => set({ answer: event.target.value }, 'answer')} className={field} />
         </div>
       )}
 
@@ -271,6 +369,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
           </label>
           <input
             id={`accept-${question.id}`}
+            {...text}
             value={(question.acceptableAnswers ?? []).join('; ')}
             onChange={(event) =>
               set(
@@ -293,7 +392,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
           <label className="block text-xs font-bold text-ink" htmlFor={`topic-${question.id}`}>
             {t('exam.edit.topic')}
           </label>
-          <input id={`topic-${question.id}`} value={question.topic} onChange={(event) => set({ topic: event.target.value }, 'topic')} className={field} />
+          <input id={`topic-${question.id}`} {...text} value={question.topic} onChange={(event) => set({ topic: event.target.value }, 'topic')} className={field} />
         </div>
         <div className="space-y-1">
           <label className="block text-xs font-bold text-ink" htmlFor={`difficulty-${question.id}`}>
@@ -351,6 +450,7 @@ export default function QuestionEditor(props: QuestionEditorProps) {
           <div key={index} className="flex items-center gap-2">
             <input
               aria-label={t('exam.edit.rubricText', { number: index + 1 })}
+              {...text}
               value={item.text}
               onChange={(event) => set({ rubric: question.rubric.map((existing, at) => (at === index ? { ...existing, text: event.target.value } : existing)) }, `rubric-${index}`)}
               className={field}

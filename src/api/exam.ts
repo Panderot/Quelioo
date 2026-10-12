@@ -1,6 +1,6 @@
 import { apiFetch } from '../lib/auth/apiFetch'
 import { EXAM_QUESTION_TYPES } from '../lib/exam/types'
-import type { ExamDifficulty, ExamLevel, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem } from '../lib/exam/types'
+import type { BloomLevel, ExamDifficulty, ExamLevel, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem } from '../lib/exam/types'
 
 export type ExamApiErrorCode =
   | 'too_short'
@@ -48,6 +48,14 @@ interface ExamRequestBase {
   trueFalseAnswer?: boolean
   /** True-false only: the answer of the statement on fact k (one per assigned fact). */
   trueFalseAnswers?: boolean[]
+  /** The course the teacher typed ("Biyoloji"); decides the subject rules. */
+  course?: string
+  /** Everyday settings for the scenarios of this request. */
+  variety?: string[]
+  /** Facts already on the exam (a replacement question): the new question tests another fact. */
+  avoidFacts?: string[]
+  /** Cognitive level and difficulty the question must have (a replacement question). */
+  slots?: { bloom: BloomLevel; difficulty: ExamDifficulty }[]
 }
 
 /** One statement of the source that a question tests. */
@@ -125,6 +133,8 @@ function normaliseQuestion(value: unknown): ExamQuestion | null {
   if (fact) question.fact = fact
   const concept = text(value.concept).trim()
   if (concept) question.concept = concept
+  const bloom = typeof value.bloomLevel === 'number' ? Math.round(value.bloomLevel) : 0
+  if (bloom >= 1 && bloom <= 6) question.bloomLevel = bloom as BloomLevel
   const context = text(value.context).trim()
   if (context) question.context = context
   if (question.type === 'mcq') {
@@ -141,8 +151,11 @@ function normaliseQuestion(value: unknown): ExamQuestion | null {
       : []
     if (pairs.length < 2 || pairs.some((pair) => !pair.left || !pair.right)) return null
     question.pairs = pairs
+    const extras = Array.isArray(value.extras) ? value.extras.filter((extra): extra is string => typeof extra === 'string' && extra.trim().length > 0) : []
+    if (extras.length > 0) question.extras = extras
+    const size = pairs.length + extras.length
     const order = value.rightOrder
-    if (Array.isArray(order) && order.length === pairs.length && order.every((entry) => Number.isInteger(entry) && entry >= 0 && entry < pairs.length)) question.rightOrder = order as number[]
+    if (Array.isArray(order) && order.length === size && order.every((entry) => Number.isInteger(entry) && entry >= 0 && entry < size)) question.rightOrder = order as number[]
   }
   if (Array.isArray(value.acceptableAnswers)) {
     const acceptable = value.acceptableAnswers.filter((entry): entry is string => typeof entry === 'string' && entry.trim().length > 0)
@@ -205,7 +218,7 @@ export async function generateExamRubric(request: ExamRubricRequest, signal?: Ab
 
 export interface ExamVerifyRequest {
   text: string
-  /** Multiple-choice and true-false questions whose keys are checked (at most 12 per request). */
+  /** The questions the judge reads (at most 12 per request): multiple-choice and true-false keys are checked, every question is classified. */
   questions: ExamQuestion[]
   /** Pairs of questions the judge says are about the same fact or not (at most 10 per request). */
   pairs?: { id: string; a: string; b: string }[]
@@ -217,6 +230,17 @@ export interface ExamKeyFix {
   answerIndex?: number
 }
 
+/** The judge's blind reading of one question. */
+export interface ExamReview {
+  id: string
+  /** The answer can be copied from the stem or the scenario. */
+  copy: boolean
+  level: BloomLevel
+  difficulty: ExamDifficulty
+  /** The judge's own result of a calculation. */
+  solved?: string
+}
+
 export interface ExamVerifyResult {
   /** Questions whose key a second, blind reading of the source contradicts. */
   wrong: string[]
@@ -224,18 +248,27 @@ export interface ExamVerifyResult {
   fixes: ExamKeyFix[]
   /** Pair ids the judge says test the same fact. */
   same: string[]
+  reviews: ExamReview[]
 }
 
-/** The request body of the answer-key and same-fact check. */
+const NUMERIC_ANSWER = /^[-−+]?[0-9]/
+
+/** The request body of the judge: keys of true-false / multiple choice, repeats, and a blind reading of every question. */
 export function examVerifyPayload(request: ExamVerifyRequest): Record<string, unknown> {
-  const items = request.questions.map((question) => ({
-    id: question.id,
-    type: question.type,
-    stem: question.stem,
-    ...(question.context ? { context: question.context } : {}),
-    ...(question.options ? { options: question.options, answerIndex: question.answerIndex } : {}),
-    ...(question.answerBool === undefined ? {} : { answerBool: question.answerBool }),
-  }))
+  const items = request.questions.map((question) => {
+    const written = question.type === 'open-ended' || question.type === 'short-answer' || question.type === 'fill-blanks'
+    return {
+      id: question.id,
+      type: question.type,
+      stem: question.stem,
+      ...(question.context ? { context: question.context } : {}),
+      ...(question.options ? { options: question.options, answerIndex: question.answerIndex } : {}),
+      ...(question.answerBool === undefined ? {} : { answerBool: question.answerBool }),
+      ...(written ? { expected: question.answer.slice(0, 400) } : {}),
+      // A calculation: the judge works it out blind and the result is compared with the key.
+      ...((question.type === 'short-answer' || question.type === 'fill-blanks') && NUMERIC_ANSWER.test(question.answer.trim()) ? { solve: true } : {}),
+    }
+  })
   return { mode: 'exam_verify', text: request.text, items, pairs: request.pairs ?? [] }
 }
 
@@ -260,7 +293,16 @@ export function parseVerifyResult(body: Record<string, unknown>): ExamVerifyResu
       })
     }
   }
-  return { wrong: ids(body.wrong), fixes, same: ids(body.same) }
+  const reviews: ExamReview[] = []
+  if (Array.isArray(body.reviews)) {
+    for (const entry of body.reviews) {
+      if (!isRecord(entry) || typeof entry.id !== 'string' || typeof entry.level !== 'number') continue
+      const level = Math.min(6, Math.max(1, Math.round(entry.level))) as BloomLevel
+      const difficulty: ExamDifficulty = entry.difficulty === 'easy' || entry.difficulty === 'hard' ? entry.difficulty : 'medium'
+      reviews.push({ id: entry.id, copy: entry.copy === true, level, difficulty, ...(typeof entry.solved === 'string' && entry.solved ? { solved: entry.solved } : {}) })
+    }
+  }
+  return { wrong: ids(body.wrong), fixes, same: ids(body.same), reviews }
 }
 
 export interface ExamFact {
@@ -277,11 +319,13 @@ export interface ExamPlanRequest {
   topics: string[]
   /** How many distinct facts to look for. */
   count: number
+  /** The teacher's own rows: every fact's topic is copied exactly from `topics`. */
+  strictTopics?: boolean
 }
 
 /** The distinct, testable facts of the source (fewer than asked when the source holds fewer). */
 export async function planExamFacts(request: ExamPlanRequest, signal?: AbortSignal): Promise<ExamFact[]> {
-  const body = await post({ mode: 'exam_plan', text: request.text, level: request.level, outputLanguage: request.outputLanguage, topics: request.topics, count: request.count }, signal)
+  const body = await post({ mode: 'exam_plan', text: request.text, level: request.level, outputLanguage: request.outputLanguage, topics: request.topics, count: request.count, ...(request.strictTopics ? { strictTopics: true } : {}) }, signal)
   const facts = Array.isArray(body.facts)
     ? body.facts.filter(isRecord).map((entry) => ({ fact: text(entry.fact).trim(), topic: text(entry.topic).trim(), ...(text(entry.concept).trim() ? { concept: text(entry.concept).trim() } : {}) })).filter((entry) => entry.fact)
     : []

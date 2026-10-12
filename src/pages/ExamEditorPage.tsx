@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { ExamApiError, generateExamRubric, regenerateExamQuestion } from '../api/exam'
 import { LoadError, SkeletonList } from '../components/DataStates'
 import ExamHeaderFields from '../components/exam/ExamHeaderFields'
+import ExportCheckDialog from '../components/exam/ExportCheckDialog'
 import PaperPreview from '../components/exam/PaperPreview'
 import QuestionEditor from '../components/exam/QuestionEditor'
 import { ExamIcon, PlusIcon, RotateLeftIcon, SpinnerIcon } from '../components/icons'
@@ -15,11 +16,13 @@ import { getAuthState } from '../lib/auth/authStore'
 import { chooseVersion, clearDraft, readDraft, writeDraft } from '../lib/exam/drafts'
 import type { ExamDraft } from '../lib/exam/drafts'
 import { appendQuestion, examTotal, moveQuestion, moveQuestionTo, removeQuestion, updateQuestion, withStartingPoints } from '../lib/exam/edit'
-import { blankQuestion } from '../lib/exam/factory'
-import { distributePoints, scaleRubric, setQuestionPoints } from '../lib/exam/points'
+import { blankQuestion, settingsWithHeader } from '../lib/exam/factory'
+import { examPaperLang } from '../lib/exam/paperLabels'
+import { exportIssues } from '../lib/exam/problems'
+import { rescalePoints, scaleRubric, setQuestionPoints } from '../lib/exam/points'
 import { correctAnswerText, repeatsExistingQuestion } from '../lib/exam/quality'
 import { getExam, saveExam } from '../lib/exam/store'
-import { EXAM_QUESTION_TYPES, EXAM_TOTAL_POINTS } from '../lib/exam/types'
+import { EXAM_MAX_MINUTES, EXAM_MIN_MINUTES, EXAM_QUESTION_TYPES, EXAM_TOTAL_POINTS } from '../lib/exam/types'
 import type { ExamQuestion, ExamQuestionType, WrittenExam } from '../lib/exam/types'
 import { getPublicSiteUrl } from '../lib/publicSite'
 
@@ -121,6 +124,8 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
   const [overId, setOverId] = useState<string | null>(null)
   const [exportError, setExportError] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [pendingExport, setPendingExport] = useState<{ run: () => void | Promise<void> } | null>(null)
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   const examRef = useRef(exam)
   const baseRef = useRef(initial.updatedAt)
@@ -248,7 +253,10 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
   }
 
   const total = examTotal(exam)
+  const paperLang = examPaperLang(exam)
   const totalOk = total === EXAM_TOTAL_POINTS
+  const minutes = exam.settings.durationMinutes
+  const durationValid = minutes === null || (Number.isInteger(minutes) && minutes >= EXAM_MIN_MINUTES && minutes <= EXAM_MAX_MINUTES)
   const canRegenerate = exam.sourceText.trim().length > 0
 
   const patchQuestion = (question: ExamQuestion, coalesce?: string) => commit(updateQuestion(examRef.current, question.id, () => question), coalesce ? `${question.id}:${coalesce}` : undefined)
@@ -274,15 +282,19 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
           optionsCount: settings.optionsCount,
           topics: settings.topics,
           avoidStems: [...others.map((other) => other.stem), ...rejected].slice(-40),
-          avoidAnswers: others.map(correctAnswerText).filter(Boolean).slice(-40),
+          avoidAnswers: [...others, question].map(correctAnswerText).filter(Boolean).slice(-40),
+          avoidFacts: [...others, question].map((other) => other.fact).filter((fact): fact is string => Boolean(fact)).slice(-40),
+          course: settings.header.course,
+          slots: [{ bloom: question.bloomLevel ?? 2, difficulty: question.difficulty }],
           ...(question.type === 'true-false' && question.answerBool !== undefined ? { trueFalseAnswer: question.answerBool } : {}),
           replaceStem: question.stem,
         })
-        if (repeatsExistingQuestion(candidate, others)) rejected.push(candidate.stem)
+        // The replaced question counts as an existing one too: the new question is a different fact or form, never the same one reworded.
+        if (repeatsExistingQuestion(candidate, [...others, question])) rejected.push(candidate.stem)
         else fresh = candidate
       }
       if (!fresh) throw new ExamApiError('quality')
-      commit(updateQuestion(examRef.current, question.id, (current) => setQuestionPoints({ ...fresh, id: current.id }, current.points)))
+      commit(updateQuestion(examRef.current, question.id, (current) => setQuestionPoints({ ...fresh, id: current.id, ...(current.bloomLevel !== undefined ? { bloomLevel: current.bloomLevel } : {}) }, current.points)))
     } catch (error) {
       setNotices((current) => ({ ...current, [question.id]: t(`exam.errors.${error instanceof ExamApiError ? error.code : 'upstream'}`, { defaultValue: t('exam.errors.upstream') }) }))
     } finally {
@@ -315,6 +327,12 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
     commit(moveQuestionTo(examRef.current, moving, to))
   }
 
+  /** Runs an export; first tells the teacher about a points total other than 100, an empty course or class and unfinished questions. */
+  const guarded = (run: () => void | Promise<void>) => {
+    if (exportIssues(examRef.current) === null) void run()
+    else setPendingExport({ run })
+  }
+
   const openPrint = async (part: 'exam' | 'key', group: 'A' | 'B' | 'both') => {
     // The print view reads the saved copy: save first.
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
@@ -334,7 +352,7 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
       const current = examRef.current
       if (kind === 'zip') {
         const bytes = await docx.buildExamZip(current)
-        docx.downloadBlob(bytes, docx.examFileName(current, 'exam', 'A').replace(/(-A)?\.docx$/, '-tumu.zip'), 'application/zip')
+        docx.downloadBlob(bytes, docx.examZipName(current), 'application/zip')
       } else {
         const part = kind === 'key' ? 'key' : 'exam'
         const group = kind === 'groupB' ? 'B' : kind === 'key' && current.settings.groups ? 'both' : 'A'
@@ -438,7 +456,7 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
                 {t('exam.edit.total', { total, max: EXAM_TOTAL_POINTS })}
               </p>
               {!totalOk && <span role="alert" className="text-xs font-semibold text-error">{t('exam.edit.totalWarning', { total })}</span>}
-              <button type="button" data-purpose="exam-redistribute" onClick={() => commit({ ...examRef.current, questions: distributePoints(examRef.current.questions, EXAM_TOTAL_POINTS) })} disabled={exam.questions.length === 0} className={buttonClass}>
+              <button type="button" data-purpose="exam-redistribute" onClick={() => commit({ ...examRef.current, questions: rescalePoints(examRef.current.questions, EXAM_TOTAL_POINTS) })} disabled={exam.questions.length === 0} className={buttonClass}>
                 {t('exam.edit.redistribute')}
               </button>
               <button type="button" data-purpose="exam-undo" onClick={undo} disabled={undoDepth === 0} className={`${buttonClass} inline-flex items-center gap-1.5`}>
@@ -473,35 +491,35 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
             <div data-purpose="exam-output" className="space-y-2 border-t border-warm-border pt-4">
               <p className="text-xs font-bold text-ink">{t('exam.edit.output')}</p>
               <div className="flex flex-wrap gap-2">
-                <button type="button" data-purpose="exam-print" onClick={() => void openPrint('exam', 'A')} disabled={exam.questions.length === 0} className={buttonClass}>
+                <button type="button" data-purpose="exam-print" onClick={() => guarded(() => openPrint('exam', 'A'))} disabled={exam.questions.length === 0} className={buttonClass}>
                   {t('exam.edit.printExam')}
                 </button>
                 {exam.settings.answerKey && (
-                  <button type="button" data-purpose="exam-print-key" onClick={() => void openPrint('key', exam.settings.groups ? 'both' : 'A')} disabled={exam.questions.length === 0} className={buttonClass}>
+                  <button type="button" data-purpose="exam-print-key" onClick={() => guarded(() => openPrint('key', exam.settings.groups ? 'both' : 'A'))} disabled={exam.questions.length === 0} className={buttonClass}>
                     {t('exam.edit.printKey')}
                   </button>
                 )}
                 {exam.settings.groups && (
-                  <button type="button" data-purpose="exam-print-b" onClick={() => void openPrint('exam', 'B')} disabled={exam.questions.length === 0} className={buttonClass}>
+                  <button type="button" data-purpose="exam-print-b" onClick={() => guarded(() => openPrint('exam', 'B'))} disabled={exam.questions.length === 0} className={buttonClass}>
                     {t('exam.edit.printGroupB')}
                   </button>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" data-purpose="exam-docx" onClick={() => void download('exam')} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
+                <button type="button" data-purpose="exam-docx" onClick={() => guarded(() => download('exam'))} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
                   {t('exam.edit.wordExam')}
                 </button>
                 {exam.settings.answerKey && (
-                  <button type="button" data-purpose="exam-docx-key" onClick={() => void download('key')} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
+                  <button type="button" data-purpose="exam-docx-key" onClick={() => guarded(() => download('key'))} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
                     {t('exam.edit.wordKey')}
                   </button>
                 )}
                 {exam.settings.groups && (
-                  <button type="button" data-purpose="exam-docx-b" onClick={() => void download('groupB')} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
+                  <button type="button" data-purpose="exam-docx-b" onClick={() => guarded(() => download('groupB'))} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
                     {t('exam.edit.wordGroupB')}
                   </button>
                 )}
-                <button type="button" data-purpose="exam-docx-zip" onClick={() => void download('zip')} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
+                <button type="button" data-purpose="exam-docx-zip" onClick={() => guarded(() => download('zip'))} disabled={exporting || exam.questions.length === 0} className={buttonClass}>
                   {exporting ? <SpinnerIcon className="inline h-4 w-4" /> : t('exam.edit.wordAll')}
                 </button>
               </div>
@@ -512,10 +530,18 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
               )}
             </div>
 
-            <details className="border-t border-warm-border pt-4" data-purpose="exam-details">
+            {(!exam.settings.header.course.trim() || !exam.settings.header.grade.trim()) && (
+              <p data-purpose="exam-header-hint" role="status" className="flex flex-wrap items-center gap-2 rounded-lg border border-amber/60 bg-amber/10 px-3 py-2 text-xs font-semibold text-navy">
+                {t('exam.edit.headerHint')}
+                <button type="button" data-purpose="exam-header-hint-open" onClick={() => setDetailsOpen(true)} className="font-bold text-amber-text hover:underline">
+                  {t('exam.edit.headerHintOpen')}
+                </button>
+              </p>
+            )}
+            <details className="border-t border-warm-border pt-4" data-purpose="exam-details" open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)}>
               <summary className="cursor-pointer text-sm font-bold text-ink">{t('exam.edit.details')}</summary>
               <div className="mt-4 space-y-4">
-                <ExamHeaderFields header={exam.settings.header} onChange={(header) => commit({ ...examRef.current, settings: { ...examRef.current.settings, header } }, 'header')} idPrefix="editor-header" />
+                <ExamHeaderFields header={exam.settings.header} onChange={(header) => commit({ ...examRef.current, settings: settingsWithHeader(examRef.current.settings, header) }, 'header')} idPrefix="editor-header" />
                 <div className="flex flex-wrap items-end gap-4">
                   <div className="space-y-1.5">
                     <label htmlFor="editor-duration" className="block text-xs font-bold text-ink">
@@ -524,11 +550,13 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
                     <input
                       id="editor-duration"
                       type="number"
-                      min={5}
-                      max={300}
-                      value={exam.settings.durationMinutes}
-                      onChange={(event) => commit({ ...examRef.current, settings: { ...examRef.current.settings, durationMinutes: Math.min(300, Math.max(5, Number.parseInt(event.target.value, 10) || 40)) } }, 'duration')}
-                      className="h-11 w-28 rounded-[10px] border border-warm-border bg-card px-3.5 text-sm text-ink"
+                      min={EXAM_MIN_MINUTES}
+                      max={EXAM_MAX_MINUTES}
+                      step={1}
+                      value={exam.settings.durationMinutes ?? ''}
+                      aria-invalid={!durationValid}
+                      onChange={(event) => commit({ ...examRef.current, settings: { ...examRef.current.settings, durationMinutes: event.target.value === '' ? null : Number(event.target.value) } }, 'duration')}
+                      className={`h-11 w-28 rounded-[10px] border bg-card px-3.5 text-sm text-ink ${durationValid ? 'border-warm-border' : 'border-error'}`}
                     />
                   </div>
                   {(
@@ -565,6 +593,7 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
               onGenerateRubric={() => void generateRubric(question)}
               rubricBusy={rubricBusy === question.id}
               notice={notices[question.id] || undefined}
+              lang={paperLang}
               dragging={dragId === question.id}
               dragOver={overId === question.id && dragId !== question.id}
               onDragStart={(event) => {
@@ -595,6 +624,19 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
           <PaperPreview exam={exam} />
         </div>
       </div>
+
+      {pendingExport && (
+        <ExportCheckDialog
+          issues={exportIssues(exam)}
+          onRedistribute={() => commit({ ...examRef.current, questions: rescalePoints(examRef.current.questions, EXAM_TOTAL_POINTS) })}
+          onContinue={() => {
+            const { run } = pendingExport
+            setPendingExport(null)
+            void run()
+          }}
+          onCancel={() => setPendingExport(null)}
+        />
+      )}
 
       {deleting && (
         <ConfirmDialog

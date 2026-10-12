@@ -1,13 +1,47 @@
 import { EXAM_QUESTION_TYPES, EXAM_TOTAL_POINTS } from './types.js'
 import type { ExamQuestion, ExamQuestionType } from './types.js'
+import { answerLeaks, fillBlankProblems, optionsUneven, joinsTwoClaims, matchingProblems, mcqExamIssues, rubricProblems, shortAnswerProblems, trueFalseAbsoluteIds } from './contentRules.js'
+import { normalize, overlap, shareOfUnion, stems, wordShare } from './text.js'
 
 /** One whole-exam check, used by the server (api/_lib/exam.ts) and by the generator that stitches sections together.
  * Every rule returns the questions that break it; the later question of a pair is the one reported. */
 
-export type ExamQualityRule = 'count' | 'duplicate' | 'same-answer' | 'true-false-balance' | 'reference' | 'scenario' | 'blank-leak' | 'term-repeat' | 'concept-cap' | 'key-check' | 'points'
+export type ExamQualityRule =
+  | 'count'
+  | 'duplicate'
+  | 'same-answer'
+  | 'true-false-balance'
+  | 'reference'
+  | 'scenario'
+  | 'blank-leak'
+  | 'term-repeat'
+  | 'concept-cap'
+  | 'key-check'
+  | 'points'
+  /** A1: the scenario or stem gives the answer away. */
+  | 'answer-leak'
+  /** A3: a short-answer question that is not short. */
+  | 'short-answer'
+  /** A7: fill-in and matching shape. */
+  | 'fill-blank'
+  | 'matching'
+  /** A5: a rubric that says nothing a grader can check. */
+  | 'rubric'
+  /** A7: multiple choice, true-false and bloom polish that rewrite once but never leave an exam short. */
+  | 'tf-claims'
+  | 'tf-absolute'
+  | 'mcq-options'
+  | 'mcq-longest'
+  | 'mcq-stems'
+  | 'mcq-negative'
+  | 'mcq-balance'
+  | 'bloom'
 
-/** Rules that trigger a rewrite but never stop an exam from being saved (a source that really is about one thing). */
-export const SOFT_RULES: ExamQualityRule[] = ['term-repeat']
+/** Rules that trigger a rewrite but never stop an exam from being saved: a source that really is about one thing, and polish rules that a question may still break after the rewrite rounds. */
+export const SOFT_RULES: ExamQualityRule[] = ['term-repeat', 'rubric', 'tf-claims', 'tf-absolute', 'mcq-options', 'mcq-longest', 'mcq-stems', 'mcq-negative', 'mcq-balance', 'bloom']
+
+/** Soft rules that are never worth a rewrite (the plan gives every question its own fact, so a repeated word is a topic). */
+export const IGNORED_RULES: ExamQualityRule[] = ['points', 'term-repeat']
 
 export interface ExamQualityIssue {
   rule: ExamQualityRule
@@ -28,33 +62,8 @@ const CONTEXT_OVERLAP = 0.85
 const MATCHING_OVERLAP = 0.5
 const MIN_ANSWER_CHARS = 4
 
-function normalize(text: string): string {
-  return text.toLocaleLowerCase('tr-TR').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim()
-}
-
-/** Turkish and English words lose their suffixes in the first five letters, so "kurultay", "kurultayı" and "kurultaya" match. */
-function stems(text: string, minLength = 3): Set<string> {
-  const result = new Set<string>()
-  for (const word of normalize(text).split(' ')) if (word.length >= minLength) result.add(word.slice(0, 5))
-  return result
-}
-
-function overlap(a: Set<string>, b: Set<string>): number {
-  if (a.size === 0 || b.size === 0) return 0
-  let shared = 0
-  for (const word of a) if (b.has(word)) shared += 1
-  return shared / Math.min(a.size, b.size)
-}
-
-/** Share of the words two normalised sentences have in common (shared / all different words). */
-function wordShare(a: string, b: string): number {
-  return shareOfUnion(new Set(a.split(' ')), new Set(b.split(' ')))
-}
-
-function shareOfUnion(a: Set<string>, b: Set<string>): number {
-  let shared = 0
-  for (const word of a) if (b.has(word)) shared += 1
-  return shared / (a.size + b.size - shared || 1)
+function optionsUnevenFor(question: ExamQuestion): boolean {
+  return optionsUneven(question)
 }
 
 function stemSignature(question: ExamQuestion): Set<string> {
@@ -204,6 +213,7 @@ export function trueFalseRange(total: number): [number, number] {
 // "this model / according to the table / the text above": only works when that thing is printed in the question itself.
 const TR_THING = 'model|şekil|tablo|grafik|diyagram|harita|resim|görsel|şema|metin|parça|paragraf|pasaj'
 const REFERENCE_PATTERNS: RegExp[] = [
+  /(haritada|grafikte|tabloda|diyagramda|şemada|resimde|görselde)(?![\p{L}])/iu,
   new RegExp(`(?:bu|şu|yukarıdaki|aşağıdaki|verilen)\\s+((?:${TR_THING})[\\p{L}]*)`, 'iu'),
   /(şekle|tabloya|grafiğe|diyagrama|haritaya|resme|görsele|şemaya|metne|parçaya|paragrafa|pasaja)\s+göre/iu,
   /(?:according to|based on)\s+the\s+(text|passage|paragraph|table|figure|graph|chart|diagram|model|map|picture|image)\b/iu,
@@ -319,6 +329,8 @@ export interface ExamQualityOptions {
   judged?: Map<string, boolean>
   /** Count an uncertain pair nobody judged as a repeat (default true). The server's per-reply filter turns this off. */
   uncertainIsDuplicate?: boolean
+  /** The judge's blind reading of each question (`id` → can the answer be copied from the stem?). */
+  copyable?: Map<string, boolean>
 }
 
 /** Whole-exam check. `counts` are the requested questions per type; pass null to skip the count rule (editing, single questions). */
@@ -370,6 +382,23 @@ export function checkExamQuality(questions: ExamQuestion[], counts: Record<ExamQ
     if (question.context && sentencesOf(question.stem).some((sentence) => sentences[index].some((other) => sentence === other || wordShare(sentence, other) >= RETOLD_SHARE))) flag('scenario', question)
   }
 
+  for (const question of questions) {
+    if (answerLeaks(question) || options.copyable?.get(question.id) === true) flag('answer-leak', question)
+    if (question.type === 'short-answer' && shortAnswerProblems(question).some((problem) => problem !== 'rubric-items' && problem !== 'accepted-many')) flag('short-answer', question)
+    if (question.type === 'fill-blanks' && fillBlankProblems(question).length > 0) flag('fill-blank', question)
+    if (question.type === 'matching' && matchingProblems(question).length > 0) flag('matching', question)
+    if (question.type === 'open-ended' && rubricProblems(question).length > 0) flag('rubric', question)
+    if (question.type === 'true-false' && joinsTwoClaims(question.stem)) flag('tf-claims', question)
+    if (question.type === 'mcq' && optionsUnevenFor(question)) flag('mcq-options', question)
+  }
+  const byId = new Map(questions.map((question) => [question.id, question]))
+  for (const id of trueFalseAbsoluteIds(questions)) flag('tf-absolute', byId.get(id)!)
+  const mcqIssues = mcqExamIssues(questions)
+  for (const id of mcqIssues.longest) flag('mcq-longest', byId.get(id)!)
+  for (const id of mcqIssues.stems) flag('mcq-stems', byId.get(id)!)
+  for (const id of mcqIssues.negative) flag('mcq-negative', byId.get(id)!)
+  for (const id of mcqIssues.letters) flag('mcq-balance', byId.get(id)!)
+
   const topics = options.topics ?? []
   const limit = termLimit(questions.length)
   for (const use of overusedTerms(questions, topics)) {
@@ -386,7 +415,9 @@ export function checkExamQuality(questions: ExamQuestion[], counts: Record<ExamQ
     const key = conceptKey(question.concept)
     if (!key) continue
     const accepted = perConcept.get(key) ?? []
-    const clash = accepted.length >= MAX_QUESTIONS_PER_CONCEPT || accepted.some((other) => other.type === question.type && other.difficulty === question.difficulty)
+    // Two questions on one concept must differ in type or in cognitive level (difficulty when no level is set).
+    const sameKind = (other: ExamQuestion) => other.type === question.type && (question.bloomLevel !== undefined && other.bloomLevel !== undefined ? other.bloomLevel === question.bloomLevel : other.difficulty === question.difficulty)
+    const clash = accepted.length >= MAX_QUESTIONS_PER_CONCEPT || accepted.some(sameKind)
     if (clash) flag('concept-cap', question)
     else accepted.push(question)
     perConcept.set(key, accepted)

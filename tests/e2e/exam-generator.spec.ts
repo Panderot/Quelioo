@@ -31,15 +31,21 @@ function question(type: ExamQuestionType, fact: ExamFact, extra: Partial<ExamQue
     id: `g${serial}`,
     type,
     stem: `${fact.fact} hakkında ${type} sorusu ${serial}?`,
-    answer: `Cevap ${fact.fact}`,
-    rubric: [{ text: 'Doğru cevap', points: 1 }],
+    answer: type === 'short-answer' ? `terim${serial}` : `Cevap ${fact.fact}`,
+    rubric: type === 'open-ended' ? [{ text: 'Birinci ölçüt açıkça yazılır', points: 1 }, { text: 'İkinci bağımsız ölçüt belirtilir', points: 1 }] : [{ text: 'Doğru cevap', points: 1 }],
     points: 0,
     topic: fact.topic,
     difficulty: 'medium',
     lines: 0,
     fact: fact.fact,
   }
-  if (type === 'mcq') return { ...base, options: [`Doğru ${fact.fact}`, 'Yanlış bir', 'Yanlış iki', 'Yanlış üç'], answerIndex: 0, answer: `Doğru ${fact.fact}`, ...extra }
+  if (type === 'mcq') {
+    // The correct option is not the longest and sits in a different place from question to question.
+    const answerIndex = serial % 4
+    const options = [`Yanlış ${fact.fact}`, `Eksik ${fact.fact}`, `Başka ${fact.fact}`, `Hatalı ${fact.fact}`]
+    options[answerIndex] = `Doğru ${fact.fact}`
+    return { ...base, options, answerIndex, answer: options[answerIndex], ...extra }
+  }
   if (type === 'true-false') return { ...base, answerBool: true, answer: 'true', ...extra }
   return { ...base, lines: 2, ...extra }
 }
@@ -64,7 +70,7 @@ function fake(options: { facts?: ExamFact[]; shape?: (q: ExamQuestion, request: 
     },
     callVerify: async (request) => {
       state.verifies.push(request)
-      return options.verify ? options.verify(request) : { wrong: [], fixes: [], same: [] }
+      return options.verify ? options.verify(request) : { wrong: [], fixes: [], same: [], reviews: [] }
     },
   }
   return state
@@ -138,7 +144,7 @@ test.describe('same fact asked three times', () => {
       facts,
       // The three Mete Han questions are worded alike; the judge says they are the same fact.
       shape: (made) => (made.fact?.includes('Mete Han') || made.fact?.includes('Hun ordusunda') ? { ...made, stem: 'Mete Han onlu sistem ordu birlik düzen nedir?', answer: `Onlu sistem ${made.id}` } : made),
-      verify: (request) => ({ wrong: [], fixes: [], same: (request.pairs ?? []).map((pair) => pair.id) }),
+      verify: (request) => ({ wrong: [], fixes: [], same: (request.pairs ?? []).map((pair) => pair.id), reviews: [] }),
     })
     const questions = await run(server)
     expect(server.verifies.some((request) => (request.pairs ?? []).length > 0)).toBe(true)
@@ -161,10 +167,10 @@ test.describe('answer keys', () => {
     const server = fake({
       verify: (request) => {
         const target = request.questions.find((entry) => entry.type === 'true-false' && flagged === null)
-        if (!target) return { wrong: [], fixes: [], same: [] }
+        if (!target) return { wrong: [], fixes: [], same: [], reviews: [] }
         flagged = target.id
         corrected = !target.answerBool
-        return { wrong: [target.id], fixes: [{ id: target.id, answerBool: !target.answerBool }], same: [] }
+        return { wrong: [target.id], fixes: [{ id: target.id, answerBool: !target.answerBool }], same: [], reviews: [] }
       },
     })
     const questions = await run(server)
@@ -292,7 +298,8 @@ test.describe('concepts', () => {
 
   test('questions are given facts of at most two per concept, in plan order', async () => {
     // Ten applications of one skill come first, then thirty different facts: only two of the ten may be used.
-    const facts = [...withConcepts([10]), ...fakeFacts(30).map((entry, index) => ({ ...entry, fact: `${entry.fact} ${index}`, concept: `Başka beceri ${index}` }))]
+    const all = fakeFacts(40)
+    const facts = [...all.slice(0, 10).map((entry) => ({ ...entry, concept: 'Beceri numarası 0' })), ...all.slice(10).map((entry, index) => ({ ...entry, concept: `Başka beceri ${index}` }))]
     const server = fake({ facts })
     const questions = await run(server)
     expect(questions).toHaveLength(20)

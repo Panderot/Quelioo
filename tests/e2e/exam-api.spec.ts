@@ -79,7 +79,7 @@ test('exam_section returns sanitised questions and drops malformed or duplicate 
   const { status, body } = await handleGenerateRequest(base)
   expect(status).toBe(200)
   expect(calls).toHaveLength(1)
-  const questions = (body as { questions: Array<Record<string, unknown>> }).questions
+  const questions = (body as unknown as { questions: Array<Record<string, unknown>> }).questions
   expect(questions).toHaveLength(2)
   expect(questions[0]).toMatchObject({ type: 'mcq', points: 0, difficulty: 'easy', context: 'Bir öğrenci tarih okuyor.' })
   // The options are mixed (the model puts the right one first too often); the key still points at the same option.
@@ -107,6 +107,7 @@ test('every type is shaped for the exam (rubrics, lines, pairs, blanks)', async 
               { left: 'A3', right: 'B3' },
               { left: 'A4', right: 'B4' },
             ],
+            extras: ['B5', 'B6'],
             rubric: [],
             topic: 't',
             difficulty: 'medium',
@@ -125,7 +126,7 @@ test('every type is shaped for the exam (rubrics, lines, pairs, blanks)', async 
     if (call.text.includes('open-ended question')) {
       return {
         questions: [
-          { type: 'open-ended', stem: 'Kuruluşu açıklayınız.', answer: 'Model', rubric: [{ text: 'Tarih', weight: 2 }, { text: 'Lider', weight: 99 }], topic: 't', difficulty: 'hard', lines: 40 },
+          { type: 'open-ended', stem: 'Kuruluşu açıklayınız.', answer: 'Model', rubric: [{ text: 'Tarihi doğru verir', weight: 2 }, { text: 'Lideri doğru belirtir', weight: 99 }], topic: 't', difficulty: 'hard', lines: 40 },
         ],
       }
     }
@@ -136,7 +137,9 @@ test('every type is shaped for the exam (rubrics, lines, pairs, blanks)', async 
 
   const matching = (await run('matching')).questions[0]
   expect(matching.context).toBeUndefined()
+  expect(matching.rightOrder).toHaveLength(6)
   expect(matching.rightOrder.every((value: number, index: number) => value !== index)).toBe(true)
+  expect(matching.extras).toEqual(['B5', 'B6'])
   expect(matching.rubric).toHaveLength(4)
 
   const fill = (await run('fill-blanks', 2)).questions
@@ -146,8 +149,8 @@ test('every type is shaped for the exam (rubrics, lines, pairs, blanks)', async 
   const open = (await run('open-ended')).questions[0]
   expect(open.lines).toBe(8)
   expect(open.rubric).toEqual([
-    { text: 'Tarih', points: 2 },
-    { text: 'Lider', points: 10 },
+    { text: 'Tarihi doğru verir', points: 2 },
+    { text: 'Lideri doğru belirtir', points: 10 },
   ])
 
   const tf = (await run('true-false')).questions[0]
@@ -202,7 +205,7 @@ test('validation: too short, bad type, bad count, bad level', async () => {
   expect((await handleGenerateRequest({ ...base, type: 'essay' })).status).toBe(400)
   expect((await handleGenerateRequest({ ...base, count: 9 })).status).toBe(400)
   expect((await handleGenerateRequest({ ...base, count: 0 })).status).toBe(400)
-  expect((await handleGenerateRequest({ ...base, level: '3' })).status).toBe(400)
+  expect((await handleGenerateRequest({ ...base, level: '13' })).status).toBe(400)
   expect(calls).toHaveLength(0)
 })
 

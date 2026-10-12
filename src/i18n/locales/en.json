@@ -2068,7 +2068,6 @@
       "topicsHint": "Write one topic or outcome per line; the questions will cover them.",
       "headerTitle": "Exam paper details",
       "duration": "Duration (minutes)",
-      "levelLabel": "Level",
       "levelGrade": "Grade {{grade}}",
       "level": {
         "university": "University",
@@ -2099,7 +2098,7 @@
       "contextBased": "Context-based questions (a short real-life scenario before the question)",
       "answerKey": "Answer key and grading criteria",
       "groups": "Groups A and B",
-      "topicTable": "Topic table",
+      "topicTable": "Topic and Bloom tables",
       "footer": "Print “Prepared with Quelio” in the footer",
       "generate": "Create the exam",
       "generating": "Creating the exam…",
@@ -2110,7 +2109,41 @@
         "plan": "Finding the different facts in the text…",
         "check": "Checking the whole exam and rewriting questions where needed…"
       },
-      "estimate": "{{count}} questions take about {{minutes}} minutes."
+      "estimate": "{{count}} questions take about {{minutes}} minutes.",
+      "previousExams": "You have already made {{count}} exam(s) from this text; some topics may repeat.",
+      "bloomTitle": "Cognitive level and exam format",
+      "bloomLabel": "Cognitive level (Bloom)",
+      "bloomInfoLabel": "About Bloom's taxonomy",
+      "bloomInfo": "Revised Bloom's taxonomy. Under their old names: Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation.",
+      "bloom": {
+        "balanced": "All levels (balanced)",
+        "1": "1 · Remember",
+        "2": "2 · Understand",
+        "3": "3 · Apply",
+        "4": "4 · Analyze",
+        "5": "5 · Evaluate",
+        "6": "6 · Create",
+        "higher": "Higher-order thinking (Analyze, Evaluate, Create)"
+      },
+      "bloomPreview": "Mix: {{parts}}",
+      "bloomCapOpen": "{{type}} questions can be at most at the {{cap}} level. Add open-ended questions for {{wanted}}.",
+      "bloomCapMcq": "{{type}} questions can be at most at the {{cap}} level. Add multiple-choice or open-ended questions for {{wanted}}.",
+      "formatLabel": "Exam format",
+      "format": {
+        "free": "Free",
+        "meb": "MEB common written exam"
+      },
+      "formatMebHint": "Only open-ended and short-answer questions are asked; the answer key and the graded scoring key are always prepared.",
+      "distributionToggle": "I will set the topic and question distribution myself",
+      "distributionHint": "Write the learning outcome and the number of questions from your department's scenario. The total must equal the number of questions above.",
+      "distributionPlaceholder": "Learning outcome",
+      "distributionRowText": "Row {{number}}, outcome",
+      "distributionRowCount": "Row {{number}}, number of questions",
+      "distributionRemove": "Remove row {{number}}",
+      "distributionAdd": "+ Add row",
+      "distributionSum": "Total {{sum}} / {{total}}",
+      "durationHint": "A whole number from {{min}} to {{max}}; leave it empty to print no time on the paper.",
+      "wordLimit": "Use 30 to 5,000 words per exam."
     },
     "header": {
       "school": "School name",
@@ -2127,7 +2160,10 @@
       "section": "Section",
       "sectionPlaceholder": "e.g. A",
       "teacher": "Teacher name (optional)",
-      "teacherPlaceholder": "Full name"
+      "teacherPlaceholder": "Full name",
+      "gradeChoose": "Choose",
+      "gradeOther": "Grade (other)",
+      "gradeOtherDefault": "Prep"
     },
     "edit": {
       "backToList": "My written exams",
@@ -2217,7 +2253,17 @@
       "rubricPoints": "Points of criterion {{number}}",
       "removeRubric": "Remove criterion {{number}}",
       "addRubric": "+ Add criterion",
-      "rubricFit": "Match criteria to the question's points"
+      "rubricFit": "Match criteria to the question's points",
+      "bloom": "Cognitive level",
+      "moveOptionUp": "Move option {{letter}} up",
+      "moveOptionDown": "Move option {{letter}} down",
+      "insertBlank": "Insert blank (___)",
+      "extras": "Extra right-column items (matching nothing)",
+      "extraLabel": "Extra item {{number}}",
+      "removeExtra": "Remove extra item {{number}}",
+      "addExtra": "+ Add extra item",
+      "headerHint": "Enter the course and the class",
+      "headerHintOpen": "Open the details"
     },
     "errors": {
       "retry": "Try again",
@@ -2240,7 +2286,8 @@
       "notFound": "This exam was not found.",
       "print": "Print / Save as PDF",
       "close": "Close",
-      "pageNumbersNote": "For page numbers, print from Chrome or Edge."
+      "pageNumbersNote": "For page numbers, print from Chrome or Edge.",
+      "pdfHint": "In the window that opens, choose Destination: “Save as PDF”."
     },
     "fromQuiz": {
       "action": "Turn into written exam",
@@ -2258,6 +2305,47 @@
       "continue": "Continue with {{ready}} questions",
       "retry": "Retry the missing questions",
       "addText": "Add text"
+    },
+    "bloom": {
+      "names": {
+        "1": "Remember",
+        "2": "Understand",
+        "3": "Apply",
+        "4": "Analyze",
+        "5": "Evaluate",
+        "6": "Create"
+      },
+      "notSet": "Not set"
+    },
+    "distributionShort": {
+      "row": "The text does not hold enough content for “{{row}}” ({{found}} / {{wanted}} questions).",
+      "continue": "Continue anyway",
+      "change": "Change the distribution"
+    },
+    "export": {
+      "title": "Before you export",
+      "ready": "Everything is ready.",
+      "points": "The points add up to {{total}}.",
+      "header": "The course or the class is empty: it will be missing from the heading of the paper.",
+      "incomplete": "Unfinished questions:",
+      "problemLine": "Question {{number}}: {{reasons}}",
+      "redistribute": "Scale to 100",
+      "anyway": "Export anyway",
+      "go": "Continue",
+      "cancel": "Cancel"
+    },
+    "problems": {
+      "stem": "the question text is empty",
+      "options": "at least two options are needed",
+      "optionEmpty": "an option is empty",
+      "correctOption": "no correct option is selected",
+      "truth": "true / false is not selected",
+      "blank": "no blank is marked",
+      "answer": "no answer is written",
+      "pairs": "at least two pairs are needed",
+      "pairEmpty": "a matching item is empty",
+      "extraEmpty": "an extra item is empty",
+      "rubricEmpty": "a grading criterion is empty"
     }
   }
 }

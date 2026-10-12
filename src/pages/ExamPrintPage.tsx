@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import ExamPaper from '../components/exam/Paper'
 import type { PaperPart } from '../components/exam/Paper'
 import { lacksPrintPageNumbers } from '../lib/exam/browser'
-import { asciiSlug } from '../lib/exam/paperText'
+import { examFileBase } from '../lib/exam/paperText'
 import { getExam } from '../lib/exam/store'
 import type { ExamGroup, WrittenExam } from '../lib/exam/types'
 
@@ -48,11 +48,8 @@ export default function ExamPrintPage() {
   useEffect(() => {
     if (!exam) return undefined
     const previous = document.title
-    const { header, groups } = exam.settings
-    const bits = ['Yazili-Sinav', asciiSlug(header.course), asciiSlug(header.grade)].filter(Boolean)
-    if (part === 'key') bits.push('Cevap-Anahtari')
-    if (groups && group !== 'both') bits.push(group)
-    document.title = bits.join('-')
+    // The saved PDF takes its name from the page title: course, class, group and "answer key" included.
+    document.title = examFileBase(exam, part, group)
     return () => {
       document.title = previous
     }
@@ -84,6 +81,9 @@ export default function ExamPrintPage() {
           {t('exam.print.close')}
         </button>
       </div>
+      <p data-purpose="exam-print-pdf-hint" className="mx-auto mt-2 max-w-[210mm] rounded bg-white px-3 py-1.5 text-center text-xs text-neutral-900 print:hidden">
+        {t('exam.print.pdfHint')}
+      </p>
       {showPageNumbersNote && (
         <p data-purpose="exam-print-note" className="mx-auto mt-2 max-w-[210mm] rounded bg-amber-100 px-3 py-1.5 text-center text-xs text-neutral-900 print:hidden">
           {t('exam.print.pageNumbersNote')}

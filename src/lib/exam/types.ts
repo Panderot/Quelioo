@@ -24,6 +24,10 @@ export interface ExamPair {
   right: string
 }
 
+/** Revised Bloom taxonomy (Anderson & Krathwohl, 2001): 1 Hatırlama … 6 Yaratma. */
+export type BloomLevel = 1 | 2 | 3 | 4 | 5 | 6
+export const BLOOM_LEVELS: BloomLevel[] = [1, 2, 3, 4, 5, 6]
+
 /** Question text may hold LaTeX between $...$ (rendered with KaTeX on screen, as Word equations in .docx). */
 export interface ExamQuestion {
   id: string
@@ -39,6 +43,9 @@ export interface ExamQuestion {
   answerBool?: boolean
   /** matching: pair i is left[i] ↔ right[i]; rightOrder[position] = index of the pair shown at that position of the right column */
   pairs?: ExamPair[]
+  /** matching: extra right-column items that match no left item (distractors). */
+  extras?: string[]
+  /** matching: the right column is the pairs' rights followed by the extras; rightOrder[position] = index into that list. */
   rightOrder?: number[]
   /** Expected answer (fill-blanks, short-answer, open-ended). For the other types a readable summary. */
   answer: string
@@ -54,6 +61,8 @@ export interface ExamQuestion {
   /** Topic or learning outcome the question tests. */
   topic: string
   difficulty: ExamDifficulty
+  /** Cognitive level (revised Bloom); undefined when the teacher has not set it ("Belirtilmedi"). Never printed on the student paper. */
+  bloomLevel?: BloomLevel
   /** Ruled answer lines (open-ended, short-answer). */
   lines: number
 }
@@ -71,13 +80,27 @@ export interface ExamHeader {
   teacher: string
 }
 
-export type ExamLevel = '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12' | 'university' | 'other'
+export type ExamLevel = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12' | 'university' | 'other'
 
-export const EXAM_LEVELS: ExamLevel[] = ['5', '6', '7', '8', '9', '10', '11', '12', 'university', 'other']
+export const EXAM_LEVELS: ExamLevel[] = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'university', 'other']
+
+/** Bloom setting of the setup screen: a mix that follows the grade, one level, or the three upper levels. */
+export type BloomSetting = 'balanced' | '1' | '2' | '3' | '4' | '5' | '6' | 'higher'
+export const BLOOM_SETTINGS: BloomSetting[] = ['balanced', '1', '2', '3', '4', '5', '6', 'higher']
+
+/** "free": every question type; "meb": MEB ortak yazılı (only open-ended and short-answer, key and rubric forced on). */
+export type ExamFormat = 'free' | 'meb'
+
+/** One row of the teacher's own topic distribution (kazanım and its question count). */
+export interface ExamDistributionRow {
+  text: string
+  count: number
+}
 
 export interface ExamSettings {
   header: ExamHeader
-  durationMinutes: number
+  /** Exam time in whole minutes (5 to 240); null hides the line on the paper. */
+  durationMinutes: number | null
   level: ExamLevel
   /** Number of questions per type (0 hides the type). */
   counts: Record<ExamQuestionType, number>
@@ -92,8 +115,27 @@ export interface ExamSettings {
   topics: string[]
   answerKey: boolean
   groups: boolean
+  /** "Konu ve Bloom tabloları": the topic distribution and specification tables in the answer key. */
   topicTable: boolean
   footer: boolean
+  bloom: BloomSetting
+  format: ExamFormat
+  /** The teacher's own topic distribution (empty = the plan decides). */
+  distribution: ExamDistributionRow[]
+  /** What earlier exams from the same source used (never the text itself); lets the next exam avoid repeats. */
+  sourceMemory?: SourceMemory
+}
+
+/** Fingerprint of the source an exam was made from, with what it already tested. */
+export interface SourceMemory {
+  /** Hash of the normalised source text. */
+  hash: string
+  /** MinHash signature of the text's word shingles (similar sources have similar signatures). */
+  signature: number[]
+  /** The facts the exam's questions tested. */
+  facts: string[]
+  /** The question forms used: "type:bloom". */
+  forms: string[]
 }
 
 export interface WrittenExam {
@@ -134,6 +176,10 @@ export function defaultExamHeader(now = new Date()): ExamHeader {
   return { school: '', academicYear: currentAcademicYear(now), term: 1, examNo: 1, course: '', grade: '9', section: '', teacher: '' }
 }
 
+/** Is the exam time a usable number of minutes (5 to 240)? Empty (NaN) is allowed and hides the line. */
+export const EXAM_MIN_MINUTES = 5
+export const EXAM_MAX_MINUTES = 240
+
 export function defaultExamSettings(now = new Date()): ExamSettings {
   return {
     header: defaultExamHeader(now),
@@ -149,6 +195,9 @@ export function defaultExamSettings(now = new Date()): ExamSettings {
     groups: false,
     topicTable: true,
     footer: true,
+    bloom: 'balanced',
+    format: 'free',
+    distribution: [],
   }
 }
 
@@ -158,4 +207,12 @@ export function totalQuestionCount(counts: Record<ExamQuestionType, number>): nu
 
 export function totalPoints(questions: Pick<ExamQuestion, 'points'>[]): number {
   return questions.reduce((sum, question) => sum + question.points, 0)
+}
+
+/** A source needs about this many words for each question asked for; a shorter one cannot carry them without asking the same thing twice. */
+export const EXAM_WORDS_PER_QUESTION = 20
+
+/** How many different questions a source of `words` words can carry. */
+export function maxQuestionsForWords(words: number): number {
+  return Math.max(1, Math.floor(words / EXAM_WORDS_PER_QUESTION))
 }

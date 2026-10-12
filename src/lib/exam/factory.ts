@@ -1,6 +1,11 @@
 import { computeDerangement } from '../matching'
-import { EXAM_LEVELS, EXAM_QUESTION_TYPES, defaultExamSettings } from './types'
-import type { ExamDifficulty, ExamHeader, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem, ExamSettings, WrittenExam } from './types'
+import { BLOOM_SETTINGS, EXAM_LEVELS, EXAM_QUESTION_TYPES, defaultExamSettings } from './types'
+import type { BloomLevel, BloomSetting, ExamDifficulty, ExamDistributionRow, ExamFormat, ExamHeader, ExamLevel, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem, ExamSettings, SourceMemory, WrittenExam } from './types'
+
+/** A shuffle of a matching question's right column (the pairs' rights, then the extras): no item sits at its own index, so a pair is never opposite its own match. */
+export function computeRightOrder(pairCount: number, extraCount: number, seed: string): number[] {
+  return computeDerangement(pairCount + extraCount, seed)
+}
 
 /** A new id for an exam: a UUID, which is what the `written_exams` table stores. */
 export function newExamId(): string {
@@ -21,18 +26,22 @@ const DEFAULT_LINES: Record<ExamQuestionType, number> = { 'open-ended': 5, 'shor
 /** An empty question of a type, ready for the teacher to fill in. */
 export function blankQuestion(type: ExamQuestionType, id: string = newQuestionId()): ExamQuestion {
   const base: ExamQuestion = { id, type, stem: '', answer: '', rubric: [], points: 0, topic: '', difficulty: 'medium', lines: DEFAULT_LINES[type] }
-  if (type === 'mcq') return { ...base, options: ['', '', '', ''], answerIndex: 0 }
-  if (type === 'true-false') return { ...base, answerBool: true }
+  // The correct option and the true / false answer start unset: the teacher has to choose, and the export check says so while they are not.
+  if (type === 'mcq') return { ...base, options: ['', '', '', ''] }
+  if (type === 'true-false') return base
   if (type === 'matching') {
     const pairs: ExamPair[] = Array.from({ length: 4 }, () => ({ left: '', right: '' }))
-    return { ...base, pairs, rightOrder: computeDerangement(pairs.length, id) }
+    const extras = ['', '']
+    return { ...base, pairs, extras, rightOrder: computeRightOrder(pairs.length, extras.length, id) }
   }
   return base
 }
 
+/** The default name of an exam: only the parts that are filled in, joined by single spaces. */
 export function defaultTitle(header: Pick<ExamHeader, 'course' | 'grade' | 'term' | 'examNo'>): string {
-  const parts = [header.course.trim(), header.grade.trim() ? `${header.grade.trim()}. sınıf` : '', `${header.term}. dönem ${header.examNo}. yazılı`]
-  return parts.filter(Boolean).join(' · ')
+  const grade = header.grade.trim().replace(/[.]+$/, '')
+  const parts = [header.course.trim(), grade ? (/^\d+$/.test(grade) ? `${grade}. sınıf` : grade) : '', `${header.term}. dönem ${header.examNo}. yazılı`]
+  return parts.filter(Boolean).join(' · ').replace(/\s+/g, ' ')
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +88,8 @@ export function sanitizeQuestion(raw: unknown): ExamQuestion | null {
     difficulty: DIFFICULTIES.has(str(raw.difficulty)) ? (raw.difficulty as ExamDifficulty) : 'medium',
     lines: int(raw.lines, DEFAULT_LINES[type], 0, 20),
   }
+  const bloom = typeof raw.bloomLevel === 'number' ? Math.round(raw.bloomLevel) : 0
+  if (bloom >= 1 && bloom <= 6) question.bloomLevel = bloom as BloomLevel
   if (typeof raw.context === 'string' && raw.context.trim()) question.context = raw.context
   if (typeof raw.fact === 'string' && raw.fact.trim()) question.fact = raw.fact.trim().slice(0, 400)
   if (typeof raw.concept === 'string' && raw.concept.trim()) question.concept = raw.concept.trim().slice(0, 120)
@@ -88,9 +99,9 @@ export function sanitizeQuestion(raw: unknown): ExamQuestion | null {
     const options = strings(raw.options, 5)
     if (options.length < 2) return null
     question.options = options
-    question.answerIndex = int(raw.answerIndex, 0, 0, options.length - 1)
+    if (typeof raw.answerIndex === 'number') question.answerIndex = int(raw.answerIndex, 0, 0, options.length - 1)
   } else if (type === 'true-false') {
-    question.answerBool = raw.answerBool === true
+    if (typeof raw.answerBool === 'boolean') question.answerBool = raw.answerBool
   } else if (type === 'matching') {
     const pairs = Array.isArray(raw.pairs)
       ? raw.pairs
@@ -100,9 +111,12 @@ export function sanitizeQuestion(raw: unknown): ExamQuestion | null {
       : []
     if (pairs.length < 2) return null
     question.pairs = pairs
+    const extras = strings(raw.extras, 4)
+    if (extras.length > 0) question.extras = extras
+    const size = pairs.length + extras.length
     const order = Array.isArray(raw.rightOrder) ? raw.rightOrder : []
-    const valid = order.length === pairs.length && new Set(order).size === pairs.length && order.every((v) => Number.isInteger(v) && v >= 0 && v < pairs.length)
-    question.rightOrder = valid ? (order as number[]) : computeDerangement(pairs.length, id)
+    const valid = order.length === size && new Set(order).size === size && order.every((v) => Number.isInteger(v) && v >= 0 && v < size)
+    question.rightOrder = valid ? (order as number[]) : extras.length > 0 ? computeRightOrder(pairs.length, extras.length, id) : computeDerangement(pairs.length, id)
   }
   return question
 }
@@ -121,6 +135,12 @@ function sanitizeHeader(raw: unknown, base: ExamHeader): ExamHeader {
   }
 }
 
+/** The settings with a new header: the level (AI depth and Bloom mix) follows the grade the teacher picked. */
+export function settingsWithHeader(settings: ExamSettings, header: ExamHeader): ExamSettings {
+  const level = levelFromGrade(header.grade) ?? (header.grade.trim() ? 'other' : settings.level)
+  return { ...settings, header, level }
+}
+
 export function sanitizeHeaderDefaults(raw: unknown): ExamHeader {
   return sanitizeHeader(raw, defaultExamSettings().header)
 }
@@ -134,10 +154,22 @@ function sanitizeSettings(raw: unknown): ExamSettings {
   const mix = isRecord(source.difficultyMix) ? source.difficultyMix : {}
   const difficultyMix = { easy: int(mix.easy, 30, 0, 100), medium: int(mix.medium, 50, 0, 100), hard: int(mix.hard, 20, 0, 100) }
   const flag = (key: 'contextBased' | 'answerKey' | 'groups' | 'topicTable' | 'footer') => (typeof source[key] === 'boolean' ? (source[key] as boolean) : base[key])
+  const header = sanitizeHeader(source.header, base.header)
+  const storedLevel = EXAM_LEVELS.includes(source.level as never) ? (source.level as ExamLevel) : null
+  // Older exams hold a grade in the header and a level beside it: the grade (when it is a school grade) is the one field, the level follows it.
+  const level = levelFromGrade(header.grade) ?? storedLevel ?? base.level
+  const rawBloom = typeof source.bloom === 'string' && BLOOM_SETTINGS.includes(source.bloom as BloomSetting) ? (source.bloom as BloomSetting) : base.bloom
+  const format: ExamFormat = source.format === 'meb' ? 'meb' : 'free'
+  const distribution: ExamDistributionRow[] = Array.isArray(source.distribution)
+    ? source.distribution
+        .filter(isRecord)
+        .map((row) => ({ text: str(row.text).slice(0, 300), count: int(row.count, 0, 0, 40) }))
+        .slice(0, 30)
+    : []
   return {
-    header: sanitizeHeader(source.header, base.header),
-    durationMinutes: int(source.durationMinutes, base.durationMinutes, 5, 600),
-    level: EXAM_LEVELS.includes(source.level as never) ? (source.level as ExamSettings['level']) : base.level,
+    header: storedLevel && !header.grade.trim() && /^\d+$/.test(storedLevel) ? { ...header, grade: storedLevel } : header,
+    durationMinutes: source.durationMinutes === null ? null : int(source.durationMinutes, base.durationMinutes ?? 40, 5, 240),
+    level,
     counts,
     optionsCount: source.optionsCount === 5 ? 5 : 4,
     difficultyMix,
@@ -148,7 +180,25 @@ function sanitizeSettings(raw: unknown): ExamSettings {
     groups: flag('groups'),
     topicTable: flag('topicTable'),
     footer: flag('footer'),
+    bloom: rawBloom,
+    format,
+    distribution,
+    ...(sanitizeMemory(source.sourceMemory) ? { sourceMemory: sanitizeMemory(source.sourceMemory) as SourceMemory } : {}),
   }
+}
+
+/** The school grade a header's grade text names ("9", "9.", "9. sınıf"), as an exam level; null for anything else. */
+export function levelFromGrade(grade: string): ExamLevel | null {
+  const digits = /^\s*(\d{1,2})\s*\.?\s*(?:sınıf\w*)?\s*$/iu.exec(grade)?.[1]
+  if (digits && EXAM_LEVELS.includes(digits as ExamLevel)) return digits as ExamLevel
+  if (/üniversite|university|համալսարան/iu.test(grade)) return 'university'
+  return null
+}
+
+export function sanitizeMemory(raw: unknown): SourceMemory | null {
+  if (!isRecord(raw) || typeof raw.hash !== 'string' || !raw.hash) return null
+  const signature = Array.isArray(raw.signature) ? raw.signature.filter((value): value is number => typeof value === 'number' && Number.isFinite(value)).slice(0, 64) : []
+  return { hash: raw.hash.slice(0, 80), signature, facts: strings(raw.facts, 80).map((fact) => fact.slice(0, 300)), forms: strings(raw.forms, 80).map((form) => form.slice(0, 40)) }
 }
 
 /** A stored exam (jsonb row or localStorage) as a valid WrittenExam, or null when it is not one. */

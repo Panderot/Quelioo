@@ -1,3 +1,4 @@
+import { largestRemainder } from './bloom'
 import { EXAM_TOTAL_POINTS } from './types'
 import type { ExamDifficulty, ExamQuestion, ExamQuestionType, ExamRubricItem } from './types'
 
@@ -44,8 +45,11 @@ const TYPE_WEIGHT: Record<ExamQuestionType, number> = {
 
 const DIFFICULTY_WEIGHT: Record<ExamDifficulty, number> = { easy: 0.8, medium: 1, hard: 1.3 }
 
-export function questionWeight(question: Pick<ExamQuestion, 'type' | 'difficulty'>): number {
-  return TYPE_WEIGHT[question.type] * DIFFICULTY_WEIGHT[question.difficulty]
+/** A recall answer is worth less than a reasoning answer (A5: points fit the content). */
+const LEVEL_WEIGHT: Record<number, number> = { 1: 0.75, 2: 0.9, 3: 1, 4: 1.15, 5: 1.3, 6: 1.4 }
+
+export function questionWeight(question: Pick<ExamQuestion, 'type' | 'difficulty'> & { bloomLevel?: number }): number {
+  return TYPE_WEIGHT[question.type] * DIFFICULTY_WEIGHT[question.difficulty] * (question.bloomLevel ? (LEVEL_WEIGHT[question.bloomLevel] ?? 1) : 1)
 }
 
 /** Sets a question's points and rescales its rubric to match. */
@@ -57,6 +61,27 @@ export function setQuestionPoints(question: ExamQuestion, points: number): ExamQ
 /** Points by type and difficulty, whole numbers adding up to exactly `total` (at least 1 per question). */
 export function distributePoints(questions: ExamQuestion[], total = EXAM_TOTAL_POINTS): ExamQuestion[] {
   const shares = apportion(questions.map(questionWeight), total)
+  return questions.map((question, index) => setQuestionPoints(question, shares[index]))
+}
+
+/** The teacher's points scaled to exactly `total`: the same ratios between questions (largest remainder), whole numbers, a question that had points keeps at least 1, every rubric rescaled to its question's new points. */
+export function rescalePoints(questions: ExamQuestion[], total = EXAM_TOTAL_POINTS): ExamQuestion[] {
+  if (questions.length === 0) return questions
+  if (questions.every((question) => !(question.points > 0))) return distributePoints(questions, total)
+  const shares = largestRemainder(
+    questions.map((question) => Math.max(0, question.points)),
+    total,
+  )
+  // A question that had points never drops to none: the biggest question gives up what it takes.
+  for (const [index, question] of questions.entries()) {
+    if (question.points > 0 && shares[index] === 0) {
+      const biggest = shares.indexOf(Math.max(...shares))
+      if (shares[biggest] > 1) {
+        shares[biggest] -= 1
+        shares[index] = 1
+      }
+    }
+  }
   return questions.map((question, index) => setQuestionPoints(question, shares[index]))
 }
 

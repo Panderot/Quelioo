@@ -273,6 +273,10 @@ test.describe('server reply filter', () => {
   const request: ExamGenerationRequest = {
     text: 'kaynak',
     type: 'short-answer',
+    course: '',
+    slots: [],
+    variety: [],
+    avoidFacts: [],
     difficulty: { easy: 0, medium: 4, hard: 0 },
     level: '9',
     outputLanguage: 'tr',

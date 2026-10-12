@@ -1,7 +1,7 @@
 import { unzipSync, strFromU8 } from 'fflate'
 
 import { test, expect } from './fixtures'
-import { EXAM_SOURCE, fakeFacts, mockExamApi, seedExams, storedExams } from './examHelpers'
+import { EXAM_SOURCE, EXAM_SOURCE_LONG, EXAM_SOURCE_SHORT, fakeFacts, mockExamApi, seedExams, storedExams } from './examHelpers'
 import { sampleExam } from '../fixtures/exam'
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
 import en from '../../src/i18n/locales/en.json' with { type: 'json' }
@@ -25,10 +25,10 @@ async function dragOnto(page: import('@playwright/test').Page, handle: import('@
   await page.mouse.up()
 }
 
-async function fillSource(page: import('@playwright/test').Page) {
+async function fillSource(page: import('@playwright/test').Page, text = EXAM_SOURCE) {
   const box = page.locator('#quiz-content-input')
   await box.click()
-  await box.fill(EXAM_SOURCE)
+  await box.fill(text)
 }
 
 async function createViaForm(page: import('@playwright/test').Page, setupId = 'form1') {
@@ -292,14 +292,14 @@ test('Word download: the file has the exam text, points and Turkish letters', as
   await seedExams(page, [sampleExam()])
   await page.goto('/exams/7b1f6a52-3c1e-4c52-9a53-0d3b2f2a9c01?lng=en')
   const [download] = await Promise.all([page.waitForEvent('download'), page.locator('[data-purpose="exam-docx"]').click()])
-  expect(download.suggestedFilename()).toMatch(/^yazili-10-sinif-biyoloji-A\.docx$/)
+  expect(download.suggestedFilename()).toBe('Biyoloji-10-Sinif-Yazili-A-Grubu.docx')
   const path = await download.path()
   const { readFileSync } = await import('node:fs')
   const files = unzipSync(new Uint8Array(readFileSync(path)))
   const xml = strFromU8(files['word/document.xml'])
   expect(xml).toContain('(10 puan)')
   expect(xml).toContain('ğüşıöçİ')
-  expect(xml).toContain('Atatürk Anadolu Lisesi')
+  expect(xml).toContain('ATATÜRK ANADOLU LİSESİ')
   expect(xml).toMatch(/w:cantSplit|w:keepLines|w:keepNext/)
   expect(xml).toContain('<m:oMath>')
 
@@ -476,7 +476,7 @@ test('when not one question passes there is nothing to keep: the error stays, wi
     const payload = route.request().postDataJSON() as { mode: string; type: string; count: number; facts?: { fact: string }[] }
     const reply = (body: unknown) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
     if (payload.mode === 'exam_plan') return reply({ facts: fakeFacts(payload.count) })
-    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [] })
+    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [], reviews: [] })
     const { fakeQuestion } = await import('./examHelpers')
     return reply({ questions: Array.from({ length: payload.count }, (_, index) => ({ ...fakeQuestion('mcq', `m${index}-${Math.random()}`), fact: payload.facts?.[index]?.fact, stem: 'Bu modele göre hangi şık doğrudur?' })) })
   })
@@ -652,7 +652,7 @@ test('a source that holds fewer distinct facts than questions warns first; conti
       plans += 1
       return reply({ facts: fakeFacts(8) })
     }
-    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [] })
+    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [], reviews: [] })
     sections.push(payload.count)
     const { fakeQuestion } = await import('./examHelpers')
     return reply({
@@ -721,7 +721,7 @@ async function mockForty(page: import('@playwright/test').Page, options: FortyOp
       plans += 1
       return reply({ facts: fakeFacts(payload.count) })
     }
-    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [] })
+    if (payload.mode === 'exam_verify') return reply({ wrong: [], fixes: [], same: [], reviews: [] })
     const rewrite = payload.avoidAnswers !== undefined
     if (rewrite && options.outage?.value) return reply({ error: 'upstream' }, 502)
     sections.push({ type: payload.type, count: payload.count, facts: (payload.facts ?? []).map((entry) => entry.fact), rewrite })
@@ -742,7 +742,7 @@ async function mockForty(page: import('@playwright/test').Page, options: FortyOp
 async function startForty(page: import('@playwright/test').Page, setupId: string) {
   await page.goto(`/exams/new?d=${setupId}&lng=en`)
   for (const type of ['open-ended', 'short-answer', 'true-false', 'mcq']) await page.locator(`#exam-count-${type}`).fill('10')
-  await fillSource(page)
+  await fillSource(page, EXAM_SOURCE_LONG)
 }
 
 test('an early warning after the plan: Add text, Continue and Cancel; the text stays and nothing was written yet', async ({ page }) => {
@@ -766,6 +766,19 @@ test('an early warning after the plan: Add text, Continue and Cancel; the text s
   await expect(page.locator('#quiz-content-input')).toHaveValue(EXAM_SOURCE)
   await expect(page.locator('#exam-count-mcq')).toHaveValue('5')
   expect(await storedExams(page)).toEqual([])
+})
+
+test('a short source warns before any AI call: 136 words carry at most 6 of 20 questions', async ({ page }) => {
+  await page.goto('/exams/new?d=ws1&lng=en')
+  await fillSource(page, `${EXAM_SOURCE_SHORT} ${EXAM_SOURCE_SHORT}`)
+  const api = await mockExamApi(page)
+  await page.locator('[data-purpose="exam-generate"]').click()
+  await expect(page.locator('[data-purpose="exam-short-source"]')).toContainText('at most 6 different questions')
+  expect(api.calls()).toHaveLength(0)
+  for (const purpose of ['exam-short-continue', 'exam-short-add-text', 'exam-short-dismiss']) await expect(page.locator(`[data-purpose="${purpose}"]`)).toBeVisible()
+  await page.locator('[data-purpose="exam-short-dismiss"]').click()
+  await expect(page.locator('[data-purpose="exam-short-source"]')).toBeHidden()
+  expect(api.calls()).toHaveLength(0)
 })
 
 test('the settings screen estimates the time of a large exam', async ({ page }) => {
@@ -836,7 +849,7 @@ test('"Add text" on the partial screen goes back to the source with the text and
   await page.locator('[data-purpose="exam-partial-add-text"]').click()
   await expect(page.locator('[data-purpose="exam-partial"]')).toBeHidden()
   await expect(page.locator('#quiz-content-input')).toBeFocused()
-  await expect(page.locator('#quiz-content-input')).toHaveValue(EXAM_SOURCE)
+  await expect(page.locator('#quiz-content-input')).toHaveValue(EXAM_SOURCE_LONG)
   await expect(page.locator('#exam-count-mcq')).toHaveValue('10')
   expect(await storedExams(page)).toEqual([])
 })

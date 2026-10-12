@@ -2,7 +2,8 @@ import { getAuthState } from '../auth/authStore'
 import type { Json } from '../database.types'
 import { isFakeBackend, supabase } from '../supabase'
 import { clearDraft } from './drafts'
-import { newExamId, sanitizeExam, sanitizeHeaderDefaults } from './factory'
+import { newExamId, sanitizeExam, sanitizeHeaderDefaults, sanitizeMemory } from './factory'
+import type { StoredMemory } from './sourceMemory'
 import type { ExamHeader, WrittenExam } from './types'
 
 /** The account's written exams. Saves are conditional on the `updated_at` the editor loaded, so a save
@@ -75,6 +76,22 @@ export async function listExams(): Promise<ExamListItem[] | null> {
   return data.map((row) => {
     const header = sanitizeHeaderDefaults(row.header)
     return { id: row.id, title: row.title, course: header.course, grade: header.grade, createdAt: row.created_at, updatedAt: row.updated_at, questionCount: row.question_count }
+  })
+}
+
+/** What the teacher's recent exams remember about their sources (hash, signature, facts, forms), newest first. No question is downloaded. */
+export async function listSourceMemories(limit = 60): Promise<StoredMemory[]> {
+  if (isFakeBackend) {
+    return readFake()
+      .flatMap((exam) => (exam.settings.sourceMemory ? [{ id: exam.id, createdAt: exam.createdAt, memory: exam.settings.sourceMemory }] : []))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, limit)
+  }
+  const { data, error } = await supabase.from('written_exams').select('id,created_at,memory:settings->sourceMemory').order('created_at', { ascending: false }).limit(limit)
+  if (error || !data) return []
+  return data.flatMap((row) => {
+    const memory = sanitizeMemory(row.memory)
+    return memory ? [{ id: row.id, createdAt: row.created_at, memory }] : []
   })
 }
 

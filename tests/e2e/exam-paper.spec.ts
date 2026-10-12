@@ -54,15 +54,16 @@ test.describe('Word output', () => {
     const text = plain(document)
     for (const expected of [
       '2026-2027 EĞİTİM ÖĞRETİM YILI',
-      'Atatürk Anadolu Lisesi',
-      '10 SINIFI BİYOLOJİ DERSİ 1. DÖNEM 1. YAZILI SINAVI',
+      'ATATÜRK ANADOLU LİSESİ',
+      '10/B SINIFI BİYOLOJİ DERSİ 1. DÖNEM 1. YAZILI SINAVI',
       'Ad Soyad:',
       'A GRUBU',
       '(10 puan)',
       '(5 puan)',
       '(3 puan)',
       '(2 puan)',
-      'Süre 40 dakikadır',
+      'Süre: 40 dakika',
+      'Her sorunun puanı yanında yazılıdır.',
       'Fotosentezin ışığa bağımlı',
       'Çekirdek',
       'Başarılar dilerim.',
@@ -99,27 +100,27 @@ test.describe('Word output', () => {
     expect(paperB).toContain('B GRUBU')
     const key = docxFiles(await buildExamDocx(exam, 'key', 'both'))['word/document.xml']
     const text = plain(key)
-    expect(text).toContain('CEVAP ANAHTARI – A GRUBU')
-    expect(text).toContain('CEVAP ANAHTARI – B GRUBU')
+    // The key opens with the header of the exam (school, year, class, course, exam number, group), then "CEVAP ANAHTARI".
+    for (const expected of ['A GRUBU', 'B GRUBU', 'ATATÜRK ANADOLU LİSESİ', '10/B SINIFI BİYOLOJİ DERSİ 1. DÖNEM 1. YAZILI SINAVI', 'CEVAP ANAHTARI']) expect(text, expected).toContain(expected)
+    expect((text.match(/CEVAP ANAHTARI/g) ?? []).length).toBe(2)
     expect(text).toMatch(/B \d+\. soru = A \d+\. soru/)
     expect(text).toContain('Beklenen cevap')
     expect(text).toContain('Tilakoit zarını belirtir')
-    for (const column of ['Soru no', 'Konu / kazanım', 'Zorluk', 'Puan']) expect(text).toContain(column)
-    expect(text).toContain('Kolay')
+    for (const expected of ['Konu-soru dağılım tablosu', 'Belirtke tablosu', 'Konu / kazanım', 'Soru numaraları', 'Soru sayısı', 'Hatırlama', 'Değerlendirme', 'Yaratma']) expect(text, expected).toContain(expected)
     const breakAt = key.indexOf('<w:br w:type="page"/>')
-    expect(breakAt).toBeGreaterThan(key.indexOf('CEVAP ANAHTARI – A GRUBU'))
-    expect(breakAt).toBeLessThan(key.indexOf('CEVAP ANAHTARI – B GRUBU'))
+    expect(breakAt).toBeGreaterThan(plain(key).indexOf('A GRUBU') > -1 ? key.indexOf('A GRUBU') : 0)
+    expect(breakAt).toBeLessThan(key.lastIndexOf('B GRUBU'))
   })
 
   test('file names and the zip', async () => {
-    expect(examFileName(exam, 'exam', 'A')).toBe('yazili-10-sinif-biyoloji-A.docx')
-    expect(examFileName(exam, 'key', 'B')).toBe('yazili-10-sinif-biyoloji-cevap-anahtari-B.docx')
+    expect(examFileName(exam, 'exam', 'A')).toBe('Biyoloji-10-Sinif-Yazili-A-Grubu.docx')
+    expect(examFileName(exam, 'key', 'B')).toBe('Biyoloji-10-Sinif-Yazili-B-Grubu-Cevap-Anahtari.docx')
     const names = Object.keys(unzipSync(await buildExamZip(exam))).sort()
     expect(names).toEqual([
-      'yazili-10-sinif-biyoloji-A.docx',
-      'yazili-10-sinif-biyoloji-B.docx',
-      'yazili-10-sinif-biyoloji-cevap-anahtari-A.docx',
-      'yazili-10-sinif-biyoloji-cevap-anahtari-B.docx',
+      'Biyoloji-10-Sinif-Yazili-A-Grubu-Cevap-Anahtari.docx',
+      'Biyoloji-10-Sinif-Yazili-A-Grubu.docx',
+      'Biyoloji-10-Sinif-Yazili-B-Grubu-Cevap-Anahtari.docx',
+      'Biyoloji-10-Sinif-Yazili-B-Grubu.docx',
     ])
   })
 })
@@ -153,8 +154,8 @@ test.describe('Print view to PDF', () => {
     expect(pages.length).toBeGreaterThanOrEqual(3)
     for (const expected of [
       '2026-2027 EĞİTİM ÖĞRETİM YILI',
-      'Atatürk Anadolu Lisesi',
-      '10 SINIFI BİYOLOJİ DERSİ 1. DÖNEM 1. YAZILI SINAVI',
+      'ATATÜRK ANADOLU LİSESİ',
+      '10/B SINIFI BİYOLOJİ DERSİ 1. DÖNEM 1. YAZILI SINAVI',
       'Ad Soyad:',
       'A GRUBU',
       'ğüşıöçİ',
@@ -186,11 +187,9 @@ test.describe('Print view to PDF', () => {
   test('answer key for both groups', async ({ page }) => {
     const pages = await printToPdf(page, '?part=key&group=both')
     const all = pages.join(' ')
-    expect(all).toContain('CEVAP ANAHTARI – A GRUBU')
-    expect(all).toContain('CEVAP ANAHTARI – B GRUBU')
+    for (const expected of ['CEVAP ANAHTARI', 'A GRUBU', 'B GRUBU', 'ATATÜRK ANADOLU LİSESİ', '10/B SINIFI BİYOLOJİ DERSİ']) expect(all, expected).toContain(expected)
     expect(all).toMatch(/B \d+\. soru = A \d+\. soru/)
-    expect(all).toContain('Soru no')
-    expect(all).toContain('Konu / kazanım')
+    for (const expected of ['Konu-soru dağılım tablosu', 'Belirtke tablosu', 'Konu / kazanım', 'Soru numaraları', 'Örnek cevap', 'Beklenen cevap']) expect(all, expected).toContain(expected)
     expect(all).toContain('Tilakoit zarını belirtir')
     pages.forEach((text, index) => expect(text).toContain(`Sayfa ${index + 1} / ${pages.length}`))
   })
@@ -220,16 +219,16 @@ test.describe('Paper labels follow the exam output language', () => {
   test('Word paper and key in English carry no Turkish labels', async () => {
     const en = inLanguage('en')
     const paper = plain(docxFiles(await buildExamDocx(en, 'exam', 'B'))['word/document.xml'])
-    for (const label of ['Name:', 'Class:', 'No:', 'Score:', 'GROUP B', 'Time allowed: 40 minutes', 'Good luck.', 'Ayşe Çelik, Teacher', 'Total', 'Q1']) expect(paper, label).toContain(label)
+    for (const label of ['Name:', 'Class:', 'No:', 'Score:', 'GROUP B', 'Time: 40 minutes', 'Good luck.', 'Ayşe Çelik, Teacher', 'Total', 'Q1']) expect(paper, label).toContain(label)
     for (const turkish of ['Ad Soyad', 'Sınıf', 'Puan', 'GRUBU', 'Süre', 'Başarılar dilerim', 'Ders Öğretmeni', 'Toplam']) expect(paper, turkish).not.toContain(turkish)
     expect(paper).toMatch(/\(\d+ points?\)/)
     const files = docxFiles(await buildExamDocx(en, 'exam', 'A'))
     expect(plain(files['word/footer1.xml'])).toContain('Page 1 / 1')
     expect(files['word/styles.xml']).toContain('w:lang w:val="en-US"')
     const key = plain(docxFiles(await buildExamDocx(en, 'key', 'both'))['word/document.xml'])
-    for (const label of ['ANSWER KEY – GROUP A', 'ANSWER KEY – GROUP B', 'Expected answer', 'Topic / outcome', 'Difficulty', 'Q no', 'Easy']) expect(key, label).toContain(label)
+    for (const label of ['ANSWER KEY', 'GROUP A', 'GROUP B', 'Expected answer', 'Sample answer', 'Topic distribution', 'Table of specifications', 'Topic / outcome', 'Question numbers', 'Remember', 'Create']) expect(key, label).toContain(label)
     expect(key).toMatch(/B question \d+ = A question \d+/)
-    for (const turkish of ['CEVAP ANAHTARI', 'Beklenen cevap', 'Soru no', 'Konu / kazanım', 'Zorluk', 'Kolay']) expect(key, turkish).not.toContain(turkish)
+    for (const turkish of ['CEVAP ANAHTARI', 'Beklenen cevap', 'Örnek cevap', 'Soru numaraları', 'Konu / kazanım', 'Hatırlama']) expect(key, turkish).not.toContain(turkish)
   })
 
   test('Word paper in Western Armenian', async () => {
@@ -241,8 +240,10 @@ test.describe('Paper labels follow the exam output language', () => {
     const files = docxFiles(await buildExamDocx(hyw, 'exam', 'A'))
     expect(plain(files['word/footer1.xml'])).toContain('Էջ 1 / 1')
     const key = plain(docxFiles(await buildExamDocx(hyw, 'key', 'both'))['word/document.xml'])
-    expect(key).toContain('ՊԱՏԱՍԽԱՆԱԳԻՐ – ԽՈՒՄԲ A')
-    expect(key).toContain('Հարցի թիւ')
+    expect(key).toContain('ՊԱՏԱՍԽԱՆԱԳԻՐ')
+    expect(key).toContain('ԽՈՒՄԲ A')
+    expect(key).toContain('Հարցերու թիւեր')
+    expect(key).toContain('Յիշել')
   })
 
   test('print view in English: header boxes, key, page numbers, brand', async ({ page }) => {
@@ -256,7 +257,7 @@ test.describe('Paper labels follow the exam output language', () => {
 
   test('print view answer key in English and Western Armenian', async ({ page }) => {
     const en = (await printToPdf(page, '?part=key&group=both', inLanguage('en'))).join(' ')
-    for (const label of ['ANSWER KEY – GROUP A', 'Topic / outcome', 'Q no', 'Points']) expect(en, label).toContain(label)
+    for (const label of ['ANSWER KEY', 'GROUP A', 'Topic / outcome', 'Question numbers', 'Table of specifications', 'Points']) expect(en, label).toContain(label)
     expect(en).not.toContain('CEVAP ANAHTARI')
     const hyw = (await printToPdf(page, '?part=key&group=both', inLanguage('hyw'))).join(' ')
     expect(hyw).toContain('ՊԱՏԱՍԽԱՆԱԳԻՐ')

@@ -102,8 +102,10 @@ export function sampleQuestions(): ExamQuestion[] {
       lines: 0,
     })
   }
+  // Cognitive levels spread over the exam (the last two types are left unset on purpose: the tables show "Belirtilmedi").
+  const levels: Record<string, 1 | 2 | 3 | 4 | 5 | 6> = { 'open-1': 3, 'open-2': 5, 'open-3': 1, 'open-4': 4, 'short-1': 2, 'short-2': 3, 'short-3': 2, 'fill-1': 1, 'fill-2': 1, 'fill-3': 2, 'tf-1': 1, 'tf-2': 2, 'tf-3': 1, 'tf-4': 2 }
   // A unique tag ends every stem, so tests can find a question in extracted PDF text.
-  return questions.map((question) => ({ ...question, stem: `${question.stem} [${question.id}]` }))
+  return questions.map((question) => ({ ...question, ...(levels[question.id] ? { bloomLevel: levels[question.id] } : {}), stem: `${question.stem} [${question.id}]` }))
 }
 
 export function sampleExam(overrides: Partial<WrittenExam> = {}): WrittenExam {

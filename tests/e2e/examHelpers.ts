@@ -4,8 +4,17 @@ import type { ExamQuestion, ExamQuestionType, WrittenExam } from '../../src/lib/
 
 export const E2E_USER_ID = 'e2e-user'
 
-export const EXAM_SOURCE =
+const EXAM_PARAGRAPH =
   'Fotosentez, bitkilerin ışık enerjisini kimyasal enerjiye çevirdiği süreçtir. Kloroplastlarda gerçekleşir ve iki evreden oluşur: ışığa bağımlı evre tilakoit zarlarda, Calvin döngüsü ise stromada yapılır. Işığa bağımlı evrede su parçalanır, oksijen açığa çıkar ve ATP ile NADPH üretilir. Calvin döngüsünde karbondioksit glikoza dönüştürülür. Klorofil ışığı soğuran ana pigmenttir ve yapraklara yeşil rengini verir. Fotosentezin hızı ışık şiddetine, sıcaklığa ve karbondioksit derişimine bağlıdır.'
+
+/** A source long enough (about 480 words) for a 20-question exam: at least 20 words per question. */
+export const EXAM_SOURCE = Array.from({ length: 7 }, (_, index) => `${EXAM_PARAGRAPH}${index === 0 ? '' : ` (${index + 1}. bölüm)`}`).join(' ')
+
+/** About 960 words, enough for a 40-question exam. */
+export const EXAM_SOURCE_LONG = Array.from({ length: 14 }, (_, index) => `${EXAM_PARAGRAPH}${index === 0 ? '' : ` (${index + 1}. bölüm)`}`).join(' ')
+
+/** The same topic in about 70 words: too short for 20 questions. */
+export const EXAM_SOURCE_SHORT = EXAM_PARAGRAPH
 
 export interface ExamApiCall {
   mode: string
@@ -37,7 +46,7 @@ export function fakeFacts(count: number): { fact: string; topic: string }[] {
 }
 
 export function fakeQuestion(type: ExamQuestionType, tag: string): ExamQuestion {
-  const base = { id: `gen-${type}-${tag}`, type, stem: `${distinctWords(`${type}${tag}`)} ile ilgili ${type} ${tag} ğüşıöçİ hangisidir?`, answer: `Cevap ${tag}`, rubric: [{ text: 'Doğru cevap', points: 2 }, { text: 'Gerekçe', points: 1 }], points: 0, topic: 'Fotosentez', difficulty: 'medium' as const, lines: 0 }
+  const base = { id: `gen-${type}-${tag}`, type, stem: `${distinctWords(`${type}${tag}`)} ile ilgili ${type} ${tag} ğüşıöçİ hangisidir?`, answer: `Cevap ${tag}`, rubric: [{ text: 'Doğru cevabı açıkça yazar', points: 2 }, { text: 'Gerekçeyi ayrıca belirtir', points: 1 }], points: 0, topic: 'Fotosentez', difficulty: 'medium' as const, lines: 0 }
   if (type === 'mcq') return { ...base, options: [distinctWords(`opt${tag}`).split(' ')[0], 'Mitokondri', 'Ribozom', 'Çekirdek'], answerIndex: 0, rubric: [{ text: 'Doğru şık', points: 1 }] }
   if (type === 'true-false') {
     const answerBool = Number.parseInt(tag.replace(/\D/g, '') || '0', 10) % 2 === 0
@@ -47,7 +56,8 @@ export function fakeQuestion(type: ExamQuestionType, tag: string): ExamQuestion 
     return {
       ...base,
       pairs: ['Fotosentez', 'Solunum', 'Protein', 'Kalıtım'].map((right, index) => ({ left: distinctWords(`pair${tag}`).split(' ')[index], right })),
-      rightOrder: [1, 2, 3, 0],
+      extras: ['Ekstra bir', 'Ekstra iki'],
+      rightOrder: [1, 2, 3, 0, 5, 4],
       rubric: [{ text: 'Eşleştirmeler', points: 1 }],
     }
   }
@@ -88,7 +98,7 @@ export async function mockExamApi(page: Page, options: MockExamApiOptions = {}):
       body = { facts: fakeFacts(Math.max(1, payload.count ?? 1)), provider: 'openai', fallbackUsed: false }
     } else if (payload.mode === 'exam_verify') {
       // The second reading of the answer keys agrees with every key, and no pair is about the same fact.
-      body = { wrong: [], fixes: [], same: [], provider: 'openai', fallbackUsed: false }
+      body = { wrong: [], fixes: [], same: [], reviews: [], provider: 'openai', fallbackUsed: false }
     } else if (payload.mode === 'exam_rubric') {
       body = { rubric: [{ text: 'Birinci ölçüt', points: 2 }, { text: 'İkinci ölçüt', points: 1 }], provider: 'openai', fallbackUsed: false }
     } else {
