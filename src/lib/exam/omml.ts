@@ -31,8 +31,11 @@ const itemXml = (item: Item): string => (item.kind === 'text' ? run(item.text, i
 class Parser {
   private pos = 0
   private readonly src: string
-  constructor(src: string) {
+  /** Upright letters (chemical formulas inside \mathrm): the text of this parser is not italic. */
+  private readonly upright: boolean
+  constructor(src: string, upright = false) {
     this.src = src
+    this.upright = upright
   }
 
   /** Parses until `stop` (a closing char or command) or the end. */
@@ -114,7 +117,13 @@ class Parser {
     const last = items.pop()
     let base = ''
     if (last) {
-      if (last.kind === 'text' && last.text.length > 1) {
+      const chemical = last.kind === 'text' && last.upright && this.upright ? /(\([^()]*\)|[A-Z][a-z]?)$/.exec(last.text) : null
+      if (last.kind === 'text' && chemical) {
+        // A chemical formula: the script belongs to the whole element symbol ("Ca" in Ca^{2+}) or group ("(OH)" in Ca(OH)_2).
+        const front = last.text.slice(0, last.text.length - chemical[0].length)
+        if (front) items.push({ kind: 'text', text: front, upright: true })
+        base = run(chemical[0], true)
+      } else if (last.kind === 'text' && last.text.length > 1) {
         const chars = [...last.text]
         const final = chars.pop() as string
         if (chars.length > 0) items.push({ kind: 'text', text: chars.join(''), upright: last.upright })
@@ -127,7 +136,7 @@ class Parser {
     else items.push({ kind: 'xml', xml: `<m:sSub>${e}<m:sub>${sub}</m:sub></m:sSub>` })
   }
 
-  private pushText(items: Item[], text: string, upright = false) {
+  private pushText(items: Item[], text: string, upright = this.upright) {
     const last = items[items.length - 1]
     if (last && last.kind === 'text' && last.upright === upright) last.text += text
     else items.push({ kind: 'text', text, upright })
@@ -199,10 +208,15 @@ class Parser {
         })
         break
       }
-      case 'text':
       case 'mathrm':
+      case 'mathbf': {
+        // Upright maths such as chemical formulas: \mathrm{H_2SO_4} keeps its subscripts, \mathrm{Ca^{2+}} its charge.
+        const raw = this.rawGroup()
+        if (raw) items.push({ kind: 'xml', xml: new Parser(raw, true).sequence() })
+        break
+      }
+      case 'text':
       case 'textbf':
-      case 'mathbf':
       case 'operatorname': {
         const raw = this.rawGroup()
         if (raw) this.pushText(items, raw.replace(/\\[ ,;]/g, ' '), true)

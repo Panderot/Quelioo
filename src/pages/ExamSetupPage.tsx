@@ -197,9 +197,11 @@ function ExamSetup({ setupId }: { setupId: string }) {
       return
     }
     const counts = acceptMax === undefined ? settings.counts : reduceCounts(settings.counts, acceptMax)
-    const finalSettings: ExamSettings = { ...settings, counts, topics: topicsText.split('\n').map((line) => line.trim()).filter(Boolean).slice(0, 30) }
+    // MEB common written exam: open-ended and short-answer questions only, the key and the grading rubric always on.
+    const mebCounts = settings.format === 'meb' ? { ...emptyCounts(), 'open-ended': counts['open-ended'], 'short-answer': counts['short-answer'] } : counts
+    const finalSettings: ExamSettings = { ...settings, counts: mebCounts, ...(settings.format === 'meb' ? { answerKey: true } : {}), topics: topicsText.split('\n').map((line) => line.trim()).filter(Boolean).slice(0, 30) }
     if (acceptMax !== undefined) setSettings((current) => ({ ...current, counts }))
-    const signature = JSON.stringify([text, finalSettings.counts, finalSettings.difficultyMix, finalSettings.level, finalSettings.outputLanguage, finalSettings.contextBased, finalSettings.optionsCount, finalSettings.topics])
+    const signature = JSON.stringify([text, finalSettings.counts, finalSettings.difficultyMix, finalSettings.level, finalSettings.outputLanguage, finalSettings.contextBased, finalSettings.optionsCount, finalSettings.topics, finalSettings.bloom, finalSettings.format, finalSettings.distribution, finalSettings.header.course])
     // The plan of the source does not depend on how many questions are asked for: it survives a smaller exam.
     if (generationRef.current?.signature !== signature) generationRef.current = { signature, state: { done: new Map(), plan: generationRef.current?.state.plan, planKey: generationRef.current?.state.planKey } }
     const controller = new AbortController()

@@ -120,6 +120,8 @@ export function trueFalsePattern(total: number): boolean[] {
 }
 
 function requestFor(settings: ExamSettings, text: string, section: ExamSection, facts: ExamFact[], avoidStems: string[], variety: string[]): ExamSectionRequest {
+  // The teacher's own rows are the topics the questions are written for.
+  const rows = settings.distribution.filter((row) => row.text.trim() && row.count > 0).map((row) => row.text.trim())
   return {
     text,
     type: section.type,
@@ -129,7 +131,7 @@ function requestFor(settings: ExamSettings, text: string, section: ExamSection, 
     outputLanguage: settings.outputLanguage,
     contextBased: settings.contextBased,
     optionsCount: settings.optionsCount,
-    topics: settings.topics,
+    topics: rows.length > 0 ? rows : settings.topics,
     avoidStems: avoidStems.slice(0, 40),
     partIndex: section.partIndex,
     partCount: section.partCount,
@@ -341,8 +343,10 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   const failing = new Set(blocking.map((issue) => issue.id).filter((id): id is string => id !== null))
   const kept = current.filter((question) => !failing.has(question.id))
   if (blocking.length > 0 && kept.length === 0) throw new ExamApiError('quality', blocking.map((issue) => `${issue.rule}${issue.type ? `:${issue.type}` : ''}`))
+  // With the teacher's own rows, each question carries the exact text of its row, so the tables list the rows as written.
+  const labelled = (list: ExamQuestion[]): ExamQuestion[] => (rows.length === 0 ? list : list.map((question) => ({ ...question, topic: plan.find((entry) => entry.fact === question.fact)?.topic || question.topic })))
   if (blocking.length === 0) {
-    const scored = distributePoints(sortByType(balanceMcqLetters(kept)), 100)
+    const scored = distributePoints(sortByType(labelled(balanceMcqLetters(kept))), 100)
     if (checkExamQuality(scored, settings.counts, { topics: settings.topics, judged: judge.judged, copyable: copyableOf(judge) }).some((issue) => !SOFT_RULES.includes(issue.rule))) throw new ExamApiError('quality')
     state.current = scored
     return { questions: scored, requested: total, missing: 0 }
@@ -350,7 +354,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   // Some questions still fail after the last round: they are left out, the ones that passed are kept for the teacher (and for a retry of just the missing ones).
   state.current = kept
   state.partial = true
-  return { questions: distributePoints(sortByType(balanceMcqLetters(kept)), 100), requested: total, missing: total - kept.length }
+  return { questions: distributePoints(sortByType(labelled(balanceMcqLetters(kept))), 100), requested: total, missing: total - kept.length }
 }
 
 export interface JudgeState {

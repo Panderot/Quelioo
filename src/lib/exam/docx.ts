@@ -213,7 +213,7 @@ function examBody(exam: WrittenExam, group: ExamGroup, paper: PaperLabels): stri
 /** E6: the topic distribution and the table of specifications. */
 function bloomTables(questions: PaperQuestion[], paper: PaperLabels, meb: boolean): string {
   const total = PAGE_W - 2 * MARGIN
-  const head = (text: string, width: number): Cell => ({ width, shade: true, paras: para(run(text, { bold: true, size: 18 }), { after: 0 }) })
+  const head = (text: string, width: number): Cell => ({ width, shade: true, paras: para(run(text, { bold: true, size: 17 }), { after: 0 }) })
   const cell = (text: string, width: number, bold = false): Cell => ({ width, paras: para(run(text, { bold, size: 19 }), { after: 0 }) })
   const distribution = distributionRows(questions)
   const dWidths = [total - 1300 * 2 - 2400, 2400, 1300, 1300]
@@ -230,8 +230,8 @@ function bloomTables(questions: PaperQuestion[], paper: PaperLabels, meb: boolea
   const spec = specRows(questions)
   const totals = specTotals(spec)
   const hasUnset = totals.unset > 0
-  const levelWidth = hasUnset ? 1000 : 1100
-  const tailWidth = hasUnset ? 1050 : 1000
+  const levelWidth = hasUnset ? 1120 : 1220
+  const tailWidth = hasUnset ? 900 : 900
   const sWidths = [total - levelWidth * 6 - tailWidth * (hasUnset ? 2 : 1), ...Array(6).fill(levelWidth), ...(hasUnset ? [tailWidth] : []), tailWidth] as number[]
   const levels = [1, 2, 3, 4, 5, 6] as const
   const sHead: Cell[] = [head(meb ? paper.mebTopic : paper.specTopic, sWidths[0]), ...levels.map((level, index) => head(paper.bloomNames[level], sWidths[index + 1])), ...(hasUnset ? [head(paper.notSet, sWidths[7])] : []), head(paper.total, sWidths[sWidths.length - 1])]
