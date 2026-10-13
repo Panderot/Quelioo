@@ -1,4 +1,5 @@
 import { apiFetch } from '../lib/auth/apiFetch'
+import { isNumericAnswer } from '../lib/exam/numeric'
 import { rightColumn } from '../lib/exam/paperText'
 import { EXAM_QUESTION_TYPES } from '../lib/exam/types'
 import type { BloomLevel, ExamDifficulty, ExamLevel, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem } from '../lib/exam/types'
@@ -236,6 +237,8 @@ export interface ExamVerifyRequest {
   pairs?: { id: string; a: string; b: string }[]
   /** Only ask whether the scenario or the stem gives the correct option away: the correct option is shown to the judge, no key is checked. */
   copyOnly?: boolean
+  /** Only a blind answer to each written question (short answer, fill in the blanks): the key is never shown to the judge. */
+  blindOnly?: boolean
 }
 
 export interface ExamKeyFix {
@@ -257,6 +260,15 @@ export interface ExamReview {
   solved?: string
 }
 
+/** The judge's own answer to a written question it was not told the key of. */
+export interface ExamBlindAnswer {
+  id: string
+  /** Empty when the source does not decide it. */
+  answer: string
+  /** The source gives more than one different answer that fits the question as worded. */
+  multiple: boolean
+}
+
 export interface ExamVerifyResult {
   /** Questions whose key a second, blind reading of the source contradicts. */
   wrong: string[]
@@ -265,9 +277,9 @@ export interface ExamVerifyResult {
   /** Pair ids the judge says test the same fact. */
   same: string[]
   reviews: ExamReview[]
+  /** Answers to a `blindOnly` request. */
+  blind?: ExamBlindAnswer[]
 }
-
-const NUMERIC_ANSWER = /^[-−+]?[0-9]/
 
 function correctOptionText(question: ExamQuestion): string {
   return question.type === 'mcq' && question.options && question.answerIndex !== undefined ? (question.options[question.answerIndex] ?? question.answer) : question.answer
@@ -286,12 +298,12 @@ export function examVerifyPayload(request: ExamVerifyRequest): Record<string, un
       ...(question.answerBool === undefined ? {} : { answerBool: question.answerBool }),
       // A matching question: the judge sees the left items and the right column as printed, never which belongs to which.
       ...(question.type === 'matching' && question.pairs ? { lefts: question.pairs.map((pair) => pair.left), rights: rightColumn(question) } : {}),
-      ...(written || request.copyOnly ? { expected: (request.copyOnly ? correctOptionText(question) : question.answer).slice(0, 400) } : {}),
+      ...((written || request.copyOnly) && !request.blindOnly ? { expected: (request.copyOnly ? correctOptionText(question) : question.answer).slice(0, 400) } : {}),
       // A calculation: the judge works it out blind and the result is compared with the key.
-      ...((question.type === 'short-answer' || question.type === 'fill-blanks') && NUMERIC_ANSWER.test(question.answer.trim()) ? { solve: true } : {}),
+      ...((question.type === 'short-answer' || question.type === 'fill-blanks') && !request.blindOnly && isNumericAnswer(question.answer) ? { solve: true } : {}),
     }
   })
-  return { mode: 'exam_verify', text: request.text, items, pairs: request.pairs ?? [] }
+  return { mode: 'exam_verify', text: request.text, items, pairs: request.pairs ?? [], ...(request.blindOnly ? { blindOnly: true } : {}) }
 }
 
 function ids(value: unknown): string[] {
@@ -325,7 +337,14 @@ export function parseVerifyResult(body: Record<string, unknown>): ExamVerifyResu
       reviews.push({ id: entry.id, copy: entry.copy === true, level, difficulty, ...(typeof entry.solved === 'string' && entry.solved ? { solved: entry.solved } : {}) })
     }
   }
-  return { wrong: ids(body.wrong), fixes, same: ids(body.same), reviews }
+  const blind: ExamBlindAnswer[] = []
+  if (Array.isArray(body.blind)) {
+    for (const entry of body.blind) {
+      if (!isRecord(entry) || typeof entry.id !== 'string') continue
+      blind.push({ id: entry.id, answer: typeof entry.answer === 'string' ? entry.answer : '', multiple: entry.multiple === true })
+    }
+  }
+  return { wrong: ids(body.wrong), fixes, same: ids(body.same), reviews, ...(blind.length > 0 ? { blind } : {}) }
 }
 
 export interface ExamFact {

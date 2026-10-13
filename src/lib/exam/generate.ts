@@ -1,5 +1,5 @@
 import { ExamApiError, generateExamSection, planExamFacts, verifyExamKeys } from '../../api/exam'
-import type { ExamFact, ExamPlanRequest, ExamReview, ExamSectionRequest, ExamVerifyRequest, ExamVerifyResult } from '../../api/exam'
+import type { ExamBlindAnswer, ExamFact, ExamPlanRequest, ExamReview, ExamSectionRequest, ExamVerifyRequest, ExamVerifyResult } from '../../api/exam'
 import { balanceMcqLetters } from './balance'
 import { bloomMixOk, bloomTargetCounts, clampBloom, fitDifficulty, planSlots } from './bloom'
 import type { BloomPlan } from './bloom'
@@ -9,7 +9,8 @@ import { IGNORED_RULES, MAX_QUESTIONS_PER_CONCEPT, SOFT_RULES, checkExamQuality,
 import type { ExamQualityIssue } from './quality'
 import { examPaperLang } from './paperLabels'
 import { matchingOrder, rightItems } from './paperText'
-import { normalize } from './text'
+import { isNumericAnswer, numbersDiffer } from './numeric'
+import { contentStems, normalize, overlap } from './text'
 import { EXAM_QUESTION_TYPES } from './types'
 import type { BloomLevel, ExamDifficulty, ExamQuestion, ExamQuestionType, ExamSettings } from './types'
 import { scenarioVariety } from './variety'
@@ -34,8 +35,8 @@ const MAX_FACT_RETRIES = 2
 const EXTENSION_DUPLICATE = 0.6
 /** A relabelled level that is further away than this from the planned one is a different question: it is written again. */
 const BLOOM_REWRITE_GAP = 2
-/** A calculation the judge solved differently by more than this share is flagged. */
-const NUMERIC_TOLERANCE = 0.01
+/** A blind written answer that shares less than this of its key words with the key (and with every accepted answer) is a different answer. */
+const BLIND_AGREEMENT = 0.5
 
 export interface ExamSlot {
   type: ExamQuestionType
@@ -451,6 +452,9 @@ export interface JudgeState {
   reviews: Map<string, ExamReview>
   /** Ids of the scenario questions whose correct option was checked for being given away. */
   copyChecked?: Set<string>
+  /** The judge's blind answers to written questions (`id` → answer), and the ids already asked. */
+  blind?: Map<string, ExamBlindAnswer>
+  blindChecked?: Set<string>
 }
 
 function copyableOf(judge: JudgeState): Map<string, boolean> {
@@ -511,7 +515,7 @@ export function applyFix(question: ExamQuestion, result: ExamVerifyResult): Exam
 }
 
 /** Reads every unread question and judges the open pairs (the same call carries both); a call that cannot be made leaves them open. */
-async function consult(list: ExamQuestion[], settings: ExamSettings, text: string, judge: JudgeState, calls: Calls, signal?: AbortSignal): Promise<ExamQuestion[]> {
+async function consult(list: ExamQuestion[], text: string, judge: JudgeState, calls: Pick<Calls, 'verify'>, signal?: AbortSignal): Promise<ExamQuestion[]> {
   const open = list.filter((question) => !judge.verified.has(question.id))
   const pairs = uncertainPairs(list).filter((pair) => !judge.judged.has(pair.key))
   const batches = Math.max(Math.ceil(open.length / VERIFY_ITEMS), Math.ceil(pairs.length / VERIFY_PAIRS))
@@ -534,14 +538,52 @@ async function consult(list: ExamQuestion[], settings: ExamSettings, text: strin
       }
     }),
   )
-  void settings
   const checked = list.map((question) => corrected.get(question.id) ?? question)
-  await checkGiveaways(checked, text, judge, calls, signal)
+  await Promise.all([checkGiveaways(checked, text, judge, calls, signal), checkBlindAnswers(checked, text, judge, calls, signal)])
   return checked
 }
 
+/** The judge's blind reading of a list of questions: keys it can correct are corrected, and the ids of the questions it contradicts without a fix (a calculation or a written answer that differs) are named for a rewrite. */
+export async function judgeKeys(list: ExamQuestion[], text: string, callVerify: VerifyCaller, signal?: AbortSignal): Promise<{ questions: ExamQuestion[]; rewrite: string[] }> {
+  const judge: JudgeState = { verified: new Set(), judged: new Map(), reviews: new Map() }
+  const questions = await consult(list, text, judge, { verify: callVerify }, signal)
+  return { questions, rewrite: keyCheckIds(questions, judge) }
+}
+
+/** Questions whose key the judge's own work contradicts: a calculation with another result, or a written answer that differs or is not the only one. */
+function keyCheckIds(list: ExamQuestion[], judge: JudgeState): string[] {
+  return list.filter((question) => solveMismatch(question, judge.reviews.get(question.id)) || blindMismatch(question, judge.blind?.get(question.id))).map((question) => question.id)
+}
+
+/** A short answer or a fill-in-the-blank with a word key (a number is worked out by the main call): the judge answers it without the key, in a call of its own so the giveaway check can keep showing the key. */
+async function checkBlindAnswers(list: ExamQuestion[], text: string, judge: JudgeState, calls: Pick<Calls, 'verify'>, signal?: AbortSignal): Promise<void> {
+  const done = (judge.blindChecked ??= new Set<string>())
+  const open = list.filter((question) => (question.type === 'short-answer' || question.type === 'fill-blanks') && !isNumericAnswer(question.answer) && !done.has(question.id))
+  for (let at = 0; at < open.length; at += VERIFY_ITEMS) {
+    const questions = open.slice(at, at + VERIFY_ITEMS)
+    try {
+      const result = await calls.verify({ text, questions, blindOnly: true }, signal)
+      for (const question of questions) done.add(question.id)
+      const answers = (judge.blind ??= new Map<string, ExamBlindAnswer>())
+      for (const entry of result.blind ?? []) answers.set(entry.id, entry)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error
+    }
+  }
+}
+
+/** The judge's blind answer against the key: another answer, or a question with more than one defensible answer. Wording and suffixes do not count (first five letters of the content words); an answer the judge could not decide never blocks. */
+function blindMismatch(question: ExamQuestion, blind: ExamBlindAnswer | undefined): boolean {
+  if (!blind) return false
+  if (blind.multiple) return true
+  const given = contentStems(blind.answer, 3)
+  if (given.size === 0) return false
+  const keys = [question.answer, ...(question.acceptableAnswers ?? [])].map((key) => contentStems(key, 3)).filter((key) => key.size > 0)
+  return keys.length > 0 && keys.every((key) => overlap(key, given) < BLIND_AGREEMENT)
+}
+
 /** A scenario question with options: the judge sees the correct option and says whether the scenario or the stem gives it away (the key check stays blind, so this is a separate call). */
-async function checkGiveaways(list: ExamQuestion[], text: string, judge: JudgeState, calls: Calls, signal?: AbortSignal): Promise<void> {
+async function checkGiveaways(list: ExamQuestion[], text: string, judge: JudgeState, calls: Pick<Calls, 'verify'>, signal?: AbortSignal): Promise<void> {
   const done = (judge.copyChecked ??= new Set<string>())
   const open = list.filter((question) => question.type === 'mcq' && question.context && !done.has(question.id))
   for (let at = 0; at < open.length; at += VERIFY_ITEMS) {
@@ -569,20 +611,9 @@ function relabelToJudge(list: ExamQuestion[], reviews: Map<string, ExamReview>):
   }
 }
 
-function firstNumber(text: string): number | null {
-  const match = /[-−+]?\d+(?:[.,]\d+)?/.exec(text.replace(/\s/g, ''))
-  if (!match) return null
-  const value = Number(match[0].replace('−', '-').replace(',', '.'))
-  return Number.isFinite(value) ? value : null
-}
-
 /** The judge's own result of a calculation against the key: a different number means the key (or the question) is wrong. */
 function solveMismatch(question: ExamQuestion, review: ExamReview | undefined): boolean {
-  if (!review?.solved) return false
-  const key = firstNumber(question.answer)
-  const solved = firstNumber(review.solved)
-  if (key === null || solved === null) return false
-  return Math.abs(key - solved) > NUMERIC_TOLERANCE * Math.max(1, Math.abs(key), Math.abs(solved))
+  return review?.solved !== undefined && numbersDiffer(question.answer, review.solved)
 }
 
 /** The judge's level and difficulty against the planned ones: a small difference is relabelled when the Bloom mix still holds (a far one, or a mix that would break, is written again). Returns the ids to write again. */
@@ -620,7 +651,7 @@ function reconcileLevels(list: ExamQuestion[], reviews: Map<string, ExamReview>,
 
 /** Every rule break that needs the model (the points rule is repaired by `distributePoints`). */
 async function issuesOf(list: ExamQuestion[], settings: ExamSettings, text: string, judge: JudgeState, calls: Calls, targets: Targets, signal?: AbortSignal): Promise<ExamQualityIssue[]> {
-  const checked = await consult(list, settings, text, judge, calls, signal)
+  const checked = await consult(list, text, judge, calls, signal)
   // The caller keeps working on `list`; corrected keys are written back into the same objects' places by id.
   for (const [index, question] of list.entries()) list[index] = checked[index] ?? question
   // Where the correct multiple-choice option sits is repaired by moving options, never by a rewrite.
@@ -629,7 +660,7 @@ async function issuesOf(list: ExamQuestion[], settings: ExamSettings, text: stri
   // A level the judge reads differently is relabelled where the mix allows; it never starts a rewrite (the paper shows the judge's real levels).
   reconcileLevels(list, judge.reviews, targets.achieved)
   const found = checkExamQuality(list, settings.counts, { topics: settings.topics, judged: judge.judged, copyable: copyableOf(judge) }).filter((issue) => !IGNORED_RULES.includes(issue.rule))
-  for (const question of list) if (solveMismatch(question, judge.reviews.get(question.id))) found.push({ rule: 'key-check', id: question.id })
+  for (const id of keyCheckIds(list, judge)) found.push({ rule: 'key-check', id })
   return found
 }
 

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { ExamApiError } from '../../src/api/exam'
+import { ExamApiError, examVerifyPayload } from '../../src/api/exam'
 import type { ExamFact, ExamSectionRequest, ExamVerifyRequest, ExamVerifyResult } from '../../src/api/exam'
 import { ExamShortSourceError, MAX_FILL_ROUNDS, MAX_REPAIR_ROUNDS, generateExamQuestions, reduceCounts } from '../../src/lib/exam/generate'
 import type { ExamGenerationState } from '../../src/lib/exam/generate'
@@ -190,6 +190,30 @@ test.describe('answer keys', () => {
     const trueFalse = questions.filter((entry) => entry.type === 'true-false')
     // Balance is a soft goal: the exam stays complete whatever the split of true and false.
     expect(trueFalse).toHaveLength(5)
+  })
+
+  test('a short answer the blind reading contradicts is written again on a new fact; the blind call never carries the key', async () => {
+    let flagged: string | null = null
+    const server = fake({
+      verify: (request) => {
+        const empty = { wrong: [], fixes: [], same: [], reviews: [] }
+        if (!request.blindOnly) return empty
+        const target = request.questions.find((entry) => entry.type === 'short-answer' && flagged === null)
+        if (!target) return empty
+        flagged = target.id
+        return { ...empty, blind: [{ id: target.id, answer: 'tamamen başka bir şey', multiple: false }] }
+      },
+    })
+    const result = await runResult(server)
+    expect(flagged).not.toBeNull()
+    expect(result.questions.some((entry) => entry.id === flagged)).toBe(false)
+    expect(result.questions).toHaveLength(20)
+    expect(result.missing).toBe(0)
+    const blindCalls = server.verifies.filter((request) => request.blindOnly)
+    expect(blindCalls.length).toBeGreaterThan(0)
+    expect(blindCalls.every((request) => request.questions.every((entry) => entry.type === 'short-answer' || entry.type === 'fill-blanks'))).toBe(true)
+    const sent = examVerifyPayload(blindCalls[0]).items as Record<string, unknown>[]
+    expect(sent.every((item) => item.expected === undefined && item.solve === undefined && item.answerIndex === undefined)).toBe(true)
   })
 
   test('a section the server filtered down to nothing (empty_section) is asked again, never shown as an outage', async () => {
