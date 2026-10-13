@@ -70,20 +70,22 @@ export function distributePoints(questions: ExamQuestion[], total = EXAM_TOTAL_P
   return questions.map((question, index) => setQuestionPoints(question, shares[index]))
 }
 
-/** The teacher's points scaled to exactly `total`: the same ratios between questions (largest remainder), whole numbers, a question that had points keeps at least 1, every rubric rescaled to its question's new points. */
+/** The teacher's points scaled to exactly `total`: the same ratios between questions (largest remainder), whole numbers, every question keeps at least 1, every rubric rescaled to its question's new points. */
 export function rescalePoints(questions: ExamQuestion[], total = EXAM_TOTAL_POINTS): ExamQuestion[] {
   if (questions.length === 0) return questions
   if (questions.every((question) => !(question.points > 0))) return distributePoints(questions, total)
-  const shares = largestRemainder(
-    questions.map((question) => Math.max(0, question.points)),
-    total,
-  )
-  // A question that had points never drops to none: the biggest question gives up what it takes.
-  for (const [index, question] of questions.entries()) {
-    if (question.points > 0 && shares[index] === 0) {
-      const biggest = shares.indexOf(Math.max(...shares))
-      if (shares[biggest] > 1) {
-        shares[biggest] -= 1
+  // A question without points (added by hand) counts as 1 so it gets a share too.
+  const weights = questions.map((question) => (question.points > 0 ? question.points : 1))
+  const shares = largestRemainder(weights, total)
+  const sum = weights.reduce((a, b) => a + b, 0)
+  const exact = weights.map((weight) => (weight / sum) * total)
+  // A question that had points never drops to none: each one raised to 1 is paid for by the question that sits furthest above its exact share.
+  for (const index of weights.keys()) {
+    if (shares[index] === 0) {
+      let donor = -1
+      for (const [at, share] of shares.entries()) if (share > 1 && (donor < 0 || share - exact[at] > shares[donor] - exact[donor])) donor = at
+      if (donor >= 0) {
+        shares[donor] -= 1
         shares[index] = 1
       }
     }
