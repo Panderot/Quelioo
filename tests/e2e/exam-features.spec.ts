@@ -340,7 +340,7 @@ test.describe('adding questions of every type (B9)', () => {
     await page.locator('[data-purpose="exam-docx"]').click()
     const dialog = page.locator('[data-purpose="exam-export-check"]')
     await expect(dialog).toBeVisible()
-    for (const line of [/Question 1: the question text is empty, no answer is written/, /Question 2: .*no answer is written/, /Question 3: .*no blank is marked/, /Question 4: .*true \/ false is not selected/, /Question 5: .*no correct option is selected/, /Question 6: .*a matching item is empty/]) {
+    for (const line of [/Question 1: the question text is empty$/, /Question 2: .*no answer is written/, /Question 3: .*no blank is marked/, /Question 4: .*true \/ false is not selected/, /Question 5: .*no correct option is selected/, /Question 6: .*a matching item is empty/]) {
       await expect(dialog.getByText(line)).toBeVisible()
     }
     await dialog.locator('[data-purpose="exam-export-cancel"]').click()
@@ -437,6 +437,43 @@ test.describe('the export check (B3)', () => {
       await expect(dialog).toHaveCount(0)
     })
   }
+
+  for (const [purpose, name] of buttons) {
+    test(`${name}: an empty matching question added with "Add" is named in the same dialog as the points, and "Go to question" opens it`, async ({ page }) => {
+      await seedExams(page, [sampleExam()])
+      await page.goto(`/exams/${EXAM_ID}?lng=tr`)
+      await expect(page.locator('[data-purpose="exam-total"]')).toContainText('100 / 100')
+      const before = await cards(page).count()
+      expect(before).toBeGreaterThan(0)
+      await page.locator('#exam-add-type').selectOption('matching')
+      await page.locator('[data-purpose="exam-add-question"]').click()
+      await expect(cards(page)).toHaveCount(before + 1)
+      await page.locator(`[data-purpose="${purpose}"]`).click()
+      const dialog = page.locator('[data-purpose="exam-export-check"]')
+      await expect(dialog.locator('[data-purpose="exam-export-points"]')).toBeVisible()
+      const line = dialog.locator('[data-purpose="exam-export-incomplete-line"]')
+      await expect(line).toHaveCount(1)
+      await expect(line).toContainText(`${before + 1}. soru: soru metni boş ve eşleştirme maddesi boş`)
+      await expect(dialog.locator('[data-purpose="exam-export-continue"]')).toHaveText('Yine de indir')
+      await line.locator('[data-purpose="exam-export-goto"]').click()
+      await expect(dialog).toHaveCount(0)
+      const card = cards(page).nth(before)
+      await expect(card.locator('[data-purpose="exam-stem"]')).toBeFocused()
+      await expect(card).toBeInViewport()
+    })
+  }
+
+  test('a complete exam with 100 points exports from every button without the dialog', async ({ page }) => {
+    await seedExams(page, [sampleExam()])
+    await page.goto(`/exams/${EXAM_ID}?lng=en`)
+    await expect(page.locator('[data-purpose="exam-total"]')).toContainText('100 / 100')
+    page.context().on('page', (popup) => void popup.close())
+    for (const [purpose] of buttons) {
+      await page.locator(`[data-purpose="${purpose}"]`).click()
+      await expect(page.locator('[data-purpose="exam-export-check"]')).toHaveCount(0)
+      await expect(page.locator(`[data-purpose="${purpose}"]`)).toBeEnabled()
+    }
+  })
 
   test('"Scale to 100" keeps the ratios with whole numbers and rescales every rubric; then the export goes on', async ({ page }) => {
     await seedExams(page, [offExam()])

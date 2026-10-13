@@ -14,7 +14,6 @@ export type QuestionProblem =
   | 'answer'
   | 'pairs'
   | 'pairEmpty'
-  | 'extraEmpty'
   | 'rubricEmpty'
 
 /** The reasons a question is not finished (empty = complete). */
@@ -36,24 +35,26 @@ export function questionProblems(question: ExamQuestion): QuestionProblem[] {
       if (blankCount(question.stem) === 0) problems.push('blank')
       if (!question.answer.trim()) problems.push('answer')
       break
+    // An open-ended question may leave the expected answer and the grading criteria empty (the teacher grades by hand).
     case 'short-answer':
-    case 'open-ended':
       if (!question.answer.trim()) problems.push('answer')
       break
     case 'matching': {
       const pairs = question.pairs ?? []
       if (pairs.length < 2) problems.push('pairs')
-      if (pairs.some((pair) => !pair.left.trim() || !pair.right.trim())) problems.push('pairEmpty')
-      if ((question.extras ?? []).some((extra) => !extra.trim())) problems.push('extraEmpty')
+      // An empty extra item is an empty item of the right column too.
+      if (pairs.some((pair) => !pair.left.trim() || !pair.right.trim()) || (question.extras ?? []).some((extra) => !extra.trim())) problems.push('pairEmpty')
       break
     }
   }
-  if (question.rubric.some((item) => !item.text.trim())) problems.push('rubricEmpty')
+  if (question.type !== 'open-ended' && question.rubric.some((item) => !item.text.trim())) problems.push('rubricEmpty')
   return problems
 }
 
 export interface IncompleteQuestion {
   number: number
+  /** The question's id, so the editor can take the teacher to it. */
+  id: string
   problems: QuestionProblem[]
 }
 
@@ -70,7 +71,7 @@ export function exportIssues(exam: WrittenExam): ExportIssues | null {
   const total = exam.questions.reduce((sum, question) => sum + question.points, 0)
   const incomplete = exam.questions.flatMap((question, index) => {
     const problems = questionProblems(question)
-    return problems.length > 0 ? [{ number: index + 1, problems }] : []
+    return problems.length > 0 ? [{ number: index + 1, id: question.id, problems }] : []
   })
   const header = !exam.settings.header.course.trim() || !exam.settings.header.grade.trim()
   const points = total === EXAM_TOTAL_POINTS ? null : total

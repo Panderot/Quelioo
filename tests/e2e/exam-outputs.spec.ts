@@ -132,7 +132,17 @@ test.describe('B9: a new question of every type is a correct template', () => {
     const exam = sampleExam()
     const broken = { ...exam, questions: [...exam.questions, { ...blankQuestion('mcq'), stem: 'Soru?', options: ['a', 'b', 'c', 'd'], points: 0 }] }
     const issues = exportIssues(broken)
-    expect(issues?.incomplete).toEqual([{ number: exam.questions.length + 1, problems: ['correctOption'] }])
+    expect(issues?.incomplete).toEqual([{ number: exam.questions.length + 1, id: broken.questions[exam.questions.length].id, problems: ['correctOption'] }])
+  })
+
+  test('an open-ended question may leave the expected answer and the grading criteria empty; every other gap counts', () => {
+    const open = { ...blankQuestion('open-ended'), stem: 'Hücre zarının görevini açıklayınız.', answer: '', rubric: [{ text: '', points: 5 }] }
+    expect(questionProblems(open)).toEqual([])
+    expect(questionProblems({ ...blankQuestion('short-answer'), stem: 'Nedir?' })).toEqual(['answer'])
+    expect(questionProblems({ ...blankQuestion('fill-blanks'), stem: 'Organel ___ adını alır.' })).toEqual(['answer'])
+    expect(questionProblems({ ...blankQuestion('mcq'), stem: 'Hangisi?', options: ['a', '', 'c', 'd'], answerIndex: 0 })).toEqual(['optionEmpty'])
+    expect(questionProblems({ ...blankQuestion('matching'), stem: 'Eşleştir.', pairs: [] })).toContain('pairs')
+    expect(questionProblems({ ...withExtras(withPairs(blankQuestion('matching'), [{ left: 'a', right: '' }, { left: 'c', right: 'd' }]), ['x', 'y']), stem: 'Eşleştir.' })).toEqual(['pairEmpty'])
   })
 
   test('options and pairs reorder without losing the key', () => {

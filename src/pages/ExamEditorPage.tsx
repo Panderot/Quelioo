@@ -333,6 +333,17 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
     else setPendingExport({ run })
   }
 
+  /** From the export check to an unfinished question: the editor view, the card in the middle of the screen and its question text focused. */
+  const goToQuestion = (id: string) => {
+    setPendingExport(null)
+    setMobileView('edit')
+    window.setTimeout(() => {
+      const card = document.querySelector<HTMLElement>(`[data-question-id="${CSS.escape(id)}"]`)
+      card?.scrollIntoView({ block: 'center' })
+      document.getElementById(`stem-${id}`)?.focus({ preventScroll: true })
+    }, 0)
+  }
+
   const openPrint = async (part: 'exam' | 'key', group: 'A' | 'B' | 'both') => {
     // The print view reads the saved copy: save first.
     if (saveTimer.current) window.clearTimeout(saveTimer.current)
@@ -635,6 +646,7 @@ function ExamEditor({ initial, pendingDraft, userId }: ExamEditorProps) {
             void run()
           }}
           onCancel={() => setPendingExport(null)}
+          onGoTo={goToQuestion}
         />
       )}
 

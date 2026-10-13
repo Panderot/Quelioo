@@ -2329,24 +2329,24 @@
       "points": "Puan toplamı {{total}}.",
       "header": "Ders ya da sınıf boş: kâğıdın başlığında eksik görünecek.",
       "incomplete": "Tamamlanmamış sorular:",
-      "problemLine": "{{number}}. soruda {{reasons}}",
+      "problemLine": "{{number}}. soru: {{reasons}}",
       "redistribute": "100'e dağıt",
       "anyway": "Yine de indir",
       "go": "Devam et",
-      "cancel": "Vazgeç"
+      "cancel": "Vazgeç",
+      "goTo": "Soruya git"
     },
     "problems": {
       "stem": "soru metni boş",
       "options": "en az iki şık gerekli",
-      "optionEmpty": "boş şık var",
+      "optionEmpty": "şık boş",
       "correctOption": "doğru şık seçilmedi",
       "truth": "doğru / yanlış seçilmedi",
       "blank": "boşluk işaretlenmedi",
-      "answer": "cevap yazılmadı",
+      "answer": "beklenen cevap boş",
       "pairs": "en az iki çift gerekli",
-      "pairEmpty": "boş eşleştirme maddesi var",
-      "extraEmpty": "boş fazla madde var",
-      "rubricEmpty": "boş puanlama ölçütü var"
+      "pairEmpty": "eşleştirme maddesi boş",
+      "rubricEmpty": "puanlama ölçütü boş"
     }
   }
 }

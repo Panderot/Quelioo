@@ -2333,7 +2333,8 @@
       "redistribute": "Scale to 100",
       "anyway": "Export anyway",
       "go": "Continue",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "goTo": "Go to question"
     },
     "problems": {
       "stem": "the question text is empty",
@@ -2345,7 +2346,6 @@
       "answer": "no answer is written",
       "pairs": "at least two pairs are needed",
       "pairEmpty": "a matching item is empty",
-      "extraEmpty": "an extra item is empty",
       "rubricEmpty": "a grading criterion is empty"
     }
   }

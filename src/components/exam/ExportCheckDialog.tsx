@@ -8,11 +8,21 @@ interface ExportCheckDialogProps {
   onRedistribute: () => void
   onContinue: () => void
   onCancel: () => void
+  /** Closes the dialog and takes the teacher to the question. */
+  onGoTo: (id: string) => void
 }
 
 /** Before an export: the points total, an empty course or class and unfinished questions, with the choice to fix, go on anyway or cancel. */
-export default function ExportCheckDialog({ issues, onRedistribute, onContinue, onCancel }: ExportCheckDialogProps) {
-  const { t } = useTranslation()
+export default function ExportCheckDialog({ issues, onRedistribute, onContinue, onCancel, onGoTo }: ExportCheckDialogProps) {
+  const { t, i18n } = useTranslation()
+  // "soru metni boş ve eşleştirme maddesi boş": the reasons joined the way the interface language joins a list.
+  const joinReasons = (reasons: string[]) => {
+    try {
+      return new Intl.ListFormat(i18n.language, { type: 'conjunction' }).format(reasons)
+    } catch {
+      return reasons.join(', ')
+    }
+  }
   const cancelRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
@@ -45,9 +55,14 @@ export default function ExportCheckDialog({ issues, onRedistribute, onContinue, 
             {issues.incomplete.length > 0 && (
               <li data-purpose="exam-export-incomplete">
                 <p>{t('exam.export.incomplete')}</p>
-                <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                <ul className="mt-1 space-y-1">
                   {issues.incomplete.map((entry) => (
-                    <li key={entry.number}>{t('exam.export.problemLine', { number: entry.number, reasons: entry.problems.map((problem) => t(`exam.problems.${problem}`)).join(', ') })}</li>
+                    <li key={entry.id} data-purpose="exam-export-incomplete-line" className="flex flex-wrap items-center justify-between gap-2">
+                      <span>{t('exam.export.problemLine', { number: entry.number, reasons: joinReasons(entry.problems.map((problem) => t(`exam.problems.${problem}`))) })}</span>
+                      <button type="button" data-purpose="exam-export-goto" onClick={() => onGoTo(entry.id)} className="text-xs font-bold text-amber-text hover:underline">
+                        {t('exam.export.goTo')}
+                      </button>
+                    </li>
                   ))}
                 </ul>
               </li>
