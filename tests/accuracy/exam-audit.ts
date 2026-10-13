@@ -27,10 +27,10 @@ import type { AuditSource } from '../fixtures/exam-audit-sources'
 // Cases: turkce-4 matematik-7 fen-6 sosyal-7 ingilizce-8 edebiyat-10 matematik-11 fizik-10 kimya-11 biyoloji-9 tarih-10 cografya-9 felsefe-10 din-9 universite
 //        biyoloji-9:higher biyoloji-9:recall tarih-10:meb v5:1 v5:2 v5:3
 
-const BUDGET_USD = 3.65
+const BUDGET_USD = Number(process.env.EXAM_BUDGET_USD ?? 3.65)
 const OUT = '../QUELIO-TEST-EXAM'
-const COST_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-cost.jsonl'
-const STATE_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-durum.md'
+const COST_FILE = process.env.EXAM_COST_FILE ?? '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-cost.jsonl'
+const STATE_FILE = process.env.EXAM_STATE_FILE ?? '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-durum.md'
 /** One exam costing more than this stops the run: something loops. */
 const MAX_EXAM_USD = 0.1
 // Every rejection the server and the generator make is recorded next to the exam, so a short exam can be explained without another AI call.
@@ -55,6 +55,7 @@ const BASE: Record<string, AuditSource> = {
   universite: sources.ECONOMICS_UNI,
   v5: sources.BIYOLOJI_600,
   'kisa-150': sources.SHORT_150,
+  'g7-kisa': sources.OLASILIK_KISA,
 }
 
 interface Variant {
@@ -68,6 +69,9 @@ interface Variant {
   bloom?: BloomSetting
   meb?: boolean
   distribution?: { text: string; count: number }[]
+  /** Task 7 variety runs: counts and grade of the setup screen; runs of one process chain to each other like repeated clicks on the site. */
+  counts?: Partial<Record<(typeof EXAM_QUESTION_TYPES)[number], number>>
+  level?: ExamSettings['level']
 }
 
 function variantOf(spec: string): Variant {
@@ -76,6 +80,7 @@ function variantOf(spec: string): Variant {
   const [base, extra = ''] = spec.split(':')
   const source = BASE[base]
   if (!source) throw new Error(`unknown case ${spec}`)
+  if (extra.startsWith('g7-')) return { key: spec, source, suffix: extra, ...(base === 'g7-kisa' ? { bloom: '3' as BloomSetting, level: '10' as ExamSettings['level'], counts: { 'short-answer': 5 } } : { bloom: 'balanced' as BloomSetting, counts: { mcq: 3, 'short-answer': 3, 'true-false': 2, 'open-ended': 2 } }) }
   if (base === 'v5') return { key: spec, source, suffix: `run${extra || '1'}` }
   if (extra === 'higher') return { key: spec, source, suffix: 'higher', bloom: 'higher' }
   if (extra === 'higher-adj') return { key: spec, source, suffix: 'higher-adj', bloom: 'higher', adjustTypes: true }
@@ -115,6 +120,8 @@ async function audit(variant: Variant): Promise<void> {
   settings = settingsWithHeader(settings, { school: 'Atatürk Anadolu Lisesi', academicYear: '2026-2027', term: 1, examNo: 1, course: source.course, grade: source.grade, section: 'A', teacher: 'Deneme Öğretmen' })
   settings.outputLanguage = source.outputLanguage
   settings.groups = true
+  if (variant.level) settings.level = variant.level
+  if (variant.counts) settings.counts = { ...Object.fromEntries(EXAM_QUESTION_TYPES.map((type) => [type, 0])), ...variant.counts } as ExamSettings['counts']
   if (variant.bloom) settings.bloom = variant.bloom
   if (variant.adjustTypes) settings.counts = countsForBloom(settings.counts, bloomTargetCounts(settings.bloom, settings.level, EXAM_QUESTION_TYPES.reduce((sum, type) => sum + settings.counts[type], 0)))
   if (variant.meb) {

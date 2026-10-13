@@ -481,3 +481,21 @@ test.describe('concepts', () => {
     expect(questions.filter((entry) => entry.concept === 'Beceri numarası 0').length).toBeLessThanOrEqual(2)
   })
 })
+
+test.describe('Task 7: same source, new exam', () => {
+  test('a section whose fact an earlier exam asked carries that exam\'s stem as <avoid_stems>, and only that', async () => {
+    const server = fake()
+    // Twenty facts for twenty questions: the reused fact cannot be left out of the exam.
+    const plan = fakeFacts(20)
+    const earlier = [
+      { fact: plan[0].fact, form: 'mcq:2', stem: 'Eski soru: 20 kartın 7\'si yıldızlıdır, olasılık kaçtır?' },
+      { fact: 'tamamen başka bir olgu', form: 'mcq:2', stem: 'Başka olguya ait eski soru' },
+    ]
+    await run(server, { earlier, callPlan: async () => plan })
+    const stems = server.sections.flatMap((request) => request.avoidStems)
+    const carrying = server.sections.filter((request) => request.avoidStems.some((stem) => stem.startsWith('Eski soru')))
+    expect(carrying.length).toBeGreaterThan(0)
+    for (const request of carrying) expect((request.facts ?? []).some((entry) => entry.fact === plan[0].fact)).toBe(true)
+    expect(stems).not.toContain('Başka olguya ait eski soru')
+  })
+})

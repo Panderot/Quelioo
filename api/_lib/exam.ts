@@ -345,7 +345,7 @@ function buildSystemPrompt(request: ExamGenerationRequest, count: number): strin
     matchingFactRule,
     part,
     request.avoidFacts.length > 0 && request.facts.length === 0 ? 'The question tests ONE fact of the source that is NOT listed in <avoid_facts> (a different fact, never the same one asked in other words); copy that fact, in a short sentence, into the "fact" field of the question.' : '',
-    'Never write about a fact id or concept listed in <used_concepts>: those are already on the exam. Do not repeat or closely paraphrase any stem listed in <avoid_stems>, and none of your questions may have an answer listed in <avoid_answers> or be built around a term listed in <avoid_terms>: test other facts of the source.',
+    'Never write about a fact id or concept listed in <used_concepts>: those are already on the exam. Do not repeat or closely paraphrase any stem listed in <avoid_stems>; if an assigned fact was asked in one of them, ask it again with other numbers and another situation (never the same figures or the same objects). None of your questions may have an answer listed in <avoid_answers> or be built around a term listed in <avoid_terms>: test other facts of the source.',
     examTypeRules(request.type),
     `JSON shape: {"questions":[${TYPE_SHAPE[request.type]}]}${request.facts.length > 0 ? ' Every question object also has "fact": the assigned fact copied verbatim, and "factId": its id. Return the questions in the order of the facts.' : ''}`,
   ]

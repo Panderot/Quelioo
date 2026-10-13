@@ -27,7 +27,7 @@ export interface ChooseOptions {
 
 const TOPIC_MERGE = 0.6
 const MAX_TOPIC_SHARE = 0.4
-const FACT_REUSE = 0.5
+export const FACT_REUSE = 0.5
 /** A related fact shares at least this much of its key words with the main fact (when it is not of the same concept). */
 const RELATED_MIN_SIMILARITY = 0.12
 

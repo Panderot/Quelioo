@@ -314,3 +314,12 @@ export const SHORT_150: AuditSource = {
   outputLanguage: 'auto',
   text: `Hücre, canlıların yapı ve görev bakımından en küçük birimidir. Hücreyi ilk kez 1665 yılında Robert Hooke bir mantar parçasında gözlemlemiştir. Prokaryot hücrelerde çekirdek zarı yoktur; bakteriler prokaryottur. Ökaryot hücrelerde çekirdek zarı ve zarlı organeller bulunur. Hücre zarı fosfolipit ve proteinlerden oluşur ve seçici geçirgendir. Mitokondri hücresel solunum yapar ve ATP üretir. Kloroplast yalnızca bitki hücrelerinde bulunur ve fotosentezin yapıldığı organeldir. Ribozomlar protein sentezinin yapıldığı küçük organellerdir. Golgi aygıtı hücrede üretilen maddeleri paketler. Lizozom hücre içi sindirimi sağlar. Koful bitki hücrelerinde su depolar. Bitki hücrelerinde hücre zarının dışında selülozdan yapılmış hücre duvarı vardır; hayvan hücrelerinde hücre duvarı bulunmaz. Çekirdek hücrenin yönetim merkezidir ve kalıtım maddesi DNA'yı taşır. Endoplazmik retikulum hücre içinde madde taşır. Hücre zarından madde geçişi difüzyon, ozmos ve aktif taşıma ile olur. Hücreleri ışık mikroskobuyla inceleyebiliriz. Bitki hücresindeki kofullar büyüktür ve su ile çeşitli maddeler depolar. Çekirdekçik ribozom yapımında rol oynar. Hücre büyüdükçe hacmine göre yüzeyi azalır.`,
 }
+
+/** Task 7: short probability text (about 100 words) for the variety measurement. */
+export const OLASILIK_KISA: AuditSource = {
+  folder: 'gorev-7-kisa',
+  course: 'Matematik',
+  grade: '10',
+  outputLanguage: 'auto',
+  text: `Bir olayın olasılığı, istenen durumların sayısının tüm durumların sayısına oranıdır. Bir torbada 5 kırmızı, 3 mavi ve 2 yeşil top olsun. Rastgele çekilen bir topun kırmızı olma olasılığı 5/10 = 1/2'dir. Bir olayın olmama olasılığı 1 eksi olma olasılığıdır; topun yeşil olmama olasılığı 1 − 2/10 = 4/5 olur. Birbirinden bağımsız iki olayın birlikte gerçekleşme olasılığı, olasılıkların çarpımıdır. Çekilen top torbaya geri atılırsa iki çekilişte de mavi gelme olasılığı (3/10) · (3/10) = 9/100 olur. Top geri atılmazsa ikinci çekilişte torbada bir top eksilir; iki çekilişte de kırmızı gelme olasılığı (5/10) · (4/9) = 2/9 bulunur. Ayrık olmayan iki olay için P(A ∪ B) = P(A) + P(B) − P(A ∩ B) formülü kullanılır.`,
+}

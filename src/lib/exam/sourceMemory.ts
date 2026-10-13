@@ -10,6 +10,7 @@ const SHINGLE_WORDS = 3
 export const SAME_SOURCE_SIMILARITY = 0.55
 /** The teacher's last exams from one source that are looked at. */
 export const MEMORY_EXAMS = 5
+const MEMORY_STEM_CHARS = 200
 
 /** 32-bit FNV-1a with a seed (cheap and good enough for a similarity signature). */
 function fnv(text: string, seed: number): number {
@@ -62,6 +63,7 @@ export function buildMemory(text: string, questions: ExamQuestion[]): SourceMemo
     signature: sourceSignature(text),
     facts: used.map((question) => (question.fact as string).slice(0, 300)),
     forms: used.map((question) => `${question.type}:${question.bloomLevel ?? 0}`),
+    stems: used.map((question) => question.stem.slice(0, MEMORY_STEM_CHARS)),
   }
 }
 
@@ -82,8 +84,8 @@ export function memoriesForSource(text: string, stored: StoredMemory[]): StoredM
 }
 
 /** Facts and forms of those exams, in the shape the planner takes. */
-export function earlierFromMemories(memories: StoredMemory[]): { fact: string; form: string }[] {
-  const earlier: { fact: string; form: string }[] = []
-  for (const { memory } of memories) memory.facts.forEach((fact, index) => earlier.push({ fact, form: memory.forms[index] ?? '' }))
+export function earlierFromMemories(memories: StoredMemory[]): { fact: string; form: string; stem?: string }[] {
+  const earlier: { fact: string; form: string; stem?: string }[] = []
+  for (const { memory } of memories) memory.facts.forEach((fact, index) => earlier.push({ fact, form: memory.forms[index] ?? '', ...(memory.stems?.[index] ? { stem: memory.stems[index] } : {}) }))
   return earlier
 }

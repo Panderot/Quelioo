@@ -3,7 +3,7 @@ import type { ExamBlindAnswer, ExamFact, ExamPlanRequest, ExamReview, ExamSectio
 import { balanceMcqLetters } from './balance'
 import { bloomMixOk, bloomTargetCounts, clampBloom, fitDifficulty, planSlots } from './bloom'
 import type { BloomPlan } from './bloom'
-import { chooseFacts, withRelated } from './planning'
+import { FACT_REUSE, chooseFacts, withRelated } from './planning'
 import { distributePoints } from './points'
 import { IGNORED_RULES, MAX_QUESTIONS_PER_CONCEPT, SOFT_RULES, checkExamQuality, conceptCapacity, conceptKey, correctAnswerText, factSimilarity, pairKey, questionsToRewrite, repeatedTerms, trueFalseRange, uncertainPairs } from './quality'
 import type { ExamQualityIssue } from './quality'
@@ -225,8 +225,8 @@ export interface GenerateExamOptions {
   onProgress?: (done: number, total: number, phase: 'plan' | 'write' | 'check') => void
   /** The teacher accepted fewer questions: do not stop when the plan holds fewer facts than the exam has questions. */
   acceptFewer?: boolean
-  /** Facts earlier exams from the same source tested, with the form each had: they come last in the plan (V1). */
-  earlier?: { fact: string; form: string }[]
+  /** Facts earlier exams from the same source tested, with the form and stem each had: they come last in the plan (V1); a reused fact's stems go to its section so it is asked with other numbers and another situation. */
+  earlier?: { fact: string; form: string; stem?: string }[]
   /** Replace the /api/generate calls (the accuracy script runs the server code directly). */
   callSection?: SectionCaller
   callVerify?: VerifyCaller
@@ -350,7 +350,9 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
       while (failure === null && next < pending.length) {
         const section = pending[next++]
         try {
-          const request = requestFor(settings, text, section, state.assigned?.get(section.key) ?? [], [], scenarioVariety(lang, Math.min(3, section.count)))
+          const sectionFacts = state.assigned?.get(section.key) ?? []
+          const askedBefore = (earlier ?? []).filter((old) => old.stem && sectionFacts.some((entry) => factSimilarity(old.fact, entry.fact) >= FACT_REUSE)).map((old) => old.stem as string)
+          const request = requestFor(settings, text, section, sectionFacts, askedBefore, scenarioVariety(lang, Math.min(3, section.count)))
           if (section.type === 'true-false') request.trueFalseAnswers = trueFalsePattern(settings.counts['true-false']).slice(trueFalseOffset(sections, section), trueFalseOffset(sections, section) + section.count)
           const questions = acceptAnswered(request, await callSection(request, signal), new Set())
           state.done.set(section.key, questions)

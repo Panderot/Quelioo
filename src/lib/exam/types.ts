@@ -138,6 +138,8 @@ export interface SourceMemory {
   facts: string[]
   /** The question forms used: "type:bloom". */
   forms: string[]
+  /** The stem of each used question (cut short, parallel to `facts`): a fact asked again must get other numbers and another situation. */
+  stems?: string[]
 }
 
 export interface WrittenExam {

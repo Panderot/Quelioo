@@ -48,7 +48,7 @@ test.describe('V1: the fingerprint of a source', () => {
     stored.push({ id: 'x', createdAt: '2026-10-09T10:00:00Z', memory: buildMemory('Tamamen başka bir konu hakkında yazılmış uzun bir metin. '.repeat(10), [question('başka olgu')]) })
     const found = memoriesForSource(SOURCE, stored)
     expect(found.map((entry) => entry.id)).toEqual(['e6', 'e5', 'e4', 'e3', 'e2'])
-    expect(earlierFromMemories(found)[0]).toEqual({ fact: 'olgu 6', form: 'mcq:2' })
+    expect(earlierFromMemories(found)[0]).toEqual({ fact: 'olgu 6', form: 'mcq:2', stem: 'Soru?' })
   })
 })
 
@@ -66,5 +66,14 @@ test.describe('V2: scenarios vary', () => {
     expect(scenarioVariety('tr', 2, () => 0)).toEqual(['setting: okul laboratuvarı; person: Ayşe', 'setting: mahalle pazarı; person: Burak'])
     expect(scenarioVariety('en', 2, () => 0)).toEqual(['setting: a school laboratory; person: Maya', 'setting: a farmers market; person: Liam'])
     expect(scenarioVariety('hyw', 1, () => 0)[0]).toContain('a school laboratory')
+  })
+})
+
+test.describe('Task 7: a fact asked again comes with the stems it had', () => {
+  test('the memory keeps the stem of every used question and hands it back with its fact', () => {
+    const asked: ExamQuestion = { ...question('olgu bir'), stem: '20 kartın 7\'si yıldızlıdır; yıldızlı kart gelme olasılığı kaçtır?' }
+    const stored: StoredMemory[] = [{ id: 'e1', createdAt: '2026-10-01T10:00:00Z', memory: buildMemory(SOURCE, [asked]) }]
+    expect(earlierFromMemories(stored)[0].stem).toBe(asked.stem)
+    expect(JSON.stringify(buildMemory(SOURCE, [{ ...asked, stem: 'x'.repeat(500) }]))).not.toContain('x'.repeat(201))
   })
 })
