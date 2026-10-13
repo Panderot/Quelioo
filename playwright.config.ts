@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { blockRealAi } from './tests/guards/guard'
+import { blockRealAi } from './tests/guards/guard.js'
 
 const PORT = 5190
 const BASE_URL = `http://localhost:${PORT}`
