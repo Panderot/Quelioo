@@ -1,4 +1,5 @@
 import { apiFetch } from '../lib/auth/apiFetch'
+import { rightColumn } from '../lib/exam/paperText'
 import { EXAM_QUESTION_TYPES } from '../lib/exam/types'
 import type { BloomLevel, ExamDifficulty, ExamLevel, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem } from '../lib/exam/types'
 
@@ -239,6 +240,8 @@ export interface ExamKeyFix {
   id: string
   answerBool?: boolean
   answerIndex?: number
+  /** Matching: the right-column text matched to each left item, in the order of the left items. */
+  matches?: string[]
 }
 
 /** The judge's blind reading of one question. */
@@ -279,6 +282,8 @@ export function examVerifyPayload(request: ExamVerifyRequest): Record<string, un
       ...(question.context ? { context: question.context } : {}),
       ...(question.options ? { options: question.options, ...(request.copyOnly ? {} : { answerIndex: question.answerIndex }) } : {}),
       ...(question.answerBool === undefined ? {} : { answerBool: question.answerBool }),
+      // A matching question: the judge sees the left items and the right column as printed, never which belongs to which.
+      ...(question.type === 'matching' && question.pairs ? { lefts: question.pairs.map((pair) => pair.left), rights: rightColumn(question) } : {}),
       ...(written || request.copyOnly ? { expected: (request.copyOnly ? correctOptionText(question) : question.answer).slice(0, 400) } : {}),
       // A calculation: the judge works it out blind and the result is compared with the key.
       ...((question.type === 'short-answer' || question.type === 'fill-blanks') && NUMERIC_ANSWER.test(question.answer.trim()) ? { solve: true } : {}),
@@ -305,6 +310,7 @@ export function parseVerifyResult(body: Record<string, unknown>): ExamVerifyResu
         id: entry.id,
         ...(typeof entry.answerBool === 'boolean' ? { answerBool: entry.answerBool } : {}),
         ...(typeof entry.answerIndex === 'number' ? { answerIndex: entry.answerIndex } : {}),
+        ...(Array.isArray(entry.matches) && entry.matches.every((match) => typeof match === 'string') ? { matches: entry.matches as string[] } : {}),
       })
     }
   }

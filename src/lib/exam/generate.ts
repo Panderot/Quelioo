@@ -8,6 +8,7 @@ import { distributePoints } from './points'
 import { IGNORED_RULES, MAX_QUESTIONS_PER_CONCEPT, SOFT_RULES, checkExamQuality, conceptCapacity, conceptKey, correctAnswerText, factSimilarity, pairKey, questionsToRewrite, repeatedTerms, trueFalseRange, uncertainPairs } from './quality'
 import type { ExamQualityIssue } from './quality'
 import { examPaperLang } from './paperLabels'
+import { matchingOrder, rightItems } from './paperText'
 import { normalize } from './text'
 import { EXAM_QUESTION_TYPES } from './types'
 import type { BloomLevel, ExamDifficulty, ExamQuestion, ExamQuestionType, ExamSettings } from './types'
@@ -474,11 +475,32 @@ function pairText(question: ExamQuestion): string {
   return `${context}${question.stem} => ${correctAnswerText(question)}`.slice(0, 600)
 }
 
+/** A matching question whose saved pairs disagree with the judge's reading of the source: the pairs, the answer and the grading criteria follow
+ * the reading; the right column keeps the same texts in the same places on the paper. */
+function rematch(question: ExamQuestion, matches: string[]): ExamQuestion {
+  const pairs = question.pairs ?? []
+  const items = rightItems(question)
+  if (matches.length !== pairs.length || new Set(matches).size !== matches.length || matches.some((match) => !items.includes(match))) return question
+  if (pairs.every((pair, index) => pair.right === matches[index])) return question
+  const shown = matchingOrder(question).map((index) => items[index])
+  const extras = items.filter((item) => !matches.includes(item))
+  const next = [...matches, ...extras]
+  return {
+    ...question,
+    pairs: pairs.map((pair, index) => ({ left: pair.left, right: matches[index] })),
+    extras,
+    rightOrder: shown.map((text) => next.indexOf(text)),
+    answer: pairs.map((pair, index) => `${pair.left} = ${matches[index]}`).join('; '),
+    rubric: pairs.map((pair, index) => ({ text: `${pair.left} = ${matches[index]}`, points: question.rubric[index]?.points ?? 1 })),
+  }
+}
+
 /** Corrects a key from the second reading of the source. */
-function applyFix(question: ExamQuestion, result: ExamVerifyResult): ExamQuestion {
+export function applyFix(question: ExamQuestion, result: ExamVerifyResult): ExamQuestion {
   const fix = result.fixes.find((entry) => entry.id === question.id)
   if (!fix) return question
   if (question.type === 'true-false' && fix.answerBool !== undefined) return { ...question, answerBool: fix.answerBool, answer: String(fix.answerBool) }
+  if (question.type === 'matching' && fix.matches) return rematch(question, fix.matches)
   if (question.type === 'mcq' && fix.answerIndex !== undefined && question.options && fix.answerIndex < question.options.length) return { ...question, answerIndex: fix.answerIndex, answer: question.options[fix.answerIndex] }
   return question
 }
