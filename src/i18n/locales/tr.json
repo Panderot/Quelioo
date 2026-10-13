@@ -2126,7 +2126,7 @@
         "higher": "Üst düzey düşünme (Analiz, Değerlendirme, Yaratma)"
       },
       "bloomPreview": "Dağılım: {{parts}}",
-      "bloomCapOpen": "{{type}} soruları en fazla {{cap}} düzeyinde olabilir. {{wanted}} için açık uçlu soru ekleyin.",
+      "bloomCapOpen": "{{type}} soruları en fazla {{cap}} düzeyinde olabilir. Değerlendirme ve Yaratma açık uçlu sorularla ölçülür.",
       "bloomCapMcq": "{{type}} soruları en fazla {{cap}} düzeyinde olabilir. {{wanted}} için çoktan seçmeli ya da açık uçlu soru ekleyin.",
       "formatLabel": "Sınav biçimi",
       "format": {

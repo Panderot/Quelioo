@@ -2126,7 +2126,7 @@
         "higher": "Higher-order thinking (Analyze, Evaluate, Create)"
       },
       "bloomPreview": "Mix: {{parts}}",
-      "bloomCapOpen": "{{type}} questions can be at most at the {{cap}} level. Add open-ended questions for {{wanted}}.",
+      "bloomCapOpen": "{{type}} questions can be at most at the {{cap}} level. Evaluate and Create are measured with open-ended questions.",
       "bloomCapMcq": "{{type}} questions can be at most at the {{cap}} level. Add multiple-choice or open-ended questions for {{wanted}}.",
       "formatLabel": "Exam format",
       "format": {

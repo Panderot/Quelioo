@@ -27,7 +27,7 @@ import type { AuditSource } from '../fixtures/exam-audit-sources'
 // Cases: turkce-4 matematik-7 fen-6 sosyal-7 ingilizce-8 edebiyat-10 matematik-11 fizik-10 kimya-11 biyoloji-9 tarih-10 cografya-9 felsefe-10 din-9 universite
 //        biyoloji-9:higher biyoloji-9:recall tarih-10:meb v5:1 v5:2 v5:3
 
-const BUDGET_USD = 3.1
+const BUDGET_USD = 3.65
 const OUT = '../QUELIO-TEST-EXAM'
 const COST_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-cost.jsonl'
 const STATE_FILE = '../QUELIO-PROMPTS/quelio-exam-duzeltme-1-durum.md'
@@ -165,6 +165,16 @@ async function audit(variant: Variant): Promise<void> {
     return body.facts
   }
 
+  // A later V5 exam in a new process remembers the earlier ones from their saved files.
+  const runNumber = /^run(\d+)$/.exec(variant.suffix)?.[1]
+  if (runNumber) {
+    for (let earlierRun = 1; earlierRun < Number(runNumber); earlierRun += 1) {
+      const file = `${OUT}/${source.folder}/run${earlierRun}.json`
+      if (!existsSync(file) || memories.some((entry) => entry.id === `saved-${earlierRun}`)) continue
+      const saved = JSON.parse(readFileSync(file, 'utf8')) as WrittenExam
+      if (saved.settings.sourceMemory) memories.push({ id: `saved-${earlierRun}`, createdAt: saved.createdAt, memory: saved.settings.sourceMemory as NonNullable<ExamSettings['sourceMemory']> })
+    }
+  }
   const same = variant.fresh ? [] : memoriesForSource(source.text, memories)
   const earlier = earlierFromMemories(same)
   const state: ExamGenerationState = { done: new Map() }

@@ -164,6 +164,10 @@ export function chooseFacts<T extends PlanFact>(plan: T[], slots: QuestionSlotIn
     }
   }
 
+  // Variety never costs a question, and never more reuse than the source forces: the facts earlier exams used come last, the least-used first.
+  // Exam 2 reuses only (questions - unused facts) facts, exam 3 and later the least-used ones.
+  if (!rows && earlier.length > 0) minimiseReuse(pickedByGroup, candidates, concepts)
+
   // Heavy slots first, each to a different topic until every topic has one, then to the topic with the most questions still to place.
   const heavyFirst = slots.map((slot, index) => ({ slot, index })).sort((a, b) => questionWeight(b.slot) - questionWeight(a.slot) || a.index - b.index)
   const remaining = pickedByGroup.map((group) => [...group])
@@ -182,6 +186,33 @@ export function chooseFacts<T extends PlanFact>(plan: T[], slots: QuestionSlotIn
   }
   separateRepeatedForms(result, slots, earlier)
   return { facts: result.filter((entry): entry is T => entry !== undefined), rowShortfall }
+}
+
+/** Swaps picked facts for unpicked ones that earlier exams used less, until no swap lowers the reuse (topics may shift by a question; the total never changes). */
+function minimiseReuse<T extends PlanFact>(picked: T[][], candidates: { entry: T; penalty: number; index: number }[], concepts: Map<string, number>): void {
+  const penaltyOf = new Map(candidates.map((candidate) => [candidate.entry, candidate.penalty]))
+  const taken = new Set(picked.flat())
+  const spare = candidates.filter((candidate) => !taken.has(candidate.entry)).sort((a, b) => a.penalty - b.penalty || a.index - b.index)
+  for (const group of picked) {
+    for (const old of [...group]) {
+      const oldPenalty = penaltyOf.get(old) ?? 0
+      if (oldPenalty === 0) continue
+      const oldKey = conceptKey(old.concept)
+      const at = spare.findIndex((candidate) => {
+        if (candidate.penalty >= oldPenalty) return false
+        const key = conceptKey(candidate.entry.concept)
+        return !key || key === oldKey || (concepts.get(key) ?? 0) < MAX_QUESTIONS_PER_CONCEPT
+      })
+      if (at < 0) continue
+      const [fresh] = spare.splice(at, 1)
+      group[group.indexOf(old)] = fresh.entry
+      if (oldKey) concepts.set(oldKey, Math.max(0, (concepts.get(oldKey) ?? 1) - 1))
+      const key = conceptKey(fresh.entry.concept)
+      if (key) concepts.set(key, (concepts.get(key) ?? 0) + 1)
+      spare.push({ entry: old, penalty: oldPenalty, index: candidates.find((candidate) => candidate.entry === old)?.index ?? 0 })
+      spare.sort((a, b) => a.penalty - b.penalty || a.index - b.index)
+    }
+  }
 }
 
 /** A fact an earlier exam used is reused only in another form: swap slots until no reused fact sits in the form it had. */

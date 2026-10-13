@@ -441,7 +441,7 @@ function ExamSetup({ setupId }: { setupId: string }) {
           )}
           {bloomPlan.capped.map((entry) => (
             <p key={`${entry.type}-${entry.wanted}`} data-purpose="exam-bloom-note" className="text-xs font-semibold text-navy">
-              {t(entry.wanted === 6 ? 'exam.setup.bloomCapOpen' : 'exam.setup.bloomCapMcq', { type: t(COUNT_LABEL_KEYS[entry.type]), cap: bloomName(entry.used), wanted: bloomName(entry.wanted) })}
+              {t(entry.wanted >= 5 ? 'exam.setup.bloomCapOpen' : 'exam.setup.bloomCapMcq', { type: t(COUNT_LABEL_KEYS[entry.type]), cap: bloomName(entry.used), wanted: bloomName(entry.wanted) })}
             </p>
           ))}
           {bloomPlan.capped.length > 0 && !meb && (

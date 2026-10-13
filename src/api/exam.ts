@@ -63,6 +63,8 @@ interface ExamRequestBase {
 /** One statement of the source that a question tests. */
 export interface ExamSectionFact {
   id?: string
+  /** Answer key terms of the fact; the question never uses them in its stem or scenario. */
+  keys?: string[]
   fact: string
   topic: string
   concept?: string
@@ -319,6 +321,8 @@ export function parseVerifyResult(body: Record<string, unknown>): ExamVerifyResu
 }
 
 export interface ExamFact {
+  /** Answer key terms (1-3 words): never written in the stem or the scenario. */
+  keys?: string[]
   /** Id in the plan (f1, f2, ...); set by the generator. */
   id?: string
   fact: string
@@ -348,7 +352,7 @@ export interface ExamPlanRequest {
 export async function planExamFacts(request: ExamPlanRequest, signal?: AbortSignal): Promise<ExamFact[]> {
   const body = await post({ mode: 'exam_plan', text: request.text, level: request.level, outputLanguage: request.outputLanguage, topics: request.topics, count: request.count, ...(request.strictTopics ? { strictTopics: true } : {}), ...(request.existing && request.existing.length > 0 ? { existing: request.existing } : {}), ...(request.focusTopics && request.focusTopics.length > 0 ? { focusTopics: request.focusTopics } : {}) }, signal)
   const facts = Array.isArray(body.facts)
-    ? body.facts.filter(isRecord).map((entry) => ({ fact: text(entry.fact).trim(), topic: text(entry.topic).trim(), ...(text(entry.concept).trim() ? { concept: text(entry.concept).trim() } : {}) })).filter((entry) => entry.fact)
+    ? body.facts.filter(isRecord).map((entry) => ({ fact: text(entry.fact).trim(), topic: text(entry.topic).trim(), ...(text(entry.concept).trim() ? { concept: text(entry.concept).trim() } : {}), ...(Array.isArray(entry.keys) && entry.keys.some((key) => typeof key === 'string' && key.trim()) ? { keys: entry.keys.filter((key): key is string => typeof key === 'string' && key.trim().length > 0).map((key) => key.trim()).slice(0, 3) } : {}) })).filter((entry) => entry.fact)
     : []
   if (facts.length === 0) throw new ExamApiError('parse')
   return facts

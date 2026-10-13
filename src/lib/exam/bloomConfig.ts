@@ -12,15 +12,15 @@ export const BLOOM_MIX: Record<GradeBand, [number, number, number, number, numbe
 }
 
 /** "Üst düzey düşünme": how the three upper levels share the questions (Analiz / Değerlendirme / Yaratma, percent). */
-export const HIGHER_ORDER_SPLIT: [number, number, number] = [40, 35, 25]
+export const HIGHER_ORDER_SPLIT: [number, number, number] = [60, 25, 15]
 
-/** The highest level each question type can reach. Only open-ended questions can be Yaratma. */
+/** The highest level each question type can reach. Multiple choice measures up to Analiz; Değerlendirme and Yaratma need an open-ended answer. */
 export const BLOOM_CAP: Record<ExamQuestionType, BloomLevel> = {
   'true-false': 2,
   'fill-blanks': 2,
   matching: 2,
   'short-answer': 3,
-  mcq: 5,
+  mcq: 4,
   'open-ended': 6,
 }
 

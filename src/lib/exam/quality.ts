@@ -157,6 +157,14 @@ function questionText(question: ExamQuestion): string {
   return [question.context, question.stem, ...(question.options ?? []), ...(question.pairs ?? []).flatMap((pair) => [pair.left, pair.right]), question.answer, ...question.rubric.map((item) => item.text)].filter(Boolean).join(' ')
 }
 
+/** The judge's "the answer can be copied" is believed for a scenario question, or when a word of the answer really stands in the stem; a plain recall question that shares no word with its answer cannot be copied from. */
+function judgeLeakCredible(question: ExamQuestion): boolean {
+  if (question.context) return true
+  const stem = contentStems(question.stem)
+  for (const term of contentStems(correctAnswerText(question), 4)) if (stem.has(term)) return true
+  return false
+}
+
 /** A question written for a fact has to carry the key terms of that fact; a share below this means the writer drifted to another fact. */
 export const FACT_DRIFT_MIN = 0.15
 
@@ -433,7 +441,7 @@ export function checkExamQuality(questions: ExamQuestion[], counts: Record<ExamQ
   }
 
   for (const question of questions) {
-    if (answerLeaks(question) || options.copyable?.get(question.id) === true) flag('answer-leak', question)
+    if (answerLeaks(question) || (options.copyable?.get(question.id) === true && judgeLeakCredible(question))) flag('answer-leak', question)
     if (question.type === 'short-answer' && shortAnswerProblems(question).some((problem) => problem !== 'rubric-items' && problem !== 'accepted-many')) flag('short-answer', question)
     if (question.type === 'fill-blanks' && fillBlankProblems(question).length > 0) flag('fill-blank', question)
     if (question.type === 'matching' && matchingProblems(question).length > 0) flag('matching', question)

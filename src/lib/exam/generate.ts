@@ -25,6 +25,9 @@ export const MAX_PLAN_FACTS = 60
 export const MAX_REPAIR_ROUNDS = 3
 /** Extra rounds, only while questions are still missing and unused facts are left: a missing question is worth another try, a polish is not. */
 export const MAX_FILL_ROUNDS = 3
+/** Exams up to this many questions get SMALL_EXAM_ROUNDS repair rounds in all. */
+const SMALL_EXAM = 20
+const SMALL_EXAM_ROUNDS = 4
 /** Extra plan calls for more distinct facts when the spare ones run out (twice in all). */
 const MAX_PLAN_EXTENSIONS = 2
 /** A fact whose question failed and sits on no question is handed out again at most this many times. */
@@ -373,7 +376,15 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   // wrong key is corrected from that reading), every question is classified (level, difficulty, giveaway), uncertain pairs are put to a judge, and whatever still breaks a rule is rewritten.
   let issues = await issuesOf(current, settings, text, judge, calls, targets, signal)
   onIssues?.(0, issues)
-  for (let round = 0; round < MAX_REPAIR_ROUNDS + MAX_FILL_ROUNDS && issues.length > 0; round += 1) {
+  // Cost: an exam of up to 20 questions gets 4 rounds at most, and a round that brings no new question without a problem is the last.
+  const maxRounds = total <= SMALL_EXAM ? SMALL_EXAM_ROUNDS : MAX_REPAIR_ROUNDS + MAX_FILL_ROUNDS
+  const cleanIn = (list: ExamQuestion[], found: ExamQualityIssue[]) => list.length - new Set(found.map((issue) => issue.id).filter((id): id is string => id !== null)).size
+  let lastClean = -1
+  for (let round = 0; round < maxRounds && issues.length > 0; round += 1) {
+    const clean = cleanIn(current, issues)
+    // (Only while the issues are polish: a missing question or one that breaks a hard rule keeps being worth a try.)
+    if (round >= 1 && clean <= lastClean && !issues.some((issue) => issue.rule === 'count' || !SOFT_RULES.includes(issue.rule))) break
+    lastClean = clean
     // Past the usual rounds only a missing question, or one that still breaks a hard rule (it would be left out), is worth another try.
     if (round >= MAX_REPAIR_ROUNDS && !issues.some((issue) => issue.rule === 'count' || !SOFT_RULES.includes(issue.rule))) break
     // Polish rules (a subject word used a little too often, a stem opening used twice) are worth one rewrite, not more.
@@ -405,7 +416,13 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
     onIssues?.(round + 1, issues)
   }
   // Whatever still disagrees with the judge after the rounds is labelled as the judge reads it: a true label matters more than the planned mix.
+  // (A label that would make a question break a hard rule it did not break before stays as it was.)
+  const hardIds = (list: ExamQuestion[]) => new Set(checkExamQuality(list, settings.counts, { topics: settings.topics, judged: judge.judged, copyable: copyableOf(judge) }).filter((issue) => !IGNORED_RULES.includes(issue.rule) && !SOFT_RULES.includes(issue.rule)).map((issue) => issue.id))
+  const hardBefore = hardIds(current)
+  const snapshot = [...current]
   relabelToJudge(current, judge.reviews)
+  const hardAfter = hardIds(current)
+  for (const [index, question] of current.entries()) if (hardAfter.has(question.id) && !hardBefore.has(question.id)) current[index] = snapshot[index]
   const blocking = issues.filter((issue) => !SOFT_RULES.includes(issue.rule))
   const failing = new Set(blocking.map((issue) => issue.id).filter((id): id is string => id !== null))
   let kept = current.filter((question) => !failing.has(question.id))
@@ -421,6 +438,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
       return { questions: scored, requested: total, missing: 0 }
     }
     // The pair order of the sorted exam can flag another question than the rounds did: those are left out like any question that still fails, never the whole exam.
+    onIssues?.(99, final)
     const flagged = new Set(final.map((issue) => issue.id).filter((id): id is string => id !== null))
     kept = kept.filter((question) => !flagged.has(question.id))
     if (kept.length === 0) throw new ExamApiError('quality', final.map((issue) => issue.rule))
@@ -704,7 +722,9 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
       const base = requestFor(settings, text, { key: `fix-${type}`, type, count, difficulty, slots: sectionSlots, partIndex: 0, partCount: 1 }, facts, facts.some((fact) => (retried.get(fact.fact) ?? 0) > 0) ? [...avoidStems, ...failedStems] : avoidStems, scenarioVariety(lang, Math.min(3, count)))
       // A fact that failed once is written without a scenario: the scenario is what usually gave the first try away.
       const again = facts.some((fact) => (retried.get(fact.fact) ?? 0) > 0)
-      requests.push({ type, request: { ...base, ...(again ? { contextBased: false } : {}), avoidAnswers: avoidAnswers.slice(-40), avoidTerms: avoidTerms.slice(0, 10), avoidConcepts, ...(type === 'true-false' ? { trueFalseAnswers: answers.slice(done, done + count) } : {}) } })
+      // A rewrite is written without a scenario unless its slot is level 4-6 (where the case is the point): the scenario is what most often breaks a rule.
+      const needsCase = sectionSlots.some((slot) => slot.bloom >= 4)
+      requests.push({ type, request: { ...base, ...(again || !needsCase ? { contextBased: false } : {}), avoidAnswers: avoidAnswers.slice(-40), avoidTerms: avoidTerms.slice(0, 10), avoidConcepts, ...(type === 'true-false' ? { trueFalseAnswers: answers.slice(done, done + count) } : {}) } })
     }
   }
   const fresh: ExamQuestion[][] = new Array(requests.length).fill(null).map(() => [])

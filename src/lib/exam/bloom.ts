@@ -62,7 +62,7 @@ export function planBloom(counts: Record<ExamQuestionType, number>, targets: num
   return { perType, achieved, capped }
 }
 
-/** The type counts moved just far enough that the target levels can be reached: open-ended questions for Yaratma, multiple-choice or open-ended for Analiz and Değerlendirme, short-answer or above for Uygulama. The total stays; the teacher can change the counts back. */
+/** The type counts moved just far enough that the target levels can be reached: open-ended questions for Değerlendirme and Yaratma, multiple-choice or open-ended for Analiz, short-answer or above for Uygulama. The total stays; the teacher can change the counts back. */
 export function countsForBloom(counts: Record<ExamQuestionType, number>, targets: number[]): Record<ExamQuestionType, number> {
   const result = { ...counts }
   const sum = (from: number) => targets.slice(from).reduce((a, b) => a + b, 0)
@@ -77,8 +77,8 @@ export function countsForBloom(counts: Record<ExamQuestionType, number>, targets
     }
   }
   const lowest: ExamQuestionType[] = ['true-false', 'fill-blanks', 'matching']
-  // Yaratma: open-ended only.
-  move('open-ended', sum(5) - result['open-ended'], [...lowest, 'short-answer', 'mcq'])
+  // Değerlendirme and Yaratma: open-ended only.
+  move('open-ended', sum(4) - result['open-ended'], [...lowest, 'short-answer', 'mcq'])
   // Analiz and above: multiple-choice or open-ended.
   move('mcq', sum(3) - result['open-ended'] - result.mcq, [...lowest, 'short-answer'])
   // Uygulama and above: short-answer, multiple-choice or open-ended.

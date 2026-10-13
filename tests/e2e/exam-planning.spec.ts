@@ -17,10 +17,15 @@ test.describe('types adjusted to a high Bloom target', () => {
     expect(planBloom(DEFAULT_COUNTS, targets).capped.length).toBeGreaterThan(0)
     const counts = countsForBloom(DEFAULT_COUNTS, targets)
     expect(total(counts)).toBe(20)
-    expect(counts['open-ended']).toBeGreaterThanOrEqual(targets[5])
+    // Evaluate and Create need an open-ended answer; Analyze can be multiple choice.
+    expect(targets).toEqual([0, 0, 0, 12, 5, 3])
+    expect(counts['open-ended']).toBeGreaterThanOrEqual(targets[4] + targets[5])
     expect(counts['open-ended'] + counts.mcq).toBeGreaterThanOrEqual(targets[3] + targets[4] + targets[5])
+    expect(counts).toMatchObject({ 'open-ended': 8, mcq: 12, 'true-false': 0, 'short-answer': 0 })
     expect(planBloom(counts, targets).capped).toEqual([])
     expect(planBloom(counts, targets).achieved).toEqual(targets)
+    // At least 70 % of the adjusted exam is at level 4 or above.
+    expect(planBloom(counts, targets).achieved.slice(3).reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(14)
   })
 
   test('a mix the types already reach is left as it is', () => {
@@ -84,7 +89,7 @@ test.describe('E2: what each type can reach', () => {
   test('Yaratma (6) on every question: only open-ended can, the others get their highest level and the plan says so', () => {
     const plan = planBloom(DEFAULT_COUNTS, bloomTargetCounts('6', '9', 20))
     expect(plan.perType['open-ended']).toEqual([6, 6, 6, 6, 6])
-    expect(plan.perType.mcq).toEqual([5, 5, 5, 5, 5])
+    expect(plan.perType.mcq).toEqual([4, 4, 4, 4, 4])
     expect(plan.perType['short-answer']).toEqual([3, 3, 3, 3, 3])
     expect(plan.perType['true-false']).toEqual([2, 2, 2, 2, 2])
     expect(plan.capped.map((entry) => entry.type).sort()).toEqual(['mcq', 'short-answer', 'true-false'])
@@ -211,6 +216,37 @@ test.describe('A6 and V1: one question per concept, earlier facts last', () => {
     expect(reused).toHaveLength(20)
     const mcqSlotIndexes = slots.map((slot, index) => ({ slot, index })).filter(({ slot }) => slot.type === 'mcq' && slot.bloom === 2).map(({ index }) => index)
     if (mcqSlotIndexes.length > 0 && mcqSlotIndexes.length < 20) expect(mcqSlotIndexes.some((index) => reused[index] !== undefined)).toBe(true)
+  })
+})
+
+test.describe('V1: variety never costs a question and reuses only what the source forces', () => {
+  const topics = ['A', 'B', 'C', 'D']
+  const plan: PlanFact[] = Array.from({ length: 39 }, (_, i) => fact(i, `Konu ${topics[i % 4]}`))
+  const { slots } = planSlots(DEFAULT_COUNTS, bloomTargetCounts('balanced', '9', 20), { easy: 30, medium: 50, hard: 20 })
+  const earlierOf = (exams: PlanFact[][]) => exams.flatMap((facts) => facts.map((entry) => ({ fact: entry.fact, form: 'mcq:2' })))
+
+  test('exam 2 reuses nothing while enough unused facts exist, and exam 3 takes the least-used facts first', () => {
+    const first = chooseFacts(plan, slots).facts
+    expect(first).toHaveLength(20)
+    const second = chooseFacts(plan, slots, { earlier: earlierOf([first]) }).facts
+    expect(second).toHaveLength(20)
+    // 39 facts, 20 used: 19 are unused, so exam 2 is forced to reuse exactly one (at most two more are allowed).
+    const reused2 = second.filter((entry) => first.includes(entry)).length
+    expect(reused2).toBeGreaterThanOrEqual(1)
+    expect(reused2).toBeLessThanOrEqual(1 + 2)
+    const third = chooseFacts(plan, slots, { earlier: earlierOf([first, second]) }).facts
+    expect(third).toHaveLength(20)
+    // Exam 3 prefers facts used once to facts used twice.
+    const usedTwice = third.filter((entry) => first.includes(entry) && second.includes(entry)).length
+    expect(usedTwice).toBeLessThanOrEqual(1)
+  })
+
+  test('a source that holds exactly as many facts as the exam has questions still gives a complete exam (everything is reused, in other forms)', () => {
+    const small: PlanFact[] = Array.from({ length: 20 }, (_, i) => fact(i, `Konu ${topics[i % 4]}`))
+    const first = chooseFacts(small, slots).facts
+    const second = chooseFacts(small, slots, { earlier: earlierOf([first]) }).facts
+    expect(second).toHaveLength(20)
+    expect(new Set(second.map((entry) => entry.fact)).size).toBe(20)
   })
 })
 
