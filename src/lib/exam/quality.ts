@@ -38,7 +38,7 @@ export type ExamQualityRule =
   | 'bloom'
 
 /** Rules that trigger a rewrite but never stop an exam from being saved: a source that really is about one thing, and polish rules that a question may still break after the rewrite rounds. */
-export const SOFT_RULES: ExamQualityRule[] = ['term-repeat', 'rubric', 'tf-claims', 'tf-absolute', 'mcq-options', 'mcq-longest', 'mcq-stems', 'mcq-negative', 'mcq-balance', 'bloom']
+export const SOFT_RULES: ExamQualityRule[] = ['term-repeat', 'rubric', 'tf-claims', 'tf-absolute', 'mcq-options', 'mcq-longest', 'mcq-stems', 'mcq-negative', 'mcq-balance', 'bloom', 'true-false-balance', 'concept-cap']
 
 /** Soft rules that are never worth a rewrite (the plan gives every question its own fact, so a repeated word is a topic). */
 export const IGNORED_RULES: ExamQualityRule[] = ['points', 'term-repeat']
@@ -504,7 +504,8 @@ export function checkExamQuality(questions: ExamQuestion[], counts: Record<ExamQ
 /** Ids of the questions that have to be rewritten (the points rule is repaired without the model). */
 export function questionsToRewrite(issues: ExamQualityIssue[]): Set<string> {
   const ids = new Set<string>()
-  for (const issue of issues) if (issue.id) ids.add(issue.id)
+  // Only a question that breaks a hard rule is written again; Bloom, variety and polish never start a rewrite.
+  for (const issue of issues) if (issue.id && !SOFT_RULES.includes(issue.rule)) ids.add(issue.id)
   return ids
 }
 

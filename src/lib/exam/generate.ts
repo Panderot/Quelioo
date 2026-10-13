@@ -25,9 +25,6 @@ export const MAX_PLAN_FACTS = 60
 export const MAX_REPAIR_ROUNDS = 3
 /** Extra rounds, only while questions are still missing and unused facts are left: a missing question is worth another try, a polish is not. */
 export const MAX_FILL_ROUNDS = 3
-/** Exams up to this many questions get SMALL_EXAM_ROUNDS repair rounds in all. */
-const SMALL_EXAM = 20
-const SMALL_EXAM_ROUNDS = 4
 /** Extra plan calls for more distinct facts when the spare ones run out (twice in all). */
 const MAX_PLAN_EXTENSIONS = 2
 /** A fact whose question failed and sits on no question is handed out again at most this many times. */
@@ -376,20 +373,10 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
   // wrong key is corrected from that reading), every question is classified (level, difficulty, giveaway), uncertain pairs are put to a judge, and whatever still breaks a rule is rewritten.
   let issues = await issuesOf(current, settings, text, judge, calls, targets, signal)
   onIssues?.(0, issues)
-  // Cost: an exam of up to 20 questions gets 4 rounds at most, and a round that brings no new question without a problem is the last.
-  const maxRounds = total <= SMALL_EXAM ? SMALL_EXAM_ROUNDS : MAX_REPAIR_ROUNDS + MAX_FILL_ROUNDS
-  const cleanIn = (list: ExamQuestion[], found: ExamQualityIssue[]) => list.length - new Set(found.map((issue) => issue.id).filter((id): id is string => id !== null)).size
-  let lastClean = -1
-  for (let round = 0; round < maxRounds && issues.length > 0; round += 1) {
-    const clean = cleanIn(current, issues)
-    // (Only while the issues are polish: a missing question or one that breaks a hard rule keeps being worth a try.)
-    if (round >= 1 && clean <= lastClean && !issues.some((issue) => issue.rule === 'count' || !SOFT_RULES.includes(issue.rule))) break
-    lastClean = clean
-    // Past the usual rounds only a missing question, or one that still breaks a hard rule (it would be left out), is worth another try.
-    if (round >= MAX_REPAIR_ROUNDS && !issues.some((issue) => issue.rule === 'count' || !SOFT_RULES.includes(issue.rule))) break
-    // Polish rules (a subject word used a little too often, a stem opening used twice) are worth one rewrite, not more.
-    // A level the judge reads lower than the slot's keeps being worth a rewrite.
-    if (round >= 1 && issues.every((issue) => SOFT_RULES.includes(issue.rule) && issue.rule !== 'bloom')) break
+  // A round starts only for a missing question or a hard-rule break (correct key, no blind key, no repeat, no giveaway, a short answer that is short);
+  // Bloom, variety and polish never open one. A complete exam comes first.
+  for (let round = 0; round < MAX_REPAIR_ROUNDS + MAX_FILL_ROUNDS && issues.length > 0; round += 1) {
+    if (!issues.some((issue) => issue.rule === 'count' || !SOFT_RULES.includes(issue.rule))) break
     const drop = questionsToRewrite(issues)
     const before = current
     // A regenerated slot always gets a NEW unused fact; when the spare ones run out, one small plan call looks for more.
@@ -612,9 +599,9 @@ async function issuesOf(list: ExamQuestion[], settings: ExamSettings, text: stri
   // Where the correct multiple-choice option sits is repaired by moving options, never by a rewrite.
   const balanced = balanceMcqLetters(list)
   for (const [index, question] of balanced.entries()) list[index] = question
-  const rewriteLevels = reconcileLevels(list, judge.reviews, targets.achieved)
+  // A level the judge reads differently is relabelled where the mix allows; it never starts a rewrite (the paper shows the judge's real levels).
+  reconcileLevels(list, judge.reviews, targets.achieved)
   const found = checkExamQuality(list, settings.counts, { topics: settings.topics, judged: judge.judged, copyable: copyableOf(judge) }).filter((issue) => !IGNORED_RULES.includes(issue.rule))
-  for (const id of rewriteLevels) found.push({ rule: 'bloom', id })
   for (const question of list) if (solveMismatch(question, judge.reviews.get(question.id))) found.push({ rule: 'key-check', id: question.id })
   return found
 }

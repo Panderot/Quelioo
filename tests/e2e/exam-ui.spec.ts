@@ -403,7 +403,7 @@ async function onlyTrueFalse(page: import('@playwright/test').Page, setupId: str
   await fillSource(page)
 }
 
-test('a quality-check failure (the model ignores the planned answers and writes only "true") is rewritten by one targeted call, only for the surplus', async ({ page }) => {
+test('the true/false balance is a soft goal: a writer that ignores the planned answers still gives a complete exam, with no extra rewrite call', async ({ page }) => {
   await onlyTrueFalse(page, 'q1', 4)
   const calls: { mode: string; count: number; facts?: { fact: string }[]; trueFalseAnswers?: boolean[]; avoidAnswers?: string[]; avoidStems?: string[] }[] = []
   let serial = 100
@@ -424,16 +424,11 @@ test('a quality-check failure (the model ignores the planned answers and writes 
   })
   await page.locator('[data-purpose="exam-generate"]').click()
   await expect(page).toHaveURL(/\/exams\/[0-9a-f-]{36}$/)
-  expect(calls).toHaveLength(2)
-  // The plan decided the answers before anything was written: two true, two false.
+  // The plan decided the answers before anything was written: two true, two false. Balance never opens a repair round.
+  expect(calls).toHaveLength(1)
   expect(calls[0].trueFalseAnswers).toEqual([false, true, false, true])
-  expect(calls[1].count).toBe(2)
-  expect(calls[1].trueFalseAnswers).toEqual([false, false])
-  // Only the questions that stay are avoided.
-  expect(calls[1].avoidStems?.length).toBe(2)
   const stored = (await storedExams(page))[0]
-  expect(stored.questions.filter((question) => question.answerBool === true)).toHaveLength(2)
-  expect(stored.questions.filter((question) => question.answerBool === false)).toHaveLength(2)
+  expect(stored.questions).toHaveLength(4)
   expect(stored.questions.reduce((sum, question) => sum + question.points, 0)).toBe(100)
 })
 
@@ -453,11 +448,15 @@ test('questions that still break a rule after three rewrites are left out: the s
     }
     calls += 1
     const { fakeQuestion } = await import('./examHelpers')
-    const questions = Array.from({ length: payload.count }, (_, index) => ({ ...fakeQuestion('true-false', `${(serial += 1)}`), fact: payload.facts?.[index]?.fact, answerBool: true }))
+    // A hard defect (a dangling reference): every second statement of the first pass and every rewrite never passes.
+    const questions = Array.from({ length: payload.count }, (_, index) => {
+      const made = { ...fakeQuestion('true-false', `${(serial += 1)}`), fact: payload.facts?.[index]?.fact, answerBool: index % 2 === 0 }
+      return calls > 1 || index % 2 === 1 ? { ...made, stem: `Bu modele göre ${made.stem}` } : made
+    })
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ questions }) })
   })
   await page.locator('[data-purpose="exam-generate"]').click()
-  // Two of the four true-false statements stay (the answers are balanced by the plan), two never pass: half is missing.
+  // Two of the four true-false statements stay, two never pass: half is missing.
   await expect(page.locator('[data-purpose="exam-partial"]')).toContainText('2 questions are ready. For the remaining 2')
   await expect(page.locator('[data-purpose="exam-partial-recommend"]')).toBeVisible()
   expect(calls).toBeGreaterThanOrEqual(2)

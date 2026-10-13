@@ -185,12 +185,11 @@ test.describe('answer keys', () => {
     const questions = await run(server)
     expect(flagged).not.toBeNull()
     const fixed = questions.find((entry) => entry.id === flagged)
-    // The flipped statement may be rewritten again by the balance rule; if it stayed, its key is the corrected one.
-    if (fixed) expect(fixed.answerBool).toBe(corrected)
+    // The key of the flagged statement is the corrected one (the balance rule is a soft goal and never rewrites it).
+    expect(fixed?.answerBool).toBe(corrected)
     const trueFalse = questions.filter((entry) => entry.type === 'true-false')
-    const trues = trueFalse.filter((entry) => entry.answerBool === true).length
-    expect(trues).toBeGreaterThanOrEqual(2)
-    expect(trues).toBeLessThanOrEqual(3)
+    // Balance is a soft goal: the exam stays complete whatever the split of true and false.
+    expect(trueFalse).toHaveLength(5)
   })
 
   test('a failed check does not stop the exam', async () => {
