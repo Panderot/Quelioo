@@ -196,12 +196,12 @@ test.describe('answer keys', () => {
     const server = fake()
     const original = server.callSection
     let emptied = 0
-    server.callSection = async (request, signal) => {
+    server.callSection = async (request) => {
       if (request.type === 'mcq' && emptied < 2) {
         emptied += 1
         throw new ExamApiError('empty_section')
       }
-      return original(request, signal)
+      return original(request)
     }
     const result = await runResult(server)
     expect(emptied).toBe(2)
