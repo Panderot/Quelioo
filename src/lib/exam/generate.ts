@@ -260,6 +260,11 @@ interface Targets {
  * with unused facts (at most 3 rounds). Questions that still fail are left out: the result then holds the rest and says how many
  * are missing. A technical failure throws the first API error; the plan, the finished sections and the questions that passed
  * stay in `state`, so trying again repeats nothing that is done. */
+/** A reply the server filtered down to nothing (or could not read) is not an outage: the questions are asked again. */
+function isEmptyReply(error: unknown): boolean {
+  return error instanceof ExamApiError && (error.code === 'parse' || error.code === 'empty_section')
+}
+
 export async function generateExamQuestions({ settings, text, state, signal, onProgress, acceptFewer = false, earlier, callSection = generateExamSection, callVerify = verifyExamKeys, callPlan = planExamFacts, onIssues }: GenerateExamOptions): Promise<ExamGenerationResult> {
   const total = examQuestionTotal(settings)
   const sections = planExamSections(settings)
@@ -351,7 +356,7 @@ export async function generateExamQuestions({ settings, text, state, signal, onP
           report()
         } catch (error) {
           // A reply the server filtered down to nothing is not an outage: the questions are asked again below (and again on a retry).
-          if (error instanceof ExamApiError && error.code === 'parse') skipped.add(section.key)
+          if (isEmptyReply(error)) skipped.add(section.key)
           else failure ??= error
         }
       }
@@ -747,7 +752,7 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
         fresh[index] = acceptAnswered(requests[index].request, await callSection(requests[index].request, signal), keptIds)
       } catch (error) {
         // A reply the server filtered down to nothing is not an outage: the next round (or the final check) decides.
-        if (!(error instanceof ExamApiError && error.code === 'parse')) failure ??= error
+        if (!isEmptyReply(error)) failure ??= error
       }
     }
   }
@@ -773,7 +778,7 @@ async function rewriteQuestions({ settings, text, plan, usedFacts, kept, dropped
         const taken = new Set([...keptIds, ...fresh.flat().map((question) => question.factId).filter((id): id is string => Boolean(id))])
         fresh[index] = [...fresh[index], ...acceptAnswered(request, await callSection(request, signal), taken)]
       } catch (error) {
-        if (!(error instanceof ExamApiError && error.code === 'parse')) throw error
+        if (!isEmptyReply(error)) throw error
       }
     }),
   )

@@ -116,7 +116,7 @@ async function generate(key: string, run: number): Promise<RunResult> {
     calls += 1
     const { status, body } = await timed(`section ${request.type} x${request.count}`, () => handleGenerateRequest({ mode: 'exam_section', ...request }))
     if (process.env.EXAM_LOG) console.log(`  [${key} #${run}] section ${request.type} x${request.count}${request.trueFalseAnswer === undefined ? '' : ` tf=${request.trueFalseAnswer}`} facts=${request.facts?.length ?? 0} -> ${'questions' in body ? body.questions.length : 'error:' + ('error' in body ? body.error : status)}`)
-    if (status !== 200 || !('questions' in body)) throw new ExamApiError('error' in body && body.error === 'parse' ? 'parse' : 'upstream')
+    if (status !== 200 || !('questions' in body)) throw new ExamApiError('error' in body && (body.error === 'parse' || body.error === 'empty_section') ? body.error : 'upstream')
     return body.questions as ExamQuestion[]
   }
   const callVerify = async (request: ExamVerifyRequest): Promise<ExamVerifyResult> => {

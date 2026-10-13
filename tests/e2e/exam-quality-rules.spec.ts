@@ -365,6 +365,54 @@ test.describe('fact ids and the key-term check', () => {
     expect(driftedFromFact(offFact, fact)).toBe(true)
   })
 
+  test('every left-out question is counted under its reason', () => {
+    const rejected: Record<string, number> = {}
+    const drifted = item('Fotosentez hangi organelde gerçekleşir?', 'Kloroplast', 'f1', facts[0].fact)
+    const wrongType = { type: 'mcq', stem: 'Tür uyuşmuyor?', options: ['a', 'b', 'c', 'd'], answerIndex: 0 }
+    const kept = sanitizeExamQuestions({ questions: [drifted, wrongType, 'bozuk', item('Protein sentezinin yapıldığı yapı nedir?', 'Ribozom', 'f2', facts[1].fact)] }, request, 2, { rejected })
+    expect(kept.map((question) => question.factId)).toEqual(['f2'])
+    expect(rejected).toEqual({ drift: 1, wrong_type: 1, schema: 1 })
+  })
+
+  test('in a section a soft goal never removes a question: a drifted one stays without the fact it does not test', () => {
+    const flagged: Record<string, number> = {}
+    const rejected: Record<string, number> = {}
+    const drifted = item('Fotosentez hangi organelde gerçekleşir?', 'Kloroplast', 'f1', facts[0].fact)
+    const kept = sanitizeExamQuestions({ questions: [drifted] }, { ...request, facts: [facts[0]], difficulty: { easy: 1, medium: 0, hard: 0 } }, 1, { rejected, flagged, repairable: true })
+    expect(kept).toHaveLength(1)
+    expect(kept[0].fact).toBeUndefined()
+    expect(kept[0].factId).toBeUndefined()
+    expect(flagged).toEqual({ drift: 1 })
+    expect(rejected).toEqual({})
+  })
+
+  test('in a section a statement with the other true-false answer stays with its own key', () => {
+    const flagged: Record<string, number> = {}
+    const tf = { type: 'true-false', stem: 'Mitokondri hücrede ATP üretir.', answerBool: true, topic: 'Hücre', difficulty: 'easy', factId: 'f1', fact: facts[0].fact }
+    const tfRequest: ExamGenerationRequest = { ...request, type: 'true-false', facts: [facts[0]], trueFalseAnswers: [false], difficulty: { easy: 1, medium: 0, hard: 0 } }
+    expect(sanitizeExamQuestions({ questions: [tf] }, tfRequest, 1)).toHaveLength(0)
+    const kept = sanitizeExamQuestions({ questions: [tf] }, tfRequest, 1, { flagged, repairable: true })
+    expect(kept.map((question) => question.answerBool)).toEqual([true])
+    expect(flagged).toEqual({ tf_answer: 1 })
+  })
+
+  test('in a section a hard-rule break is kept for the repair round, after the clean questions', () => {
+    const flagged: Record<string, number> = {}
+    const leak = item('Hücrede ATP üreten mitokondri organeli hangisidir?', 'Mitokondri', 'f1', facts[0].fact)
+    const clean = item('Protein sentezinin yapıldığı yapı nedir?', 'Ribozom', 'f2', facts[1].fact)
+    const plain = sanitizeExamQuestions({ questions: [leak, clean] }, request, 2)
+    expect(plain.map((question) => question.factId)).toEqual(['f2'])
+    const kept = sanitizeExamQuestions({ questions: [leak, clean] }, request, 2, { flagged, repairable: true })
+    expect(kept.map((question) => question.factId)).toEqual(['f2', 'f1'])
+    expect(flagged).toEqual({ 'rule_answer-leak': 1 })
+  })
+
+  test('a matching question with fewer than four pairs breaks the matching rule', () => {
+    const pairs = (n: number) => Array.from({ length: n }, (_, i) => ({ left: `Sol ${i}`, right: `Sağ ${i}` }))
+    expect(rulesOf([q('matching', 'Eşleştiriniz.', { pairs: pairs(3), extras: ['Fazla bir', 'Fazla iki'] })])).toContain('matching')
+    expect(rulesOf([q('matching', 'Eşleştiriniz.', { pairs: pairs(4), extras: ['Fazla bir', 'Fazla iki'] })])).not.toContain('matching')
+  })
+
   test('a second question that claims an id already taken does not get another fact’s place', () => {
     const kept = sanitizeExamQuestions({ questions: [item('Protein sentezinin yapıldığı yapı nedir?', 'Ribozom', 'f2', facts[1].fact), item('Ribozomlar proteinleri nerede sentezler, sitoplazmada mı?', 'Sitoplazma', 'f2', facts[1].fact)] }, request, 2)
     expect(kept.map((question) => question.factId)).toEqual(['f2'])

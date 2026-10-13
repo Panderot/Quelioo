@@ -215,13 +215,82 @@ test('upstream failure and unusable replies give an error and no questions', asy
   expect(failed.status).toBe(502)
   expect(failed.body).toEqual({ error: 'upstream' })
 
+  // A readable reply whose questions were all left out is an empty section, not a provider failure.
   stubOpenAi(() => ({ questions: [{ type: 'mcq', stem: 'bozuk' }] }))
   const bad = await handleGenerateRequest(base)
   expect(bad.status).toBe(502)
-  expect(bad.body).toEqual({ error: 'parse' })
+  expect(bad.body).toEqual({ error: 'empty_section' })
+
+  stubOpenAi(() => ({ questions: [] }))
+  expect((await handleGenerateRequest(base)).body).toEqual({ error: 'empty_section' })
+
+  stubOpenAi(() => 'no json here')
+  expect((await handleGenerateRequest(base)).body).toEqual({ error: 'parse' })
 
   delete process.env.OPENAI_API_KEY
   delete process.env.ANTHROPIC_API_KEY
   const none = await handleGenerateRequest(base)
   expect(none.body).toEqual({ error: 'not_configured' })
+})
+
+/** The `generate:` log lines written while `work` runs. */
+async function logLines(work: () => Promise<unknown>): Promise<string[]> {
+  const lines: string[] = []
+  const original = console.log
+  console.log = (...args: unknown[]) => {
+    const text = args.map(String).join(' ')
+    if (text.startsWith('generate:')) lines.push(text)
+  }
+  try {
+    await work()
+  } finally {
+    console.log = original
+  }
+  return lines
+}
+
+test('an empty section logs why every question was left out, as counts only', async () => {
+  stubOpenAi(() => ({ questions: [mcq('Gizli soru metni burada', { options: ['a', 'b'] }), { type: 'open-ended', stem: 'Gizli ikinci metin', answer: 'x' }] }))
+  const lines = await logLines(() => handleGenerateRequest({ ...base, count: 1, difficulty: { easy: 1, medium: 0, hard: 0 } }))
+  expect(lines).toHaveLength(1)
+  expect(lines[0]).toContain('mode=exam_section requested=1 questions=0 type=mcq items=2')
+  expect(lines[0]).toContain('rejected=mcq_options:1,wrong_type:1')
+  expect(lines[0]).toContain('error=empty_section')
+  expect(lines[0]).not.toContain('Gizli')
+  expect(lines[0]).not.toContain('Osmanlı')
+})
+
+test('a section keeps a question that breaks a hard rule for the repair round; a single replacement question drops it', async () => {
+  const threePairs = {
+    type: 'matching',
+    stem: 'Eşleştirin',
+    pairs: [
+      { left: 'A1', right: 'B1' },
+      { left: 'A2', right: 'B2' },
+      { left: 'A3', right: 'B3' },
+    ],
+    extras: ['B5', 'B6'],
+    topic: 't',
+    difficulty: 'medium',
+  }
+  stubOpenAi(() => ({ questions: [threePairs] }))
+  let section: Awaited<ReturnType<typeof handleGenerateRequest>> | undefined
+  const lines = await logLines(async () => {
+    section = await handleGenerateRequest({ ...base, type: 'matching', count: 1, difficulty: { easy: 0, medium: 1, hard: 0 } })
+  })
+  expect(section?.status).toBe(200)
+  expect((section?.body as { questions: Array<{ pairs: unknown[] }> }).questions[0].pairs).toHaveLength(3)
+  expect(lines[0]).toContain('questions=1')
+  expect(lines[0]).toContain('flagged=rule_matching:1')
+
+  const single = await handleGenerateRequest({ ...base, mode: 'exam_question', type: 'matching', difficulty: 'medium' })
+  expect(single.body).toEqual({ error: 'empty_section' })
+})
+
+test('the matching prompt with one assigned fact asks for the other pairs from the rest of the source and never for an empty list', async () => {
+  const calls = stubOpenAi(() => ({ questions: [] }))
+  await handleGenerateRequest({ ...base, type: 'matching', count: 1, difficulty: { easy: 0, medium: 1, hard: 0 }, facts: [{ id: 'f1', fact: 'Osmanlı Devleti 1299 yılında kuruldu.', topic: 'Kuruluş' }] })
+  expect(calls[0].text).toContain('MATCHING AND FACTS')
+  expect(calls[0].text).toContain('write one question for EVERY listed fact')
+  expect(calls[0].text).not.toContain('return fewer')
 })

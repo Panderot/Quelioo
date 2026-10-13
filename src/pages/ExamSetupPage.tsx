@@ -217,7 +217,7 @@ function ExamSetup({ setupId }: { setupId: string }) {
         signal: controller.signal,
         onProgress: (done, totalSections, phase) => setProgress({ done, total: totalSections, phase }),
       })
-      if (result.questions.length === 0) throw new ExamApiError('upstream')
+      if (result.questions.length === 0) throw new ExamApiError('empty_section')
       // Questions that could not be written without breaking a rule are left out; nothing is saved until the teacher chooses.
       if (result.missing > 0) {
         setPartial({ questions: result.questions, requested: result.requested, missing: result.missing, settings: finalSettings, text })

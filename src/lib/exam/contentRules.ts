@@ -340,6 +340,8 @@ export function trueFalseAbsoluteIds(all: ExamQuestion[]): string[] {
 // ---------------------------------------------------------------------------
 
 export const MATCHING_MIN_EXTRAS = 2
+/** A matching question with fewer pairs is rewritten. */
+export const MATCHING_MIN_PAIRS = 4
 
 /** What is wrong with a matching question (empty = fine). */
 export function matchingProblems(question: ExamQuestion): string[] {
@@ -350,6 +352,7 @@ export function matchingProblems(question: ExamQuestion): string[] {
   if (new Set(lefts).size !== pairs.length) problems.push('left-repeated')
   if (new Set(rights).size !== rights.length) problems.push('right-repeated')
   if ((question.extras?.length ?? 0) < MATCHING_MIN_EXTRAS) problems.push('extras-missing')
+  if (pairs.length < MATCHING_MIN_PAIRS) problems.push('pair-count')
   return problems
 }
 

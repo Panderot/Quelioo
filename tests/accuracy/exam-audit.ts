@@ -144,7 +144,7 @@ async function audit(variant: Variant): Promise<void> {
     const { status, body } = await handleGenerateRequest({ mode: 'exam_section', ...request })
     if (status !== 200 || !('questions' in body)) {
       trace.push({ section: request.type, count: request.count, error: 'error' in body ? body.error : status })
-      throw new ExamApiError('error' in body && body.error === 'parse' ? 'parse' : 'upstream')
+      throw new ExamApiError('error' in body && (body.error === 'parse' || body.error === 'empty_section') ? body.error : 'upstream')
     }
     const got = body.questions as ExamQuestion[]
     trace.push({ section: request.type, count: request.count, asked: (request.facts ?? []).map((fact) => fact.id), returned: got.map((q) => ({ factId: q.factId, stem: q.stem.slice(0, 90) })) })

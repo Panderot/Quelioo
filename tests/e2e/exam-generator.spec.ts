@@ -192,6 +192,23 @@ test.describe('answer keys', () => {
     expect(trueFalse).toHaveLength(5)
   })
 
+  test('a section the server filtered down to nothing (empty_section) is asked again, never shown as an outage', async () => {
+    const server = fake()
+    const original = server.callSection
+    let emptied = 0
+    server.callSection = async (request, signal) => {
+      if (request.type === 'mcq' && emptied < 2) {
+        emptied += 1
+        throw new ExamApiError('empty_section')
+      }
+      return original(request, signal)
+    }
+    const result = await runResult(server)
+    expect(emptied).toBe(2)
+    expect(result.questions).toHaveLength(20)
+    expect(result.missing).toBe(0)
+  })
+
   test('a failed check does not stop the exam', async () => {
     const server = fake()
     server.callVerify = async () => {

@@ -7,6 +7,7 @@ import { OUTPUT_LANGUAGE_CODES, getOutputLanguageEnglishName } from '../../src/d
 import { EXAM_LEVELS, EXAM_QUESTION_TYPES } from '../../src/lib/exam/types.js'
 import type { BloomLevel, ExamDifficulty, ExamLevel, ExamPair, ExamQuestion, ExamQuestionType, ExamRubricItem } from '../../src/lib/exam/types.js'
 import { SOFT_RULES, answerKey, checkExamQuality, driftedFromFact, factSimilarity, normalizeAnswer } from '../../src/lib/exam/quality.js'
+import type { ExamQualityRule } from '../../src/lib/exam/quality.js'
 import { ORDER_BOUND_OPTION, boldNegative, cleanAccepted, cleanRubric, hasNegativeStem } from '../../src/lib/exam/contentRules.js'
 import { clampBloom, fitDifficulty } from '../../src/lib/exam/bloom.js'
 import { computeDerangement } from '../../src/lib/matching.js'
@@ -15,7 +16,8 @@ import { MAX_QUIZ_WORDS, MIN_QUIZ_WORDS, countWords } from '../../src/lib/textSt
 
 /** Written-exam modes of /api/generate: a section of questions, one replacement question, a grading rubric. */
 
-export type ExamErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model' | 'not_configured'
+/** `empty_section`: the model answered, but every question it wrote was left out (not a provider failure). */
+export type ExamErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'empty_section' | 'model' | 'not_configured'
 
 export interface ExamErrorBody {
   error: ExamErrorCode
@@ -92,7 +94,7 @@ const EXAM_QUALITY_RULES = [
   '3) Stems are self-contained, unambiguous, grammatical, free of spelling mistakes, and make sense printed on paper without the source (never "according to the text" unless the question really is about the text). Natural, correct language; exactly one defensible answer (except evaluation and creation questions, which accept different valid answers). The stem names what it asks about (never "a city" or "an event" when the source names it) and contains every piece of data the student needs: never "the given dates" or "the information above" unless the data is written in the question.',
   '4) Vocabulary, sentence length and depth fit the exam level. Each question has the cognitive level (Bloom) and difficulty given for it in <slots>: easy = recall of one fact, medium = connecting two facts or applying one rule, hard = multi-step reasoning, comparison or applying knowledge to a new case.',
   '5) FORMULAS: write maths and chemistry formulas as LaTeX between single dollar signs ($x^2+3x=0$, $\\frac{a}{b}$, $\\sqrt{2}$, $\\mathrm{H_2SO_4}$, $\\mathrm{Ca^{2+}}$, $\\rightarrow$); plain words stay outside the dollars; never use dollar signs for money.',
-  '6) Never pad: if the source supports fewer good questions than requested, return fewer.',
+  '6) Never pad with questions the source does not support. When <facts> are given, the source has already been checked: write one question for EVERY listed fact, never fewer and never an empty list.',
   '7) Each question has a short "topic" (the learning outcome or topic it tests, <= 8 words) and a "difficulty" of "easy", "medium" or "hard".',
   '8) "rubric": grading criteria as short items with an integer "weight" (1-10) showing the relative share of the question’s points. Open-ended: 2-5 items, each a separate, observable part of the answer that a grader can check; never two items that repeat each other, never empty items such as "states that the statement explains X" or "explains it as a criterion", and never more items than the answer has ideas (a one-sentence answer has at most 2 items); a recall answer is worth fewer points than a reasoning answer. Short answer: exactly ONE item. Other types: exactly one item ("Doğru cevap" in the output language is fine).',
   '9) "lines": number of ruled answer lines the student needs. Open-ended 3-8 (longer answers more lines), short answer 1-3, other types 0.',
@@ -321,6 +323,11 @@ function buildSystemPrompt(request: ExamGenerationRequest, count: number): strin
     request.facts.length > 0
       ? `FACTS: <facts> lists the ${request.facts.length} facts of this call, numbered. Question k tests ONLY fact k, in this order, and nothing else: never test another fact, never test the same fact twice. Copy the fact verbatim into the "fact" field of the question, the fact id in square brackets (for example f3) into "factId", and its topic into "topic". A question that is about another fact than the one assigned to its place is thrown away. A true-false statement is the fact (true) or the fact with one detail changed (false); the correct option or answer of any other type is the fact itself. A fact with related facts may be asked together with them at levels 4-6 (compare, relate, evaluate, design): then the answer and the rubric use only the main fact and its related facts, and the main fact is still copied into "fact".`
       : ''
+  // One matching question holds 4-6 pairs: the assigned fact alone cannot fill it.
+  const matchingFactRule =
+    request.type === 'matching' && request.facts.length > 0
+      ? 'MATCHING AND FACTS: a matching question needs 4 to 6 pairs, so fact k is ONE of its pairs and the other pairs and the extras come from other facts of the source of the same kind (they may name terms that other questions of the exam use; <used_concepts> and <avoid_terms> do not apply to them). Copy fact k into "fact" as usual.'
+      : ''
   const part =
     request.partCount > 1 && request.facts.length === 0
       ? `This is part ${request.partIndex + 1} of ${request.partCount} of the exam: draw the questions mainly from the ${request.partIndex + 1}${ordinalSuffix(request.partIndex + 1)} of ${request.partCount} equal parts of the source text (other parts are written in parallel), so the parts do not repeat each other.`
@@ -335,6 +342,7 @@ function buildSystemPrompt(request: ExamGenerationRequest, count: number): strin
     subjectRules(request.course, request.level),
     levelGuide(request.type, request.slots, request.course),
     factRule,
+    matchingFactRule,
     part,
     request.avoidFacts.length > 0 && request.facts.length === 0 ? 'The question tests ONE fact of the source that is NOT listed in <avoid_facts> (a different fact, never the same one asked in other words); copy that fact, in a short sentence, into the "fact" field of the question.' : '',
     'Never write about a fact id or concept listed in <used_concepts>: those are already on the exam. Do not repeat or closely paraphrase any stem listed in <avoid_stems>, and none of your questions may have an answer listed in <avoid_answers> or be built around a term listed in <avoid_terms>: test other facts of the source.',
@@ -456,14 +464,35 @@ function nearDuplicate(a: Set<string>, b: Set<string>): boolean {
   return shared / Math.min(a.size, b.size) >= 0.85 && shared / Math.max(a.size, b.size) >= 0.7
 }
 
+/** Why a model item was left out of a reply (logged as counts, never with the question text). */
+export type ExamRejectReason =
+  | 'schema'
+  | 'corrupt'
+  | 'wrong_type'
+  | 'mcq_options'
+  | 'blank_answer_in_stem'
+  | 'matching_count'
+  | 'no_fact'
+  | 'drift'
+  | 'tf_answer'
+  | 'repeat_stem'
+  | 'repeat_answer'
+  | `rule_${ExamQualityRule}`
+
 /** One raw model item into an ExamQuestion of the requested type, or null when it is unusable. */
 export function sanitizeExamQuestion(raw: unknown, type: ExamQuestionType, optionsCount: 4 | 5, allowContext: boolean, contextLimit = MAX_CONTEXT_CHARS): ExamQuestion | null {
-  if (!isRecord(raw)) return null
-  if (hasCorruptText(raw)) return null
-  if (typeof raw.type === 'string' && raw.type !== type) return null
+  const result = readExamQuestion(raw, type, optionsCount, allowContext, contextLimit)
+  return typeof result === 'string' ? null : result
+}
+
+/** One raw model item into an ExamQuestion of the requested type, or the reason it is unusable. */
+function readExamQuestion(raw: unknown, type: ExamQuestionType, optionsCount: 4 | 5, allowContext: boolean, contextLimit: number): ExamQuestion | ExamRejectReason {
+  if (!isRecord(raw)) return 'schema'
+  if (hasCorruptText(raw)) return 'corrupt'
+  if (typeof raw.type === 'string' && raw.type !== type) return 'wrong_type'
   const rawStem = str(raw.stem ?? raw.question, MAX_STEM_CHARS)
   const stem = type === 'mcq' && hasNegativeStem(rawStem) ? boldNegative(rawStem) : rawStem
-  if (!stem) return null
+  if (!stem) return 'schema'
 
   const id = randomId()
   const difficulty = DIFFICULTIES.includes(raw.difficulty as ExamDifficulty) ? (raw.difficulty as ExamDifficulty) : 'medium'
@@ -476,46 +505,47 @@ export function sanitizeExamQuestion(raw: unknown, type: ExamQuestionType, optio
     case 'mcq': {
       const options = stringList(raw.options, 8, 300)
       const answerIndex = typeof raw.answerIndex === 'number' && Number.isInteger(raw.answerIndex) ? raw.answerIndex : -1
-      if (options.length !== optionsCount || answerIndex < 0 || answerIndex >= options.length) return null
-      if (new Set(options.map((option) => option.toLocaleLowerCase('tr'))).size !== options.length) return null
+      if (options.length !== optionsCount || answerIndex < 0 || answerIndex >= options.length) return 'mcq_options'
+      if (new Set(options.map((option) => option.toLocaleLowerCase('tr'))).size !== options.length) return 'mcq_options'
       const answer = options[answerIndex]
       const rubric = modelRubric(1)
       const shuffled = shuffleOptions(options, answerIndex)
       return { ...base, options: shuffled.options, answerIndex: shuffled.answerIndex, answer, rubric: [{ text: rubric[0]?.text ?? answer, points: 1 }], lines: 0 }
     }
     case 'true-false': {
-      if (typeof raw.answerBool !== 'boolean') return null
+      if (typeof raw.answerBool !== 'boolean') return 'schema'
       const rubric = modelRubric(1)
       return { ...base, answerBool: raw.answerBool, answer: raw.answerBool ? 'true' : 'false', rubric: [{ text: rubric[0]?.text ?? (raw.answerBool ? 'true' : 'false'), points: 1 }], lines: 0 }
     }
     case 'fill-blanks': {
-      if (stem.split('___').length !== 2) return null
+      if (stem.split('___').length !== 2) return 'schema'
       const answer = str(raw.answer, MAX_ANSWER_CHARS)
-      if (!answer) return null
+      if (!answer) return 'schema'
       // The blank's answer written in the sentence itself gives the question away.
       const stemLower = stem.toLocaleLowerCase('tr-TR')
-      if (answer.length >= 3 && stemLower.includes(answer.toLocaleLowerCase('tr-TR'))) return null
+      if (answer.length >= 3 && stemLower.includes(answer.toLocaleLowerCase('tr-TR'))) return 'blank_answer_in_stem'
       const acceptable = [...new Set([answer, ...stringList(raw.acceptableAnswers, 8, 200)])].slice(0, 8)
       const rubric = modelRubric(1)
       return { ...base, answer, acceptableAnswers: acceptable, rubric: [{ text: rubric[0]?.text ?? answer, points: 1 }], lines: 0 }
     }
     case 'short-answer': {
       const answer = str(raw.answer, MAX_ANSWER_CHARS)
-      if (!answer) return null
+      if (!answer) return 'schema'
       // The rubric of a short answer is one item worth the full points; at most three real alternatives follow the answer.
       const acceptable = [answer, ...cleanAccepted(answer, stringList(raw.acceptableAnswers, 8, 300))]
       return { ...base, answer, acceptableAnswers: acceptable, rubric: [{ text: answer, points: 1 }], lines: clampInt(raw.lines, 1, 3, 1) }
     }
     case 'matching': {
-      if (!Array.isArray(raw.pairs)) return null
+      if (!Array.isArray(raw.pairs)) return 'schema'
       const pairs: ExamPair[] = raw.pairs
         .filter(isRecord)
         .map((pair) => ({ left: str(pair.left, 200), right: str(pair.right, 200) }))
         .filter((pair) => pair.left && pair.right)
-      if (pairs.length < 4 || pairs.length > 6) return null
+      // Too few or repeated items break the matching rule (`matchingProblems`): the repair round rewrites them. More than six are cut to six.
+      if (pairs.length < 2) return 'matching_count'
+      pairs.splice(6)
       const lefts = new Set(pairs.map((pair) => pair.left.toLocaleLowerCase('tr')))
       const rights = new Set(pairs.map((pair) => pair.right.toLocaleLowerCase('tr')))
-      if (lefts.size !== pairs.length || rights.size !== pairs.length) return null
       const extras = stringList(raw.extras, 4, 200).filter((extra) => !rights.has(extra.toLocaleLowerCase('tr')) && !lefts.has(extra.toLocaleLowerCase('tr')))
       return {
         ...base,
@@ -529,7 +559,7 @@ export function sanitizeExamQuestion(raw: unknown, type: ExamQuestionType, optio
     }
     case 'open-ended': {
       const answer = str(raw.answer, MAX_ANSWER_CHARS)
-      if (!answer) return null
+      if (!answer) return 'schema'
       // Empty and repeated criteria are dropped; a one-sentence answer carries at most two items.
       const cleaned = cleanRubric(modelRubric(5))
       const ideas = answer.split(/(?<=[.!?;])\s+/u).filter((part) => part.trim().split(/\s+/).length >= 3).length || 1
@@ -537,7 +567,7 @@ export function sanitizeExamQuestion(raw: unknown, type: ExamQuestionType, optio
       return { ...base, answer, rubric: rubric.length >= 2 ? rubric : [{ text: answer, points: 1 }], lines: clampInt(raw.lines, 3, 8, 5) }
     }
     default:
-      return null
+      return 'wrong_type'
   }
 }
 
@@ -546,16 +576,36 @@ function contextLimitFor(course: string): number {
   return /türkçe|edebiyat|turkish|literature|dil ve anlatım|ingilizce|english/i.test(course) ? 1200 : MAX_CONTEXT_CHARS
 }
 
-/** Sanitises the model's list; drops malformed items, near-identical stems and anything on the avoid list. */
-export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationRequest, count: number): ExamQuestion[] {
+export interface SanitizeOptions {
+  /** Why items were left out (counts). */
+  rejected?: Partial<Record<ExamRejectReason, number>>
+  /** Why kept items still need the repair round (counts). */
+  flagged?: Partial<Record<ExamRejectReason, number>>
+  /** A section of a whole exam: a hard-rule break is kept for the generator's repair round, and a soft goal (the assigned fact,
+   * the planned true-false answer) never removes a question. A single replacement question has no round, so it drops them. */
+  repairable?: boolean
+}
+
+/** Sanitises the model's list; drops malformed items, and (outside a repairable section) near-identical stems, anything on the avoid list and hard-rule breaks. */
+export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationRequest, count: number, options: SanitizeOptions = {}): ExamQuestion[] {
   const items = isRecord(raw) && Array.isArray(raw.questions) ? raw.questions : Array.isArray(raw) ? raw : []
+  const repairable = options.repairable === true
+  const reject = (reason: ExamRejectReason) => {
+    if (options.rejected) options.rejected[reason] = (options.rejected[reason] ?? 0) + 1
+  }
+  const flag = (reason: ExamRejectReason) => {
+    if (options.flagged) options.flagged[reason] = (options.flagged[reason] ?? 0) + 1
+  }
+  // Ids of kept questions that missed a goal: clean questions go first when the reply holds more than needed.
+  const held = new Set<string>()
   const seen = [...request.avoidStems, ...(request.replaceStem ? [request.replaceStem] : [])].map(normalizedWords)
   const avoidAnswers = new Set(request.avoidAnswers.map(normalizeAnswer).filter(Boolean))
   const questions: ExamQuestion[] = []
   const usedFacts = new Set<number>()
   for (const [position, item] of items.entries()) {
-    const question = sanitizeExamQuestion(item, request.type, request.optionsCount, request.contextBased, contextLimitFor(request.course))
-    if (!question) {
+    const question = readExamQuestion(item, request.type, request.optionsCount, request.contextBased, contextLimitFor(request.course))
+    if (typeof question === 'string') {
+      reject(question)
       if (process.env.EXAM_TRACE) console.log(`  TRACE malformed [${request.type}] ${JSON.stringify(item).slice(0, 140)}`)
       continue
     }
@@ -576,11 +626,20 @@ export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationReque
       }
       // A question that does not name its fact takes the one at its own position (the prompt asks for the order of the facts), else the first unused.
       if (best < 0) best = !usedFacts.has(position) && position < request.facts.length ? position : request.facts.findIndex((_, index) => !usedFacts.has(index))
-      if (best < 0) continue
-      // Key-term check: a question that carries too little of its fact's key terms drifted to another fact and is thrown away before the judge.
-      if (driftedFromFact(question, request.facts[best].fact)) {
-        if (process.env.EXAM_TRACE) console.log(`  TRACE drift [${request.type}] ${question.stem.slice(0, 80)} || fact: ${request.facts[best].fact.slice(0, 80)}`)
+      if (best < 0) {
+        reject('no_fact')
         continue
+      }
+      // Key-term check: a question that carries too little of its fact's key terms drifted to another fact and is thrown away before the judge.
+      const drifted = driftedFromFact(question, request.facts[best].fact)
+      if (drifted) {
+        if (process.env.EXAM_TRACE) console.log(`  TRACE drift [${request.type}] ${question.stem.slice(0, 80)} || fact: ${request.facts[best].fact.slice(0, 80)}`)
+        if (!repairable) {
+          reject('drift')
+          continue
+        }
+        flag('drift')
+        held.add(question.id)
       }
       usedFacts.add(best)
       // The slot decides the cognitive level and the difficulty of the question written for the fact (the model's own label is only a hint).
@@ -589,10 +648,13 @@ export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationReque
         question.bloomLevel = clampBloom(request.type, slot.bloom)
         question.difficulty = fitDifficulty(request.type, question.bloomLevel, slot.difficulty)
       }
-      question.fact = request.facts[best].fact
-      if (request.facts[best].id) question.factId = request.facts[best].id
-      if (request.facts[best].concept) question.concept = request.facts[best].concept
       if (!question.topic) question.topic = request.facts[best].topic
+      // A question that drifted is not labelled with the fact it does not test: the repeat checks then compare its own words.
+      if (!drifted) {
+        question.fact = request.facts[best].fact
+        if (request.facts[best].id) question.factId = request.facts[best].id
+        if (request.facts[best].concept) question.concept = request.facts[best].concept
+      }
     }
     if (request.facts.length === 0) {
       // A replacement question: the slot decides its level, and the fact it names is kept for the repeat checks.
@@ -604,27 +666,57 @@ export function sanitizeExamQuestions(raw: unknown, request: ExamGenerationReque
       const named = isRecord(item) && typeof item.fact === 'string' ? item.fact.trim().slice(0, MAX_FACT_CHARS) : ''
       if (named) question.fact = named
     }
-    if (request.trueFalseAnswer !== undefined && question.answerBool !== request.trueFalseAnswer) continue
+    // The planned true-false answer only balances the exam (a soft goal): in a section the statement stays with its own correct key.
+    if (request.trueFalseAnswer !== undefined && question.answerBool !== request.trueFalseAnswer) {
+      if (!repairable) {
+        reject('tf_answer')
+        continue
+      }
+      flag('tf_answer')
+      held.add(question.id)
+    }
     const wantedAnswer = question.fact === undefined ? undefined : request.trueFalseAnswers[request.facts.findIndex((entry) => entry.fact === question.fact)]
     if (wantedAnswer !== undefined && question.answerBool !== wantedAnswer) {
       if (process.env.EXAM_TRACE) console.log(`  TRACE tf-answer [${request.type}] wanted ${wantedAnswer} ${question.stem.slice(0, 80)}`)
-      continue
+      if (!repairable) {
+        reject('tf_answer')
+        continue
+      }
+      flag('tf_answer')
+      held.add(question.id)
     }
     const words = normalizedWords(question.stem)
     // Every matching question opens with the same kind of instruction; its pairs, not its heading, tell two of them apart.
-    if (request.facts.length === 0 && question.type !== 'matching' && seen.some((other) => nearDuplicate(words, other))) continue
-    if (avoidAnswers.has(answerKey(question))) continue
+    // A repeat is a hard-rule break: in a section the whole-exam check finds it again and the repair round rewrites it.
+    if (request.facts.length === 0 && question.type !== 'matching' && seen.some((other) => nearDuplicate(words, other))) {
+      if (!repairable) {
+        reject('repeat_stem')
+        continue
+      }
+      flag('repeat_stem')
+      held.add(question.id)
+    }
+    if (avoidAnswers.has(answerKey(question))) {
+      if (!repairable) {
+        reject('repeat_answer')
+        continue
+      }
+      flag('repeat_answer')
+      held.add(question.id)
+    }
     seen.push(words)
     questions.push(question)
   }
   // Whole-reply check: repeats within the reply, dangling references, scenarios reused, a blank that gives itself away.
-  const broken = new Set(
-    checkExamQuality(questions, null, { uncertainIsDuplicate: false })
-      .filter((issue) => issue.id !== null && issue.rule !== 'true-false-balance' && issue.rule !== 'points' && !SOFT_RULES.includes(issue.rule))
-      .map((issue) => issue.id),
-  )
-  if (process.env.EXAM_TRACE && broken.size > 0) console.log(`  TRACE broken ${checkExamQuality(questions, null, { uncertainIsDuplicate: false }).filter((issue) => broken.has(issue.id)).map((issue) => issue.rule).join(',')}`)
-  return questions.filter((question) => !broken.has(question.id)).slice(0, count)
+  const breaks = checkExamQuality(questions, null, { uncertainIsDuplicate: false }).filter((issue) => issue.id !== null && issue.rule !== 'true-false-balance' && issue.rule !== 'points' && !SOFT_RULES.includes(issue.rule))
+  const broken = new Set(breaks.map((issue) => issue.id))
+  // One reason per question: the first rule it broke.
+  for (const id of broken) (repairable ? flag : reject)(`rule_${breaks.find((issue) => issue.id === id)!.rule}`)
+  if (process.env.EXAM_TRACE && broken.size > 0) console.log(`  TRACE broken ${breaks.map((issue) => issue.rule).join(',')}`)
+  // In a section a broken question is kept for the repair round (clean ones first); a single replacement question drops it.
+  if (!repairable) return questions.filter((question) => !broken.has(question.id)).slice(0, count)
+  const clean = questions.filter((question) => !broken.has(question.id) && !held.has(question.id))
+  return [...clean, ...questions.filter((question) => broken.has(question.id) || held.has(question.id))].slice(0, count)
 }
 
 // ---------------------------------------------------------------------------
@@ -731,7 +823,20 @@ function parseCommon(payload: Record<string, unknown>): Omit<ExamGenerationReque
 
 type CallOutcome = { questions: ExamQuestion[]; provider: LlmProvider; fallbackUsed: boolean } | { error: ExamErrorCode }
 
-async function writeQuestions(request: ExamGenerationRequest, count: number, callType: string): Promise<CallOutcome> {
+/** What the replies of one request held: items the model wrote and why the left-out ones were dropped. */
+interface WriteStats {
+  /** Replies that were a readable question list (possibly empty). */
+  lists: number
+  items: number
+  rejected: Partial<Record<ExamRejectReason, number>>
+  flagged: Partial<Record<ExamRejectReason, number>>
+}
+
+function replyList(raw: unknown): unknown[] | null {
+  return isRecord(raw) && Array.isArray(raw.questions) ? raw.questions : Array.isArray(raw) ? raw : null
+}
+
+async function writeQuestions(request: ExamGenerationRequest, count: number, callType: string, stats: WriteStats, repairable: boolean): Promise<CallOutcome> {
   const system = buildSystemPrompt(request, count)
   const user = buildUserMessage(request)
   const deadlineAt = Date.now() + EXAM_DEADLINE_MS
@@ -749,16 +854,32 @@ async function writeQuestions(request: ExamGenerationRequest, count: number, cal
     })
     if (result.status === 'not_configured') return { error: 'not_configured' }
     if (result.status === 'error') return { error: result.error }
-    const questions = sanitizeExamQuestions(extractJson(result.text), request, count)
+    const parsed = extractJson(result.text)
+    const list = replyList(parsed)
+    if (list) stats.lists += 1
+    stats.items += list?.length ?? 0
+    if (process.env.EXAM_TRACE && !list?.length) console.log(`  TRACE no-items [${request.type}] ${result.text.slice(0, 600)}`)
+    const questions = sanitizeExamQuestions(parsed, request, count, { rejected: stats.rejected, flagged: stats.flagged, repairable })
     if (questions.length > 0) return { questions, provider: result.provider, fallbackUsed: result.fallbackUsed }
     // Only a cut-off reply is worth one more try with a larger limit.
-    if (result.usage?.truncated !== true) return { error: 'parse' }
+    if (result.usage?.truncated !== true) break
   }
-  return { error: 'parse' }
+  // A readable reply without a usable question is an empty section (logged apart from provider failures); only an unreadable reply is `parse`.
+  return { error: stats.lists > 0 ? 'empty_section' : 'parse' }
 }
 
-function logExam(mode: string, requested: number, returned: number, ms: number): void {
-  console.log(`generate: mode=${mode} requested=${requested} questions=${returned} totalMs=${ms}`)
+/** `drift:1,rule_answer-leak:2` (counts only, never question or source text). */
+function reasonsText(reasons: Partial<Record<ExamRejectReason, number>>): string {
+  const parts = Object.entries(reasons).map(([reason, count]) => `${reason}:${count}`)
+  return parts.length > 0 ? parts.join(',') : 'none'
+}
+
+function logExam(mode: string, requested: number, returned: number, ms: number, extra = ''): void {
+  console.log(`generate: mode=${mode} requested=${requested} questions=${returned}${extra} totalMs=${ms}`)
+}
+
+function writeLogExtra(type: ExamQuestionType, stats: WriteStats, outcome: CallOutcome): string {
+  return ` type=${type} items=${stats.items} rejected=${reasonsText(stats.rejected)} flagged=${reasonsText(stats.flagged)}${'error' in outcome ? ` error=${outcome.error}` : ''}`
 }
 
 async function handleSection(payload: Record<string, unknown>) {
@@ -769,14 +890,15 @@ async function handleSection(payload: Record<string, unknown>) {
   const difficulty = parseDifficultyCounts(payload.difficulty, count)
   if (!difficulty) return fail('not_supported')
   const start = Date.now()
+  const stats: WriteStats = { lists: 0, items: 0, rejected: {}, flagged: {} }
   let outcome: CallOutcome
   try {
-    outcome = await writeQuestions({ ...common, difficulty }, count, 'exam-section')
+    outcome = await writeQuestions({ ...common, difficulty }, count, 'exam-section', stats, true)
   } catch (error) {
     console.error('generate: exam_section failed', error instanceof Error ? error.message : 'unknown error')
     outcome = { error: 'upstream' }
   }
-  logExam('exam_section', count, 'questions' in outcome ? outcome.questions.length : 0, Date.now() - start)
+  logExam('exam_section', count, 'questions' in outcome ? outcome.questions.length : 0, Date.now() - start, writeLogExtra(common.type, stats, outcome))
   if ('error' in outcome) return fail(outcome.error)
   return { status: 200, body: { questions: outcome.questions, provider: outcome.provider, fallbackUsed: outcome.fallbackUsed } satisfies ExamSectionResponseBody }
 }
@@ -789,14 +911,15 @@ async function handleQuestion(payload: Record<string, unknown>) {
   const replaceStem = str(payload.replaceStem, MAX_AVOID_STEM_CHARS)
   const difficulty = { easy: 0, medium: 0, hard: 0, [level]: 1 } as Record<ExamDifficulty, number>
   const start = Date.now()
+  const stats: WriteStats = { lists: 0, items: 0, rejected: {}, flagged: {} }
   let outcome: CallOutcome
   try {
-    outcome = await writeQuestions({ ...common, difficulty, partIndex: 0, partCount: 1, ...(replaceStem ? { replaceStem } : {}) }, 1, 'exam-question')
+    outcome = await writeQuestions({ ...common, difficulty, partIndex: 0, partCount: 1, ...(replaceStem ? { replaceStem } : {}) }, 1, 'exam-question', stats, false)
   } catch (error) {
     console.error('generate: exam_question failed', error instanceof Error ? error.message : 'unknown error')
     outcome = { error: 'upstream' }
   }
-  logExam('exam_question', 1, 'questions' in outcome ? outcome.questions.length : 0, Date.now() - start)
+  logExam('exam_question', 1, 'questions' in outcome ? outcome.questions.length : 0, Date.now() - start, writeLogExtra(common.type, stats, outcome))
   if ('error' in outcome) return fail(outcome.error)
   return { status: 200, body: { question: outcome.questions[0], provider: outcome.provider, fallbackUsed: outcome.fallbackUsed } satisfies ExamQuestionResponseBody }
 }

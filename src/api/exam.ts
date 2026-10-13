@@ -9,6 +9,8 @@ export type ExamApiErrorCode =
   | 'not_supported'
   | 'upstream'
   | 'parse'
+  /** The model answered but every question it wrote was left out (not a provider failure; the generator asks again). */
+  | 'empty_section'
   | 'model'
   | 'network'
   | 'not_configured'
@@ -17,7 +19,7 @@ export type ExamApiErrorCode =
   /** The exam still broke a quality rule after the targeted rewrites; nothing is saved. */
   | 'quality'
 
-const KNOWN_CODES: ReadonlySet<string> = new Set(['too_short', 'too_long', 'not_supported', 'upstream', 'parse', 'model', 'not_configured', 'rate_limited', 'unauthorized'])
+const KNOWN_CODES: ReadonlySet<string> = new Set(['too_short', 'too_long', 'not_supported', 'upstream', 'parse', 'empty_section', 'model', 'not_configured', 'rate_limited', 'unauthorized'])
 
 export class ExamApiError extends Error {
   code: ExamApiErrorCode
@@ -208,7 +210,7 @@ async function post(payload: Record<string, unknown>, signal?: AbortSignal): Pro
 export async function generateExamSection(request: ExamSectionRequest, signal?: AbortSignal): Promise<ExamQuestion[]> {
   const body = await post({ mode: 'exam_section', ...request }, signal)
   const questions = Array.isArray(body.questions) ? body.questions.map(normaliseQuestion).filter((question): question is ExamQuestion => question !== null) : []
-  if (questions.length === 0) throw new ExamApiError('parse')
+  if (questions.length === 0) throw new ExamApiError('empty_section')
   return questions
 }
 
