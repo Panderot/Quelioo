@@ -295,7 +295,7 @@ export default function QuizResultView({
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <h2 className="font-serif text-xl leading-snug font-semibold break-words text-navy">{quiz.title}</h2>
+                <h2 className="min-w-0 font-serif text-xl leading-snug font-semibold break-words text-navy">{quiz.title}</h2>
                 <button
                   type="button"
                   title={t('create.result.titleEditLabel')}

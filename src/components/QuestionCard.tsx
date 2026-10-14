@@ -434,6 +434,7 @@ function QuestionEditForm({
       <textarea
         rows={2}
         value={draft.question}
+        aria-label={t('create.question.questionLabel')}
         onChange={(event) => onChange({ ...draft, question: event.target.value })}
         className={textareaClasses}
       />
@@ -450,7 +451,7 @@ function QuestionEditForm({
                 className="h-4 w-4 accent-amber"
                 aria-label={t('create.result.modelAnswerLabel')}
               />
-              <input value={option} onChange={(event) => updateOption(optionIndex, event.target.value)} className={inputClasses} />
+              <input value={option} aria-label={`${t('create.question.optionLabel')} ${optionIndex + 1}`} onChange={(event) => updateOption(optionIndex, event.target.value)} className={inputClasses} />
               <button
                 type="button"
                 onClick={() => removeOption(optionIndex)}

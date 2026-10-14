@@ -102,6 +102,9 @@ export default function AddCardsDialog({ title, defaultDeckName, source, sourceR
     }
   }
 
+  // A burst of clicks before the dialog re-renders must save once.
+  const addedRef = useRef(false)
+
   const onlyMissing = () => {
     if (!sourceDeck || !sourceDeckFronts) return
     setReview((current) => current.filter((card) => !sourceDeckFronts.has(normalizeFront(card.front))))
@@ -110,7 +113,8 @@ export default function AddCardsDialog({ title, defaultDeckName, source, sourceR
   }
 
   const handleAdd = () => {
-    if (selected.length === 0) return
+    if (selected.length === 0 || addedRef.current) return
+    addedRef.current = true
     if (destination === 'existing' && targetId) {
       const deck = state.decks.find((entry) => entry.id === targetId)
       addCards(targetId, selected)

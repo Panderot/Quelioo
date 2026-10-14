@@ -12,7 +12,7 @@ test.describe('Solve (full) — empty state and adding a photo', () => {
     await page.goto('/solve?lng=en')
     await expect(page.getByRole('heading', { name: en.solve.title })).toBeVisible()
     await expect(dropZone(page)).toBeVisible()
-    await expect(page.getByRole('button', { name: en.solve.upload.browse, exact: true })).toBeVisible()
+    await expect(page.locator('[data-purpose="solve-upload-card"] button', { hasText: en.solve.upload.browse })).toBeVisible()
     await expect(solveButton(page)).toBeDisabled()
     await expect(solveResult(page)).toHaveCount(0)
     await expect(solveError(page)).toHaveCount(0)
@@ -27,7 +27,7 @@ test.describe('Solve (full) — empty state and adding a photo', () => {
 
   test('"Choose a photo" opens the file chooser; a chosen photo opens the crop step and enables Solve', async ({ page }) => {
     await page.goto('/solve?lng=en')
-    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: en.solve.upload.browse, exact: true }).click()])
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.locator('[data-purpose="solve-upload-card"] button', { hasText: en.solve.upload.browse }).click()])
     await chooser.setFiles({ name: 'plain.jpg', mimeType: 'image/jpeg', buffer: fixtureBuffer('plain.jpg') })
     await waitForCropStep(page)
     // Solve is active as soon as the photo is loaded, without confirming the crop first.
@@ -39,7 +39,7 @@ test.describe('Solve (full) — empty state and adding a photo', () => {
     await expect(dropZone(page)).toBeVisible()
     await dropZone(page).focus()
     await page.keyboard.press('Tab')
-    await expect(page.getByRole('button', { name: en.solve.upload.browse, exact: true })).toBeFocused()
+    await expect(page.locator('[data-purpose="solve-upload-card"] button', { hasText: en.solve.upload.browse })).toBeFocused()
     await dropZone(page).focus()
     const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Enter')])
     await chooser.setFiles({ name: 'plain.png', mimeType: 'image/png', buffer: fixtureBuffer('transparent.png') })
@@ -268,7 +268,7 @@ test.describe('Solve (full) — layout at 1280 and 390', () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/solve?lng=en')
     await expect(dropZone(page)).toBeVisible()
-    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: en.solve.upload.browse, exact: true }).click()])
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.locator('[data-purpose="solve-upload-card"] button', { hasText: en.solve.upload.browse }).click()])
     await chooser.setFiles({ name: 'plain.jpg', mimeType: 'image/jpeg', buffer: fixtureBuffer('plain.jpg') })
     await waitForCropStep(page)
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)

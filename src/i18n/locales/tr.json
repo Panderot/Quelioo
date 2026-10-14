@@ -291,6 +291,8 @@
       "keyPointsLabel": "Ana fikirler (satır başına bir tane)",
       "hint1Label": "İpucu 1",
       "hint2Label": "İpucu 2",
+      "questionLabel": "Soru",
+      "optionLabel": "Seçenek",
       "hintLeakError": "Bu ipucu cevabı ele veriyor — lütfen yeniden yaz.",
       "type": {
         "mcq": "Çoktan Seçmeli",

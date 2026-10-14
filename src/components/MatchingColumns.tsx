@@ -122,6 +122,7 @@ export default function MatchingColumns({ pairs, rightOrder, showAnswers, hints 
           <textarea
             rows={2}
             value={answerText}
+            aria-label={t('create.result.matchingAnswerPlaceholder')}
             onChange={(event) => setAnswerText(event.target.value)}
             onKeyDown={handleAnswerKeyDown}
             placeholder={t('create.result.matchingAnswerPlaceholder')}

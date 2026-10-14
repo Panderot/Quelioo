@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
@@ -39,7 +39,14 @@ export default function FlashcardsPage() {
       .sort((a, b) => b.due - a.due || b.deck.updatedAt - a.deck.updatedAt)
   }, [state.decks, state.cards, search, now, t])
 
+  // A burst of clicks creates one deck.
+  const creating = useRef(false)
   const handleNewDeck = () => {
+    if (creating.current) return
+    creating.current = true
+    setTimeout(() => {
+      creating.current = false
+    }, 1000)
     const deck = createDeck({ name: '', language: i18n.language })
     navigate(`/flashcards/${deck.id}`, { state: { focusName: true } })
   }

@@ -195,6 +195,7 @@ test.describe('Text input', () => {
 
 test.describe('Settings go into the request', () => {
   test('title, every question type, difficulty, count (Auto, minimum, maximum), options, hints, explanations and shuffle', async ({ page, mockGenerate }) => {
+    test.slow() // about 20 sequential generate round trips
     const generate = await mockGenerate(SAMPLE_QUIZ)
     await page.goto('/?lng=en')
     await fillText(page, SHORT_TEXT)
@@ -227,7 +228,9 @@ test.describe('Settings go into the request', () => {
         ['MCQ (Multiple Choice Questions)', 'mcq'],
       ]
       for (const [label, value] of types) {
-        await chooseOption(page, 'Question Type', label)
+        // dispatchEvent: the long list scrolls inside its menu, so a real click can land outside the viewport.
+        await page.getByRole('button', { name: 'Question Type', exact: true }).click()
+        await page.getByRole('option', { name: label, exact: true }).dispatchEvent('click')
         await generateOnce(page, generate)
         const last = requestsOf(generate).at(-1)!
         expect(last.questionType).toBe(value)
@@ -341,7 +344,8 @@ test.describe('Errors keep the typed text', () => {
 
       failing = false
       await page.getByRole('button', { name: 'Try again' }).click()
-      await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
+      // The title typed above wins over the title the AI suggested.
+      await expect(page.getByRole('heading', { name: 'Keep me' })).toBeVisible()
       await expect(page.getByRole('alert')).toHaveCount(0)
       expect(calls).toBe(2)
       await expect(textBox(page)).toHaveValue(SHORT_TEXT)

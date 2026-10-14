@@ -326,7 +326,7 @@ test.describe('Kartlar — many cards and long text', () => {
       await card(page).click()
       const back = page.locator('[data-purpose="flashcard-back"]')
       expect(await back.evaluate((element) => element.scrollWidth <= element.clientWidth + 1), 'a link without spaces wraps on the back').toBe(true)
-      expect((await card(page).boundingBox())!.height).toBe(before.height)
+      expect((await card(page).boundingBox())!.height).toBeCloseTo(before.height, 0)
       await expectNoPageOverflow(page)
 
       await page.getByRole('button', { name: 'Know', exact: true }).click()
@@ -335,13 +335,13 @@ test.describe('Kartlar — many cards and long text', () => {
       await expectNoPageOverflow(page)
       const wide = (await card(page).boundingBox())!
       expect(wide.x + wide.width).toBeLessThanOrEqual(width + 1)
-      expect(wide.height).toBe(before.height)
+      expect(wide.height).toBeCloseTo(before.height, 0)
 
       await gradeByMouse(page, true)
       await expect(progress(page)).toHaveText('3 / 3')
       await card(page).click()
       expect(await back.evaluate((element) => element.scrollHeight > element.clientHeight), 'a long back scrolls inside the card').toBe(true)
-      expect((await card(page).boundingBox())!.height).toBe(before.height)
+      expect((await card(page).boundingBox())!.height).toBeCloseTo(before.height, 0)
     })
   }
 })

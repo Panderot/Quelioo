@@ -333,7 +333,7 @@ test.describe('Kartlar — cards', () => {
     await page.route('**/api/cards', async (route) => {
       requests.push(route.request().postDataJSON())
       if (mode === 'abort') {
-        await route.abort('failed')
+        await route.abort('internetdisconnected')
         return
       }
       await gate
@@ -547,12 +547,12 @@ test.describe('Kartlar — shared checks', () => {
       'Reset progress',
       'Delete deck',
       'Add card',
+      'Delete card 1',
       'Front of card 1',
       'Back of card 1',
-      'Delete card 1',
     ]
     const seen: string[] = []
-    for (let i = 0; i < 80 && !seen.some((name) => name === 'Delete card 1'); i++) {
+    for (let i = 0; i < 80 && !seen.some((name) => name === 'Back of card 1'); i++) {
       await page.keyboard.press('Tab')
       seen.push(await focusedName(page))
     }

@@ -26,7 +26,7 @@ test.describe('Generated quiz: preview and edit', () => {
     await mockGenerate(SAMPLE_QUIZ)
     await createQuiz(page)
 
-    await expect(result(page).getByText(/6 Questions/)).toBeVisible()
+    await expect(result(page).getByText(/6 Questions/).first()).toBeVisible()
     await expect(cards(page)).toHaveCount(SAMPLE_QUIZ.questions.length)
     await expect(result(page).getByRole('link', { name: 'View in Archive' })).toBeVisible()
 
@@ -130,7 +130,7 @@ test.describe('Generated quiz: Archive, Study mode, Print / PDF, cards', () => {
     await expect(answerKey).toBeVisible()
     await expect(answerKey).toContainText('Answer Key')
     await expect(answerKey).toContainText('Jupiter')
-    await expect(answerKey).toContainText('Carbon dioxide')
+    await expect(answerKey).toContainText('carbon dioxide')
     await page.emulateMedia({ media: 'screen' })
 
     await dialog.getByRole('button', { name: 'Print', exact: true }).click()
@@ -172,6 +172,9 @@ test.describe('Generated quiz: Archive, Study mode, Print / PDF, cards', () => {
 
     await test.step('a first-attempt mistake goes to "{title} · Mistakes"', async () => {
       await navTo(page, /^Create/)
+      // The add-cards dialog of the first step is still open on this kept page.
+      await page.locator('[data-purpose="add-cards-dialog"]').getByRole('button', { name: 'Close' }).last().click()
+      await expect(page.locator('[data-purpose="add-cards-dialog"]')).toHaveCount(0)
       const mcq = cards(page).nth(0)
       await mcq.getByRole('radio', { name: /Nitrogen/ }).check()
       await mcq.getByRole('button', { name: 'Check answer' }).click()

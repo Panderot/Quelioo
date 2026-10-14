@@ -291,6 +291,8 @@
       "keyPointsLabel": "Key points (one per line)",
       "hint1Label": "Hint 1",
       "hint2Label": "Hint 2",
+      "questionLabel": "Question",
+      "optionLabel": "Option",
       "hintLeakError": "This hint reveals the answer — please rewrite it.",
       "type": {
         "mcq": "Multiple Choice",
