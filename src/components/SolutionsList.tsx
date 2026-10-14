@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { LoadError, SkeletonList } from './DataStates'
 import { deleteSolution, getAllSolutions, restoreSolution, withThumbnailBlob } from '../lib/solutionStorage'
 import type { StoredSolution } from '../lib/solutionStorage'
+import { formatDateTime } from '../lib/formatDate'
 import MathText from './MathText'
 import { CalculatorIcon, SearchIcon, TrashIcon } from './icons'
 
@@ -14,7 +15,7 @@ function formatDate(iso: string, locale: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
   try {
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+    return formatDateTime(date, locale)
   } catch {
     return date.toLocaleString()
   }

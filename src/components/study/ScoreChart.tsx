@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { formatDateTimeLong, formatDayMonth, formatTime } from '../../lib/formatDate'
 import { bestScore, fullSessions, percent } from '../../lib/study'
 import type { StudyResults } from '../../lib/study'
 
@@ -14,10 +15,7 @@ export default function ScoreChart({ results }: { results: StudyResults }) {
   const best = bestScore(results)
   if (sessions.length === 0) return <p className="text-sm text-muted">{t('study.history.empty')}</p>
 
-  const locale = i18n.language === 'hyw' ? 'hy' : i18n.language
-  const dateFormat = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' })
-  const timeFormat = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' })
-  const fullFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' })
+  const language = i18n.language
   const dayKey = (at: string) => new Date(at).toDateString()
   const summary = sessions.map((session) => `${session.firstTry}/${session.total}`).join(', ')
 
@@ -28,7 +26,7 @@ export default function ScoreChart({ results }: { results: StudyResults }) {
           const share = percent(session.firstTry, session.total)
           const at = new Date(session.at)
           const score = `${session.firstTry}/${session.total}`
-          const tip = `${fullFormat.format(at)} · ${t(`study.kinds.${session.kind}.name`)} · ${score}`
+          const tip = `${formatDateTimeLong(at, language)} · ${t(`study.kinds.${session.kind}.name`)} · ${score}`
           const showDate = sessions.length <= FULL_LABEL_BARS || index === 0 || dayKey(sessions[index - 1].at) !== dayKey(session.at)
           return (
             <div key={session.id} data-score={`${session.firstTry}/${session.total}`} title={tip} aria-label={tip} tabIndex={0} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1 rounded-md focus-visible:outline-2 focus-visible:outline-amber">
@@ -37,9 +35,9 @@ export default function ScoreChart({ results }: { results: StudyResults }) {
               </span>
               <div className={`w-full max-w-9 rounded-t-md ${session === best ? 'bg-amber' : 'bg-amber/45'}`} style={{ height: `${Math.max(4, share * 0.6)}px` }} />
               <span className="flex flex-col items-center text-center text-[10px] leading-tight text-muted">
-                {showDate && <span data-purpose="study-bar-date">{dateFormat.format(at)}</span>}
+                {showDate && <span data-purpose="study-bar-date">{formatDayMonth(at, language)}</span>}
                 <span data-purpose="study-bar-time" className="tabular-nums">
-                  {timeFormat.format(at)}
+                  {formatTime(at, language)}
                 </span>
               </span>
             </div>

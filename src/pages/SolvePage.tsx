@@ -602,6 +602,11 @@ export default function SolvePage() {
           )}
         </SolutionView>
       )}
+      {result && (
+        <p data-purpose="auto-note" data-print-hide className="text-xs text-muted">
+          {t('solve.autoNote')}
+        </p>
+      )}
     </>
   )
 }

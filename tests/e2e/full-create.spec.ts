@@ -315,7 +315,7 @@ test.describe('Errors keep the typed text', () => {
   const CASES: { name: string; status: number; contentType: string; body: string; message: string }[] = [
     { name: '429 too many requests', status: 429, contentType: 'application/json', body: JSON.stringify({ error: 'rate_limited' }), message: 'Something went wrong generating your quiz. Please try again.' },
     { name: '500 server error', status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'upstream' }), message: 'Something went wrong generating your quiz. Please try again.' },
-    { name: '500 model not configured', status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'model' }), message: "Quelio's AI model isn't configured correctly right now. Please try again shortly." },
+    { name: '500 model not configured', status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'model' }), message: "Quelio's content service isn't configured correctly right now. Please try again shortly." },
     { name: '503 generation unavailable', status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'not_configured' }), message: 'Quiz generation is temporarily unavailable. Please try again shortly.' },
     { name: '504 gateway timeout (HTML page, not JSON)', status: 504, contentType: 'text/html', body: '<html><body>An error occurred with your deployment</body></html>', message: "Quelio couldn't read a valid quiz this time. Please try again." },
     { name: '200 with broken JSON', status: 200, contentType: 'application/json', body: '{"title": "Broken", "questions": [', message: "Quelio couldn't read a valid quiz this time. Please try again." },

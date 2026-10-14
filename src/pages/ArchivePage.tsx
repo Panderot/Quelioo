@@ -7,6 +7,7 @@ import { useArchive } from '../lib/archive'
 import { daysAgo, lastFullSession, parseStudyResults } from '../lib/study'
 import { QUESTION_TYPE_LABEL_KEYS } from '../lib/quizTypes'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
+import { formatDateTime } from '../lib/formatDate'
 import type { EstimateDifficulty } from '../lib/estimateTime'
 import { LoadError, SkeletonList } from '../components/DataStates'
 import SolutionsList from '../components/SolutionsList'
@@ -20,7 +21,7 @@ function formatCreatedAt(iso: string, locale: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
   try {
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+    return formatDateTime(date, locale)
   } catch {
     return date.toLocaleString()
   }

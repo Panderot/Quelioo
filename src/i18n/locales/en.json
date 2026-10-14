@@ -166,7 +166,10 @@
     "detail": {
       "notFoundTitle": "Quiz not found",
       "notFoundBody": "This quiz may have been deleted.",
-      "backToArchive": "Back to Archive"
+      "backToArchive": "Back to Archive",
+      "delete": "Delete",
+      "deleteTitle": "Delete this quiz?",
+      "deleteBody": "Are you sure? This quiz is deleted permanently."
     },
     "tabs": {
       "label": "Archive sections",
@@ -194,6 +197,7 @@
     }
   },
   "create": {
+    "autoNote": "Questions are prepared automatically; we recommend checking them before you use them.",
     "resume": {
       "dueCards_one": "{{count}} card to review today",
       "dueCards_other": "{{count}} cards to review today",
@@ -215,7 +219,7 @@
       "too_long": "That's a lot of text. Please keep it under 5,000 words.",
       "too_long_chars": "That's a lot of text. Please shorten it a bit and try again.",
       "not_supported": "Something about these settings isn't supported right now. Please adjust them and try again.",
-      "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+      "model": "Quelio's content service isn't configured correctly right now. Please try again shortly.",
       "upstream": "Something went wrong generating your quiz. Please try again.",
       "parse": "Quelio couldn't read a valid quiz this time. Please try again.",
       "network": "Couldn't connect. Check your connection and try again.",
@@ -305,6 +309,7 @@
     }
   },
   "solve": {
+    "autoNote": "The solution is prepared automatically; we recommend checking it.",
     "title": "Solve a math question",
     "subtitle": "Take a photo of the question. Quelio explains it step by step.",
     "upload": {
@@ -344,7 +349,7 @@
       "bad_type": "Please upload a photo of the question.",
       "upstream": "Something went wrong reaching Quelio's solver. Please try again.",
       "parse": "Quelio couldn't read a clear answer this time. Please try again.",
-      "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+      "model": "Quelio's content service isn't configured correctly right now. Please try again shortly.",
       "not_configured": "Solving photos is temporarily unavailable. Please try again shortly.",
       "rate_limited": "You've reached the hourly limit for solving photos. Please try again later.",
       "network": "Couldn't connect. Check your connection and try again.",
@@ -380,7 +385,7 @@
         "too_large": "This solution is too long to explain step by step.",
         "upstream": "Something went wrong reaching Quelio. Please try again.",
         "parse": "Quelio couldn't write a clear explanation this time. Please try again.",
-        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "model": "Quelio's content service isn't configured correctly right now. Please try again shortly.",
         "not_configured": "Explanations are temporarily unavailable. Please try again shortly.",
         "rate_limited": "You've reached the hourly limit for explanations. Please try again later.",
         "network": "Couldn't connect. Check your connection and try again."
@@ -411,7 +416,7 @@
         "too_large": "This solution is too long for this action.",
         "upstream": "Something went wrong reaching Quelio. Please try again.",
         "parse": "Quelio couldn't write a clear answer this time. Please try again.",
-        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "model": "Quelio's content service isn't configured correctly right now. Please try again shortly.",
         "not_configured": "This is temporarily unavailable. Please try again shortly.",
         "rate_limited": "You've reached the hourly limit for this. Please try again later.",
         "network": "Couldn't connect. Check your connection and try again.",
@@ -432,7 +437,7 @@
         "too_large": "This solution is too long for this action.",
         "upstream": "Something went wrong reaching Quelio. Please try again.",
         "parse": "Quelio couldn't write a clear answer this time. Please try again.",
-        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "model": "Quelio's content service isn't configured correctly right now. Please try again shortly.",
         "not_configured": "This is temporarily unavailable. Please try again shortly.",
         "rate_limited": "You've reached the hourly limit for this. Please try again later.",
         "network": "Couldn't connect. Check your connection and try again.",
@@ -494,7 +499,7 @@
         "too_large": "This photo or solution is too large to check.",
         "upstream": "Something went wrong reaching Quelio. Please try again.",
         "parse": "Quelio couldn't read a clear answer this time. Please try again.",
-        "model": "Quelio's AI model isn't configured correctly right now. Please try again shortly.",
+        "model": "Quelio's content service isn't configured correctly right now. Please try again shortly.",
         "not_configured": "Checking work is temporarily unavailable. Please try again shortly.",
         "rate_limited": "You've reached the hourly limit for checking work. Please try again later.",
         "network": "Couldn't connect. Check your connection and try again."
@@ -673,7 +678,7 @@
       "dueNow": "Cards are due now."
     },
     "generate": {
-      "title": "Generate cards with AI",
+      "title": "Generate cards automatically",
       "tabs": {
         "text": "Text",
         "topic": "Topic"
@@ -709,9 +714,9 @@
         "too_large": "That's too much to send at once. Shorten the text and try again.",
         "too_short": "The text is too short — use at least 30 words.",
         "too_long": "That's too long — keep the text under 5,000 words and the topic under 120 characters.",
-        "upstream": "The AI service didn't respond. Please try again.",
+        "upstream": "The service didn't respond. Please try again.",
         "parse": "The cards came back incomplete. Please try again.",
-        "model": "The AI model is unavailable right now. Please try again later.",
+        "model": "The card service is unavailable right now. Please try again later.",
         "not_configured": "Card generation isn't set up on this server yet.",
         "rate_limited": "You've generated a lot of cards this hour. Please try again later.",
         "unverified": "None of the cards passed the fact check. Try a more specific topic.",
@@ -785,7 +790,7 @@
   },
   "ownerPage": {
     "title": "Owner",
-    "subtitle": "AI spending of all accounts this month. Students never see this page."
+    "subtitle": "Content-generation spending of all accounts this month. Students never see this page."
   },
   "auth": {
     "email": "Email",
@@ -966,16 +971,16 @@
       "useBody": "Quelio helps you make quizzes, solve problems, and study. You are responsible for the material you add and for keeping your sign-in details safe.",
       "contentTitle": "Your content",
       "contentBody": "Your quizzes, cards and other data belong to you. You can download or delete them at any time from your account page.",
-      "aiTitle": "AI-made material",
-      "aiBody": "Quizzes and solutions are made with AI and can contain mistakes. Check important facts before relying on them."
+      "aiTitle": "Automatically made material",
+      "aiBody": "Quizzes and solutions are made automatically and can contain mistakes. Check important facts before relying on them."
     },
     "privacy": {
       "title": "Privacy Notice",
       "intro": "This notice explains what Quelio keeps and why.",
       "dataTitle": "What we keep",
       "dataBody": "Your email address, name, and the quizzes, cards and settings you create, so they are the same on every device.",
-      "aiTitle": "AI providers",
-      "aiBody": "To make quizzes and solutions, the text or photo you submit is sent to AI providers. It is used only to answer your request.",
+      "aiTitle": "Service providers abroad",
+      "aiBody": "The text or photo you submit is sent to our service providers abroad to prepare the content. It is used only to answer your request.",
       "controlTitle": "Your control",
       "controlBody": "You can download everything or delete your account, with all its data and files, from the account page."
     }
@@ -1221,7 +1226,7 @@
       "teacher": {
         "tab": "Teachers",
         "title": "A quiz ready for your class",
-        "body": "Paste your lesson text and choose the question types. Print the quiz or copy it, with the answer key alongside. The system can make mistakes, so give it a quick read before you hand it out.",
+        "body": "Paste your lesson text and choose the question types. Print the quiz or copy it, with the answer key alongside. Automatically made questions can contain mistakes, so give it a quick read before you hand it out.",
         "sheet": "Cell Division, 10 questions",
         "print": "Print / PDF",
         "copy": "Copy",
@@ -1230,7 +1235,7 @@
     },
     "try": {
       "title": "Try it yourself",
-      "sub": "Pick a sample text and watch its quiz come together. This is a pre-made demo and does not call the system.",
+      "sub": "Pick a sample text and watch its quiz come together. This is a pre-made demo and does not send any request.",
       "pickLabel": "Sample text",
       "building": "Building the quiz",
       "cta": "Try it with your own text"
@@ -1260,7 +1265,7 @@
       "title": "Frequently asked questions",
       "what": {
         "q": "What is Quelio?",
-        "a": "A study tool whose system turns what you write, upload or link into quizzes and flashcards, and solves a photo of a math problem step by step."
+        "a": "A study tool that automatically turns what you write, upload or link into quizzes and flashcards, and solves a photo of a math problem step by step."
       },
       "languages": {
         "q": "Which languages does it work in?",
@@ -1272,7 +1277,7 @@
       },
       "data": {
         "q": "What happens to my data?",
-        "a": "We keep your email address, your name, and the quizzes and cards you make, so they're the same on every device. The text or photo you submit is sent to the system's service providers to produce the content. From your account page you can download everything or delete your account along with all its data."
+        "a": "We keep your email address, your name, and the quizzes and cards you make, so they're the same on every device. The text or photo you submit is sent to our service providers abroad to prepare the content. From your account page you can download everything or delete your account along with all its data."
       },
       "files": {
         "q": "Which files can I use?",
@@ -1284,7 +1289,7 @@
       },
       "trust": {
         "q": "Can I trust the questions?",
-        "a": "Questions are based on the source you give; Quelio doesn't fill gaps with facts that aren't there. The system can still make mistakes, so review the questions before an important exam or before you hand them out."
+        "a": "Questions are based on the source you give; Quelio doesn't fill gaps with facts that aren't there. Automatically made questions can still contain mistakes, so review the questions before an important exam or before you hand them out."
       },
       "phone": {
         "q": "Does it work on my phone?",

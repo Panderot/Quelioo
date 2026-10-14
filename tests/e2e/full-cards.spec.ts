@@ -312,7 +312,7 @@ test.describe('Kartlar — cards', () => {
     await expect.poll(count).toBe(5)
 
     await page.route('**/api/cards', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ cards: AI_CARDS, removed: 0, provider: 'openai', fallbackUsed: false }) }))
-    await page.getByRole('button', { name: 'Generate cards with AI' }).click()
+    await page.getByRole('button', { name: 'Generate cards automatically' }).click()
     await panel(page).getByRole('tab', { name: 'Topic' }).click()
     await panel(page).locator('[data-purpose="generator-topic"]').fill('Photosynthesis')
     await generateButton(page).click()
@@ -342,7 +342,7 @@ test.describe('Kartlar — cards', () => {
     await openAt(page, '/flashcards?lng=en')
     await seed(page, [{ id: 'geo', name: 'Geo', cards: [{ id: 'g1', front: 'Capital of Türkiye', back: 'Ankara' }] }], '/flashcards/geo?lng=en')
 
-    await page.getByRole('button', { name: 'Generate cards with AI' }).click()
+    await page.getByRole('button', { name: 'Generate cards automatically' }).click()
     await panel(page).getByRole('tab', { name: 'Topic' }).click()
     await panel(page).locator('[data-purpose="generator-topic"]').fill('Photosynthesis')
     // A real double click: the second click lands on a button that is already disabled.
@@ -359,7 +359,7 @@ test.describe('Kartlar — cards', () => {
 
     // The connection drops: a clear message, nothing added, and "Try again" works.
     mode = 'abort'
-    await page.getByRole('button', { name: 'Generate cards with AI' }).click()
+    await page.getByRole('button', { name: 'Generate cards automatically' }).click()
     await panel(page).getByRole('tab', { name: 'Topic' }).click()
     await panel(page).locator('[data-purpose="generator-topic"]').fill('Cell biology')
     await generateButton(page).click()
@@ -540,7 +540,7 @@ test.describe('Kartlar — shared checks', () => {
       'Deck name',
       'Description',
       'New cards per day',
-      'Generate cards with AI',
+      'Generate cards automatically',
       'Paste many cards',
       'Export CSV',
       'Import CSV',

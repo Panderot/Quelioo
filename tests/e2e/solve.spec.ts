@@ -377,3 +377,16 @@ test('@mobile full solve flow works at 390px with no horizontal overflow', async
   await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false)
 })
+
+for (const [lng, strings] of [['en', en], ['tr', tr], ['hyw', hyw]] as const) {
+  test(`the solution ends with a quiet "prepared automatically" note (${lng})`, async ({ page, mockSolve }) => {
+    await mockSolve(MOCK_RESULT)
+    await page.goto(`/solve?lng=${lng}`)
+    await page.locator('input[type="file"]').setInputFiles({ name: 'plain.jpg', mimeType: 'image/jpeg', buffer: fixtureBuffer('plain.jpg') })
+    await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
+    await useWholePhoto(page)
+    await page.getByRole('button', { name: strings.solve.cta.solve }).click()
+    await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()
+    await expect(page.locator('[data-purpose="auto-note"]')).toHaveText(strings.solve.autoNote)
+  })
+}

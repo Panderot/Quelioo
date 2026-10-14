@@ -1,6 +1,9 @@
 import { test, expect } from './fixtures'
 import { chooseOption, fillText, SHORT_TEXT } from './helpers'
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
+import en from '../../src/i18n/locales/en.json' with { type: 'json' }
+import tr from '../../src/i18n/locales/tr.json' with { type: 'json' }
+import hyw from '../../src/i18n/locales/hyw.json' with { type: 'json' }
 
 test('create page loads in Turkish with no console errors', async ({ page }) => {
   await page.goto('/?lng=tr')
@@ -280,3 +283,17 @@ test('url tab: a successful mocked fetch shows the chip; a blocked address shows
     await expect(page.getByText("This address can't be fetched for security reasons.")).toBeVisible()
   })
 })
+
+for (const [lng, strings] of [['en', en], ['tr', tr], ['hyw', hyw]] as const) {
+  test(`the quiz preview ends with a quiet "prepared automatically" note, not printed (${lng})`, async ({ page, mockGenerate }) => {
+    await mockGenerate(SAMPLE_QUIZ)
+    await page.goto(`/?lng=${lng}`)
+    await fillText(page, SHORT_TEXT)
+    await page.getByRole('button', { name: strings.cta.generate }).click()
+    const note = page.locator('[data-purpose="auto-note"]')
+    await expect(note).toHaveText(strings.create.autoNote)
+    await expect(note).toHaveClass(/text-muted/)
+    await page.emulateMedia({ media: 'print' })
+    await expect(note).toBeHidden()
+  })
+}

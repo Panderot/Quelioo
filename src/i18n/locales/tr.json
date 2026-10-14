@@ -166,7 +166,10 @@
     "detail": {
       "notFoundTitle": "Quiz bulunamadı",
       "notFoundBody": "Bu quiz silinmiş olabilir.",
-      "backToArchive": "Arşive dön"
+      "backToArchive": "Arşive dön",
+      "delete": "Sil",
+      "deleteTitle": "Quiz silinsin mi?",
+      "deleteBody": "Emin misin? Bu quiz kalıcı olarak silinir."
     },
     "tabs": {
       "label": "Arşiv bölümleri",
@@ -194,6 +197,7 @@
     }
   },
   "create": {
+    "autoNote": "Sorular otomatik hazırlanır; kullanmadan önce kontrol etmeni öneririz.",
     "resume": {
       "dueCards_one": "Bugün tekrar edilecek {{count}} kart",
       "dueCards_other": "Bugün tekrar edilecek {{count}} kart",
@@ -215,7 +219,7 @@
       "too_long": "Bu oldukça uzun bir metin. Lütfen 5.000 kelimenin altında tut.",
       "too_long_chars": "Bu oldukça uzun bir metin. Lütfen biraz kısaltıp tekrar dene.",
       "not_supported": "Bu ayarlarla ilgili bir şey şu anda desteklenmiyor. Lütfen ayarları düzenleyip tekrar dene.",
-      "model": "Quelio'nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen kısa süre sonra tekrar dene.",
+      "model": "Quelio'nun içerik hazırlama hizmeti şu anda doğru yapılandırılmamış. Lütfen kısa süre sonra tekrar dene.",
       "upstream": "Quizini oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
       "parse": "Quelio bu sefer geçerli bir quiz okuyamadı. Lütfen tekrar dene.",
       "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
@@ -305,6 +309,7 @@
     }
   },
   "solve": {
+    "autoNote": "Çözüm otomatik hazırlanır; kontrol etmeni öneririz.",
     "title": "Matematik sorunu çöz",
     "subtitle": "Sorunun fotoğrafını çek, Quelio adım adım anlatsın.",
     "upload": {
@@ -344,7 +349,7 @@
       "bad_type": "Lütfen sorunun bir fotoğrafını yükle.",
       "upstream": "Quelio'nun çözücüsüne ulaşırken bir şeyler ters gitti. Lütfen tekrar dene.",
       "parse": "Quelio bu sefer net bir cevap okuyamadı. Lütfen tekrar dene.",
-      "model": "Quelio'nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen kısa süre sonra tekrar dene.",
+      "model": "Quelio'nun içerik hazırlama hizmeti şu anda doğru yapılandırılmamış. Lütfen kısa süre sonra tekrar dene.",
       "not_configured": "Fotoğraf çözme şu anda geçici olarak kullanılamıyor. Lütfen kısa süre sonra tekrar dene.",
       "rate_limited": "Bu saat için fotoğraf çözme sınırına ulaştın. Lütfen daha sonra tekrar dene.",
       "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
@@ -380,7 +385,7 @@
         "too_large": "Bu çözüm adım adım açıklamak için çok uzun.",
         "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
         "parse": "Quelio bu sefer net bir açıklama yazamadı. Lütfen tekrar dene.",
-        "model": "Quelio’nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
+        "model": "Quelio’nun içerik hazırlama hizmeti şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
         "not_configured": "Açıklamalar geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar dene.",
         "rate_limited": "Açıklamalar için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
         "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene."
@@ -411,7 +416,7 @@
         "too_large": "Bu çözüm bu işlem için çok uzun.",
         "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
         "parse": "Quelio bu sefer net bir yanıt yazamadı. Lütfen tekrar dene.",
-        "model": "Quelio’nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
+        "model": "Quelio’nun içerik hazırlama hizmeti şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
         "not_configured": "Bu özellik geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar dene.",
         "rate_limited": "Bunun için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
         "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene.",
@@ -432,7 +437,7 @@
         "too_large": "Bu çözüm bu işlem için çok uzun.",
         "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
         "parse": "Quelio bu sefer net bir yanıt yazamadı. Lütfen tekrar dene.",
-        "model": "Quelio’nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
+        "model": "Quelio’nun içerik hazırlama hizmeti şu anda doğru yapılandırılmamış. Lütfen biraz sonra tekrar dene.",
         "not_configured": "Bu özellik geçici olarak kullanılamıyor. Lütfen biraz sonra tekrar dene.",
         "rate_limited": "Bunun için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
         "network": "Bağlantı kurulamadı. İnternet bağlantını kontrol edip tekrar dene.",
@@ -494,7 +499,7 @@
         "too_large": "Bu fotoğraf ya da çözüm kontrol için çok büyük.",
         "upstream": "Quelio'ya ulaşırken bir sorun oluştu. Lütfen tekrar dene.",
         "parse": "Quelio bu sefer net bir cevap okuyamadı. Lütfen tekrar dene.",
-        "model": "Quelio'nun yapay zekâ modeli şu anda doğru yapılandırılmamış. Lütfen birazdan tekrar dene.",
+        "model": "Quelio'nun içerik hazırlama hizmeti şu anda doğru yapılandırılmamış. Lütfen birazdan tekrar dene.",
         "not_configured": "Çözüm kontrolü geçici olarak kullanılamıyor. Lütfen birazdan tekrar dene.",
         "rate_limited": "Çözüm kontrolü için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
         "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene."
@@ -673,7 +678,7 @@
       "dueNow": "Şu an tekrar bekleyen kart var."
     },
     "generate": {
-      "title": "Yapay zekâ ile kart üret",
+      "title": "Otomatik kart üret",
       "tabs": {
         "text": "Metin",
         "topic": "Konu"
@@ -709,9 +714,9 @@
         "too_large": "Bir kerede gönderilemeyecek kadar uzun. Metni kısaltıp tekrar dene.",
         "too_short": "Metin çok kısa; en az 30 kelime kullan.",
         "too_long": "Çok uzun; metin 5.000 kelimeyi, konu 120 karakteri geçmesin.",
-        "upstream": "Yapay zekâ servisi yanıt vermedi. Lütfen tekrar dene.",
+        "upstream": "Hazırlama hizmeti yanıt vermedi. Lütfen tekrar dene.",
         "parse": "Kartlar eksik geldi. Lütfen tekrar dene.",
-        "model": "Yapay zekâ modeli şu an kullanılamıyor. Biraz sonra tekrar dene.",
+        "model": "Kart hazırlama hizmeti şu an kullanılamıyor. Biraz sonra tekrar dene.",
         "not_configured": "Kart üretme bu sunucuda henüz ayarlanmadı.",
         "rate_limited": "Bu saat içinde çok kart ürettin. Biraz sonra tekrar dene.",
         "unverified": "Kartların hiçbiri doğruluk kontrolünden geçemedi. Daha belirli bir konu dene.",
@@ -785,7 +790,7 @@
   },
   "ownerPage": {
     "title": "Sahip",
-    "subtitle": "Bu ay tüm hesapların yapay zekâ harcaması. Öğrenciler bu sayfayı görmez."
+    "subtitle": "Bu ay tüm hesapların otomatik hazırlama harcaması. Öğrenciler bu sayfayı görmez."
   },
   "auth": {
     "email": "E-posta",
@@ -966,16 +971,16 @@
       "useBody": "Quelio quiz hazırlamana, soru çözmene ve çalışmana yardım eder. Eklediğin içerikten ve giriş bilgilerini güvende tutmaktan sen sorumlusun.",
       "contentTitle": "İçeriğin",
       "contentBody": "Quizlerin, kartların ve diğer verilerin sana aittir. Hesap sayfandan istediğin zaman indirebilir veya silebilirsin.",
-      "aiTitle": "Yapay zekâ ürünü içerik",
-      "aiBody": "Quizler ve çözümler yapay zekâ ile hazırlanır ve hata içerebilir. Önemli bilgileri güvenmeden önce kontrol et."
+      "aiTitle": "Otomatik hazırlanan içerik",
+      "aiBody": "Quizler ve çözümler otomatik hazırlanır ve hata içerebilir. Önemli bilgileri güvenmeden önce kontrol et."
     },
     "privacy": {
       "title": "Gizlilik Bildirimi",
       "intro": "Bu bildirim, Quelio'nun neleri sakladığını ve nedenini açıklar.",
       "dataTitle": "Neleri saklıyoruz",
       "dataBody": "E-posta adresin, adın ve oluşturduğun quizler, kartlar ve ayarlar; böylece her cihazda aynı olurlar.",
-      "aiTitle": "Yapay zekâ sağlayıcıları",
-      "aiBody": "Quiz ve çözüm hazırlamak için gönderdiğin metin ya da fotoğraf yapay zekâ sağlayıcılarına iletilir. Yalnızca isteğini yanıtlamak için kullanılır.",
+      "aiTitle": "Yurt dışındaki hizmet sağlayıcılar",
+      "aiBody": "Gönderdiğin metin ya da fotoğraf, içeriği hazırlamak için yurt dışındaki hizmet sağlayıcılarımıza iletilir. Yalnızca isteğini yanıtlamak için kullanılır.",
       "controlTitle": "Kontrol sende",
       "controlBody": "Hesap sayfasından her şeyi indirebilir ya da hesabını tüm veri ve dosyalarıyla silebilirsin."
     }
@@ -1221,7 +1226,7 @@
       "teacher": {
         "tab": "Öğretmenler",
         "title": "Sınıf için hazır quiz",
-        "body": "Konu anlatımını yapıştır, soru türlerini seç. Quizi yazdır ya da kopyala; cevap anahtarı yanında gelir. Sistem yanılabilir, dağıtmadan önce göz atmanı öneririz.",
+        "body": "Konu anlatımını yapıştır, soru türlerini seç. Quizi yazdır ya da kopyala; cevap anahtarı yanında gelir. Otomatik hazırlanan sorular yanılabilir, dağıtmadan önce göz atmanı öneririz.",
         "sheet": "Hücre Bölünmesi, 10 soru",
         "print": "Yazdır / PDF",
         "copy": "Kopyala",
@@ -1230,7 +1235,7 @@
     },
     "try": {
       "title": "Kendin dene",
-      "sub": "Bir örnek metin seç; quizin nasıl oluştuğunu izle. Bu bir önceden hazırlanmış gösterimdir, sistemi çağırmaz.",
+      "sub": "Bir örnek metin seç; quizin nasıl oluştuğunu izle. Bu bir önceden hazırlanmış gösterimdir, hiçbir istek göndermez.",
       "pickLabel": "Örnek metin",
       "building": "Quiz oluşturuluyor",
       "cta": "Kendi metninle dene"
@@ -1260,7 +1265,7 @@
       "title": "Sık sorulanlar",
       "what": {
         "q": "Quelio nedir?",
-        "a": "Yazdığın, yüklediğin ya da bağlantısını verdiğin içerikten sistemiyle quiz ve bilgi kartı hazırlayan; fotoğraftaki matematik sorusunu adım adım çözen bir çalışma aracı."
+        "a": "Yazdığın, yüklediğin ya da bağlantısını verdiğin içerikten otomatik olarak quiz ve bilgi kartı hazırlayan; fotoğraftaki matematik sorusunu adım adım çözen bir çalışma aracı."
       },
       "languages": {
         "q": "Hangi dillerde çalışıyor?",
@@ -1272,7 +1277,7 @@
       },
       "data": {
         "q": "Verilerime ne oluyor?",
-        "a": "E-posta adresini, adını ve oluşturduğun quiz ve kartları saklarız; böylece her cihazda aynı kalır. Gönderdiğin metin ya da fotoğraf içerik üretmek için sistemin hizmet sağlayıcılarına iletilir. Hesap sayfasından her şeyi indirebilir ya da hesabını tüm verileriyle silebilirsin."
+        "a": "E-posta adresini, adını ve oluşturduğun quiz ve kartları saklarız; böylece her cihazda aynı kalır. Gönderdiğin metin ya da fotoğraf, içeriği hazırlamak için yurt dışındaki hizmet sağlayıcılarımıza iletilir. Hesap sayfasından her şeyi indirebilir ya da hesabını tüm verileriyle silebilirsin."
       },
       "files": {
         "q": "Hangi dosyaları kabul ediyor?",
@@ -1284,7 +1289,7 @@
       },
       "trust": {
         "q": "Sorulara güvenebilir miyim?",
-        "a": "Sorular senin verdiğin kaynağa dayanır; Quelio kaynakta olmayan bilgiyi doldurmaz. Yine de sistem hata yapabilir, önemli sınavlar ve dağıtılacak materyaller için soruları gözden geçir."
+        "a": "Sorular senin verdiğin kaynağa dayanır; Quelio kaynakta olmayan bilgiyi doldurmaz. Yine de otomatik hazırlanan sorular hata içerebilir, önemli sınavlar ve dağıtılacak materyaller için soruları gözden geçir."
       },
       "phone": {
         "q": "Telefonda çalışıyor mu?",

@@ -3,13 +3,14 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import { useTranslation } from 'react-i18next'
 
 import { LoadError, SkeletonList } from '../components/DataStates'
-import { getArchiveEntry, updateArchiveEntry, useArchive } from '../lib/archive'
+import { deleteArchiveEntry, getArchiveEntry, updateArchiveEntry, useArchive } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import type { GeneratedQuiz } from '../lib/quiz'
+import ConfirmDialog from '../components/flashcards/ConfirmDialog'
 import QuizWorkspace from '../components/QuizWorkspace'
 import StudyHistory from '../components/study/StudyHistory'
 import StudyView from '../components/study/StudyView'
-import { ArchiveIcon } from '../components/icons'
+import { ArchiveIcon, TrashIcon } from '../components/icons'
 import { useOnPageReturn } from '../hooks/usePageActive'
 
 /** Keyed by id: opening another entry (e.g. a follow-up quiz "{title} · 2") starts with fresh state. */
@@ -28,6 +29,7 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
   // quizzes have loaded, and a quiz deleted elsewhere simply stops being found. The version bump
   // re-reads after a save in the browser-local (test) build, which has no change notifications.
   const [, setVersion] = useState(0)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const entry: ArchiveEntry | undefined = id ? getArchiveEntry(id) : undefined
   // Kept mounted while the user is elsewhere: the quiz may have been changed or deleted.
   useOnPageReturn(() => setVersion((value) => value + 1))
@@ -97,7 +99,29 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
       />
       <div data-print-hide className="space-y-7">
         <StudyHistory entry={entry} />
+        <button
+          type="button"
+          data-purpose="archive-quiz-delete"
+          onClick={() => setConfirmingDelete(true)}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-warm-border bg-card px-4 py-2 text-xs font-semibold text-error hover:border-error"
+        >
+          <TrashIcon className="h-4 w-4" />
+          {t('archive.detail.delete')}
+        </button>
       </div>
+      {confirmingDelete && (
+        <ConfirmDialog
+          title={t('archive.detail.deleteTitle')}
+          body={t('archive.detail.deleteBody')}
+          confirmLabel={t('archive.detail.delete')}
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() => {
+            setConfirmingDelete(false)
+            navigate('/archive', { replace: true })
+            deleteArchiveEntry(entry.id)
+          }}
+        />
+      )}
     </>
   )
 }

@@ -233,6 +233,17 @@ export function updateArchiveEntry(id: string, updater: (entry: ArchiveEntry) =>
   return updated
 }
 
+/** Removes one quiz with its study history (the `results` column lives on the same row). Cards and decks made from it stay. */
+export function deleteArchiveEntry(id: string): void {
+  if (isFakeBackend) {
+    writeLocalEntries(readLocalEntries().filter((entry) => entry.id !== id))
+    setSnapshot({})
+    return
+  }
+  setSnapshot({ entries: snapshot.entries.filter((entry) => entry.id !== id) })
+  enqueueWrite({ kind: 'delete', table: 'quizzes', column: 'id', values: [id] })
+}
+
 /** Saves the study history of a quiz. Only the `results` column is written (never the whole quiz), so a
  * save after every answered question stays small. */
 export function saveStudyResults(id: string, results: StudyResults): void {

@@ -154,6 +154,44 @@ test.describe('archive in the account', () => {
     await expect(page.getByRole('heading', { name: SAMPLE_QUIZ.title })).toBeVisible()
     await context.close()
   })
+
+  test('deleting a quiz removes only that quiz (with its study results) from the account; the other user’s quiz and the decks stay', async ({ browser }) => {
+    const user = await createTestUser('archive-delete')
+    const other = await createTestUser('archive-delete-other')
+    const row = (id: string, title: string) => ({
+      id,
+      title,
+      source: 'text',
+      question_type: 'mixed',
+      difficulty: 'medium',
+      question_count: '6',
+      output_language: 'auto',
+      source_text: 'Seeded source text.',
+      quiz: { title, questions: SAMPLE_QUIZ.questions },
+    })
+    const doomed = crypto.randomUUID()
+    const kept = crypto.randomUUID()
+    const foreign = crypto.randomUUID()
+    expect((await user.client.from('quizzes').insert(row(doomed, 'Doomed account quiz'))).error).toBeNull()
+    expect((await user.client.from('quizzes').insert(row(kept, 'Kept account quiz'))).error).toBeNull()
+    expect((await other.client.from('quizzes').insert(row(foreign, 'Foreign quiz'))).error).toBeNull()
+    expect((await user.client.from('decks').insert({ name: 'Deck from a quiz' })).error).toBeNull()
+
+    const context = await newContext(browser, user)
+    const page = await context.newPage()
+    await page.goto(`/archive/${doomed}?lng=en`)
+    await page.getByRole('button', { name: en.archive.detail.delete, exact: true }).click()
+    await page.getByRole('dialog').getByRole('button', { name: en.archive.detail.delete, exact: true }).click()
+    await expect(page).toHaveURL(/\/archive$/)
+    await expect.poll(async () => (await admin.from('quizzes').select('id').eq('id', doomed)).data?.length, { timeout: 30_000 }).toBe(0)
+    expect((await admin.from('quizzes').select('id').eq('id', kept)).data).toHaveLength(1)
+    expect((await admin.from('quizzes').select('id').eq('id', foreign)).data).toHaveLength(1)
+    expect((await admin.from('decks').select('name').eq('user_id', user.id)).data?.map((deck) => deck.name)).toContain('Deck from a quiz')
+    // The account's own client cannot delete a quiz of another user either.
+    expect((await user.client.from('quizzes').delete().eq('id', foreign).select()).data).toEqual([])
+    expect((await admin.from('quizzes').select('id').eq('id', foreign)).data).toHaveLength(1)
+    await context.close()
+  })
 })
 
 test.describe('study results in the account', () => {

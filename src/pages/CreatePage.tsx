@@ -703,6 +703,9 @@ export default function CreatePage() {
             includeHints={result.includeHints}
             focusSnippets={result.focusSnippets}
           />
+          <p data-purpose="auto-note" data-print-hide className="mt-3 text-xs text-muted">
+            {t('create.autoNote')}
+          </p>
         </div>
       )}
     </>

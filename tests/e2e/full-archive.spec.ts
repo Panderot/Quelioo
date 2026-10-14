@@ -1,7 +1,7 @@
 import type { Page, TestInfo } from '@playwright/test'
 
 import { test, expect } from './strict'
-import { readStore } from './flashcardHelpers'
+import { readStore, seed } from './flashcardHelpers'
 import { savedSolutionExtras } from './helpers'
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
 import type { ArchiveEntry } from '../../src/lib/archive'
@@ -444,7 +444,15 @@ for (const lng of LOCALE_NAMES) {
       await expect(lines.nth(0)).toHaveText(entry.title)
       await expect(lines.nth(1)).toHaveText(expectedMeta(strings, entry, seconds[index]))
       // The date is formatted for the UI language (Intl, medium date + short time).
-      const date = await page.evaluate(({ iso, lang }) => new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)), { iso: entry.createdAt, lang: lng })
+      // Western Armenian shows numbers only (15.01.2026 14:00), TR / EN keep the Intl medium date.
+      const date = await page.evaluate(({ iso, lang }) => {
+        const at = new Date(iso)
+        if (lang === 'hyw') {
+          const two = (value: number) => String(value).padStart(2, '0')
+          return `${two(at.getDate())}.${two(at.getMonth() + 1)}.${at.getFullYear()} ${two(at.getHours())}:${two(at.getMinutes())}`
+        }
+        return new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' }).format(at)
+      }, { iso: entry.createdAt, lang: lng })
       await expect(lines.nth(2)).toHaveText(date)
     }
 
@@ -464,6 +472,7 @@ for (const lng of LOCALE_NAMES) {
     // The date text is a real localized date in the two languages the browser knows.
     if (lng === 'tr') await expect(rowOf(page, 'Alpha quiz')).toContainText(/15 Oca 2026/)
     if (lng === 'en') await expect(rowOf(page, 'Alpha quiz')).toContainText(/Jan 15, 2026/)
+    if (lng === 'hyw') await expect(rowOf(page, 'Alpha quiz')).toContainText(/15\.01\.2026 \d{2}:\d{2}$/)
   })
 }
 
@@ -555,7 +564,7 @@ test.describe('Study from the Archive', () => {
 test.describe('Quiz page actions', () => {
   const ENTRY = () => makeEntry({ id: 'act-1', title: 'Action quiz', questionType: 'mixed' }, SAMPLE_QUIZ.questions)
 
-  test('opening a quiz from its row shows its title, meta and questions; the quiz has no delete here, only per question', async ({ page }) => {
+  test('opening a quiz from its row shows its title, meta and questions; the quiz can be deleted from here and each question too', async ({ page }) => {
     await seedEntries(page, [ENTRY()])
     await page.goto('/archive?lng=en')
     await rowOf(page, 'Action quiz').getByRole('link').first().click()
@@ -1317,6 +1326,66 @@ test.describe('Phone width (390 px)', () => {
       await page.goto(`/archive/long-1?mode=study&lng=${lng}`)
       await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
       expect(await noHorizontalOverflow(page)).toBe(true)
+    }
+  })
+})
+
+// ---------------------------------------------------------------------------------------------------
+// Deleting a quiz
+// ---------------------------------------------------------------------------------------------------
+
+test.describe('Delete a quiz', () => {
+  const entries = () => [
+    makeEntry({ id: 'del-a', title: 'Doomed quiz', createdAt: '2026-01-16T12:00:00.000Z' }),
+    makeEntry({ id: 'del-b', title: 'Keeper quiz', createdAt: '2026-01-15T12:00:00.000Z' }),
+  ]
+  const deleteButton = (page: Page) => page.getByRole('button', { name: en.archive.detail.delete, exact: true })
+  const dialog = (page: Page) => page.getByRole('dialog')
+
+  test('Delete asks first; Cancel keeps the quiz; confirming removes it and returns to the Archive', async ({ page }) => {
+    await seedOnce(page, entries())
+    await page.goto('/archive/del-a?lng=en')
+    await deleteButton(page).click()
+    await expect(dialog(page)).toContainText(en.archive.detail.deleteBody)
+    await dialog(page).getByRole('button', { name: en.flashcards.common.cancel, exact: true }).click()
+    await expect(dialog(page)).toHaveCount(0)
+    expect((await storedArchive(page)).map((entry) => entry.id)).toEqual(['del-a', 'del-b'])
+
+    await deleteButton(page).click()
+    await dialog(page).getByRole('button', { name: en.archive.detail.delete, exact: true }).click()
+    await expect(page).toHaveURL(/\/archive$/)
+    await expect(listRows(page)).toHaveCount(1)
+    await expect(listRows(page).first()).toContainText('Keeper quiz')
+    expect((await storedArchive(page)).map((entry) => entry.id)).toEqual(['del-b'])
+    await page.reload()
+    await expect(listRows(page)).toHaveCount(1)
+  })
+
+  test('the Create "last quiz" strip follows the deletion, and cards made from the quiz stay', async ({ page }) => {
+    await seedOnce(page, entries())
+    await page.goto('/archive/del-a?lng=en')
+    await seed(page, [{ id: 'deck-1', name: 'Cards from the quiz', sourceRef: 'del-a', cards: [{ id: 'card-1', front: 'Front', back: 'Back' }] }])
+    await page.goto('/?lng=en')
+    await expect(page.locator('[data-purpose="resume-quiz"]')).toContainText('Doomed quiz')
+    await page.goto('/archive/del-a?lng=en')
+    await deleteButton(page).click()
+    await dialog(page).getByRole('button', { name: en.archive.detail.delete, exact: true }).click()
+    await expect(page).toHaveURL(/\/archive$/)
+    await page.goto('/?lng=en')
+    await expect(page.locator('[data-purpose="resume-quiz"]')).toContainText('Keeper quiz')
+    const store = await readStore(page)
+    expect(store.decks.map((deck) => deck.name)).toEqual(['Cards from the quiz'])
+    expect(store.cards.map((card) => card.front)).toEqual(['Front'])
+  })
+
+  test('the quiz page has the delete button in every language, red text, hidden when printing', async ({ page }) => {
+    await seedOnce(page, entries())
+    for (const lng of LOCALE_NAMES) {
+      await page.goto(`/archive/del-a?lng=${lng}`)
+      const button = page.getByRole('button', { name: LOCALES[lng].archive.detail.delete, exact: true })
+      await expect(button).toBeVisible()
+      await expect(button).toHaveCSS('color', 'rgb(194, 58, 58)')
+      await expect(page.locator('[data-print-hide]').filter({ has: button })).toHaveCount(1)
     }
   })
 })

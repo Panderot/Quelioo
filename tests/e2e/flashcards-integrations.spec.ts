@@ -287,7 +287,7 @@ test.describe('Flashcards from a solution', () => {
     await page.goto(`/archive/solutions/${SOLUTION_RECORD.id}?lng=en`)
     await page.locator('[data-purpose="solution-actions"]').getByRole('button', { name: 'More' }).click()
     await page.getByRole('menuitem', { name: 'Make flashcards' }).click()
-    await expect(dialog(page).getByRole('alert')).toContainText("The AI service didn't respond.")
+    await expect(dialog(page).getByRole('alert')).toContainText("The service didn't respond.")
     expect((await readStore(page)).cards).toHaveLength(0)
     await dialog(page).getByRole('button', { name: 'Try again' }).click()
     await expect(dialog(page).locator('[data-purpose="review-card"]')).toHaveCount(1)

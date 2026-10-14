@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import SolutionView from '../components/SolutionView'
 import { CalculatorIcon } from '../components/icons'
 import { getSolution } from '../lib/solutionStorage'
+import { formatDateTime } from '../lib/formatDate'
 import type { StoredSolution } from '../lib/solutionStorage'
 
 const BACK_HREF = '/archive?tab=solutions'
@@ -13,7 +14,7 @@ function formatCreatedAt(iso: string, locale: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
   try {
-    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+    return formatDateTime(date, locale)
   } catch {
     return date.toLocaleString()
   }

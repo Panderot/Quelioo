@@ -75,7 +75,7 @@ test.describe('Flashcards — generate with AI', () => {
     await seed(page, [{ id: 'deck-geo', name: 'Geo', cards: [{ id: 'g1', front: 'Capital of Türkiye', back: 'Ankara' }] }], '/flashcards/deck-geo')
     await expect(panel(page)).toHaveCount(0)
     const mock = await mockCards(page, [ok([{ front: 'capital of türkiye', back: 'Ankara' }, ...CARDS.slice(0, 1)], 2)])
-    await page.getByRole('button', { name: 'Generate cards with AI' }).click()
+    await page.getByRole('button', { name: 'Generate cards automatically' }).click()
     await expect(generateButton(page)).toHaveClass(/border-navy/)
 
     await panel(page).getByRole('tab', { name: 'Topic' }).click()
@@ -120,7 +120,7 @@ test.describe('Flashcards — generate with AI', () => {
     await panel(page).locator('[data-purpose="generator-text"]').fill(LONG_TEXT)
     await generateButton(page).click()
     const alert = panel(page).getByRole('alert')
-    await expect(alert).toContainText("The AI service didn't respond. Please try again.")
+    await expect(alert).toContainText("The service didn't respond. Please try again.")
     expect((await readStore(page)).cards).toHaveLength(0)
     await alert.getByRole('button', { name: 'Try again' }).click()
     await expect(review(page).locator('[data-purpose="review-card"]')).toHaveCount(3)
@@ -155,7 +155,7 @@ test.describe('Flashcards — generate with AI', () => {
   })
 
   for (const { lng, title, tabTopic, add } of [
-    { lng: 'tr', title: 'Yapay zekâ ile kart üret', tabTopic: 'Konu', add: '3 kartı ekle' },
+    { lng: 'tr', title: 'Otomatik kart üret', tabTopic: 'Konu', add: '3 kartı ekle' },
     { lng: 'hyw', title: 'Արհեստական բանականութեամբ քարտեր ստեղծել', tabTopic: 'Նիւթ', add: 'Աւելցնել 3 քարտերը' },
   ]) {
     test(`the generator is localized in ${lng}`, async ({ page }) => {
