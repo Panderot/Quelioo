@@ -78,7 +78,7 @@ async function exportData(user: AuthenticatedUser): Promise<Body> {
   }
   return {
     exportedAt: new Date().toISOString(),
-    note: 'Files (audio, images) are listed with download links that work for 24 hours.',
+    note: 'Files (images) are listed with download links that work for 24 hours.',
     account: { id: user.id, email: user.email },
     profile: profile.data ?? null,
     subscription: subscription.data ?? null,
