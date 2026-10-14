@@ -101,7 +101,7 @@ export default function MoreMenu({ items, className = '' }: { items: MoreMenuIte
           role="menu"
           aria-label={t('solve.actions.more')}
           onKeyDown={handleMenuKeyDown}
-          className="absolute right-0 left-0 z-30 mt-1.5 min-w-full rounded-xl border border-warm-border bg-card p-1 shadow-lg sm:left-auto sm:w-max sm:min-w-[220px]"
+          className="absolute right-0 left-0 z-50 mt-1.5 min-w-full rounded-xl border border-warm-border bg-card p-1 shadow-lg sm:left-auto sm:w-max sm:min-w-[220px]"
         >
           {items.map((item, index) => (
             <button
