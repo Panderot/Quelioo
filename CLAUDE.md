@@ -20,10 +20,13 @@ AI quiz / solve / cards / song / audio-lesson / live-game / written-exam web app
 - Production test users only as `baretgungormezer+qtest-…`; never create other users on production.
 - Student data: nickname only, deleted after 30 days.
 
-## Tests (16 GB machine)
+## Tests (32 GB machine, CI on GitHub Actions)
 - Commands: `npm run test:each [files]` (`PW_WORKERS`, `PW_EXTRA`), `npm run test:game`, `npm run test:supabase`, `playwright.prod.config.ts` for prod.
 - New or changed specs run with `--repeat-each=3`. Never use fixed sleeps.
-- At most 2 workers; `test:game` always 1. Free memory under 6 GB: 1 worker. Under 4 GB: stop and ask.
+- Locally only the specs of the task. Full suite, `test:game` and `test:supabase` do not run locally: push, then wait for GitHub Actions (`gh run watch`; without `gh`, the Actions tab).
+- Workers: free RAM >= 10 GB `PW_WORKERS=4`, else 2; `test:game` always 1. Under 4 GB: stop and ask.
+- Speed: read only the files of the task; tsc/lint/build once at the end; independent AI calls in parallel; poll `version.json` every 20 s, at most 5 min; no interim summaries; leave no background jobs.
+- CI (`.github/workflows/ci.yml`): no AI keys are defined there; `tests/accuracy` and `tests/live` never run in CI. The game and supabase jobs need the `SUPABASE_TEST_*` secrets and skip without them.
 - Playwright headless, not Claude in Chrome. Only kill processes you started.
 
 ## Deploy
