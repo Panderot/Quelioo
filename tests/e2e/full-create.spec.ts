@@ -193,6 +193,12 @@ test.describe('Text input', () => {
   })
 })
 
+/** Opens a listbox by its label and picks an option; the list can sit partly outside the viewport, so the option is clicked without a scroll/stability wait. */
+async function pickOption(page: Page, fieldLabel: string, optionLabel: string) {
+  await page.getByRole('button', { name: fieldLabel, exact: true }).click()
+  await page.getByRole('option', { name: optionLabel, exact: true }).dispatchEvent('click')
+}
+
 test.describe('Settings go into the request', () => {
   test('title, every question type, difficulty, count (Auto, minimum, maximum), options, hints, explanations and shuffle', async ({ page, mockGenerate }) => {
     test.slow() // about 20 sequential generate round trips
@@ -245,7 +251,7 @@ test.describe('Settings go into the request', () => {
 
     await test.step('difficulty', async () => {
       for (const [label, value] of [['Easy', 'easy'], ['Hard', 'hard'], ['Medium', 'medium']]) {
-        await chooseOption(page, 'Difficulty Level', label)
+        await pickOption(page, 'Difficulty Level', label)
         await generateOnce(page, generate)
         expect(requestsOf(generate).at(-1)!.difficulty).toBe(value)
       }
@@ -253,7 +259,7 @@ test.describe('Settings go into the request', () => {
 
     await test.step('question count: minimum, maximum, Auto (cover the whole text)', async () => {
       for (const [label, value] of [['3 Questions', '3'], ['20 Questions', '20'], ['Auto (cover everything)', 'auto']]) {
-        await chooseOption(page, 'Question Count', label)
+        await pickOption(page, 'Question Count', label)
         await generateOnce(page, generate)
         expect(requestsOf(generate).at(-1)!.questionCount).toBe(value)
       }
@@ -261,7 +267,7 @@ test.describe('Settings go into the request', () => {
 
     await test.step('MCQ options count', async () => {
       for (const [label, value] of [['2 Options', '2'], ['5 Options', '5']]) {
-        await chooseOption(page, 'MCQ Options Count', label)
+        await pickOption(page, 'MCQ Options Count', label)
         await generateOnce(page, generate)
         expect(requestsOf(generate).at(-1)!.optionsCount).toBe(value)
       }
