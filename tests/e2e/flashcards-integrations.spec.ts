@@ -295,18 +295,16 @@ test.describe('Flashcards from a solution', () => {
 })
 
 test.describe('Due reminder', () => {
-  test('shows on Create and Solve when cards are due, links to Flashcards, and stays hidden for the rest of the day', async ({ page }) => {
+  test('shows on Solve when cards are due, links to Flashcards, and stays hidden for the rest of the day', async ({ page }) => {
     await page.clock.setFixedTime(NOW)
-    await page.goto('/?lng=en')
+    await page.goto('/solve?lng=en')
     await expect(page.locator('[data-purpose="due-reminder"]')).toHaveCount(0)
-    await seed(page, [{ id: 'deck-r', name: 'R', cards: [{ id: 'r1', front: 'a', back: 'b' }, { id: 'r2', front: 'c', back: 'd' }] }], '/?lng=en')
+    await seed(page, [{ id: 'deck-r', name: 'R', cards: [{ id: 'r1', front: 'a', back: 'b' }, { id: 'r2', front: 'c', back: 'd' }] }], '/solve?lng=en')
     const reminder = page.locator('[data-purpose="due-reminder"]')
     await expect(reminder).toContainText('2 flashcards are waiting for you today')
-    await page.goto('/solve?lng=en')
-    await expect(reminder).toBeVisible()
     await reminder.getByRole('button', { name: 'Hide until tomorrow' }).click()
     await expect(reminder).toHaveCount(0)
-    await page.goto('/?lng=en')
+    await page.goto('/solve?lng=en')
     await expect(reminder).toHaveCount(0)
 
     await page.clock.setFixedTime(new Date(2026, 2, 11, 9, 0))
@@ -331,7 +329,7 @@ test.describe('Languages and layout', () => {
       await expect(page.getByRole('menuitem', { name: action })).toBeVisible()
       await page.getByRole('menuitem', { name: mistakes }).click()
       await expect(page.locator('[data-purpose="mistakes-result"]')).toContainText(deckName)
-      await page.goto(`/?lng=${lng}`)
+      await page.goto(`/solve?lng=${lng}`)
       await expect(page.locator('[data-purpose="due-reminder"]')).toContainText(reminder)
     })
   }

@@ -72,7 +72,7 @@ test.describe('Print / PDF', { tag: '@cross' }, () => {
 
     await page.emulateMedia({ media: 'print' })
 
-    await expect(page.locator('[data-purpose="sidebar-navigation"]')).toBeHidden()
+    await expect(page.locator('[data-purpose="top-nav"]')).toBeHidden()
     await expect(page.getByRole('dialog')).toBeHidden()
 
     const printOnly = page.locator('[data-print-only]')

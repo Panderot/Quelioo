@@ -33,13 +33,14 @@ async function removedLinks(page: Page): Promise<string[]> {
   }, REMOVED_PREFIXES)
 }
 
-test('the menu lists Create, Solve and Flashcards, with the Archive at the bottom', async ({ page, seedLanguage }) => {
+test('the menu lists Create, Solve and Flashcards, with the Archive on the right', async ({ page, seedLanguage }) => {
   await seedLanguage('en')
   await page.goto('/')
-  const sidebar = page.locator('[data-purpose="sidebar-navigation"]')
-  await expect(sidebar.locator('nav a')).toHaveText([en.nav.create, en.nav.solve, new RegExp(`^${en.nav.flashcards}`)])
-  await expect(sidebar.locator('[data-purpose="sidebar-footer"] > a')).toHaveText([en.nav.archive])
-  await expect(sidebar.locator('a[href="/"], a[href="/solve"], a[href="/flashcards"], a[href="/archive"]')).toHaveCount(4)
+  const bar = page.locator('[data-purpose="top-nav"]')
+  await expect(bar.locator('nav a')).toHaveText([en.nav.create, en.nav.solve, new RegExp(`^${en.nav.flashcards}`)])
+  await expect(bar.getByRole('link', { name: en.nav.archive })).toHaveCount(1)
+  // The logo links to Create too, so "/" appears twice.
+  await expect(bar.locator('a[href="/"], a[href="/solve"], a[href="/flashcards"], a[href="/archive"]')).toHaveCount(5)
   expect(await removedLinks(page)).toEqual([])
 })
 

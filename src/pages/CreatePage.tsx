@@ -39,7 +39,7 @@ import InputCard from '../components/InputCard'
 import type { FileTabState, InputTab, UrlTabState } from '../components/InputCard'
 import ParameterGrid from '../components/ParameterGrid'
 import QuizWorkspace from '../components/QuizWorkspace'
-import DueReminder from '../components/flashcards/DueReminder'
+import ResumeStrip from '../components/ResumeStrip'
 
 function firstWords(value: string, maxWords: number): string {
   return value.trim().split(/\s+/).filter(Boolean).slice(0, maxWords).join(' ')
@@ -589,7 +589,7 @@ export default function CreatePage() {
 
   return (
     <>
-      <DueReminder />
+      <ResumeStrip />
       <section data-purpose="page-intro" className="space-y-2">
         <h1 className="font-serif text-2xl leading-snug font-semibold tracking-tight text-navy lg:text-3xl">
           {t('hero.title')}

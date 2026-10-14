@@ -7,8 +7,7 @@
     "create": "Oluştur",
     "solve": "Çöz",
     "archive": "Arşiv",
-    "openMenu": "Gezinme menüsünü aç",
-    "closeMenu": "Gezinme menüsünü kapat",
+    "main": "Ana gezinme",
     "flashcards": "Kartlar"
   },
   "topbar": {
@@ -194,6 +193,11 @@
     }
   },
   "create": {
+    "resume": {
+      "dueCards_one": "Bugün tekrar edilecek {{count}} kart",
+      "dueCards_other": "Bugün tekrar edilecek {{count}} kart",
+      "lastQuiz": "Son quizin: {{title}}"
+    },
     "draft": {
       "restored": "Taslağın geri yüklendi",
       "startFresh": "Baştan başla"

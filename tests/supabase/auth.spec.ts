@@ -103,7 +103,7 @@ test.describe('sign up', () => {
     const link = await adminLink('signup', email)
     await page.goto(`/auth/callback?token_hash=${link.tokenHash}&type=${link.type}`)
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.locator('[data-purpose="sidebar-navigation"]')).toBeVisible()
+    await expect(page.locator('[data-purpose="top-nav"]')).toBeVisible()
     await expect(page.locator('[data-purpose="user-menu"]')).toBeVisible()
     const profile = await admin.from('profiles').select('role, ui_language').eq('id', link.userId).single()
     expect(profile.data).toMatchObject({ role: 'user', ui_language: 'en' })
@@ -311,16 +311,15 @@ test.describe('languages and mobile', () => {
     }
   })
 
-  test('@mobile signed in: the drawer has the user menu and the account page fits a phone', async ({ browser }) => {
+  test('@mobile signed in: the top bar has the user menu and the account page fits a phone', async ({ browser }) => {
     const user = await createTestUser('mobile-account', { displayName: 'Mobile Mia' })
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true })
     await signInBrowser(context, user)
     const page = await context.newPage()
     await page.goto('/?lng=en')
-    await page.getByRole('button', { name: en.nav.openMenu }).click()
     const menu = page.locator('[data-purpose="user-menu"]')
     await expect(menu).toBeVisible()
-    await expect(menu).toContainText('Mobile Mia')
+    await expect(menu.getByRole('button').first()).toHaveAttribute('aria-label', /Mobile Mia/)
     await menu.getByRole('button').first().click()
     await page.getByRole('menuitem', { name: en.userMenu.account }).click()
     await expect(page).toHaveURL(/\/account$/)

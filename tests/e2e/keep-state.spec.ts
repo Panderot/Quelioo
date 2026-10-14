@@ -19,7 +19,7 @@ const MOCK_RESULT = {
   fallbackUsed: false,
 }
 
-const nav = (page: Page, label: string) => page.locator('aside').getByRole('link', { name: new RegExp(`^${label}`) }).click()
+const nav = (page: Page, label: string) => page.locator('[data-purpose="top-nav"]').getByRole('link', { name: new RegExp(`^${label}`) }).click()
 
 async function makePng(page: Page): Promise<Buffer> {
   const base64 = await page.evaluate(() => {

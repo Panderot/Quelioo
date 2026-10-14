@@ -636,10 +636,10 @@ test.describe('Study extras', () => {
     await expect(page.locator('[data-purpose="study-confetti"]')).toHaveCount(1)
   })
 
-  test('@cross the sidebar is hidden during study; focus mode leaves with the button or Esc and the sidebar returns on exit', async ({ page }) => {
+  test('@cross the top bar is hidden during study; focus mode leaves with the button or Esc and the top bar returns on exit', async ({ page }) => {
     await seed(page, [entry(LOCAL_QUESTIONS)])
     await page.goto(URL_STUDY)
-    const sidebar = page.locator('[data-purpose="sidebar-navigation"]')
+    const sidebar = page.locator('[data-purpose="top-nav"]')
     await expect(page.locator('[data-purpose="study-start"]')).toBeVisible()
     await expect(sidebar).toHaveCount(0)
     await start(page)

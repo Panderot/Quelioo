@@ -245,6 +245,29 @@ select,
   display: none;
 }
 
+/* The resume strip above the Create form opens from zero height, so the form below glides down instead of jumping. */
+@keyframes resume-strip-open {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+  to {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+}
+
+.resume-strip-open {
+  grid-template-rows: 1fr;
+  animation: resume-strip-open 0.25s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resume-strip-open {
+    animation: none;
+  }
+}
+
 @media print {
   @page {
     size: A4;
@@ -276,8 +299,7 @@ select,
   }
 
   [data-purpose='top-nav'],
-  [data-purpose='sidebar-navigation'],
-  [data-purpose='sidebar-footer'],
+  [data-purpose='tab-bar'],
   [data-purpose='page-intro'],
   [data-print-hide] {
     display: none !important;

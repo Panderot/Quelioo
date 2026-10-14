@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { signOut, useAuth } from '../../lib/auth/authStore'
 import { initialsOf } from './authHelpers'
 
-/** Sidebar footer: initials avatar and name that open a small menu (Account, Sign out). */
-export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
+/** Top bar: initials avatar (and the name from the lg breakpoint) that open a small menu (Account, Sign out). */
+export default function UserMenu() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { user, profile } = useAuth()
@@ -23,18 +23,12 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
     {
       key: 'account',
       label: t('userMenu.account'),
-      run: () => {
-        onNavigate?.()
-        navigate('/account')
-      },
+      run: () => navigate('/account'),
     },
     {
       key: 'signOut',
       label: t('userMenu.signOut'),
-      run: () => {
-        onNavigate?.()
-        void signOut()
-      },
+      run: () => void signOut(),
     },
   ]
 
@@ -102,12 +96,12 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         title={name}
         onClick={() => (open ? close(false) : openMenu(0))}
         onKeyDown={handleButtonKeyDown}
-        className="flex min-h-11 w-full items-center gap-3 rounded-lg py-1.5 pr-3 pl-3 text-left text-sm font-medium text-paper/80 transition-colors hover:text-paper"
+        className="flex min-h-11 max-w-56 items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-paper/80 transition-colors hover:text-paper"
       >
         <span data-purpose="user-avatar" aria-hidden className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber text-xs font-bold text-navy">
           {initialsOf(profile?.display_name ?? '', user.email)}
         </span>
-        <span className="min-w-0 flex-1 truncate md:hidden lg:inline">{name}</span>
+        <span className="hidden min-w-0 truncate lg:inline">{name}</span>
       </button>
       {open && (
         <div
@@ -115,7 +109,7 @@ export default function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
           role="menu"
           aria-label={t('userMenu.label')}
           onKeyDown={handleMenuKeyDown}
-          className="absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-xl border border-warm-border bg-card p-1 shadow-lg"
+          className="absolute top-full right-0 z-50 mt-1.5 w-56 rounded-xl border border-warm-border bg-card p-1 shadow-lg"
         >
           {items.map((item, index) => (
             <button

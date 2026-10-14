@@ -7,8 +7,7 @@
     "create": "Create",
     "solve": "Solve",
     "archive": "Archive",
-    "openMenu": "Open navigation menu",
-    "closeMenu": "Close navigation menu",
+    "main": "Main navigation",
     "flashcards": "Flashcards"
   },
   "topbar": {
@@ -194,6 +193,11 @@
     }
   },
   "create": {
+    "resume": {
+      "dueCards_one": "{{count}} card to review today",
+      "dueCards_other": "{{count}} cards to review today",
+      "lastQuiz": "Your last quiz: {{title}}"
+    },
     "draft": {
       "restored": "Your draft was restored",
       "startFresh": "Start fresh"

@@ -43,9 +43,9 @@ async function swipe(target: Locator, dx: number) {
 }
 
 test.describe('Flashcards — decks', () => {
-  test('sidebar item with a live due-today badge and localized tab title', async ({ page }) => {
+  test('top bar item with a live due-today badge and localized tab title', async ({ page }) => {
     await open(page, '/flashcards?lng=en')
-    const sidebar = page.locator('[data-purpose="sidebar-navigation"]')
+    const sidebar = page.locator('[data-purpose="main-nav"]')
     await expect(sidebar.getByRole('link', { name: /^Flashcards/ })).toBeVisible()
     await expect(page.locator('[data-purpose="flashcards-due-badge"]')).toHaveCount(0)
     await expect(page).toHaveTitle('Flashcards - Quelio')
@@ -369,7 +369,7 @@ test.describe('Flashcards — languages and layout', () => {
     test(`flashcards are localized in ${lng}`, async ({ page }) => {
       await open(page, `/flashcards?lng=${lng}`)
       await seed(page, [THREE_NEW])
-      await expect(page.locator('[data-purpose="sidebar-navigation"]')).toContainText(nav)
+      await expect(page.locator('[data-purpose="main-nav"]')).toContainText(nav)
       await page.locator('[data-purpose="deck-row"]').getByText(study).click()
       for (let i = 0; i < 3; i++) {
         await card(page).click()
