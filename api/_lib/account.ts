@@ -12,12 +12,12 @@ import { createUserRateLimit } from './user-rate-limit.js'
 
 const limiter = createUserRateLimit(10)
 const MAX_BODY_BYTES = 4096
-const BUCKETS = ['audio', 'uploads'] as const
+const BUCKETS = ['uploads'] as const
 const EXPORT_LINK_SECONDS = 24 * 60 * 60
 
 type Body = Record<string, unknown>
 
-const USER_TABLES = ['decks', 'cards', 'card_progress', 'quizzes', 'solves', 'songs', 'lessons', 'lesson_plans', 'lesson_segments', 'usage_events'] as const
+const USER_TABLES = ['decks', 'cards', 'card_progress', 'quizzes', 'solves', 'usage_events'] as const
 type UserTable = (typeof USER_TABLES)[number]
 
 function respond(res: ServerResponse, status: number, body: unknown) {
