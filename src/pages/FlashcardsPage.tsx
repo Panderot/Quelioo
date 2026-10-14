@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import { SAMPLE_REF_PREFIX, missingSampleKeys, sampleDeckCards } from '../data/sampleDecks'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
+import { useIsPageActive } from '../hooks/usePageActive'
 import { useNow } from '../hooks/useNow'
 import { addCards, cardsForDeck, createDeck, dismissDeletedDeck, dueCountForDeck, reloadFlashcards, undoDeleteDeck, useFlashcards } from '../lib/flashcardStorage'
 import { LoadError, SkeletonList } from '../components/DataStates'
@@ -39,14 +40,15 @@ export default function FlashcardsPage() {
       .sort((a, b) => b.due - a.due || b.deck.updatedAt - a.deck.updatedAt)
   }, [state.decks, state.cards, search, now, t])
 
-  // A burst of clicks creates one deck.
+  // A burst of clicks creates one deck; the guard is released when the page is shown again.
   const creating = useRef(false)
+  const pageActive = useIsPageActive()
+  useEffect(() => {
+    creating.current = false
+  }, [pageActive])
   const handleNewDeck = () => {
     if (creating.current) return
     creating.current = true
-    setTimeout(() => {
-      creating.current = false
-    }, 1000)
     const deck = createDeck({ name: '', language: i18n.language })
     navigate(`/flashcards/${deck.id}`, { state: { focusName: true } })
   }
