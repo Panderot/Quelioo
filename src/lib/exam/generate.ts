@@ -552,9 +552,15 @@ export async function judgeKeys(list: ExamQuestion[], text: string, callVerify: 
   return { questions, rewrite: keyCheckIds(questions, judge) }
 }
 
-/** Questions whose key the judge's own work contradicts: a calculation with another result, or a written answer that differs or is not the only one. */
+/** Questions whose key the judge's own work contradicts (a calculation with another result, or a written answer that differs or is not the only one), or that cannot be solved from their own text. */
 function keyCheckIds(list: ExamQuestion[], judge: JudgeState): string[] {
-  return list.filter((question) => solveMismatch(question, judge.reviews.get(question.id)) || blindMismatch(question, judge.blind?.get(question.id))).map((question) => question.id)
+  return list
+    .filter((question) => {
+      const review = judge.reviews.get(question.id)
+      const blind = judge.blind?.get(question.id)
+      return solveMismatch(question, review) || blindMismatch(question, blind) || review?.flaw !== undefined || blind?.flaw !== undefined
+    })
+    .map((question) => question.id)
 }
 
 /** A short answer or a fill-in-the-blank with a word key (a number is worked out by the main call): the judge answers it without the key, in a call of its own so the giveaway check can keep showing the key. */

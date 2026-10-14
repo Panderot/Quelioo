@@ -6,6 +6,7 @@ import type { ExamVerifyRequest, ExamVerifyResult } from '../../src/api/exam'
 import { judgeKeys } from '../../src/lib/exam/generate'
 import { numericValue, numbersDiffer } from '../../src/lib/exam/numeric'
 import type { ExamQuestion } from '../../src/lib/exam/types'
+import { FLAWED, SOUND } from '../fixtures/exam-flawed-questions'
 import { EDEBIYAT_SHORT, KIMYA_MCQ, MATEMATIK_SHORT } from '../fixtures/exam-wrong-keys'
 
 // The blind key check on every closed question type, with the three wrong keys of the real-AI audit as fixed data.
@@ -25,6 +26,8 @@ interface Script {
   mcq?: Record<string, string>
   solved?: Record<string, string>
   blind?: Record<string, { answer: string; multiple?: boolean }>
+  /** Questions the judge cannot solve from their own text (id → why), for the blind call and the calculation call alike. */
+  flaws?: Record<string, string>
 }
 
 const SCRIPT: Script = {
@@ -56,10 +59,10 @@ function judgeServer(script: Script): { prompts: string[]; call: (request: ExamV
     prompts.push(prompt)
     const items = [...prompt.matchAll(/<item id="([^"]+)" type="([^"]+)"( solve="yes")?>/g)].map((match) => ({ id: match[1], type: match[2], solve: Boolean(match[3]) }))
     const reply = prompt.includes('BLIND ANSWER')
-      ? { blind: items.map((item) => ({ id: item.id, answer: script.blind?.[item.id]?.answer ?? 'unknown', multiple: script.blind?.[item.id]?.multiple ?? false })) }
+      ? { blind: items.map((item) => ({ id: item.id, answer: script.blind?.[item.id]?.answer ?? 'unknown', multiple: script.blind?.[item.id]?.multiple ?? false, flaw: script.flaws?.[item.id] ?? '' })) }
       : {
           answers: items.filter((item) => item.type === 'mcq').map((item) => ({ id: item.id, answer: script.mcq?.[item.id] ?? 'unknown' })),
-          reviews: items.map((item) => ({ id: item.id, level: 1, difficulty: 'easy', copy: false, ...(item.solve ? { solved: script.solved?.[item.id] ?? 'unknown' } : {}) })),
+          reviews: items.map((item) => ({ id: item.id, level: 1, difficulty: 'easy', copy: false, ...(item.solve ? { solved: script.solved?.[item.id] ?? 'unknown', flaw: script.flaws?.[item.id] ?? '' } : {}) })),
         }
     return new Response(JSON.stringify({ output_text: JSON.stringify(reply), usage: { input_tokens: 10, output_tokens: 10 } }), { status: 200 })
   }) as typeof fetch
@@ -185,5 +188,40 @@ test.describe('written keys that are right', () => {
     const judge = judgeServer({ blind: { f1: { answer: 'Yunus Emre' } } })
     const result = await judgeKeys([written('f1', 'fill-blanks', 'Tekke edebiyatının en büyük temsilcisi ____ idi.', 'Karacaoğlan')], EDEBIYAT_SHORT.source, judge.call)
     expect(result.rewrite).toEqual(['f1'])
+  })
+})
+
+test.describe('a question that cannot be solved from its own text', () => {
+  // The honest judge solves every question (its answer matches the key) and says which ones the text alone does not decide.
+  const all = [...FLAWED, ...SOUND]
+  const script: Script = {
+    flaws: Object.fromEntries(FLAWED.map((entry) => [entry.question.id, entry.flaw ?? ''])),
+    solved: Object.fromEntries(all.filter((entry) => numericValue(entry.question.answer) !== null).map((entry) => [entry.question.id, entry.question.answer])),
+    blind: Object.fromEntries(all.filter((entry) => numericValue(entry.question.answer) === null).map((entry) => [entry.question.id, { answer: entry.question.answer }])),
+  }
+
+  test('each flawed question, a number key and a word key alike, goes to a rewrite', async () => {
+    expect(FLAWED.some((entry) => numericValue(entry.question.answer) === null)).toBe(true)
+    expect(FLAWED.length).toBeGreaterThanOrEqual(2)
+    for (const entry of FLAWED) {
+      const judge = judgeServer(script)
+      const result = await judgeKeys([entry.question], entry.source, judge.call)
+      expect(result.rewrite, entry.question.stem).toEqual([entry.question.id])
+    }
+  })
+
+  test('sound questions of the same exams are not flagged', async () => {
+    const judge = judgeServer(script)
+    const result = await judgeKeys(SOUND.map((entry) => entry.question), SOUND[0].source, judge.call)
+    expect(SOUND.length).toBeGreaterThanOrEqual(10)
+    expect(result.rewrite).toEqual([])
+  })
+
+  test('the flaw is asked in the two existing calls and the key is still never sent', async () => {
+    const judge = judgeServer(script)
+    await judgeKeys([FLAWED[0].question, FLAWED[5].question], FLAWED[0].source, judge.call)
+    expect(judge.prompts).toHaveLength(2)
+    for (const prompt of judge.prompts) expect(prompt).toContain('"flaw"')
+    for (const prompt of judge.prompts.filter((entry) => entry.includes('BLIND ANSWER'))) expect(prompt).not.toContain('Expected answer')
   })
 })

@@ -258,6 +258,15 @@ export interface ExamReview {
   difficulty: ExamDifficulty
   /** The judge's own result of a calculation. */
   solved?: string
+  /** The calculation cannot be solved from its own text. */
+  flaw?: ExamFlaw
+}
+
+/** Why a written question cannot be solved from its own text: a value or what is asked is missing, more than one reading fits, or the sentence is broken. */
+export type ExamFlaw = 'missing' | 'ambiguous' | 'broken'
+
+function flawOf(value: unknown): { flaw?: ExamFlaw } {
+  return value === 'missing' || value === 'ambiguous' || value === 'broken' ? { flaw: value } : {}
 }
 
 /** The judge's own answer to a written question it was not told the key of. */
@@ -267,6 +276,8 @@ export interface ExamBlindAnswer {
   answer: string
   /** The source gives more than one different answer that fits the question as worded. */
   multiple: boolean
+  /** The question cannot be solved from its own text. */
+  flaw?: ExamFlaw
 }
 
 export interface ExamVerifyResult {
@@ -334,14 +345,14 @@ export function parseVerifyResult(body: Record<string, unknown>): ExamVerifyResu
       if (!isRecord(entry) || typeof entry.id !== 'string' || typeof entry.level !== 'number') continue
       const level = Math.min(6, Math.max(1, Math.round(entry.level))) as BloomLevel
       const difficulty: ExamDifficulty = entry.difficulty === 'easy' || entry.difficulty === 'hard' ? entry.difficulty : 'medium'
-      reviews.push({ id: entry.id, copy: entry.copy === true, level, difficulty, ...(typeof entry.solved === 'string' && entry.solved ? { solved: entry.solved } : {}) })
+      reviews.push({ id: entry.id, copy: entry.copy === true, level, difficulty, ...(typeof entry.solved === 'string' && entry.solved ? { solved: entry.solved } : {}), ...flawOf(entry.flaw) })
     }
   }
   const blind: ExamBlindAnswer[] = []
   if (Array.isArray(body.blind)) {
     for (const entry of body.blind) {
       if (!isRecord(entry) || typeof entry.id !== 'string') continue
-      blind.push({ id: entry.id, answer: typeof entry.answer === 'string' ? entry.answer : '', multiple: entry.multiple === true })
+      blind.push({ id: entry.id, answer: typeof entry.answer === 'string' ? entry.answer : '', multiple: entry.multiple === true, ...flawOf(entry.flaw) })
     }
   }
   return { wrong: ids(body.wrong), fixes, same: ids(body.same), reviews, ...(blind.length > 0 ? { blind } : {}) }
