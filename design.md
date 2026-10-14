@@ -42,7 +42,7 @@ The Tailwind v4 `@theme` block in `src/index.css` is the authoritative source fo
 - **Fonts:** headings Fraunces Variable (soft optical, `@fontsource-variable/fraunces`), body/UI Plus Jakarta Sans (self-hosted, `@fontsource-variable/plus-jakarta-sans`; no third-party font requests). Both render Turkish glyphs. Noto Serif/Sans Armenian Variable are appended to `--font-serif`/`--font-sans` as hyw fallbacks.
 - **Spacing:** 4px base (Tailwind scale).
 - **Radius:** 8px (`boxed` select) · 10px (param selects, menu rows) · 12px `rounded-xl` (buttons, menus, chips-in-cards) · 14px (cards, panels, Generate) · 16px `rounded-2xl` (textarea, dropzones, file/URL cards, dialogs) · full (avatar, toggle, pills).
-- **Shadow:** borders do most separation. Cards: none. CTA: `shadow-sm`, hover `shadow-lg shadow-amber/30`. Select/language menus: `0 16px 32px -12px rgba(20,23,43,.18), 0 4px 10px -4px rgba(20,23,43,.08)`. Dialogs, More menu, toasts, song panel: `shadow-lg`.
+- **Shadow:** borders do most separation. Cards: none. CTA: `shadow-sm`, hover `shadow-lg shadow-amber/30`. Select/language menus: `0 16px 32px -12px rgba(20,23,43,.18), 0 4px 10px -4px rgba(20,23,43,.08)`. Dialogs, More menu, toasts: `shadow-lg`.
 
 | Role | Size / line height | Weight | Font | Color |
 |---|---|---|---|---|

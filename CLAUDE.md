@@ -1,55 +1,28 @@
 # Quelio
 
-AI quiz / solve / flashcards web app with an Archive and accounts. Vite + React + TS + Tailwind v4 + react-i18next, Supabase, Vercel functions. `design.md` is the single source of design truth.
+AI quiz / solve / flashcards web app with Archive and accounts. Vite + React + TS + Tailwind v4 + react-i18next, Supabase, Vercel functions. `design.md` is the design source.
 
-## Secrets
-- Never print or paste keys, tokens, passwords or `.env*` contents anywhere (chat, logs, commands, commits). The owner writes `.env.local` himself.
-- Never commit `.claude/`.
+## Rules
+- Secrets: never print, paste or commit keys, tokens, passwords or `.env*`; the owner writes `.env.local`. Never commit `.claude/`.
+- Never run `supabase config push`, `supabase login` or `vercel login`. The linked project is TEST (`quelio-test`).
+- Order: TEST migration → tests → backup → production migration → push. Production migrations only with `--db-url` and the password from `.env.local`: dry run → apply → read-only SELECT. Push only at zero failures. Backups never go to GitHub (public repo).
+- Ask the user before touching auth.
+- Destructive tests only on `quelio-test`; production test users only `baretgungormezer+qtest-…`.
+- No new features, only additions to existing ones. Vercel Hobby limit 12 functions, 7 used: add endpoints to existing ones.
+- AI: tests never call real AI (`no-real-ai`). Track real dollars, stop and ask when over the budget. Users never see cost info (`no-cost-ui.spec.ts`).
+- i18n: TR, EN, HYW with identical key sets, no hard-coded strings; HYW needs native review.
+- Deploy: only by push to master; verify `https://quelio.vercel.app/version.json` (poll 20 s, max 5 min). Public URL is `getPublicSiteUrl`.
 
-## Supabase
-- Never run `supabase config push`, `supabase login` or `vercel login`.
-- The linked project is TEST (`quelio-test`).
-- Production migrations only with `--db-url` and the password from `.env.local`: dry run → apply → read-only SELECT check. Never print the password.
-
-## Order and push
-- Always: TEST migration → tests → production migration → push.
-- Push only when the full suite has zero failures. If the work cannot finish, do not push.
-
-## Test data
-- Destructive tests only on `quelio-test`.
-- Production test users only as `baretgungormezer+qtest-…`; never create other users on production.
-
-## Tests (32 GB machine, CI on GitHub Actions)
-- Commands: `npm run test:each [files]` (`PW_WORKERS`, `PW_EXTRA`), `npm run test:supabase`, `playwright.prod.config.ts` for prod.
-- New or changed specs run with `--repeat-each=3`. Never use fixed sleeps.
-- Locally only the specs of the task. Full suite and `test:supabase` do not run locally: push, then wait for GitHub Actions (`gh run watch`; without `gh`, the Actions tab).
-- Workers: free RAM >= 10 GB `PW_WORKERS=4`, else 2. Under 4 GB: stop and ask.
-- Speed: read only the files of the task; tsc/lint/build once at the end; independent AI calls in parallel; poll `version.json` every 20 s, at most 5 min; no interim summaries; leave no background jobs.
-- CI (`.github/workflows/ci.yml`): no AI keys are defined there; `tests/accuracy` never runs in CI. The supabase job needs the `SUPABASE_TEST_*` secrets.
-- Playwright headless, not Claude in Chrome. Only kill processes you started.
-- After every push: `gh run watch`. Red: `gh run view --log-failed`, fix and push again.
-- The report always quotes the CI summary (the TOTAL table of the `report` job): passed / failed / skipped / flaky and the duration.
-- A missing `SUPABASE_TEST_*` secret fails the job (never a green skip); reports are in the `playwright-report` artifact (14 days).
-
-## Deploy
-- A push to master auto-deploys; verify `https://quelio.vercel.app/version.json`.
-- The public address is always `https://quelio.vercel.app` (`getPublicSiteUrl`).
-- Vercel Hobby limit is 12 functions and 7 are used: add new endpoints to existing functions.
-
-## AI cost
-- Track real dollars; stop and ask when over the task's budget. Users never see cost/token info (`no-cost-ui.spec.ts`).
-
-## i18n
-- TR, EN and HYW with identical key sets; no hard-coded strings. HYW needs native-speaker review before wide release.
+## Tests
+- `npm run test:each [files]` (`PW_WORKERS`, `PW_EXTRA`), `npm run test:supabase`, `playwright.prod.config.ts`. New or changed specs `--repeat-each=3`; no fixed sleeps.
+- Locally only the task's specs; tsc/lint/build once at the end. Full suite and `test:supabase` run in CI: push, then `gh run watch`; red → `gh run view --log-failed`, fix, push.
+- Workers: free RAM >= 10 GB `PW_WORKERS=4`, else 2; under 4 GB stop and ask.
+- Playwright headless, not Claude in Chrome. Kill only own processes; leave no background jobs.
+- CI has no AI keys; `tests/accuracy` never runs there; a missing `SUPABASE_TEST_*` secret fails the job. Reports quote the `report` job TOTAL: passed / failed / skipped / flaky and duration.
 
 ## Work style
-- Prompts live in `../QUELIO-PROMPTS`; test artifacts go to `../QUELIO-TEST-*`. No progress notes or reports in the repo.
-- Search first, open only what the task needs. Final reports in Turkish.
-
-## Map
-- `src/{pages,components,hooks,lib,api,i18n}` UI; `lib/remote` account data, `lib/legacy` old local stores, `lib/import` feature logic.
-- `api/*.ts` thin Vercel functions; logic in `api/_lib/*`; every LLM call goes through `api/_lib/llm.ts`; AI endpoints wrapped in `withAuth`.
-- `supabase/` migrations and email templates; `tests/{e2e,supabase,accuracy,fixtures,guards,prod}`; `scripts/` build/test helpers.
+- Prompts in `../QUELIO-PROMPTS`, test artifacts in `../QUELIO-TEST-*`. No notes in the repo. Final reports in Turkish.
+- Map: `src/{pages,components,hooks,lib,api,i18n}`; `api/*.ts` thin functions, logic in `api/_lib/*`, LLM calls only via `api/_lib/llm.ts`, AI endpoints in `withAuth`; `supabase/` migrations and email templates; `tests/{e2e,supabase,accuracy,fixtures,guards,prod}`.
 
 ## Context ve token kullanımı
 
