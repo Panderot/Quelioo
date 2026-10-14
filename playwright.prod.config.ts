@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // Production-mode specs: the real production bundle (import.meta.env.PROD) served by `vite preview` on port 5193,
-// built with the fake backend so a teacher is signed in without Supabase. /api/live answers come from the specs.
+// built with the fake backend so a user is signed in without Supabase.
 const PORT = 5193
 const BASE_URL = `http://localhost:${PORT}`
 const vite = 'node node_modules/vite/bin/vite.js'

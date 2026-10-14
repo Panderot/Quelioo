@@ -245,19 +245,6 @@ export function LightbulbIcon(props: IconProps) {
   )
 }
 
-export function MusicNoteIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M9 18V5l11-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm11-2a3 3 0 11-6 0 3 3 0 016 0z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
 export function PlayIcon(props: IconProps) {
   return (
     <svg {...base(props)} fill="currentColor" stroke="none">
@@ -305,15 +292,6 @@ export function SearchIcon(props: IconProps) {
     <svg {...base(props)}>
       <circle cx="11" cy="11" r="7" strokeWidth="2" />
       <path d="M21 21l-4.35-4.35" strokeLinecap="round" strokeWidth="2" />
-    </svg>
-  )
-}
-
-export function LockIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <rect x="5" y="11" width="14" height="9" rx="2" strokeWidth="2" />
-      <path d="M8 11V8a4 4 0 018 0v3" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
     </svg>
   )
 }
@@ -409,65 +387,3 @@ export function PlusIcon(props: IconProps) {
   )
 }
 
-export function HeadphonesIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M4 16v-4a8 8 0 0116 0v4M4 16a2 2 0 012-2h1a1 1 0 011 1v4a1 1 0 01-1 1H6a2 2 0 01-2-2v-2zM20 16a2 2 0 00-2-2h-1a1 1 0 00-1 1v4a1 1 0 001 1h1a2 2 0 002-2v-2z"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-export function ArrowUpIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M12 19V5M6 11l6-6 6 6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-    </svg>
-  )
-}
-
-export function ArrowDownIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M12 5v14M6 13l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-    </svg>
-  )
-}
-
-export function MicIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path d="M12 3a3 3 0 00-3 3v6a3 3 0 006 0V6a3 3 0 00-3-3zM5 11a7 7 0 0014 0M12 18v3" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
-    </svg>
-  )
-}
-
-export function TrophyIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M8 4h8v5a4 4 0 01-8 0V4zM8 6H5a1 1 0 00-1 1c0 2.2 1.6 3.8 4 4M16 6h3a1 1 0 011 1c0 2.2-1.6 3.8-4 4M12 13v4M8.5 20h7M10 17h4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.75"
-      />
-    </svg>
-  )
-}
-
-export function ExamIcon(props: IconProps) {
-  return (
-    <svg {...base(props)}>
-      <path
-        d="M7 3h7l4 4v14H7a1 1 0 01-1-1V4a1 1 0 011-1zM14 3v4h4M9 12h6M9 15.5h6M9 8.5h2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.75"
-      />
-    </svg>
-  )
-}

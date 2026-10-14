@@ -394,7 +394,7 @@ export function estimateAutoQuestionCount(wordCount: number, questionType: Quest
 }
 
 // ---------------------------------------------------------------------------------------------
-// Source sentences (shared with the Audio Lesson key points)
+// Source sentences
 // ---------------------------------------------------------------------------------------------
 
 export function splitSourceSentences(text: string): string[] {

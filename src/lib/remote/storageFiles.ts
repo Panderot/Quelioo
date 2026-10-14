@@ -1,9 +1,9 @@
 import { supabase } from '../supabase'
 
-/** Private Storage buckets (`audio`, `uploads`). Every object lives under "<user id>/..." and the
- * bucket policies only let its owner touch it; playback and downloads use short-lived signed URLs. */
+/** The private Storage bucket (`uploads`). Every object lives under "<user id>/..." and the
+ * bucket policies only let its owner touch it. */
 
-export type Bucket = 'audio' | 'uploads'
+export type Bucket = 'uploads'
 
 export const SIGNED_URL_SECONDS = 3600
 
@@ -25,22 +25,4 @@ export async function removeFiles(bucket: Bucket, paths: string[]): Promise<void
   const unique = [...new Set(paths.filter(Boolean))]
   if (unique.length === 0) return
   await supabase.storage.from(bucket).remove(unique)
-}
-
-/** A short-lived link to the object; `downloadName` makes the browser save it under that name. */
-export async function signedUrl(bucket: Bucket, path: string, downloadName?: string): Promise<string | null> {
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, SIGNED_URL_SECONDS, downloadName ? { download: downloadName } : undefined)
-  return error ? null : data.signedUrl
-}
-
-/** Downloads an object through a signed URL. */
-export async function downloadFile(bucket: Bucket, path: string): Promise<Blob | null> {
-  const url = await signedUrl(bucket, path)
-  if (!url) return null
-  try {
-    const response = await fetch(url)
-    return response.ok ? await response.blob() : null
-  } catch {
-    return null
-  }
 }

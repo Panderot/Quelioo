@@ -25,7 +25,7 @@ function privatePaths(): string[] {
 const PRIVATE_PATHS = privatePaths()
 
 test('the router yields the pages that matter (guards against an empty or shrunken list)', () => {
-  for (const path of ['/solve', '/archive', '/songs', '/flashcards', '/lessons', '/account', '/owner', '/live', '/live/new', `/live/${SAMPLE_ID}`, `/live/${SAMPLE_ID}/results`, `/archive/${SAMPLE_ID}`, `/archive/${SAMPLE_ID}?mode=study`]) {
+  for (const path of ['/solve', '/archive', '/flashcards', '/account', '/owner', `/archive/${SAMPLE_ID}`, `/archive/${SAMPLE_ID}?mode=study`]) {
     expect(PRIVATE_PATHS).toContain(path)
   }
 })
@@ -198,11 +198,11 @@ test.describe('sign in and out', () => {
     })
   }
 
-  for (const path of ['/katil', '/katil/123456']) {
-    test(`${path} stays open to a signed-out student`, async ({ page }) => {
+  for (const path of ['/songs', '/lessons/abc', '/live', '/katil', '/katil/123456', '/exams/abc']) {
+    test(`the removed address ${path} leads a signed-out visitor to the landing page`, async ({ page }) => {
       await page.goto(path)
-      await expect(page).toHaveURL(new RegExp(`${path}$`))
-      await expect(page.getByRole('heading').first()).toBeVisible()
+      await expect(page).toHaveURL(/\/$/)
+      await expect(page.locator('.lp-root')).toBeVisible()
     })
   }
 

@@ -2,7 +2,7 @@ import { callLlmJson, cleanString } from './llm-json.js'
 import type { LlmUsage } from './llm.js'
 import { isRecord } from './anthropic.js'
 import { GENERAL_QUALITY_RULES, typeRules } from './quiz-rules.js'
-import { LESSON_MODELS } from '../../src/lib/lesson.js'
+import { REVIEW_MODELS } from '../../src/lib/modelPricing.js'
 import { neutralizeSourceTextTags, neutralizeTag } from '../../src/lib/sanitizeText.js'
 import { difficultyInstruction } from '../../src/lib/difficulty.js'
 import { MAX_PLAN_FACTS, isListFact, sentenceCoverage, splitSourceSentences, testedItems } from '../../src/lib/factCoverage.js'
@@ -11,11 +11,11 @@ import type { QuizQuestion } from '../../src/lib/quiz.js'
 import type { QuestionType } from '../../src/lib/quizTypes.js'
 
 /** The cheap-model calls of quiz generation: the facts plan (before writing), the quality review and
- * the coverage verification (after writing). All use the same cheap tier as the Audio Lesson checker
+ * the coverage verification (after writing). All use the same cheap tier
  * and fall back to the other provider; none can fail a generation — callers continue without them. */
 
-const CHEAP_MODEL = LESSON_MODELS.checker
-const STRONG_MODEL = LESSON_MODELS.writer
+const CHEAP_MODEL = REVIEW_MODELS.cheap
+const STRONG_MODEL = REVIEW_MODELS.strong
 const HELPER_TIMEOUT_MS = 45_000
 const MAX_REASON_CHARS = 300
 

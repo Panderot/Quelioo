@@ -45,7 +45,6 @@ async function swipe(target: Locator, dx: number) {
 test.describe('Flashcards — decks', () => {
   test('sidebar item with a live due-today badge and localized tab title', async ({ page }) => {
     await open(page, '/flashcards?lng=en')
-    // Its position (after Songs, or after Archive without Songs) is covered in songs-page.spec.ts.
     const sidebar = page.locator('[data-purpose="sidebar-navigation"]')
     await expect(sidebar.getByRole('link', { name: /^Flashcards/ })).toBeVisible()
     await expect(page.locator('[data-purpose="flashcards-due-badge"]')).toHaveCount(0)

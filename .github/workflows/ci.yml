@@ -78,54 +78,6 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # The game suite is split in 3 shards (one worker each, its own dev server): a single runner took about 11 minutes.
-  game:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3]
-    env:
-      PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
-      SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
-      SUPABASE_TEST_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_TEST_PUBLISHABLE_KEY }}
-      SUPABASE_TEST_SECRET_KEY: ${{ secrets.SUPABASE_TEST_SECRET_KEY }}
-      SUPABASE_TEST_PROJECT_REF: ${{ secrets.SUPABASE_TEST_PROJECT_REF }}
-    steps:
-      - name: Require the SUPABASE_TEST_* secrets
-        run: |
-          if [ -z "$SUPABASE_TEST_URL" ] || [ -z "$SUPABASE_TEST_PUBLISHABLE_KEY" ] || [ -z "$SUPABASE_TEST_SECRET_KEY" ] || [ -z "$SUPABASE_TEST_PROJECT_REF" ]; then
-            echo "::error::A SUPABASE_TEST_* secret is missing: the game suite cannot run (it is not skipped)."
-            exit 1
-          fi
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - name: Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
-      # `npm run test:game` (scripts/test-each.mjs) counts processes with PowerShell; in CI the same config runs directly, one worker per shard.
-      - run: npx playwright test --config=playwright.game.config.ts --project=desktop --project=mobile --shard=${{ matrix.shard }}/3 --workers=1 --reporter=dot,blob,json
-      - if: always()
-        run: node scripts/ci-summary.mjs results.json "game shard ${{ matrix.shard }}/3"
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: blob-game-${{ matrix.shard }}
-          path: blob-report
-          retention-days: 14
-          if-no-files-found: warn
-      - if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: failures-game-${{ matrix.shard }}
-          path: test-results
-          retention-days: 14
-          if-no-files-found: ignore
-
   supabase:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -170,7 +122,7 @@ jobs:
 
   # One HTML report and one total for every shard of every suite.
   report:
-    needs: [e2e, game, supabase]
+    needs: [e2e, supabase]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10

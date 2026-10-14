@@ -19,8 +19,6 @@ const ids = {
   card: crypto.randomUUID(),
   quiz: crypto.randomUUID(),
   solve: crypto.randomUUID(),
-  song: crypto.randomUUID(),
-  lesson: crypto.randomUUID(),
 }
 
 /** Tables with an `id` column and one marker value each, to check nothing of A changed. */
@@ -29,11 +27,8 @@ const OWNED = [
   { table: 'cards', id: ids.card, column: 'front', value: 'A front' },
   { table: 'quizzes', id: ids.quiz, column: 'title', value: 'A quiz' },
   { table: 'solves', id: ids.solve, column: 'language', value: 'auto' },
-  { table: 'songs', id: ids.song, column: 'title', value: 'A song' },
-  { table: 'lessons', id: ids.lesson, column: 'title', value: 'A lesson' },
 ] as const
 
-const audioPath = () => `${a.id}/songs/${ids.song}.mp3`
 const imagePath = () => `${a.id}/solves/${ids.solve}.jpg`
 
 test.beforeAll(async () => {
@@ -48,13 +43,7 @@ test.beforeAll(async () => {
   must(await db.from('card_progress').insert({ card_id: ids.card, box: 3 }), 'progress')
   must(await db.from('quizzes').insert({ id: ids.quiz, title: 'A quiz', quiz: { questions: [{ question: 'Q?' }] } }), 'quiz')
   must(await db.from('solves').insert({ id: ids.solve, language: 'auto', result: { topic: 'A' }, thumbnail_path: imagePath() }), 'solve')
-  must(await db.from('songs').insert({ id: ids.song, quiz_id: ids.quiz, title: 'A song', style: 'pop', provider: 'demo', mime_type: 'audio/mpeg', audio_path: audioPath() }), 'song')
-  must(await db.from('lessons').insert({ id: ids.lesson, title: 'A lesson', options: {}, key_points: [], episodes: [] }), 'lesson')
-  must(await db.from('lesson_plans').insert({ key: 'plan-a', key_points: [], episodes: [] }), 'plan')
-  must(await db.from('lesson_segments').insert({ key: 'seg-a', audio_path: `${a.id}/segments/seg-a.mp3` }), 'segment')
   must(await admin.from('usage_events').insert({ user_id: a.id, feature: 'generate', cost_usd: 0.01 }), 'usage')
-  const audio = await db.storage.from('audio').upload(audioPath(), new Blob(['audio-a'], { type: 'audio/mpeg' }), { contentType: 'audio/mpeg' })
-  must(audio, 'audio file')
   const image = await db.storage.from('uploads').upload(imagePath(), new Blob(['image-a'], { type: 'image/jpeg' }), { contentType: 'image/jpeg' })
   must(image, 'image file')
 })
@@ -70,7 +59,7 @@ test.describe('database', () => {
       expect(error, table).toBeNull()
       expect(data, table).toEqual([])
     }
-    for (const table of ['card_progress', 'lesson_plans', 'lesson_segments', 'usage_events', 'subscriptions'] as const) {
+    for (const table of ['card_progress', 'usage_events', 'subscriptions'] as const) {
       const { data, error } = await b.client.from(table).select('*').eq('user_id', a.id)
       expect(error, table).toBeNull()
       expect(data, table).toEqual([])
@@ -80,7 +69,7 @@ test.describe('database', () => {
   })
 
   test('B cannot see A even with no filter at all', async () => {
-    for (const table of ['decks', 'cards', 'card_progress', 'quizzes', 'solves', 'songs', 'lessons', 'lesson_plans', 'lesson_segments', 'usage_events', 'subscriptions', 'profiles'] as const) {
+    for (const table of ['decks', 'cards', 'card_progress', 'quizzes', 'solves', 'usage_events', 'subscriptions', 'profiles'] as const) {
       const { data, error } = await b.client.from(table).select('*')
       expect(error, table).toBeNull()
       const foreign = (data ?? []).filter((row) => ('user_id' in row ? row.user_id === a.id : 'id' in row && row.id === a.id))
@@ -106,10 +95,6 @@ test.describe('database', () => {
       expect(error, table).toBeNull()
       expect(data, table).toEqual([])
     }
-    const plan = await b.client.from('lesson_plans').delete().eq('key', 'plan-a').select()
-    expect(plan.data).toEqual([])
-    const segment = await b.client.from('lesson_segments').delete().eq('key', 'seg-a').select()
-    expect(segment.data).toEqual([])
   })
 
   test('everything of A is still intact', async () => {
@@ -121,8 +106,6 @@ test.describe('database', () => {
     expect(progress.data?.box).toBe(3)
     const solve = await admin.from('solves').select('extras').eq('id', ids.solve).single()
     expect(solve.data?.extras).toEqual({})
-    expect((await admin.from('lesson_plans').select('key').eq('user_id', a.id)).data).toHaveLength(1)
-    expect((await admin.from('lesson_segments').select('key').eq('user_id', a.id)).data).toHaveLength(1)
   })
 
   test('B cannot insert rows as A, or attach rows to the deck of A', async () => {
@@ -172,7 +155,7 @@ test.describe('database', () => {
 
   test('a signed-out visitor reads nothing', async () => {
     const anon = createClient<Database>(testEnv.url, testEnv.publishableKey, { auth: { persistSession: false } })
-    for (const table of ['profiles', 'decks', 'cards', 'quizzes', 'solves', 'songs', 'lessons', 'usage_events', 'subscriptions'] as const) {
+    for (const table of ['profiles', 'decks', 'cards', 'quizzes', 'solves', 'usage_events', 'subscriptions'] as const) {
       const { data } = await anon.from(table).select('*')
       expect(data ?? [], table).toEqual([])
     }
@@ -189,9 +172,7 @@ test.describe('database', () => {
 
 test.describe('storage', () => {
   test('B cannot read, list, sign or download files of A', async () => {
-    const download = await b.client.storage.from('audio').download(audioPath())
-    expect(download.error).not.toBeNull()
-    const listed = await b.client.storage.from('audio').list(`${a.id}/songs`)
+    const listed = await b.client.storage.from('uploads').list(`${a.id}/solves`)
     expect(listed.data ?? []).toEqual([])
     const signed = await b.client.storage.from('uploads').createSignedUrl(imagePath(), 60)
     expect(signed.error).not.toBeNull()
@@ -200,26 +181,24 @@ test.describe('storage', () => {
   })
 
   test('B cannot upload into, overwrite or delete files of A', async () => {
-    const plant = await b.client.storage.from('audio').upload(`${a.id}/songs/planted.mp3`, new Blob(['x'], { type: 'audio/mpeg' }), { contentType: 'audio/mpeg' })
+    const plant = await b.client.storage.from('uploads').upload(`${a.id}/solves/planted.jpg`, new Blob(['x'], { type: 'image/jpeg' }), { contentType: 'image/jpeg' })
     expect(plant.error).not.toBeNull()
-    const overwrite = await b.client.storage.from('audio').upload(audioPath(), new Blob(['hacked'], { type: 'audio/mpeg' }), { contentType: 'audio/mpeg', upsert: true })
+    const overwrite = await b.client.storage.from('uploads').upload(imagePath(), new Blob(['hacked'], { type: 'image/jpeg' }), { contentType: 'image/jpeg', upsert: true })
     expect(overwrite.error).not.toBeNull()
-    await b.client.storage.from('audio').remove([audioPath()])
     await b.client.storage.from('uploads').remove([imagePath()])
-    const bytes = await admin.storage.from('audio').download(audioPath())
-    expect(await bytes.data?.text()).toBe('audio-a')
-    expect((await admin.storage.from('uploads').download(imagePath())).error).toBeNull()
+    const bytes = await admin.storage.from('uploads').download(imagePath())
+    expect(await bytes.data?.text()).toBe('image-a')
   })
 
   test('each user can use their own folder, and the buckets are private', async () => {
-    const own = await b.client.storage.from('audio').upload(`${b.id}/songs/own.mp3`, new Blob(['b'], { type: 'audio/mpeg' }), { contentType: 'audio/mpeg' })
+    const own = await b.client.storage.from('uploads').upload(`${b.id}/solves/own.jpg`, new Blob(['b'], { type: 'image/jpeg' }), { contentType: 'image/jpeg' })
     expect(own.error).toBeNull()
-    const signed = await b.client.storage.from('audio').createSignedUrl(`${b.id}/songs/own.mp3`, 60)
+    const signed = await b.client.storage.from('uploads').createSignedUrl(`${b.id}/solves/own.jpg`, 60)
     expect(signed.error).toBeNull()
     const response = await fetch(signed.data!.signedUrl)
     expect(response.status).toBe(200)
     // A bare public URL does not work: the bucket is private.
-    const publicUrl = admin.storage.from('audio').getPublicUrl(`${b.id}/songs/own.mp3`).data.publicUrl
+    const publicUrl = admin.storage.from('uploads').getPublicUrl(`${b.id}/solves/own.jpg`).data.publicUrl
     expect((await fetch(publicUrl)).status).toBeGreaterThanOrEqual(400)
     // Other file types are refused by the bucket.
     const html = await b.client.storage.from('uploads').upload(`${b.id}/solves/x.html`, new Blob(['<b>x</b>'], { type: 'text/html' }), { contentType: 'text/html' })

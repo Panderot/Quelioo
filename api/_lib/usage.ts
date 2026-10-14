@@ -1,4 +1,4 @@
-import { usageCostUsd } from '../../src/lib/lesson.js'
+import { usageCostUsd } from '../../src/lib/modelPricing.js'
 import { currentRequestContext } from './request-context.js'
 import type { RequestContext, UsageEvent } from './request-context.js'
 import { getServiceClient, isServiceConfigured } from './supabase-server.js'

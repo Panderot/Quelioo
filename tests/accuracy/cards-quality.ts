@@ -12,7 +12,7 @@ import { callLlmJson } from '../../api/_lib/llm-json'
 import { textMatchesLanguage } from '../../src/lib/cardLanguage'
 import { cardViolation, dropNearDuplicates, splitTranslationBack } from '../../src/lib/cardRules'
 import type { RuleContext } from '../../src/lib/cardRules'
-import { usageCostUsd } from '../../src/lib/lesson'
+import { usageCostUsd } from '../../src/lib/modelPricing'
 
 const args = Object.fromEntries(process.argv.slice(2).map((arg) => arg.replace(/^--/, '').split('=') as [string, string]))
 const BUDGET = Number(args.budget ?? 0.5)

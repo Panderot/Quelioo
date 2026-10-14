@@ -1,4 +1,3 @@
-import { mathToPlainText } from '../lib/mathPlain'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -10,10 +9,7 @@ import { getOutputLanguage } from '../data/outputLanguages'
 import { buildAnswerKeyLine, getRightOrder, letterFor } from '../lib/matching'
 import { computeQuizTotalSeconds, secondsToDisplayMinutes } from '../lib/estimateTime'
 import type { EstimateDifficulty } from '../lib/estimateTime'
-import { buildSongFactPlan, buildSongKeyFacts } from '../lib/songFacts'
-import { MAX_SOURCE_EXCERPT_CHARS } from '../lib/song'
 import QuestionCard from './QuestionCard'
-import SongButton from './SongButton'
 import MoreMenu from './MoreMenu'
 import CoveragePanel from './CoveragePanel'
 import AddCardsDialog from './flashcards/AddCardsDialog'
@@ -36,7 +32,6 @@ interface ArchiveLink {
 
 interface QuizResultViewProps {
   quizId: string
-  sourceText: string
   quiz: GeneratedQuiz
   meta: QuizResultMeta
   onTitleChange: (title: string) => void
@@ -52,7 +47,6 @@ interface QuizResultViewProps {
   supportedCount?: number
   isToppingUp?: boolean
   onTopUp?: () => void
-  onSongSaved?: () => void
   /** "Add questions for missing facts" (quizzes with a facts plan only). */
   onAddMissing?: () => void
   isAddingMissing?: boolean
@@ -139,7 +133,6 @@ function buildQuizPlainText(
 
 export default function QuizResultView({
   quizId,
-  sourceText,
   quiz,
   meta,
   onTitleChange,
@@ -154,7 +147,6 @@ export default function QuizResultView({
   supportedCount,
   isToppingUp = false,
   onTopUp,
-  onSongSaved,
   onAddMissing,
   isAddingMissing = false,
 }: QuizResultViewProps) {
@@ -193,9 +185,6 @@ export default function QuizResultView({
     return [t('params.questionCount.value', { count: meta.questionCount }), typeLabel, difficultyLabel, timeEstimateLabel].join(' • ')
   }, [meta, t, timeEstimateLabel])
 
-  const songKeyFacts = useMemo(() => buildSongKeyFacts(quiz), [quiz])
-  const songFactPlan = useMemo(() => buildSongFactPlan(quiz), [quiz])
-  const songSourceExcerpt = useMemo(() => mathToPlainText(sourceText).slice(0, MAX_SOURCE_EXCERPT_CHARS), [sourceText])
 
   const handleTitleSave = () => {
     const trimmed = titleDraft.trim()
@@ -384,15 +373,6 @@ export default function QuizResultView({
                 {t('create.result.print')}
               </button>
 
-          <SongButton
-            quizId={quizId}
-            quizTitle={quiz.title}
-            keyFacts={songKeyFacts}
-            factPlan={songFactPlan}
-            sourceExcerpt={songSourceExcerpt}
-            language={meta.outputLanguage}
-            onSongSaved={onSongSaved}
-          />
           <MoreMenu items={moreItems} />
         </div>
 
@@ -423,7 +403,7 @@ export default function QuizResultView({
         <div data-print-hide>
           <button
             type="button"
-            aria-label={t('song.close')}
+            aria-label={t('create.result.close')}
             onClick={() => setPrintMenuOpen(false)}
             className="fixed inset-0 z-40 bg-ink/40"
           />
@@ -440,7 +420,7 @@ export default function QuizResultView({
               <button
                 type="button"
                 onClick={() => setPrintMenuOpen(false)}
-                aria-label={t('song.close')}
+                aria-label={t('create.result.close')}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-warm-border/50 hover:text-ink"
               >
                 <CloseIcon className="h-3.5 w-3.5" />

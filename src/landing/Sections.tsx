@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { BookIcon, CardsIcon, CheckIcon, ChevronDownIcon, FileTabIcon, HeadphonesIcon, MusicNoteIcon, QuestionIcon, TextTabIcon, UrlTabIcon } from '../components/icons'
+import { BookIcon, CardsIcon, CheckIcon, ChevronDownIcon, FileTabIcon, QuestionIcon, TextTabIcon, UrlTabIcon } from '../components/icons'
 import { useInView } from './hooks'
 import SampleDemo, { Option } from './SampleDemo'
 import { TRY_SAMPLES } from './samples'
@@ -73,8 +73,6 @@ export function HowSection() {
                     <>
                       <span className={`lp-rise ${chip}`} style={idx(0)}><QuestionIcon className="h-4 w-4" />{t('landing.how.s3.quiz')}</span>
                       <span className={`lp-rise ${chip}`} style={idx(1)}><CardsIcon className="h-4 w-4" />{t('landing.how.s3.cards')}</span>
-                      <span className={`lp-rise ${chip}`} style={idx(2)}><MusicNoteIcon className="h-4 w-4" />{t('landing.how.s3.song')}</span>
-                      <span className={`lp-rise ${chip}`} style={idx(3)}><HeadphonesIcon className="h-4 w-4" />{t('landing.how.s3.lesson')}</span>
                     </>
                   )}
                 </div>
@@ -254,7 +252,7 @@ export function PlansSection() {
   const { t } = useTranslation()
   const plans = [
     { id: 'free', features: ['f1', 'f2', 'f3', 'f4'] },
-    { id: 'pro', features: ['f1', 'f2', 'f3'] },
+    { id: 'pro', features: ['f1', 'f2'] },
   ] as const
   return (
     <section id="plans" aria-labelledby="plans-title" className="scroll-mt-20 py-16 sm:py-24">

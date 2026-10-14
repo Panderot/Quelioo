@@ -5,12 +5,7 @@ import type { Card, Deck } from '../flashcardStorage'
 import { hashText } from '../hash'
 import { SOLUTION_SCHEMA_VERSION, clearLegacySolutions, readLegacySolutions } from '../solutionStorage'
 import type { StoredSolution } from '../solutionStorage'
-import { clearLegacyLessons, readLegacyLessons, resetLessonCache } from '../lessonStorage'
-import type { StoredLesson } from '../lessonStorage'
-import { clearLegacySongs, readLegacySongs } from '../songStorage'
-import type { StoredSong } from '../songStorage'
 import { cardToRow, deckToRow, fetchFlashcards, progressToRow } from '../remote/flashcardsRemote'
-import { lessonToRow } from '../remote/lessonsRemote'
 import { uploadFile } from '../remote/storageFiles'
 import type { Json } from '../database.types'
 import { isFakeBackend, supabase } from '../supabase'
@@ -26,14 +21,12 @@ export interface LegacySummary {
   decks: number
   cards: number
   quizzes: number
-  songs: number
   solutions: number
-  lessons: number
-  /** Sum of decks, quizzes, songs, solutions and lessons (cards count inside their decks). */
+  /** Sum of decks, quizzes and solutions (cards count inside their decks). */
   total: number
 }
 
-type ImportStep = 'decks' | 'quizzes' | 'songs' | 'solutions' | 'lessons' | 'verify'
+type ImportStep = 'decks' | 'quizzes' | 'solutions' | 'verify'
 
 export interface ImportProgress {
   step: ImportStep
@@ -57,23 +50,19 @@ export type ImportState = 'none' | 'imported' | 'declined'
 const STATE_KEY = 'quelio.importState.v1'
 const CHUNK = 200
 
-const emptySummary = (): LegacySummary => ({ decks: 0, cards: 0, quizzes: 0, songs: 0, solutions: 0, lessons: 0, total: 0 })
-const withTotal = (summary: LegacySummary): LegacySummary => ({ ...summary, total: summary.decks + summary.quizzes + summary.songs + summary.solutions + summary.lessons })
+const emptySummary = (): LegacySummary => ({ decks: 0, cards: 0, quizzes: 0, solutions: 0, total: 0 })
+const withTotal = (summary: LegacySummary): LegacySummary => ({ ...summary, total: summary.decks + summary.quizzes + summary.solutions })
 
 interface LegacySnapshot {
   archive: ArchiveEntry[]
   decks: Deck[]
   cards: Card[]
-  songs: StoredSong[]
   solutions: StoredSolution[]
-  lessons: StoredLesson[]
-  plans: Awaited<ReturnType<typeof readLegacyLessons>>['plans']
-  segments: Awaited<ReturnType<typeof readLegacyLessons>>['segments']
 }
 
 async function readSnapshot(): Promise<LegacySnapshot> {
-  const [{ decks, cards }, songs, solutions, lessonData] = await Promise.all([readLegacyFlashcards(), readLegacySongs(), readLegacySolutions(), readLegacyLessons()])
-  return { archive: readLegacyArchive(), decks, cards, songs, solutions, lessons: lessonData.lessons, plans: lessonData.plans, segments: lessonData.segments }
+  const [{ decks, cards }, solutions] = await Promise.all([readLegacyFlashcards(), readLegacySolutions()])
+  return { archive: readLegacyArchive(), decks, cards, solutions }
 }
 
 function summarize(snapshot: LegacySnapshot): LegacySummary {
@@ -81,9 +70,7 @@ function summarize(snapshot: LegacySnapshot): LegacySummary {
     decks: snapshot.decks.length,
     cards: snapshot.cards.length,
     quizzes: snapshot.archive.length,
-    songs: snapshot.songs.length,
     solutions: snapshot.solutions.length,
-    lessons: snapshot.lessons.length,
     total: 0,
   })
 }
@@ -114,13 +101,11 @@ async function derivedId(userId: string, kind: string, legacyId: string): Promis
 const deckSignature = (deck: Pick<Deck, 'name' | 'description' | 'language'>, cards: Pick<Card, 'front' | 'back'>[]) =>
   hashText(JSON.stringify([deck.name, deck.description, deck.language, cards.map((card) => [card.front, card.back]).sort()]))
 const quizSignature = (entry: Pick<ArchiveEntry, 'title' | 'createdAt' | 'quiz'>) => hashText(JSON.stringify([entry.title, new Date(entry.createdAt).toISOString(), entry.quiz.questions]))
-const songSignature = (song: Pick<StoredSong, 'title' | 'lyrics' | 'style' | 'createdAt'>) => hashText(JSON.stringify([song.title, song.lyrics, song.style, new Date(song.createdAt).toISOString()]))
 const solutionSignature = (solution: Pick<StoredSolution, 'createdAt' | 'result'>) => hashText(JSON.stringify([new Date(solution.createdAt).toISOString(), solution.result.question, solution.result.answer]))
-const lessonSignature = (lesson: Pick<StoredLesson, 'createdAt' | 'title' | 'sourceHash'>) => hashText(JSON.stringify([new Date(lesson.createdAt).toISOString(), lesson.title, lesson.sourceHash]))
 
 class ImportError extends Error {}
 
-type Table = 'decks' | 'cards' | 'card_progress' | 'quizzes' | 'songs' | 'solves' | 'lessons' | 'lesson_plans' | 'lesson_segments'
+type Table = 'decks' | 'cards' | 'card_progress' | 'quizzes' | 'solves'
 
 async function insertRows(table: Table, rows: Record<string, unknown>[], onConflict: string): Promise<void> {
   const target = supabase.from(table) as unknown as { upsert: (rows: Record<string, unknown>[], options: { onConflict: string; ignoreDuplicates: boolean }) => PromiseLike<{ error: { message: string } | null }> }
@@ -131,7 +116,7 @@ async function insertRows(table: Table, rows: Record<string, unknown>[], onConfl
 }
 
 /** How many of these ids exist in the account's table. */
-async function countPresent(table: 'decks' | 'cards' | 'quizzes' | 'songs' | 'solves' | 'lessons', ids: string[]): Promise<number> {
+async function countPresent(table: 'decks' | 'cards' | 'quizzes' | 'solves', ids: string[]): Promise<number> {
   let present = 0
   for (let index = 0; index < ids.length; index += CHUNK) {
     const { data, error } = await supabase.from(table).select('id').in('id', ids.slice(index, index + CHUNK))
@@ -148,7 +133,7 @@ export async function runImport(userId: string, onProgress?: (progress: ImportPr
   try {
     const snapshot = await readSnapshot()
     const idMaps = { quiz: new Map<string, string>(), solution: new Map<string, string>() }
-    const verifyIds = { decks: [] as string[], cards: [] as string[], quizzes: [] as string[], songs: [] as string[], solves: [] as string[], lessons: [] as string[] }
+    const verifyIds = { decks: [] as string[], cards: [] as string[], quizzes: [] as string[], solves: [] as string[] }
 
     // --- quizzes --------------------------------------------------------------------------
     onProgress?.({ step: 'quizzes', done: 0, total: snapshot.archive.length })
@@ -163,7 +148,7 @@ export async function runImport(userId: string, onProgress?: (progress: ImportPr
       imported.quizzes += 1
       if (existingQuizSignatures.has(quizSignature(entry)) && !existingQuizzes.some((row) => row.id === newId)) {
         skipped.quizzes += 1
-        // Songs of this quiz point at the quiz already in the account.
+        // Decks made from this quiz point at the quiz already in the account.
         const match = existingQuizzes.find((row) => quizSignature({ title: row.title, createdAt: row.created_at, quiz: row.quiz as unknown as ArchiveEntry['quiz'] }) === quizSignature(entry))
         if (match) idMaps.quiz.set(entry.id, match.id)
       } else {
@@ -212,53 +197,6 @@ export async function runImport(userId: string, onProgress?: (progress: ImportPr
     await insertRows('cards', cardRows, 'id')
     await insertRows('card_progress', progressRows, 'card_id')
 
-    // --- songs ----------------------------------------------------------------------------
-    onProgress?.({ step: 'songs', done: 0, total: snapshot.songs.length })
-    const { data: existingSongs, error: songError } = await supabase.from('songs').select('id, title, lyrics, style, created_at')
-    if (songError) throw new ImportError(`songs: ${songError.message}`)
-    const existingSongSignatures = new Set(existingSongs.map((row) => songSignature({ title: row.title, lyrics: row.lyrics, style: row.style as StoredSong['style'], createdAt: row.created_at })))
-    for (const [index, song] of snapshot.songs.entries()) {
-      const newId = await derivedId(userId, 'song', song.id)
-      imported.songs += 1
-      if (existingSongSignatures.has(songSignature(song)) && !existingSongs.some((row) => row.id === newId)) {
-        skipped.songs += 1
-        onProgress?.({ step: 'songs', done: index + 1, total: snapshot.songs.length })
-        continue
-      }
-      verifyIds.songs.push(newId)
-      const ext = song.mimeType.includes('wav') ? 'wav' : song.mimeType.includes('mpeg') || song.mimeType.includes('mp3') ? 'mp3' : 'audio'
-      const path = song.audio ? `${userId}/songs/${newId}.${ext}` : null
-      if (song.audio && path) {
-        await uploadFile('audio', path, song.audio, song.mimeType)
-      }
-      await insertRows(
-        'songs',
-        [
-          {
-            id: newId,
-            user_id: userId,
-            quiz_id: idMaps.quiz.get(song.quizId) ?? song.quizId,
-            quiz_title: song.quizTitle,
-            title: song.title,
-            lyrics: song.lyrics,
-            style: song.style,
-            tone: song.tone,
-            provider: song.provider,
-            demo: song.demo,
-            mime_type: song.mimeType,
-            duration_seconds: song.durationSeconds,
-            fact_check_passed: song.factCheckPassed,
-            coverage: (song.coverage ?? null) as unknown as Json,
-            series_part: song.seriesPart ?? null,
-            audio_path: path,
-            created_at: song.createdAt,
-          } satisfies InsertRow<'songs'>,
-        ],
-        'id',
-      )
-      onProgress?.({ step: 'songs', done: index + 1, total: snapshot.songs.length })
-    }
-
     // --- solutions ------------------------------------------------------------------------
     onProgress?.({ step: 'solutions', done: 0, total: snapshot.solutions.length })
     const { data: existingSolves, error: solveError } = await supabase.from('solves').select('id, created_at, result')
@@ -297,48 +235,13 @@ export async function runImport(userId: string, onProgress?: (progress: ImportPr
       onProgress?.({ step: 'solutions', done: index + 1, total: snapshot.solutions.length })
     }
 
-    // --- lessons (with their cached plans and recorded lines) --------------------------------
-    const lessonWork = snapshot.lessons.length + snapshot.plans.length + snapshot.segments.length
-    onProgress?.({ step: 'lessons', done: 0, total: lessonWork })
-    const { data: existingLessons, error: lessonError } = await supabase.from('lessons').select('id, created_at, title, source_hash')
-    if (lessonError) throw new ImportError(`lessons: ${lessonError.message}`)
-    const existingLessonSignatures = new Set(existingLessons.map((row) => lessonSignature({ createdAt: row.created_at, title: row.title, sourceHash: row.source_hash })))
-    const lessonRows: InsertRow<'lessons'>[] = []
-    for (const lesson of snapshot.lessons) {
-      const newId = await derivedId(userId, 'lesson', lesson.id)
-      imported.lessons += 1
-      if (existingLessonSignatures.has(lessonSignature(lesson)) && !existingLessons.some((row) => row.id === newId)) {
-        skipped.lessons += 1
-        continue
-      }
-      verifyIds.lessons.push(newId)
-      lessonRows.push(lessonToRow({ ...lesson, id: newId }, userId))
-    }
-    await insertRows('lessons', lessonRows, 'id')
-    await insertRows(
-      'lesson_plans',
-      snapshot.plans.map((plan) => ({ user_id: userId, key: plan.key, title: plan.title.slice(0, 300), key_points: plan.keyPoints as unknown as Json, episodes: plan.episodes as unknown as Json })),
-      'user_id,key',
-    )
-    let done = snapshot.lessons.length + snapshot.plans.length
-    onProgress?.({ step: 'lessons', done, total: lessonWork })
-    for (const segment of snapshot.segments) {
-      const path = `${userId}/segments/${segment.key}.mp3`
-      await uploadFile('audio', path, segment.audio, 'audio/mpeg')
-      await insertRows('lesson_segments', [{ user_id: userId, key: segment.key, audio_path: path, duration_seconds: segment.durationSeconds, created_at: segment.createdAt || new Date().toISOString() }], 'user_id,key')
-      done += 1
-      onProgress?.({ step: 'lessons', done, total: lessonWork })
-    }
-
     // --- verify -----------------------------------------------------------------------------
     onProgress?.({ step: 'verify', done: 0, total: 1 })
     const checks: [Parameters<typeof countPresent>[0], string[]][] = [
       ['decks', verifyIds.decks],
       ['cards', verifyIds.cards],
       ['quizzes', verifyIds.quizzes],
-      ['songs', verifyIds.songs],
       ['solves', verifyIds.solves],
-      ['lessons', verifyIds.lessons],
     ]
     let verified = true
     for (const [table, ids] of checks) if ((await countPresent(table, ids)) !== ids.length) verified = false
@@ -347,7 +250,6 @@ export async function runImport(userId: string, onProgress?: (progress: ImportPr
     // The screens read the account again, so what was imported shows up at once.
     void loadArchive(true)
     reloadFlashcards()
-    resetLessonCache()
     if (verified) setImportState(userId, 'imported')
     return { ok: true, imported: withTotal(imported), skipped: withTotal(skipped), verified }
   } catch (error) {
@@ -359,7 +261,7 @@ export async function runImport(userId: string, onProgress?: (progress: ImportPr
 /** Empties the browser-local stores — only called after a verified import, when the student says so. */
 export async function clearLegacyData(): Promise<void> {
   clearLegacyArchive()
-  await Promise.all([clearLegacyFlashcards(), clearLegacySongs(), clearLegacySolutions(), clearLegacyLessons()])
+  await Promise.all([clearLegacyFlashcards(), clearLegacySolutions()])
 }
 
 function readStates(): Record<string, ImportState> {

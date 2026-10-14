@@ -2,7 +2,7 @@ import { canonicalRedirectTarget, resolvePublicSiteUrl } from './publicSiteCore'
 
 const env = import.meta.env as ImportMetaEnv | undefined
 
-/** The address people should use to reach the app: the QR code, join address, share links, auth redirects. */
+/** The address people should use to reach the app: share links, auth redirects. */
 export function getPublicSiteUrl(): string {
   return resolvePublicSiteUrl({ prod: env?.PROD === true, override: env?.VITE_PUBLIC_SITE_URL, origin: window.location.origin })
 }

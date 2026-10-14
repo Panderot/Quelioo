@@ -17,7 +17,7 @@ import type { QuizQuestion } from '../../src/lib/quiz'
 import { answerSummary } from '../../src/lib/quiz'
 import { checkAgainstOthers, checkQuizQuality, findTrueFalseImbalance, qualityLanguageFor } from '../../src/lib/quizQuality'
 import type { QualityIssue } from '../../src/lib/quizQuality'
-import { usageCostUsd } from '../../src/lib/lesson'
+import { usageCostUsd } from '../../src/lib/modelPricing'
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((arg) => {

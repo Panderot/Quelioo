@@ -4,7 +4,7 @@ import { extractJson, isRecord, readRequestBody } from './anthropic.js'
 import { canRecordExplainForIp, recordExplainForIp } from './explain-rate-limit.js'
 import { generateJson } from './llm.js'
 import type { LlmProvider } from './llm.js'
-import { requestIp } from './song-rate-limit.js'
+import { requestIp } from './request-ip.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 

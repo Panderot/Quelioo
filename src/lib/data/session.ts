@@ -2,9 +2,7 @@ import { clearDraft } from '../../hooks/useDraft'
 import { resetArchiveCache, loadArchive } from '../archive'
 import { onSessionEnd, onSessionStart } from '../auth/authStore'
 import { resetFlashcardCache } from '../flashcardStorage'
-import { resetLessonCache } from '../lessonStorage'
 import { deletePageDraft } from '../pageDraftStorage'
-import { resetSongCache } from '../remote/songsRemote'
 import { isFakeBackend } from '../supabase'
 
 /** Wires the account data to the session: warm the Archive cache at sign-in (the Create page reads it
@@ -18,8 +16,6 @@ if (!isFakeBackend) {
   onSessionEnd(() => {
     resetArchiveCache()
     resetFlashcardCache()
-    resetLessonCache()
-    resetSongCache()
     clearDraft()
     void deletePageDraft('solve')
     void deletePageDraft('create')

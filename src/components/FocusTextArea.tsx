@@ -49,7 +49,7 @@ interface FocusTextAreaProps {
   hasError: boolean
   focusParts: FocusPart[]
   onFocusPartsChange: (parts: FocusPart[]) => void
-  /** False hides "Mark as focus" (features that don't use focus parts, e.g. Audio Lesson). */
+  /** False hides "Mark as focus" (for inputs that do not use focus parts). */
   focusEnabled?: boolean
 }
 

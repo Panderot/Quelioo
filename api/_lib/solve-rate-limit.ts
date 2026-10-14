@@ -1,4 +1,4 @@
-/** Best-effort per-IP guard on Solve, mirroring song-rate-limit.ts's in-memory approach: resets on
+/** Best-effort per-IP guard on Solve, in memory: resets on
  * a cold start and isn't shared across concurrent instances, so it's a speed bump against casual
  * abuse (unattended scripts hammering the vision endpoint), not a strict distributed limiter. */
 

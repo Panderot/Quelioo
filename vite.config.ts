@@ -15,12 +15,8 @@ import { checkWorkRequestHandler } from './api/_lib/check-work.js'
 import { generateRequestHandler } from './api/_lib/generate.js'
 import { extractUrlRequestHandler } from './api/_lib/extract-url.js'
 import { gradeRequestHandler } from './api/_lib/grade.js'
-import { songLyricsRequestHandler } from './api/_lib/song-lyrics.js'
-import { songRequestHandler } from './api/_lib/song.js'
 import { cardsRequestHandler } from './api/_lib/cards.js'
 import { solveToolsRequestHandler } from './api/_lib/solve-tools.js'
-import { lessonRequestHandler } from './api/_lib/lesson.js'
-import { liveRequestHandler } from './api/_lib/live.js'
 
 /** The same account check as production (api/*.ts): AI endpoints answer 401 without a valid token. */
 const protect = withAuth
@@ -35,13 +31,6 @@ function apiDevMiddleware(): Plugin {
       })
       server.middlewares.use('/api/account', (req, res) => {
         void accountRequestHandler(req, res)
-      })
-      // The Live Game: teachers send their account token, students their player token (no account), so no withAuth here.
-      server.middlewares.use('/api/live', (req, res) => {
-        void liveRequestHandler(req, res)
-      })
-      server.middlewares.use('/api/lesson', (req, res) => {
-        void protect(lessonRequestHandler)(req, res)
       })
       server.middlewares.use('/api/cards', (req, res) => {
         void protect(cardsRequestHandler)(req, res)
@@ -69,12 +58,6 @@ function apiDevMiddleware(): Plugin {
       })
       server.middlewares.use('/api/grade', (req, res) => {
         void protect(gradeRequestHandler)(req, res)
-      })
-      server.middlewares.use('/api/song-lyrics', (req, res) => {
-        void protect(songLyricsRequestHandler)(req, res)
-      })
-      server.middlewares.use('/api/song', (req, res) => {
-        void protect(songRequestHandler)(req, res)
       })
     },
   }
@@ -111,7 +94,7 @@ export default defineConfig(({ mode }) => {
   // The dev server's /api handlers read process.env: hand them the Supabase settings (token checks,
   // usage log) from .env.local without exposing the LLM keys the way a full load would.
   const fileEnv = loadEnv(mode, process.cwd(), '')
-  for (const key of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SECRET_KEY', 'CRON_SECRET']) {
+  for (const key of ['VITE_SUPABASE_URL', 'VITE_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_SECRET_KEY']) {
     if (!process.env[key] && fileEnv[key]) process.env[key] = fileEnv[key]
   }
   return {

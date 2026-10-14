@@ -47,7 +47,7 @@ export default function ImportDialog({ userId, summary, onClose }: ImportDialogP
     try {
       result = await runImport(userId, setProgress)
     } catch {
-      result = { ok: false, verified: false, imported: summary, skipped: { ...summary, decks: 0, cards: 0, quizzes: 0, songs: 0, solutions: 0, lessons: 0, total: 0 }, error: 'failed' }
+      result = { ok: false, verified: false, imported: summary, skipped: { ...summary, decks: 0, cards: 0, quizzes: 0, solutions: 0, total: 0 }, error: 'failed' }
     }
     if (result.ok && result.verified) {
       setImportState(userId, 'imported')
@@ -86,7 +86,7 @@ export default function ImportDialog({ userId, summary, onClose }: ImportDialogP
   const items = describeSummary(t, summary)
   const verified = report?.ok === true && report.verified
   const percent = progress && progress.total > 0 ? Math.min(100, Math.round((progress.done / progress.total) * 100)) : 0
-  const previewKinds = (['decks', 'quizzes', 'songs', 'solutions', 'lessons'] as const).filter((kind) => summary[kind] > 0)
+  const previewKinds = (['decks', 'quizzes', 'solutions'] as const).filter((kind) => summary[kind] > 0)
 
   return (
     <>

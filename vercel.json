@@ -16,12 +16,6 @@
     "api/grade.ts": {
       "maxDuration": 20
     },
-    "api/song-lyrics.ts": {
-      "maxDuration": 90
-    },
-    "api/song.ts": {
-      "maxDuration": 60
-    },
     "api/solve-tools.ts": {
       "maxDuration": 90
     },
@@ -31,15 +25,8 @@
     "api/solve.ts": {
       "maxDuration": 90
     },
-    "api/lesson.ts": {
-      "maxDuration": 300
-    },
     "api/account.ts": {
       "maxDuration": 60
-    },
-    "api/live.ts": {
-      "maxDuration": 30
     }
-  },
-  "crons": [{ "path": "/api/live?action=cleanup", "schedule": "23 3 * * *" }]
+  }
 }

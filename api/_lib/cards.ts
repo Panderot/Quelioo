@@ -8,7 +8,7 @@ import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/d
 import { detectTextLanguage, normalizeUiLanguage, resolveCardLanguage, resolveTranslationTarget, translationLanguageConflict } from '../../src/lib/cardLanguage.js'
 import { cardViolation, dropNearDuplicates, shuffled } from '../../src/lib/cardRules.js'
 import type { CardViolation, RuleContext } from '../../src/lib/cardRules.js'
-import { LESSON_MODELS } from '../../src/lib/lesson.js'
+import { REVIEW_MODELS } from '../../src/lib/modelPricing.js'
 import { CARD_COUNT_AUTO, CARD_LEVELS, CARD_STYLES, MAX_CARD_COUNT, MAX_TOPIC_CHARS, MIN_CARD_COUNT } from '../../src/lib/cardGeneration.js'
 import type { CardLevel, CardStyle } from '../../src/lib/cardGeneration.js'
 import { MAX_BACK_CHARS, MAX_FRONT_CHARS, normalizeFront } from '../../src/lib/flashcardText.js'
@@ -58,7 +58,7 @@ const TOTAL_BUDGET_MS = 150_000
 const TOP_UP_MIN_LEFT_MS = 45_000
 
 /** The reviewer and the rewriter are the cheap checker model (OpenAI); the writer keeps the provider default. */
-const REVIEW_MODEL = LESSON_MODELS.checker
+const REVIEW_MODEL = REVIEW_MODELS.cheap
 
 const limit = createHourlyIpLimit(30)
 

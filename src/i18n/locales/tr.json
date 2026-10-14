@@ -7,13 +7,9 @@
     "create": "Oluştur",
     "solve": "Çöz",
     "archive": "Arşiv",
-    "songs": "Şarkılar",
     "openMenu": "Gezinme menüsünü aç",
     "closeMenu": "Gezinme menüsünü kapat",
-    "flashcards": "Kartlar",
-    "lessons": "Sesli Ders",
-    "live": "Canlı Yarışma",
-    "exams": "Yazılı Sınav"
+    "flashcards": "Kartlar"
   },
   "topbar": {
     "language": {
@@ -195,8 +191,7 @@
         "notFoundTitle": "Çözüm bulunamadı",
         "notFoundBody": "Bu çözüm silinmiş olabilir."
       }
-    },
-    "live": "Canlı yarışma başlat"
+    }
   },
   "create": {
     "draft": {
@@ -270,7 +265,8 @@
       "coverageCount": "{{total}} ana fikirden {{covered}}'i var",
       "checkError": "Cevabın kontrol edilemedi. Lütfen tekrar dene.",
       "timeUnderMinute": "1 dakikadan kısa",
-      "timeTotal": "Yaklaşık {{minutes}} dk"
+      "timeTotal": "Yaklaşık {{minutes}} dk",
+      "close": "Kapat"
     },
     "question": {
       "editAction": "Düzenle",
@@ -497,130 +493,6 @@
         "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene."
       }
     }
-  },
-  "song": {
-    "button": "Şarkıya çevir",
-    "panelTitle": "Şarkıya çevir",
-    "close": "Kapat",
-    "demoBadge": "Demo ses",
-    "aiDisclosure": "Bu şarkı yapay zekâ ile yapıldı.",
-    "lengthNote": "Yaklaşık {{seconds}} saniye",
-    "lengthNoteLong": "Yaklaşık 1–2 dakika",
-    "lengthLabel": "Uzunluk",
-    "partialCoverageNote": "Bu şarkıda {{total}} bilgiden {{included}} tanesi var.",
-    "style": {
-      "label": "Tarz",
-      "pop": "Pop",
-      "rap": "Rap",
-      "kids": "Çocuk şarkısı",
-      "rock": "Rock",
-      "acoustic": "Akustik",
-      "lofi": "Lo-fi"
-    },
-    "tone": {
-      "label": "Üslup",
-      "normal": "Normal",
-      "funny": "Komik"
-    },
-    "factCheck": {
-      "warningTitle": "Lütfen şu satırları kontrol et:",
-      "genericWarning": "Bu şarkıdaki bazı bilgiler kontrol edilmeli."
-    },
-    "writeLyrics": "Sözleri yaz",
-    "writingLyrics": "Sözler yazılıyor...",
-    "lyricsLabel": "Sözler",
-    "lyricsCounter": "{{count}}/{{max}} karakter",
-    "makeTheSong": "Şarkıyı oluştur",
-    "cancel": "Vazgeç",
-    "loading": {
-      "messages": [
-        "Enstrümanlar ısınıyor...",
-        "Melodi besteleniyor...",
-        "Parça mikslenıyor...",
-        "Neredeyse bitti..."
-      ]
-    },
-    "player": {
-      "play": "Oynat",
-      "pause": "Duraklat",
-      "seek": "Konum",
-      "volume": "Ses düzeyi",
-      "download": "İndir",
-      "makeAnother": "Başka bir tane oluştur"
-    },
-    "costGuardReached": "Bu quiz için bugünkü {{max}} şarkı sınırına ulaştın. Lütfen yarın tekrar dene.",
-    "secondsGuardReached": "Bugünkü {{max}} saniyelik şarkı sınırına ulaştın. Lütfen yarın tekrar dene.",
-    "seeAllSongs": "Tüm şarkılar",
-    "archive": {
-      "listenTitle": "Dinle",
-      "hasSongLabel": "Bu quizin bir şarkısı var"
-    },
-    "errors": {
-      "not_configured": "Şarkı oluşturma şu anda geçici olarak kullanılamıyor. Lütfen kısa süre sonra tekrar dene.",
-      "disabled": "Quizleri şarkıya çevirme şu anda kullanılamıyor.",
-      "locked": "Erişim kodu olmadan şarkı oluşturulamaz.",
-      "too_long": "Bu sözler çok uzun. Lütfen biraz kısaltıp tekrar dene.",
-      "blocked": "Quelio bu istekten müzik oluşturamadı. Lütfen sözleri veya tarzı değiştirip tekrar dene.",
-      "upstream": "Şarkını oluştururken bir şeyler ters gitti. Lütfen tekrar dene.",
-      "timeout": "Bu işlem çok uzun sürdü. Lütfen tekrar dene.",
-      "parse": "Quelio bu sefer geçerli bir şarkı okuyamadı. Lütfen tekrar dene.",
-      "network": "Bağlanılamadı. Bağlantını kontrol edip tekrar dene.",
-      "storage_full": "Bu şarkı bu cihazda kaydedilemedi ama bu oturum boyunca çalmaya devam edecek.",
-      "no_facts": "Bu bölümde şarkıya çevrilecek bir şey kalmadı. Önceki şarkın zaten kapsıyor.",
-      "rate_limited": "Quelio bugünkü şarkı sınırına ulaştı. Lütfen yarın tekrar dene.",
-      "busy": "Müzik servisi şu an yoğun. Lütfen bir dakika sonra tekrar dene.",
-      "retry": "Tekrar dene"
-    },
-    "coverage": {
-      "summary": "{{covered}}/{{total}} soru şarkıda",
-      "seriesSummary": "Şarkı {{part}}: {{covered}}/{{total}} · Seri: {{seriesCovered}}/{{seriesTotal}}",
-      "hide": "Soruları gizle",
-      "notCovered": "Şarkıda yok",
-      "lineLabel": "Satır"
-    },
-    "series": {
-      "note": "Bu quiz {{count}} şarkıya bölünecek. Bugünkü şarkı hakkından {{count}} tane kullanılır.",
-      "noteFree": "Bu quiz tek şarkıya sığmadığı için {{count}} şarkıya bölünecek.",
-      "partLabel": "{{number}}/{{count}}. şarkı",
-      "partName": "Şarkı {{number}}",
-      "next": "Sonraki şarkı ({{number}}/{{count}})"
-    }
-  },
-  "ownerAccess": {
-    "title": "Erişim kodunu gir",
-    "unlock": "Kilidi aç",
-    "wrongCode": "Bu kod doğru değil. Lütfen tekrar dene.",
-    "lock": "Kilitle"
-  },
-  "songsPage": {
-    "title": "Şarkılar",
-    "subtitle": "Quizlerini unutulmaz şarkılara dönüştür",
-    "minutesLeftToday": "Bugün yaklaşık {{count}} dk şarkı hakkın kaldı",
-    "newSong": "Yeni şarkı",
-    "pickerTitle": "Bir quiz seç",
-    "pickerSearchPlaceholder": "Quiz ara...",
-    "pickerEmpty": "Henüz hiç quizin yok.",
-    "pickerQuestionCount": "{{count}} soru",
-    "filters": {
-      "all": "Tümü",
-      "normal": "Normal",
-      "funny": "Komik"
-    },
-    "searchPlaceholder": "Quiz başlığına göre ara...",
-    "generatingRow": "Şarkın oluşturuluyor...",
-    "empty": {
-      "title": "Henüz şarkı yok",
-      "subtitle": "Burada görmek için quizlerinden birini şarkıya çevir."
-    },
-    "row": {
-      "viewLyrics": "Sözleri göster",
-      "hideLyrics": "Sözleri gizle",
-      "openQuiz": "Quizi aç",
-      "quizDeleted": "Quiz silindi",
-      "delete": "Sil",
-      "confirmDelete": "Bu şarkı silinsin mi?"
-    },
-    "deletedUndo": "Şarkı silindi."
   },
   "crop": {
     "imageAlt": "Kırpılacak fotoğraf",
@@ -886,228 +758,6 @@
       "dismiss": "Yarına kadar gizle"
     }
   },
-  "lessons": {
-    "title": "Sesli Ders",
-    "subtitle": "Her metni dinleyebileceğin kısa bir derse dönüştür",
-    "newLesson": "Yeni ders",
-    "untitled": "Adsız ders",
-    "searchPlaceholder": "Derslerde ara...",
-    "noResults": "Aramana uyan ders yok.",
-    "storageNote": "Dersler bu tarayıcıda kaydedilemiyor; bu sekmeyi kapatana kadar durur.",
-    "deletedUndo": "Ders silindi.",
-    "empty": {
-      "title": "Henüz ders yok",
-      "subtitle": "Bir metni, testi ya da çözümü kısa bir sesli derse dönüştür."
-    },
-    "row": {
-      "episodes_one": "1 bölüm",
-      "episodes_other": "{{count}} bölüm",
-      "open": "Aç",
-      "delete": "Sil",
-      "confirmDelete": "Bu ders silinsin mi?",
-      "duration": "{{time}}",
-      "durationApprox": "yaklaşık {{time}}"
-    },
-    "status": {
-      "none": "Planlandı",
-      "script": "Metin hazır",
-      "audio": "Ses hazır"
-    },
-    "sourceKinds": {
-      "text": "Metin",
-      "file": "Dosya",
-      "url": "Web sayfası",
-      "quiz": "Arşivdeki test",
-      "solution": "Kayıtlı çözüm"
-    },
-    "styles": {
-      "two_hosts": "İki sunucu sohbeti",
-      "teacher_student": "Öğretmen ve öğrenci",
-      "narrator": "Tek anlatıcı"
-    },
-    "levels": {
-      "general": "Genel",
-      "lgs": "LGS",
-      "yks": "YKS",
-      "kpss": "KPSS",
-      "university": "Üniversite"
-    },
-    "tones": {
-      "normal": "Normal",
-      "fun": "Eğlenceli"
-    },
-    "speakers": {
-      "hostA": "Sunucu A",
-      "hostB": "Sunucu B",
-      "teacher": "Öğretmen",
-      "student": "Öğrenci",
-      "narrator": "Anlatıcı"
-    },
-    "roles": {
-      "recall": "Hızlı hatırlatma",
-      "opening": "Giriş",
-      "teach": "Konu",
-      "feynman": "Basitçe anlat",
-      "recap": "Özet",
-      "selfcheck": "Kendini yokla",
-      "tip": "Çalışma önerisi"
-    },
-    "new": {
-      "heading": "Yeni ders",
-      "wordLimit": "Her ders için 30 ile 5.000 kelime arası metin kullanabilirsin.",
-      "close": "Kapat",
-      "otherSources": "Ya da şuradan başla:",
-      "fromQuiz": "Arşivdeki bir testten",
-      "fromSolution": "Kayıtlı bir çözümden",
-      "pickQuiz": "Bir test seç",
-      "pickSolution": "Bir çözüm seç",
-      "pickerSearch": "Ara...",
-      "noQuizzes": "Arşivinde henüz test yok.",
-      "noSolutions": "Henüz kayıtlı çözüm yok.",
-      "usingSource": "Kaynak: {{label}}",
-      "clearSource": "Kendi metnimi kullan",
-      "optionsEyebrow": "Ders seçenekleri",
-      "lengthLabel": "Uzunluk",
-      "lengthValue": "Uzunluk metnine göre değişir (bölüm başına en fazla yaklaşık 6 dakika)",
-      "styleLabel": "Biçim",
-      "levelLabel": "Seviye",
-      "toneLabel": "Ton",
-      "toneFunHelp": "Eğlenceli ama her bilgi doğru ve yaşa uygun kalır.",
-      "plan": "Dersi planla",
-      "planning": "Ana bilgiler bulunuyor...",
-      "cancel": "Vazgeç"
-    },
-    "plan": {
-      "heading": "Ders planı",
-      "single": "Bu metin yaklaşık {{minutes}} dakikalık tek bir bölüm olacak",
-      "series": "Bu metin {{count}} bölümlük bir seri olacak",
-      "keyPoints_one": "{{count}} ana bilgi",
-      "keyPoints_other": "{{count}} ana bilgi",
-      "onDemand": "Sonraki her bölüm yalnızca sen istediğinde yazılır.",
-      "existing": "Bu metinden bu seçeneklerle zaten bir ders yaptın.",
-      "openExisting": "Onu aç",
-      "createAnyway": "Yine de yenisini yaz",
-      "writeSingle": "Dersi yaz",
-      "writeFirst": "1. bölümü yaz",
-      "writing": "Metin yazılıyor ve doğruluğu kontrol ediliyor. Yaklaşık bir dakika sürer.",
-      "back": "Seçenekleri değiştir"
-    },
-    "errors": {
-      "empty": "Önce bir metin, dosya ya da web sayfası ekle.",
-      "too_short": "Bu metin ders için çok kısa. En az 30 kelime kullan.",
-      "too_long": "Bu metin çok uzun. En fazla 5.000 kelime kullan.",
-      "too_long_chars": "Bu metin kullanılamayacak kadar uzun.",
-      "bad_type": "Bu istekte bir sorun var. Lütfen tekrar dene.",
-      "too_large": "Bu istek çok büyük.",
-      "upstream": "Yapay zekâ hizmeti yanıt vermedi. Lütfen tekrar dene.",
-      "parse": "Yanıt okunamadı. Lütfen tekrar dene.",
-      "model": "Yapay zekâ modeli şu anda kullanılamıyor.",
-      "not_configured": "Sesli dersler bu sunucuda henüz ayarlanmadı.",
-      "rate_limited": "Dersler için saatlik sınıra ulaştın. Lütfen daha sonra tekrar dene.",
-      "locked": "Ders oluşturmak için erişim kodu gerekiyor.",
-      "timeout": "Bu çok uzun sürdü. Lütfen tekrar dene.",
-      "network": "Bağlantı yok. İnternetini kontrol edip tekrar dene.",
-      "retry": "Tekrar dene",
-      "daily_cap": "Bugünkü ses kaydı sınırına ulaştın (3 ders ya da 30 dakika ses). Lütfen yarın tekrar dene.",
-      "budget": "Bu ayın ders bütçesi aşılacağı için kayıt yapılmadı."
-    },
-    "detail": {
-      "back": "Derslere dön",
-      "notFound": "Bu ders artık yok.",
-      "partsLabel": "Ders bölümleri",
-      "partTab": "{{n}}. bölüm",
-      "partOf": "{{n}}. bölüm / {{total}}",
-      "notWrittenShort": "yazılmadı",
-      "notWrittenYet": "{{n}}. bölüm henüz yazılmadı. Her bölüm yalnızca sen istediğinde yazılır.",
-      "preparePart": "{{n}}. bölümü hazırla",
-      "prepareNext": "Sonraki bölümü hazırla ({{n}})",
-      "goToPart": "{{n}}. bölüme geç",
-      "preparing": "{{n}}. bölüm yazılıyor ve her satır kontrol ediliyor...",
-      "duration": "Yaklaşık {{time}} · {{words}} kelime",
-      "coverage": "{{n}}/{{m}} ana bilgi anlatıldı",
-      "taughtIn": "Anlatıldığı yer: {{where}}",
-      "notTaught": "henüz anlatılmadı",
-      "notWritten": "{{n}}. bölüm (henüz yazılmadı)",
-      "checkPassed": "Her satır metnine göre kontrol edildi.",
-      "checkFailed_one": "{{count}} satıra güvenmeden önce kontrol edilmesi gerekiyor.",
-      "checkFailed_other": "{{count}} satıra güvenmeden önce kontrol edilmesi gerekiyor.",
-      "checkNotRun": "Doğruluk kontrolü çalışmadı. Bu metne güvenmeden önce kendin kontrol et.",
-      "missingPoints": "Hâlâ eksik ana bilgiler: {{list}}",
-      "rewritten_one": "Doğruluk kontrolü {{count}} satırı yeniden yazdı.",
-      "rewritten_other": "Doğruluk kontrolü {{count}} satırı yeniden yazdı.",
-      "editedNote_one": "Metni değiştirdin ({{count}} satır düzenlendi). Sonraki adımdan önce metnine göre kontrol edilir.",
-      "editedNote_other": "Metni değiştirdin ({{count}} satır düzenlendi). Sonraki adımdan önce metnine göre kontrol edilir.",
-      "checkEdits": "Düzenlemelerimi kontrol et",
-      "checking": "Düzenlemelerin kontrol ediliyor...",
-      "needsCheck": "Bu satırı kontrol et:",
-      "issueSymbols": "Sesli okunabilmesi için sayılar ve semboller yazıyla yazılmalı.",
-      "issueLong": "Bu satır tek nefeste söylenemeyecek kadar uzun.",
-      "issueCalc": "Hesaplama yanlış ({{detail}}).",
-      "speakerLabel": "Konuşan",
-      "lineText": "Satır metni",
-      "saveLine": "Kaydet",
-      "editLine": "Satırı düzenle",
-      "deleteLine": "Satırı sil",
-      "addLine": "Bundan sonra satır ekle",
-      "moveUp": "Yukarı taşı",
-      "moveDown": "Aşağı taşı",
-      "pauseTag": "duraklama",
-      "editedTag": "düzenlendi",
-      "durationExact": "{{time}} · {{words}} kelime",
-      "issueRepeat": "Bu satır daha önce söylenenin neredeyse aynısı."
-    },
-    "voices": {
-      "alloy": "Alloy",
-      "ash": "Ash",
-      "coral": "Coral",
-      "echo": "Echo",
-      "fable": "Fable",
-      "nova": "Nova",
-      "onyx": "Onyx",
-      "sage": "Sage",
-      "shimmer": "Shimmer",
-      "ballad": "Ballad",
-      "verse": "Verse",
-      "marin": "Marin",
-      "cedar": "Cedar"
-    },
-    "audio": {
-      "approveHelp": "Önce metni oku. Ses yalnızca onaylanan metin için kaydedilir.",
-      "approve": "Metni onayla ve sesleri seç",
-      "voicesHeading": "Sesler",
-      "updateHeading": "Sesi güncelle",
-      "updateHelp_one": "{{count}} satırın henüz sesi yok (yeni, değişmiş ya da yarım kalmış). Yalnızca bu satır kaydedilir.",
-      "updateHelp_other": "{{count}} satırın henüz sesi yok (yeni, değişmiş ya da yarım kalmış). Yalnızca bu satırlar kaydedilir.",
-      "preview": "{{voice}} sesini dinle",
-      "estimate_one": "Yaklaşık {{time}} ses. {{count}} satır kaydedilecek.",
-      "estimate_other": "Yaklaşık {{time}} ses. {{count}} satır kaydedilecek.",
-      "checkFirst": "Düzenlemelerin önce metnine göre kontrol edilir.",
-      "record": "Sesi kaydet",
-      "updateAudio_one": "Sesi güncelle ({{count}} satır)",
-      "updateAudio_other": "Sesi güncelle ({{count}} satır)",
-      "recording": "{{done}} / {{total}} satır kaydediliyor",
-      "progressSaved": "{{total}} satırın {{done}} tanesi kaydedildi ve saklandı.",
-      "linesFailed_one": "{{count}} satır kaydedilemedi.",
-      "linesFailed_other": "{{count}} satır kaydedilemedi.",
-      "single": "Ders",
-      "unknown": "Harf harf okundu (gerekirse telaffuz listesine ekle): {{list}}",
-      "editScript": "Metni düzenle",
-      "hideEditor": "Metin düzenleyiciyi gizle"
-    },
-    "player": {
-      "play": "Oynat",
-      "pause": "Duraklat",
-      "seek": "Dersteki konum",
-      "back10": "10 sn geri",
-      "forward10": "10 sn ileri",
-      "speed": "Oynatma hızı",
-      "downloadMp3": "MP3 indir",
-      "downloadTranscript": "Metni indir",
-      "shortcuts": "Boşluk: oynat ya da duraklat · Sol ve sağ ok: 10 saniye geri ya da ileri",
-      "answerHidden": "Önce düşün, sonra cevabı göster.",
-      "showAnswer": "Cevabı göster"
-    }
-  },
   "coverage": {
     "line": "{{covered}}/{{total}} ana bilgi soruldu",
     "panelTitle": "Ana bilgiler",
@@ -1128,8 +778,7 @@
   },
   "ownerPage": {
     "title": "Sahip",
-    "subtitle": "Bu ay tüm hesapların yapay zekâ harcaması. Öğrenciler bu sayfayı görmez.",
-    "monthSpendBudget": "Bu ay: {{cost}} / {{budget}}"
+    "subtitle": "Bu ay tüm hesapların yapay zekâ harcaması. Öğrenciler bu sayfayı görmez."
   },
   "auth": {
     "email": "E-posta",
@@ -1147,7 +796,7 @@
     "genericError": "Bir şeyler ters gitti. Lütfen tekrar dene. Sorun sürerse info@motiqai.com adresine yaz.",
     "signIn": {
       "title": "Tekrar hoş geldin",
-      "subtitle": "Quizlerini, kartlarını ve şarkılarını her cihazda açmak için giriş yap.",
+      "subtitle": "Quizlerini ve kartlarını her cihazda açmak için giriş yap.",
       "submit": "Giriş yap",
       "submitting": "Giriş yapılıyor…",
       "forgot": "Şifreni mi unuttun?",
@@ -1160,7 +809,7 @@
     },
     "signUp": {
       "title": "Hesabını oluştur",
-      "subtitle": "Quizlerin, kartların ve şarkıların her cihazda seninle kalır.",
+      "subtitle": "Quizlerin ve kartların her cihazda seninle kalır.",
       "submit": "Hesap oluştur",
       "submitting": "Hesap oluşturuluyor…",
       "hasAccount": "Zaten hesabın var mı?",
@@ -1276,7 +925,7 @@
     },
     "delete": {
       "title": "Hesabı sil",
-      "hint": "Hesabını, tüm quizleri, desteleri, şarkıları, dersleri ve dosyaları siler. Geri alınamaz.",
+      "hint": "Hesabını, tüm quizleri, desteleri ve dosyaları siler. Geri alınamaz.",
       "button": "Hesabımı sil",
       "dialogTitle": "Hesabın silinsin mi?",
       "dialogBody": "Her şey kalıcı olarak silinir. Onaylamak için e-posta adresini yaz.",
@@ -1310,19 +959,17 @@
       "contentTitle": "İçeriğin",
       "contentBody": "Quizlerin, kartların ve diğer verilerin sana aittir. Hesap sayfandan istediğin zaman indirebilir veya silebilirsin.",
       "aiTitle": "Yapay zekâ ürünü içerik",
-      "aiBody": "Quizler, çözümler ve dersler yapay zekâ ile hazırlanır ve hata içerebilir. Önemli bilgileri güvenmeden önce kontrol et."
+      "aiBody": "Quizler ve çözümler yapay zekâ ile hazırlanır ve hata içerebilir. Önemli bilgileri güvenmeden önce kontrol et."
     },
     "privacy": {
       "title": "Gizlilik Bildirimi",
       "intro": "Bu bildirim, Quelio'nun neleri sakladığını ve nedenini açıklar.",
       "dataTitle": "Neleri saklıyoruz",
-      "dataBody": "E-posta adresin, adın ve oluşturduğun quizler, kartlar, şarkılar, dersler ve ayarlar; böylece her cihazda aynı olurlar.",
+      "dataBody": "E-posta adresin, adın ve oluşturduğun quizler, kartlar ve ayarlar; böylece her cihazda aynı olurlar.",
       "aiTitle": "Yapay zekâ sağlayıcıları",
-      "aiBody": "Quiz, çözüm ve ders hazırlamak için gönderdiğin metin ya da fotoğraf yapay zekâ sağlayıcılarına iletilir. Yalnızca isteğini yanıtlamak için kullanılır.",
+      "aiBody": "Quiz ve çözüm hazırlamak için gönderdiğin metin ya da fotoğraf yapay zekâ sağlayıcılarına iletilir. Yalnızca isteğini yanıtlamak için kullanılır.",
       "controlTitle": "Kontrol sende",
-      "controlBody": "Hesap sayfasından her şeyi indirebilir ya da hesabını tüm veri ve dosyalarıyla silebilirsin.",
-      "liveTitle": "Canlı yarışmalar",
-      "liveBody": "Canlı yarışmaya katılan öğrenciler yalnızca bir takma ad verir; öğrenci hesabı, e-posta veya izleme yoktur. Takma adlar, cevaplar ve puanlar yalnızca yarışma için tutulur ve yarışma bittikten 30 gün sonra silinir. Öğretmen ortalamaları ve soru istatistiklerini saklar."
+      "controlBody": "Hesap sayfasından her şeyi indirebilir ya da hesabını tüm veri ve dosyalarıyla silebilirsin."
     }
   },
   "importDialog": {
@@ -1333,12 +980,8 @@
       "decks_other": "{{count}} deste",
       "quizzes_one": "{{count}} quiz",
       "quizzes_other": "{{count}} quiz",
-      "songs_one": "{{count}} şarkı",
-      "songs_other": "{{count}} şarkı",
       "solutions_one": "{{count}} çözüm",
       "solutions_other": "{{count}} çözüm",
-      "lessons_one": "{{count}} sesli ders",
-      "lessons_other": "{{count}} sesli ders",
       "cards_one": "{{count}} kart",
       "cards_other": "{{count}} kart"
     },
@@ -1350,9 +993,7 @@
     "progress": {
       "decks": "Desteler aktarılıyor…",
       "quizzes": "Quizler aktarılıyor…",
-      "songs": "Şarkılar aktarılıyor…",
       "solutions": "Çözümler aktarılıyor…",
-      "lessons": "Dersler aktarılıyor…",
       "verify": "Her şeyin ulaştığı kontrol ediliyor…"
     },
     "doneTitle": "Aktarıldı",
@@ -1389,7 +1030,7 @@
   "landing": {
     "meta": {
       "title": "Quelio – Okuduğun her şeyi quize çevir",
-      "description": "Metni, PDF'i ya da bağlantıyı yapıştır; Quelio önemli bilgileri bulup quiz, bilgi kartı, şarkı ve sesli ders yapsın. Fotoğraftaki matematik sorusunu adım adım çözer. Beta süresince ücretsiz."
+      "description": "Metni, PDF'i ya da bağlantıyı yapıştır; Quelio önemli bilgileri bulup quiz ve bilgi kartı yapsın. Fotoğraftaki matematik sorusunu adım adım çözer. Beta süresince ücretsiz."
     },
     "skip": "Ana içeriğe geç",
     "nav": {
@@ -1477,12 +1118,10 @@
         "body": "Önce metindeki bilgileri çıkarır, sonra her biri için soru yazar. Metinde olmayan bilgiyi uydurmaz; bilgi yetmezse daha az soru üretir."
       },
       "s3": {
-        "title": "Quizle, kartla, şarkıyla, dinleyerek öğren",
-        "body": "Aynı kaynaktan quiz, bilgi kartı, şarkı ve sesli ders çıkar. Sen sana uyanı seçersin.",
+        "title": "Quizle, kartla öğren",
+        "body": "Aynı kaynaktan quiz ve bilgi kartı çıkar. Sen sana uyanı seçersin.",
         "quiz": "Quiz",
-        "cards": "Kartlar",
-        "song": "Şarkı",
-        "lesson": "Sesli ders"
+        "cards": "Kartlar"
       }
     },
     "features": {
@@ -1492,9 +1131,7 @@
       "tabs": {
         "create": "Oluştur",
         "solve": "Çöz",
-        "cards": "Kartlar",
-        "songs": "Şarkılar",
-        "lesson": "Sesli Ders"
+        "cards": "Kartlar"
       },
       "create": {
         "title": "Her soru türü, tek tıkla",
@@ -1544,30 +1181,6 @@
         "a2": "Işık, su ve karbondioksit",
         "q3": "Fotosentezin ürünleri nelerdir?",
         "a3": "Glikoz ve oksijen"
-      },
-      "songs": {
-        "title": "Konuyu şarkıyla ezberle",
-        "body": "Quiz sorularındaki bilgiler şarkı sözlerine girer; sözler şarkı yapılmadan önce kaynağınla karşılaştırılıp kontrol edilir.",
-        "songTitle": "Fotosentez",
-        "play": "Şarkıyı oynat",
-        "pause": "Şarkıyı duraklat",
-        "hint": "Örnek animasyon, ses yok.",
-        "l1": "Güneşten gelen ışık yaprağa değer",
-        "l2": "Su ve karbondioksit kloroplastta birleşir",
-        "l3": "Glikoz olur besin, oksijen havaya yayılır",
-        "l4": "Fotosentez böyle çalışır, artık unutmazsın"
-      },
-      "lesson": {
-        "title": "Kulaklığı tak, dinleyerek öğren",
-        "body": "İki sunucu konuyu sohbet ederek anlatır, ara ara sorular sorar. Yürürken, yolda, uyumadan önce.",
-        "hostA": "Sunucu A",
-        "hostB": "Sunucu B",
-        "play": "Dersi oynat",
-        "pause": "Dersi duraklat",
-        "hint": "Kısa bir örnek. Ses dokununca yüklenir.",
-        "l1": "Bitkiler besin üretirken ışık enerjisinden yararlanır mı?",
-        "l2": "Bir düşün...",
-        "l3": "Evet. Fotosentezde bitki ışık enerjisiyle besin üretir. Şimdi yerini, girdilerini, ürünlerini ve hızını keşfedelim."
       }
     },
     "audiences": {
@@ -1631,8 +1244,7 @@
         "name": "Pro",
         "desc": "Daha çok kullanmak isteyenler için.",
         "f1": "Ücretsiz plandaki her şey",
-        "f2": "Daha yüksek kullanım sınırları",
-        "f3": "Şarkılar ve sesli dersler"
+        "f2": "Daha yüksek kullanım sınırları"
       },
       "start": "Ücretsiz başla"
     },
@@ -1640,7 +1252,7 @@
       "title": "Sık sorulanlar",
       "what": {
         "q": "Quelio nedir?",
-        "a": "Yazdığın, yüklediğin ya da bağlantısını verdiğin içerikten yapay zekâ ile quiz, bilgi kartı, şarkı ve sesli ders hazırlayan; fotoğraftaki matematik sorusunu adım adım çözen bir çalışma aracı."
+        "a": "Yazdığın, yüklediğin ya da bağlantısını verdiğin içerikten yapay zekâ ile quiz ve bilgi kartı hazırlayan; fotoğraftaki matematik sorusunu adım adım çözen bir çalışma aracı."
       },
       "languages": {
         "q": "Hangi dillerde çalışıyor?",
@@ -1652,7 +1264,7 @@
       },
       "data": {
         "q": "Verilerime ne oluyor?",
-        "a": "E-posta adresini, adını ve oluşturduğun quiz, kart, şarkı ve dersleri saklarız; böylece her cihazda aynı kalır. Gönderdiğin metin ya da fotoğraf içerik üretmek için yapay zekâ sağlayıcılarına iletilir. Hesap sayfasından her şeyi indirebilir ya da hesabını tüm verileriyle silebilirsin."
+        "a": "E-posta adresini, adını ve oluşturduğun quiz ve kartları saklarız; böylece her cihazda aynı kalır. Gönderdiğin metin ya da fotoğraf içerik üretmek için yapay zekâ sağlayıcılarına iletilir. Hesap sayfasından her şeyi indirebilir ya da hesabını tüm verileriyle silebilirsin."
       },
       "files": {
         "q": "Hangi dosyaları kabul ediyor?",
@@ -1793,560 +1405,6 @@
       "today": "bugün",
       "yesterday": "dün",
       "daysAgo": "{{count}} gün önce"
-    }
-  },
-  "live": {
-    "hub": {
-      "title": "Canlı Yarışma",
-      "intro": "Quizi tahtada yarışmaya çevir. Öğrenciler telefonlarından 6 haneli kod ve takma adla katılır, hesap gerekmez.",
-      "start": "Yarışma başlat",
-      "pickTitle": "Bir quiz seç",
-      "pickHint": "En yeniden eskiye",
-      "search": "Quizlerinde ara",
-      "noMatches": "Aramana uyan quiz yok.",
-      "noQuizzes": "Henüz quizin yok. Önce bir tane oluştur.",
-      "createQuiz": "Quiz oluştur",
-      "playable_one": "{{count}} oynanabilir soru",
-      "playable_other": "{{count}} oynanabilir soru",
-      "noPlayable": "Oynanabilir soru yok",
-      "resumeTitle": "Devam eden yarışma",
-      "resumeItem": "{{when}} · kod {{code}}",
-      "resume": "Devam et",
-      "historyTitle": "Geçmiş yarışmalar",
-      "historyEmpty": "Biten yarışmalar burada görünür.",
-      "historyMeta_one": "{{count}} oyuncu · ortalama {{average}}",
-      "historyMeta_other": "{{count}} oyuncu · ortalama {{average}}",
-      "stateLobby": "Lobide",
-      "stateRunning": "Sürüyor",
-      "stateEnded": "Bitti",
-      "stateCancelled": "İptal edildi",
-      "cancel": "İptal et",
-      "finish": "Bitir",
-      "cancelTitle": "Bu yarışma iptal edilsin mi?",
-      "finishTitle": "Yarışma şimdi bitirilsin mi?",
-      "cancelYes": "İptal et",
-      "finishYes": "Bitir",
-      "stay": "Vazgeç",
-      "actionFailed": "Bu yarışma artık değiştirilemez. Liste yenilendi.",
-      "results": "Sonuçlar"
-    },
-    "setup": {
-      "title": "Yarışma ayarları",
-      "back": "Canlı Yarışma'ya dön",
-      "quiz": "Quiz",
-      "suitable_one": "Bu quizde {{count}} soru canlı yarışmaya uygun",
-      "suitable_other": "Bu quizde {{count}} soru canlı yarışmaya uygun",
-      "skipped_one": "{{count}} soru atlanacak",
-      "skipped_other": "{{count}} soru atlanacak",
-      "skippedNone": "hiçbiri atlanmayacak",
-      "showSkipped": "Atlanacak soruları göster",
-      "hideSkipped": "Atlanacak soruları gizle",
-      "skippedListLabel": "Atlanacak sorular",
-      "reasonOptions": "5'ten fazla seçenekli çoktan seçmeli",
-      "noneTitle": "Bu quizdeki hiçbir soru canlı yarışmada oynanamaz",
-      "noneBody": "Canlı yarışmada çoktan seçmeli (2-5 seçenek), çok cevaplı çoktan seçmeli ve doğru/yanlış sorular kullanılır. Bu quizde bunlardan hiçbiri yok.",
-      "noneCta": "Çoktan seçmeli quiz üret",
-      "settingsTitle": "Ayarlar",
-      "time": "Soru başına süre",
-      "seconds": "{{count}} sn",
-      "leaderboard": "Her sorudan sonra sıralamayı göster",
-      "shuffle": "Soru sırasını karıştır",
-      "sound": "Ses efektleri",
-      "maxPlayers": "En fazla oyuncu",
-      "maxPlayersHint": "1 ile 100 arası",
-      "lateJoin": "Yarışma başladıktan sonra katılıma izin ver",
-      "open": "Lobiyi aç",
-      "opening": "Açılıyor…",
-      "errorTooMany": "Zaten 3 yarışma yürütüyorsun. Önce birini bitir.",
-      "errorNoQuestions": "Bu quizde canlı oynanabilecek soru yok.",
-      "errorMissing": "Bu quiz bulunamadı.",
-      "errorGeneric": "Lobi açılamadı. Tekrar dene."
-    },
-    "board": {
-      "loading": "Yarışma yükleniyor…",
-      "notFound": "Yarışma bulunamadı",
-      "reconnecting": "Yeniden bağlanılıyor…",
-      "mute": "Sesi kapat",
-      "unmute": "Sesi aç",
-      "fullscreen": "Tam ekran",
-      "exitFullscreen": "Tam ekrandan çık",
-      "leave": "Canlı Yarışma'ya dön",
-      "lobby": {
-        "codeLabel": "Yarışma kodu",
-        "joinAt": "Katılım adresi",
-        "scan": "Katılmak için tara",
-        "qrLabel": "Yarışmaya katılma QR kodu",
-        "count_one": "{{count}} öğrenci katıldı",
-        "count_other": "{{count}} öğrenci katıldı",
-        "empty": "Öğrenciler bekleniyor…",
-        "start": "Başlat",
-        "needPlayer": "Önce en az bir öğrenci katılmalı.",
-        "lock": "Lobiyi kilitle",
-        "unlock": "Lobinin kilidini aç",
-        "lockedBadge": "Lobi kilitli",
-        "remove": "Çıkar",
-        "removeTitle": "{{name}} çıkarılsın mı?",
-        "removeBody": "Bu yarışmaya yeniden katılamaz.",
-        "removeYes": "Çıkar",
-        "cancel": "Vazgeç",
-        "closeGame": "Yarışmayı iptal et",
-        "closeTitle": "Bu yarışma iptal edilsin mi?",
-        "closeBody": "Katılan öğrenciler yarışmanın iptal edildiğini görecek.",
-        "closeYes": "İptal et",
-        "scanFailed": "QR kodu çizilemedi. Yukarıdaki kodu kullan."
-      },
-      "question": {
-        "progress": "Soru {{current}} / {{total}}",
-        "answered": "{{answered}} / {{players}} cevapladı",
-        "multiNote": "Tüm doğru seçenekleri işaretle. Tam puan yalnızca tam doğruda.",
-        "pause": "Duraklat",
-        "resume": "Devam et",
-        "paused": "Duraklatıldı",
-        "skip": "Atla",
-        "endNow": "Cevabı göster",
-        "finish": "Yarışmayı bitir",
-        "finishTitle": "Yarışma şimdi bitirilsin mi?",
-        "finishBody": "O ana kadarki puanlar kaydedilir.",
-        "keys": "Boşluk veya → sonraki · P duraklat",
-        "timeLeft": "{{count}} saniye kaldı",
-        "skipNote": "Bu soru atlanır ve sayılmaz."
-      },
-      "reveal": {
-        "correct": "Doğru cevap",
-        "top5": "İlk 5",
-        "gained": "+{{points}}",
-        "gainedSplit": "+{{points}} · seri +{{bonus}}",
-        "unanswered": "Cevapsız: {{count}}",
-        "explanation": "Açıklama",
-        "next": "Sonraki soru",
-        "final": "Son sonuçlar",
-        "chartLabel": "Her seçeneği kaç öğrenci seçti"
-      },
-      "final": {
-        "title": "Son sonuçlar",
-        "place1": "1.",
-        "place2": "2.",
-        "place3": "3.",
-        "points_one": "{{count}} puan",
-        "points_other": "{{count}} puan",
-        "fullRanking": "Tam sıralama",
-        "resultsPage": "Sonuç sayfası",
-        "playAgain": "Aynı quizle tekrar oyna",
-        "noPlayers": "Bu yarışmayı kimse oynamadı.",
-        "ended": "Bu yarışma sona erdi.",
-        "endedIdle": "30 dakika kimse kullanmazsa yarışma kendiliğinden biter."
-      }
-    },
-    "results": {
-      "title": "Yarışma sonuçları",
-      "back": "Canlı Yarışma'ya dön",
-      "date": "Tarih",
-      "quiz": "Quiz",
-      "players": "Oyuncu",
-      "average": "Ortalama puan",
-      "questionsTitle": "Soru başına başarı oranı",
-      "success": "%{{percent}} doğru",
-      "successShort": "Doğru %",
-      "hardest": "En zor soru",
-      "rankingTitle": "Sıralama",
-      "rank": "Sıra",
-      "nickname": "Takma ad",
-      "score": "Puan",
-      "exportExcel": "Excel indir (.xlsx)",
-      "exportCsv": "CSV indir",
-      "playAgain": "Aynı quizle tekrar oyna",
-      "retention": "Takma adlar ve sıralama yarışmadan 30 gün sonra silinir. Ortalamalar ve soru istatistikleri kalır.",
-      "purged": "Bu yarışmanın takma adları ve sıralaması bittikten 30 gün sonra silindi. Ortalamalar ve soru istatistikleri duruyor.",
-      "noPlayers": "Bu yarışmayı kimse oynamadı.",
-      "question": "Soru",
-      "correctCount": "Doğru",
-      "answeredCount": "Cevaplayan",
-      "notFinished": "Bu yarışma hâlâ sürüyor.",
-      "openBoard": "Tahtayı aç"
-    },
-    "join": {
-      "title": "Yarışmaya katıl",
-      "subtitle": "Tahtadaki kodu gir.",
-      "codeLabel": "Yarışma kodu",
-      "codePlaceholder": "123 456",
-      "next": "Devam",
-      "checking": "Kontrol ediliyor…",
-      "nicknameLabel": "Takma adın",
-      "nicknamePlaceholder": "örn. Hızlı Tilki",
-      "nicknameHint": "2 ile 16 karakter",
-      "join": "Katıl",
-      "joining": "Katılınıyor…",
-      "other": "Başka kod gir",
-      "privacy": "Ad veya soyad yazmana gerek yok; bir takma ad yeterli. Yarışma verileri 30 gün sonra silinir.",
-      "language": "Dil",
-      "errors": {
-        "bad_code": "Bu kod bir yarışmayla eşleşmiyor. Tahtaya bak.",
-        "rate_limited": "Çok fazla deneme. Bir dakika bekleyip tekrar dene.",
-        "game_started": "Bu yarışma başladı, yeni oyuncu almıyor.",
-        "locked": "Öğretmen lobiyi kilitledi.",
-        "full": "Bu yarışma dolu.",
-        "nickname_taken": "Bu takma adı biri zaten kullanıyor.",
-        "nickname_too_short": "En az 2 karakter kullan.",
-        "nickname_too_long": "En fazla 16 karakter kullan.",
-        "nickname_invalid_chars": "Yalnızca harf, rakam ve boşluk kullan.",
-        "nickname_blocked": "Lütfen başka bir takma ad seç.",
-        "nickname_reserved": "Bu takma ada izin verilmiyor. Başka bir tane seç.",
-        "finished": "Bu yarışma bitti.",
-        "removed": "Öğretmen seni bu yarışmadan çıkardı.",
-        "unavailable": "Canlı yarışma şu an kullanılamıyor. Biraz sonra tekrar dene.",
-        "generic": "Bir şeyler ters gitti. Tekrar dene."
-      }
-    },
-    "play": {
-      "waitTitle": "Öğretmenin başlatmasını bekle",
-      "waitBody": "{{nickname}} olarak katıldın",
-      "waitCount_one": "{{count}} oyuncu burada",
-      "waitCount_other": "{{count}} oyuncu burada",
-      "progress": "Soru {{current}} / {{total}}",
-      "boardQuestion": "Soru",
-      "multiNote": "Tüm doğru seçenekleri seç, sonra gönder.",
-      "confirm": "Cevabı gönder",
-      "sent": "Cevap gönderildi",
-      "waitOthers": "Diğerleri bekleniyor…",
-      "waitResult": "Sonuç geliyor…",
-      "timeUp": "Süre doldu",
-      "paused": "Duraklatıldı",
-      "resultCorrect": "Doğru! +{{points}}",
-      "resultWrong": "Yanlış",
-      "resultNone": "Cevap yok",
-      "rankLine": "{{rank}}. sıra · {{score}} puan",
-      "streak": "{{count}} doğru üst üste · seri bonusu +{{bonus}}",
-      "finalTitle": "Yarışma bitti",
-      "finalRank": "{{players}} kişi arasında {{rank}}. oldun",
-      "finalPoints": "{{score}} puan",
-      "finalMessage": "Güzel oyundu! Oynadığın için teşekkürler.",
-      "podium": "Kürsüdesin!",
-      "reconnecting": "Bağlantı koptu. Yeniden deneniyor…",
-      "removed": "Öğretmen seni bu yarışmadan çıkardı.",
-      "ended": "Yarışma sona erdi.",
-      "cancelled": "Öğretmen yarışmayı iptal etti",
-      "joinAnother": "Yeni yarışmaya katıl",
-      "yourAnswer": "Cevabın"
-    },
-    "shape": {
-      "triangle": "üçgen",
-      "diamond": "elmas",
-      "circle": "daire",
-      "square": "kare",
-      "pentagon": "beşgen",
-      "option": "Seçenek {{n}}, {{shape}}"
-    },
-    "true": "Doğru",
-    "false": "Yanlış"
-  },
-  "exam": {
-    "list": {
-      "title": "Yazılı Sınav",
-      "intro": "Kendi materyalinden yazılı sınav hazırla: sorular, 100 puanlık dağılım, cevap anahtarı ve puanlama ölçütleriyle, PDF olarak yazdırmaya ya da Word'de düzenlemeye hazır.",
-      "new": "Yeni yazılı sınav",
-      "mine": "Yazılı sınavlarım",
-      "empty": "Henüz yazılı sınavın yok. Metin, dosya ya da bağlantıdan ilkini hazırla.",
-      "open": "Aç",
-      "rename": "Yeniden adlandır",
-      "renameLabel": "Sınav adı",
-      "duplicate": "Çoğalt",
-      "delete": "Sil",
-      "deleteTitle": "“{{title}}” silinsin mi?",
-      "deleteBody": "Sınav ve bu cihazdaki taslağı kalıcı olarak silinir. Bu işlem geri alınamaz.",
-      "deleteYes": "Sil",
-      "deleteNo": "Vazgeç",
-      "copySuffix": " (kopya)",
-      "actionFailed": "İşlem tamamlanamadı. Listeyi yeniledik; lütfen tekrar dene.",
-      "grade": "{{grade}}. sınıf",
-      "questions_one": "{{count}} soru",
-      "questions_other": "{{count}} soru"
-    },
-    "setup": {
-      "title": "Yeni yazılı sınav",
-      "intro": "Kaynağını ekle, ayarları seç; sınavı hazırlayalım. Sonra her soruyu düzenleyebilir, puanları değiştirebilir ve yazdırabilirsin.",
-      "topics": "Konular / kazanımlar (isteğe bağlı)",
-      "topicsHint": "Her satıra bir konu ya da kazanım yaz; sorular bunları kapsar.",
-      "headerTitle": "Sınav kâğıdı bilgileri",
-      "duration": "Süre (dakika)",
-      "levelGrade": "{{grade}}. sınıf",
-      "level": {
-        "university": "Üniversite",
-        "other": "Diğer"
-      },
-      "questionsTitle": "Sorular",
-      "total": "Toplam {{count}} soru",
-      "countsHint": "Her türden en fazla {{max}}, toplam en fazla {{total}} soru. 0 yazarsan o tür sınavda yer almaz.",
-      "types": {
-        "openEnded": "Açık uçlu",
-        "shortAnswer": "Kısa cevap",
-        "fillBlanks": "Boşluk doldurma",
-        "trueFalse": "Doğru-yanlış",
-        "mcq": "Çoktan seçmeli",
-        "matching": "Eşleştirme"
-      },
-      "optionsCount": "Çoktan seçmeli şık sayısı",
-      "optionsValue": "{{count}} şık",
-      "mixTitle": "Zorluk dağılımı (yüzde)",
-      "mix": {
-        "easy": "Kolay",
-        "medium": "Orta",
-        "hard": "Zor"
-      },
-      "mixOk": "Toplam 100",
-      "mixBad": "Toplam {{sum}}; 100 olmalı",
-      "optionsTitle": "Seçenekler",
-      "contextBased": "Bağlam temelli sorular (soru öncesinde kısa bir günlük hayat durumu)",
-      "answerKey": "Cevap anahtarı ve puanlama ölçütleri",
-      "groups": "A ve B grubu",
-      "topicTable": "Konu ve Bloom tabloları",
-      "footer": "Altbilgide “Quelio ile hazırlandı” yazsın",
-      "generate": "Sınavı hazırla",
-      "generating": "Sınav hazırlanıyor…",
-      "progress": "{{done}} / {{total}} bölüm hazır",
-      "titleGrade": "{{grade}}. sınıf",
-      "titleExam": "{{term}}. dönem {{no}}. yazılı",
-      "phase": {
-        "plan": "Metindeki farklı olgular çıkarılıyor…",
-        "check": "Sınav kontrol ediliyor, gerekirse sorular yenileniyor…"
-      },
-      "estimate": "{{count}} soru yaklaşık {{minutes}} dakika sürer.",
-      "previousExams": "Bu metinden daha önce {{count}} sınav hazırladınız; bazı konular tekrar edebilir.",
-      "bloomTitle": "Bilişsel düzey ve sınav biçimi",
-      "bloomLabel": "Bilişsel düzey (Bloom)",
-      "bloomInfoLabel": "Bloom taksonomisi hakkında bilgi",
-      "bloomInfo": "Revize Bloom taksonomisi. Eski adlarıyla: Bilgi, Kavrama, Uygulama, Analiz, Sentez, Değerlendirme.",
-      "bloom": {
-        "balanced": "Tüm düzeyler (dengeli)",
-        "1": "1 · Hatırlama",
-        "2": "2 · Anlama",
-        "3": "3 · Uygulama",
-        "4": "4 · Analiz",
-        "5": "5 · Değerlendirme",
-        "6": "6 · Yaratma",
-        "higher": "Üst düzey düşünme (Analiz, Değerlendirme, Yaratma)"
-      },
-      "bloomPreview": "Dağılım: {{parts}}",
-      "bloomCapOpen": "{{type}} soruları en fazla {{cap}} düzeyinde olabilir. Değerlendirme ve Yaratma açık uçlu sorularla ölçülür.",
-      "bloomCapMcq": "{{type}} soruları en fazla {{cap}} düzeyinde olabilir. {{wanted}} için çoktan seçmeli ya da açık uçlu soru ekleyin.",
-      "formatLabel": "Sınav biçimi",
-      "format": {
-        "free": "Serbest",
-        "meb": "MEB ortak yazılı"
-      },
-      "formatMebHint": "Yalnızca açık uçlu ve kısa cevap soruları sorulur; cevap anahtarı ve dereceli puanlama anahtarı her zaman hazırlanır.",
-      "distributionToggle": "Konu-soru dağılımını ben belirleyeyim",
-      "distributionHint": "Zümrenizin senaryosundaki kazanımı ve soru sayısını yazın. Toplam, yukarıdaki soru sayısına eşit olmalı.",
-      "distributionPlaceholder": "Kazanım / öğrenme çıktısı",
-      "distributionRowText": "{{number}}. satır, kazanım",
-      "distributionRowCount": "{{number}}. satır, soru sayısı",
-      "distributionRemove": "{{number}}. satırı kaldır",
-      "distributionAdd": "+ Satır ekle",
-      "distributionSum": "Toplam {{sum}} / {{total}}",
-      "durationHint": "{{min}} ile {{max}} arasında bir tam sayı; boş bırakırsan kâğıtta süre yazmaz.",
-      "wordLimit": "Her sınav için 30 ile 5.000 kelime arası metin kullanabilirsin.",
-      "bloomAdjust": "Soru türlerini buna göre ayarla"
-    },
-    "header": {
-      "school": "Okul adı",
-      "schoolPlaceholder": "Örn. Atatürk Anadolu Lisesi",
-      "academicYear": "Eğitim öğretim yılı",
-      "term": "Dönem",
-      "termValue": "{{count}}. dönem",
-      "examNo": "Yazılı sırası",
-      "examNoValue": "{{count}}. yazılı",
-      "course": "Ders",
-      "coursePlaceholder": "Örn. Tarih",
-      "grade": "Sınıf",
-      "gradePlaceholder": "Örn. 9",
-      "section": "Şube",
-      "sectionPlaceholder": "Örn. A",
-      "teacher": "Öğretmen adı (isteğe bağlı)",
-      "teacherPlaceholder": "Ad Soyad",
-      "gradeChoose": "Seçin",
-      "gradeOther": "Sınıf (diğer)",
-      "gradeOtherDefault": "Hazırlık"
-    },
-    "edit": {
-      "backToList": "Yazılı sınavlarım",
-      "title": "Sınav adı",
-      "notFound": "Bu yazılı sınav bulunamadı. Silinmiş olabilir.",
-      "save": {
-        "saved": "Kaydedildi",
-        "dirty": "Kaydedilmemiş değişiklikler",
-        "saving": "Kaydediliyor…",
-        "error": "Kaydedilemedi",
-        "conflict": "Çakışma",
-        "gone": "Sınav silinmiş"
-      },
-      "saveFailed": "Değişiklikler kaydedilemedi. Bağlantını kontrol edip tekrar dene.",
-      "conflict": "Bu sınav başka bir sekmede değişti. Yeni sürümü yükle; bu sekmedeki kaydedilmemiş değişiklikler atılır.",
-      "reload": "Yeniden yükle",
-      "gone": "Bu sınav başka bir yerde silinmiş.",
-      "draftChoice": "Bu cihazda kaydedilmemiş daha yeni bir taslak var. Hangisiyle devam edelim?",
-      "useDraft": "Taslağı kullan",
-      "useServer": "Kayıtlı sürümü kullan",
-      "total": "Toplam puan: {{total}} / {{max}}",
-      "totalWarning": "Puanların toplamı {{total}}; 100 olmalı.",
-      "redistribute": "Puanları 100'e dağıt",
-      "undo": "Geri al",
-      "addQuestion": "Soru ekle",
-      "add": "Ekle",
-      "output": "Çıktı",
-      "printExam": "Yazdır / PDF kaydet",
-      "printKey": "Cevap anahtarı (Yazdır / PDF kaydet)",
-      "printGroupB": "B grubu (Yazdır / PDF kaydet)",
-      "wordExam": "Word (.docx)",
-      "wordKey": "Cevap anahtarı (.docx)",
-      "wordGroupB": "B grubu (.docx)",
-      "wordAll": "Hepsini indir (.zip)",
-      "exportFailed": "Dosya hazırlanamadı. Tekrar dene.",
-      "details": "Sınav bilgileri ve seçenekler",
-      "view": "Görünüm",
-      "view_edit": "Sorular",
-      "view_preview": "Önizleme",
-      "preview": "Kâğıt önizlemesi",
-      "previewKind": {
-        "exam": "Sınav",
-        "key": "Cevap anahtarı",
-        "groupB": "B grubu"
-      },
-      "noQuestions": "Henüz soru yok. Yukarıdan bir soru ekle.",
-      "questionCount": "{{count}} soru",
-      "questionNumber": "Soru {{number}}",
-      "dragHandle": "{{number}}. soruyu sürükle",
-      "dragHint": "Sürükle ya da Alt + ok tuşlarıyla taşı",
-      "points": "Puan",
-      "moveUp": "Yukarı taşı",
-      "moveDown": "Aşağı taşı",
-      "regenerate": "Bu soruyu yeniden üret",
-      "regenerateNoSource": "Kaynak metin olmadığı için yeniden üretilemez",
-      "delete": "Soruyu sil",
-      "deleteTitle": "Bu soru silinsin mi?",
-      "deleteBody": "Soru sınavdan çıkar. Ardından “Geri al” ile geri getirebilirsin.",
-      "deleteYes": "Sil",
-      "deleteNo": "Vazgeç",
-      "context": "Durum / senaryo",
-      "addContext": "+ Durum (senaryo) ekle",
-      "stem": "Soru metni",
-      "stemBlank": "Soru metni (boşluk için ___ yaz)",
-      "options": "Şıklar",
-      "correctOption": "{{letter}} şıkkı doğru cevap",
-      "optionLabel": "{{letter}} şıkkı",
-      "removeOption": "{{letter}} şıkkını kaldır",
-      "addOption": "+ Şık ekle",
-      "truth": "Doğru cevap",
-      "true": "Doğru",
-      "false": "Yanlış",
-      "pairs": "Eşleştirme çiftleri",
-      "pairLeft": "{{number}}. çift, sol",
-      "pairRight": "{{number}}. çift, sağ",
-      "removePair": "{{number}}. çifti kaldır",
-      "addPair": "+ Çift ekle",
-      "expectedAnswer": "Beklenen cevap",
-      "acceptable": "Kabul edilen diğer cevaplar (noktalı virgülle ayır)",
-      "topic": "Konu / kazanım",
-      "difficulty": "Zorluk",
-      "lines": "Cevap satırı sayısı",
-      "rubric": "Puanlama ölçütleri",
-      "rubricSum": "{{sum}} / {{points}} puan",
-      "rubricGenerate": "Puanlama ölçütü üret",
-      "rubricText": "{{number}}. ölçüt",
-      "rubricPoints": "{{number}}. ölçüt puanı",
-      "removeRubric": "{{number}}. ölçütü kaldır",
-      "addRubric": "+ Ölçüt ekle",
-      "rubricFit": "Ölçütleri soru puanına eşitle",
-      "bloom": "Bilişsel düzey",
-      "moveOptionUp": "{{letter}} şıkkını yukarı taşı",
-      "moveOptionDown": "{{letter}} şıkkını aşağı taşı",
-      "insertBlank": "Boşluk ekle (___)",
-      "extras": "Fazladan sağ sütun maddeleri (hiçbiriyle eşleşmeyen)",
-      "extraLabel": "{{number}}. fazla madde",
-      "removeExtra": "{{number}}. fazla maddeyi kaldır",
-      "addExtra": "+ Fazla madde ekle",
-      "headerHint": "Ders ve sınıfı girin",
-      "headerHintOpen": "Bilgileri aç"
-    },
-    "errors": {
-      "retry": "Tekrar dene",
-      "empty": "Önce bir metin, dosya ya da bağlantı ekle.",
-      "too_short": "Kaynak çok kısa. Birkaç cümle daha ekle.",
-      "too_long": "Kaynak çok uzun. Daha kısa bir bölüm seç.",
-      "model": "Yapay zekâ modeli şu an kullanılamıyor. Biraz sonra tekrar dene.",
-      "not_configured": "Yapay zekâ şu an yapılandırılmamış.",
-      "rate_limited": "Çok fazla istek gönderdin. Bir dakika bekleyip tekrar dene.",
-      "unauthorized": "Oturumun kapanmış. Yeniden giriş yap.",
-      "network": "Bağlantı kurulamadı. İnternetini kontrol edip tekrar dene.",
-      "parse": "Yanıt okunamadı. Tekrar dene.",
-      "not_supported": "Bu istek desteklenmiyor.",
-      "save": "Sınav hazırlandı ama kaydedilemedi. Tekrar dene.",
-      "upstream": "Sınav hazırlanamadı. Hiçbir şey kaydedilmedi; tekrar dene.",
-      "quality": "Bazı sorular kalite kontrolünden geçemedi (tekrar eden ya da belirsiz sorular). Hiçbir şey kaydedilmedi; tekrar dene."
-    },
-    "print": {
-      "loading": "Sınav yükleniyor…",
-      "notFound": "Bu sınav bulunamadı.",
-      "print": "Yazdır / PDF kaydet",
-      "close": "Kapat",
-      "pageNumbersNote": "Sayfa numaraları için Chrome veya Edge'den yazdır.",
-      "pdfHint": "Açılan pencerede Hedef: “PDF olarak kaydet” seçin."
-    },
-    "fromQuiz": {
-      "action": "Yazılı sınava çevir",
-      "failed": "Sınava çevrilemedi. Tekrar dene."
-    },
-    "shortSource": {
-      "message": "Bu metinden en fazla {{max}} farklı soru çıkar. Daha çok soru istersen metne içerik ekle.",
-      "continue": "{{max}} soru ile devam et",
-      "dismiss": "Vazgeç",
-      "addText": "Metin ekle"
-    },
-    "partial": {
-      "message": "{{ready}} soru hazır. Kalan {{missing}} soru için metinde yeterince farklı içerik bulunamadı.",
-      "recommend": "Eksik soru sayısı fazla: önce metne içerik eklemeni öneririz.",
-      "continue": "{{ready}} soru ile devam et",
-      "retry": "Eksik soruları tekrar dene",
-      "addText": "Metin ekle"
-    },
-    "bloom": {
-      "names": {
-        "1": "Hatırlama",
-        "2": "Anlama",
-        "3": "Uygulama",
-        "4": "Analiz",
-        "5": "Değerlendirme",
-        "6": "Yaratma"
-      },
-      "notSet": "Belirtilmedi"
-    },
-    "distributionShort": {
-      "row": "“{{row}}” için metinde yeterli içerik yok ({{found}} / {{wanted}} soru).",
-      "continue": "Yine de devam et",
-      "change": "Dağılımı değiştir"
-    },
-    "export": {
-      "title": "Dışa aktarmadan önce",
-      "ready": "Her şey hazır.",
-      "points": "Puan toplamı {{total}}.",
-      "header": "Ders ya da sınıf boş: kâğıdın başlığında eksik görünecek.",
-      "incomplete": "Tamamlanmamış sorular:",
-      "problemLine": "{{number}}. soru: {{reasons}}",
-      "redistribute": "100'e dağıt",
-      "anyway": "Yine de indir",
-      "go": "Devam et",
-      "cancel": "Vazgeç",
-      "goTo": "Soruya git"
-    },
-    "problems": {
-      "stem": "soru metni boş",
-      "options": "en az iki şık gerekli",
-      "optionEmpty": "şık boş",
-      "correctOption": "doğru şık seçilmedi",
-      "truth": "doğru / yanlış seçilmedi",
-      "blank": "boşluk işaretlenmedi",
-      "answer": "beklenen cevap boş",
-      "pairs": "en az iki çift gerekli",
-      "pairEmpty": "eşleştirme maddesi boş",
-      "rubricEmpty": "puanlama ölçütü boş"
     }
   }
 }

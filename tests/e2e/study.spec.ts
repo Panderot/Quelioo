@@ -107,7 +107,7 @@ test.describe('Study Mode', () => {
     await page.clock.setFixedTime(NOW)
     await page.goto('/archive?lng=en')
     await page.getByRole('link', { name: `Study — ${SAMPLE_QUIZ.title}` }).click()
-    // From here on (the Archive itself asks the server about songs), Study Mode must stay off the API.
+    // From here on, Study Mode must stay off the API.
     page.on('request', (request) => {
       if (new URL(request.url()).pathname.startsWith('/api/')) requests.push(request.url())
     })

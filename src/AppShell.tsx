@@ -1,6 +1,6 @@
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Route, Routes, useMatch } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 
 import { ImportPrompt } from './components/auth/ImportDialog'
 import KeptRoute from './components/KeptRoute'
@@ -13,38 +13,20 @@ import ArchivePage from './pages/ArchivePage'
 import ArchiveQuizPage from './pages/ArchiveQuizPage'
 import ArchiveSolutionPage from './pages/ArchiveSolutionPage'
 import CreatePage from './pages/CreatePage'
-import ExamEditorPage from './pages/ExamEditorPage'
-import ExamSetupPage from './pages/ExamSetupPage'
-import ExamsPage from './pages/ExamsPage'
 import FlashcardDeckPage from './pages/FlashcardDeckPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import FlashcardStudyPage from './pages/FlashcardStudyPage'
-import LessonPage from './pages/LessonPage'
-import LessonsPage from './pages/LessonsPage'
-import LiveHostPage from './pages/LiveHostPage'
-import LivePage from './pages/LivePage'
-import LiveResultsPage from './pages/LiveResultsPage'
-import LiveSetupPage from './pages/LiveSetupPage'
 import NotFoundPage from './pages/NotFoundPage'
 import OwnerPage from './pages/OwnerPage'
 import SolvePage from './pages/SolvePage'
-import SongsPage from './pages/SongsPage'
-
-// The printable exam is a bare page (no sidebar or top bar) and its code (KaTeX, paper styles) loads only when it is opened.
-const ExamPrintPage = lazy(() => import('./pages/ExamPrintPage'))
 
 const KEPT_ROUTES: { path: string; element: ReactNode; restoreSearch?: boolean }[] = [
   { path: '/', element: <CreatePage /> },
   { path: '/solve', element: <SolvePage /> },
   // Search is part of what the page shows (?mode=study): a plain link to the quiz page must open the quiz page, never a remembered study screen.
   { path: '/archive/:id', element: <ArchiveQuizPage />, restoreSearch: false },
-  { path: '/songs', element: <SongsPage /> },
   { path: '/flashcards', element: <FlashcardsPage /> },
   { path: '/flashcards/:deckId', element: <FlashcardDeckPage /> },
-  { path: '/lessons', element: <LessonsPage /> },
-  { path: '/lessons/:id', element: <LessonPage /> },
-  // The creation form keeps an exam being generated alive while the teacher looks at other pages.
-  { path: '/exams/new', element: <ExamSetupPage /> },
 ]
 
 /** The signed-in app: sidebar, top bar and the pages (kept ones stay mounted). Loaded lazily so the landing page never downloads it. */
@@ -52,17 +34,6 @@ export default function AppShell() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   // Study mode is a focused screen: it has its own header, so the sidebar and top bar are hidden and the screen is centred on the whole window.
   const studyChrome = useStudyChrome()
-  const printing = useMatch('/exams/:id/print')
-
-  if (printing) {
-    return (
-      <Suspense fallback={null}>
-        <Routes>
-          <Route path="/exams/:id/print" element={<ExamPrintPage />} />
-        </Routes>
-      </Suspense>
-    )
-  }
 
   return (
     <div data-purpose="app-viewport" className="flex min-h-screen bg-paper lg:flex-row">
@@ -93,12 +64,6 @@ export default function AppShell() {
             <Route path="/account" element={<AccountPage />} />
             <Route path="/owner" element={<OwnerPage />} />
             <Route path="/archive" element={<ArchivePage />} />
-            <Route path="/exams" element={<ExamsPage />} />
-            <Route path="/exams/:id" element={<ExamEditorPage />} />
-            <Route path="/live" element={<LivePage />} />
-            <Route path="/live/new" element={<LiveSetupPage />} />
-            <Route path="/live/:id" element={<LiveHostPage />} />
-            <Route path="/live/:id/results" element={<LiveResultsPage />} />
             <Route path="/archive/solutions/:id" element={<ArchiveSolutionPage />} />
             <Route path="/flashcards/:deckId/study" element={<FlashcardStudyPage />} />
             <Route path="*" element={<NotFoundPage />} />

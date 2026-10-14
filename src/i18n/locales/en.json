@@ -7,13 +7,9 @@
     "create": "Create",
     "solve": "Solve",
     "archive": "Archive",
-    "songs": "Songs",
     "openMenu": "Open navigation menu",
     "closeMenu": "Close navigation menu",
-    "flashcards": "Flashcards",
-    "lessons": "Audio Lesson",
-    "live": "Live Game",
-    "exams": "Written Exam"
+    "flashcards": "Flashcards"
   },
   "topbar": {
     "language": {
@@ -195,8 +191,7 @@
         "notFoundTitle": "Solution not found",
         "notFoundBody": "This solution may have been deleted."
       }
-    },
-    "live": "Start a live game"
+    }
   },
   "create": {
     "draft": {
@@ -270,7 +265,8 @@
       "coverageCount": "{{covered}} of {{total}} key ideas covered",
       "checkError": "Couldn't check your answer. Please try again.",
       "timeUnderMinute": "Less than a minute",
-      "timeTotal": "About {{minutes}} min"
+      "timeTotal": "About {{minutes}} min",
+      "close": "Close"
     },
     "question": {
       "editAction": "Edit",
@@ -497,130 +493,6 @@
         "network": "Couldn't connect. Check your connection and try again."
       }
     }
-  },
-  "song": {
-    "button": "Turn into a song",
-    "panelTitle": "Turn into a song",
-    "close": "Close",
-    "demoBadge": "Demo sound",
-    "aiDisclosure": "This song was made with AI.",
-    "lengthNote": "About {{seconds}} seconds",
-    "lengthNoteLong": "About 1–2 minutes",
-    "lengthLabel": "Length",
-    "partialCoverageNote": "{{included}} of {{total}} facts are in this song.",
-    "style": {
-      "label": "Style",
-      "pop": "Pop",
-      "rap": "Rap",
-      "kids": "Kids song",
-      "rock": "Rock",
-      "acoustic": "Acoustic",
-      "lofi": "Lo-fi"
-    },
-    "tone": {
-      "label": "Tone",
-      "normal": "Normal",
-      "funny": "Funny"
-    },
-    "factCheck": {
-      "warningTitle": "Please check these lines:",
-      "genericWarning": "Some facts in this song may need a check."
-    },
-    "writeLyrics": "Write lyrics",
-    "writingLyrics": "Writing lyrics...",
-    "lyricsLabel": "Lyrics",
-    "lyricsCounter": "{{count}}/{{max}} characters",
-    "makeTheSong": "Make the song",
-    "cancel": "Cancel",
-    "loading": {
-      "messages": [
-        "Warming up the instruments...",
-        "Composing the melody...",
-        "Mixing the track...",
-        "Almost there..."
-      ]
-    },
-    "player": {
-      "play": "Play",
-      "pause": "Pause",
-      "seek": "Seek",
-      "volume": "Volume",
-      "download": "Download",
-      "makeAnother": "Make another"
-    },
-    "costGuardReached": "You've reached today's limit of {{max}} songs for this quiz. Please try again tomorrow.",
-    "secondsGuardReached": "You've reached today's limit of {{max}} seconds of songs. Please try again tomorrow.",
-    "seeAllSongs": "See all songs",
-    "archive": {
-      "listenTitle": "Listen",
-      "hasSongLabel": "This quiz has a song"
-    },
-    "errors": {
-      "not_configured": "Song generation is temporarily unavailable. Please try again shortly.",
-      "disabled": "Turning quizzes into songs isn't available right now.",
-      "locked": "Making songs isn't available without an access code.",
-      "too_long": "These lyrics are too long. Please shorten them a bit and try again.",
-      "blocked": "Quelio couldn't create music from this request. Please adjust the lyrics or style and try again.",
-      "upstream": "Something went wrong creating your song. Please try again.",
-      "timeout": "That took too long. Please try again.",
-      "parse": "Quelio couldn't read a valid song this time. Please try again.",
-      "network": "Couldn't connect. Check your connection and try again.",
-      "storage_full": "This song couldn't be saved on this device, but it will keep playing for this session.",
-      "no_facts": "There is nothing left to turn into a song here. Your earlier song already covers it.",
-      "rate_limited": "Quelio has reached the song limit for today. Please try again tomorrow.",
-      "busy": "The music service is busy right now. Please try again in a minute.",
-      "retry": "Try again"
-    },
-    "coverage": {
-      "summary": "{{covered}}/{{total}} questions in the song",
-      "seriesSummary": "Song {{part}}: {{covered}}/{{total}} · Series: {{seriesCovered}}/{{seriesTotal}}",
-      "hide": "Hide questions",
-      "notCovered": "Not in the song",
-      "lineLabel": "Line"
-    },
-    "series": {
-      "note": "This quiz will be split into {{count}} songs. It uses {{count}} of today's song credits.",
-      "noteFree": "This quiz is split into {{count}} songs because it does not fit in one.",
-      "partLabel": "Song {{number}} of {{count}}",
-      "partName": "Song {{number}}",
-      "next": "Next song ({{number}}/{{count}})"
-    }
-  },
-  "ownerAccess": {
-    "title": "Enter access code",
-    "unlock": "Unlock",
-    "wrongCode": "That code isn't correct. Please try again.",
-    "lock": "Lock"
-  },
-  "songsPage": {
-    "title": "Songs",
-    "subtitle": "Turn your quizzes into songs you can't forget",
-    "minutesLeftToday": "About {{count}} min of songs left today",
-    "newSong": "New song",
-    "pickerTitle": "Choose a quiz",
-    "pickerSearchPlaceholder": "Search quizzes...",
-    "pickerEmpty": "You don't have any quizzes yet.",
-    "pickerQuestionCount": "{{count}} questions",
-    "filters": {
-      "all": "All",
-      "normal": "Normal",
-      "funny": "Funny"
-    },
-    "searchPlaceholder": "Search by quiz title...",
-    "generatingRow": "Creating your song...",
-    "empty": {
-      "title": "No songs yet",
-      "subtitle": "Turn one of your quizzes into a song to see it here."
-    },
-    "row": {
-      "viewLyrics": "View lyrics",
-      "hideLyrics": "Hide lyrics",
-      "openQuiz": "Open quiz",
-      "quizDeleted": "Quiz deleted",
-      "delete": "Delete",
-      "confirmDelete": "Delete this song?"
-    },
-    "deletedUndo": "Song deleted."
   },
   "crop": {
     "imageAlt": "Photo to crop",
@@ -886,228 +758,6 @@
       "dismiss": "Hide until tomorrow"
     }
   },
-  "lessons": {
-    "title": "Audio Lesson",
-    "subtitle": "Turn any text into a short lesson you can listen to",
-    "newLesson": "New lesson",
-    "untitled": "Untitled lesson",
-    "searchPlaceholder": "Search lessons...",
-    "noResults": "No lessons match your search.",
-    "storageNote": "Lessons can't be saved in this browser, so they last until you close this tab.",
-    "deletedUndo": "Lesson deleted.",
-    "empty": {
-      "title": "No lessons yet",
-      "subtitle": "Turn a text, a quiz or a solution into a short audio lesson."
-    },
-    "row": {
-      "episodes_one": "1 episode",
-      "episodes_other": "{{count}} episodes",
-      "open": "Open",
-      "delete": "Delete",
-      "confirmDelete": "Delete this lesson?",
-      "duration": "{{time}}",
-      "durationApprox": "about {{time}}"
-    },
-    "status": {
-      "none": "Planned",
-      "script": "Script ready",
-      "audio": "Audio ready"
-    },
-    "sourceKinds": {
-      "text": "Text",
-      "file": "File",
-      "url": "Web page",
-      "quiz": "Archive quiz",
-      "solution": "Saved solution"
-    },
-    "styles": {
-      "two_hosts": "Two hosts talking",
-      "teacher_student": "Teacher and student",
-      "narrator": "Single narrator"
-    },
-    "levels": {
-      "general": "General",
-      "lgs": "LGS",
-      "yks": "YKS",
-      "kpss": "KPSS",
-      "university": "University"
-    },
-    "tones": {
-      "normal": "Normal",
-      "fun": "Fun"
-    },
-    "speakers": {
-      "hostA": "Host A",
-      "hostB": "Host B",
-      "teacher": "Teacher",
-      "student": "Student",
-      "narrator": "Narrator"
-    },
-    "roles": {
-      "recall": "Quick recall",
-      "opening": "Opening",
-      "teach": "Lesson",
-      "feynman": "In simple words",
-      "recap": "Recap",
-      "selfcheck": "Self-check",
-      "tip": "Study tip"
-    },
-    "new": {
-      "heading": "New lesson",
-      "wordLimit": "Use 30 to 5,000 words per lesson.",
-      "close": "Close",
-      "otherSources": "Or start from:",
-      "fromQuiz": "From an Archive quiz",
-      "fromSolution": "From a saved solution",
-      "pickQuiz": "Choose a quiz",
-      "pickSolution": "Choose a solution",
-      "pickerSearch": "Search...",
-      "noQuizzes": "There are no quizzes in your Archive yet.",
-      "noSolutions": "There are no saved solutions yet.",
-      "usingSource": "Using: {{label}}",
-      "clearSource": "Use my own text",
-      "optionsEyebrow": "Lesson options",
-      "lengthLabel": "Length",
-      "lengthValue": "Length follows your text (up to about 6 minutes per episode)",
-      "styleLabel": "Style",
-      "levelLabel": "Level",
-      "toneLabel": "Tone",
-      "toneFunHelp": "Playful, but every fact stays correct and age-appropriate.",
-      "plan": "Plan the lesson",
-      "planning": "Finding the key points...",
-      "cancel": "Cancel"
-    },
-    "plan": {
-      "heading": "Lesson plan",
-      "single": "This text will be one episode of about {{minutes}} minutes",
-      "series": "This text will be a {{count}}-episode series",
-      "keyPoints_one": "{{count}} key point",
-      "keyPoints_other": "{{count}} key points",
-      "onDemand": "Each later part is written only when you ask for it.",
-      "existing": "You already made a lesson from this text with these options.",
-      "openExisting": "Open it",
-      "createAnyway": "Write a new one anyway",
-      "writeSingle": "Write the lesson",
-      "writeFirst": "Write part 1",
-      "writing": "Writing and fact-checking the script. This takes about a minute.",
-      "back": "Change options"
-    },
-    "errors": {
-      "empty": "Add a text, a file or a web page first.",
-      "too_short": "This text is too short for a lesson. Use at least 30 words.",
-      "too_long": "This text is too long. Use at most 5,000 words.",
-      "too_long_chars": "This text is too long to use.",
-      "bad_type": "Something about this request isn't right. Please try again.",
-      "too_large": "This request is too large.",
-      "upstream": "The AI service didn't answer. Please try again.",
-      "parse": "The answer couldn't be read. Please try again.",
-      "model": "The AI model isn't available right now.",
-      "not_configured": "Audio lessons aren't set up on this server yet.",
-      "rate_limited": "You've reached the hourly limit for lessons. Please try again later.",
-      "locked": "The access code is needed to create lessons.",
-      "timeout": "This took too long. Please try again.",
-      "network": "There's no connection. Check your internet and try again.",
-      "retry": "Try again",
-      "daily_cap": "You've reached today's limit for recorded lessons (3 lessons or 30 minutes of audio). Please try again tomorrow.",
-      "budget": "This month's lesson budget would be exceeded, so nothing was recorded."
-    },
-    "detail": {
-      "back": "Back to lessons",
-      "notFound": "This lesson doesn't exist anymore.",
-      "partsLabel": "Lesson parts",
-      "partTab": "Part {{n}}",
-      "partOf": "Part {{n}} of {{total}}",
-      "notWrittenShort": "not written",
-      "notWrittenYet": "Part {{n}} isn't written yet. Each part is written only when you ask for it.",
-      "preparePart": "Prepare part {{n}}",
-      "prepareNext": "Prepare next part ({{n}})",
-      "goToPart": "Go to part {{n}}",
-      "preparing": "Writing part {{n}} and checking every line...",
-      "duration": "About {{time}} · {{words}} words",
-      "coverage": "{{n}}/{{m}} key points covered",
-      "taughtIn": "Taught in: {{where}}",
-      "notTaught": "not covered yet",
-      "notWritten": "part {{n}} (not written yet)",
-      "checkPassed": "Every line was fact-checked against your text.",
-      "checkFailed_one": "{{count}} line needs checking before you rely on it.",
-      "checkFailed_other": "{{count}} lines need checking before you rely on them.",
-      "checkNotRun": "The fact check couldn't run. Check this script yourself before you rely on it.",
-      "missingPoints": "Key points still missing: {{list}}",
-      "rewritten_one": "The fact-checker rewrote {{count}} line.",
-      "rewritten_other": "The fact-checker rewrote {{count}} lines.",
-      "editedNote_one": "You changed the script ({{count}} edited line). It is checked against your text before the next step.",
-      "editedNote_other": "You changed the script ({{count}} edited lines). It is checked against your text before the next step.",
-      "checkEdits": "Check my edits",
-      "checking": "Checking your edits...",
-      "needsCheck": "Check this line:",
-      "issueSymbols": "Numbers and symbols should be written as words so they can be read aloud.",
-      "issueLong": "This line is too long to say in one breath.",
-      "issueCalc": "The calculation is wrong ({{detail}}).",
-      "speakerLabel": "Speaker",
-      "lineText": "Line text",
-      "saveLine": "Save",
-      "editLine": "Edit line",
-      "deleteLine": "Delete line",
-      "addLine": "Add a line after this one",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "pauseTag": "pause",
-      "editedTag": "edited",
-      "durationExact": "{{time}} · {{words}} words",
-      "issueRepeat": "This line repeats an earlier line almost word for word."
-    },
-    "voices": {
-      "alloy": "Alloy",
-      "ash": "Ash",
-      "coral": "Coral",
-      "echo": "Echo",
-      "fable": "Fable",
-      "nova": "Nova",
-      "onyx": "Onyx",
-      "sage": "Sage",
-      "shimmer": "Shimmer",
-      "ballad": "Ballad",
-      "verse": "Verse",
-      "marin": "Marin",
-      "cedar": "Cedar"
-    },
-    "audio": {
-      "approveHelp": "Read the script first. Audio is recorded only for an approved script.",
-      "approve": "Approve the script and choose voices",
-      "voicesHeading": "Voices",
-      "updateHeading": "Update the audio",
-      "updateHelp_one": "{{count}} line has no audio yet (new, changed or not finished). Only that line is recorded.",
-      "updateHelp_other": "{{count}} lines have no audio yet (new, changed or not finished). Only those lines are recorded.",
-      "preview": "Listen to {{voice}}",
-      "estimate_one": "About {{time}} of audio. {{count}} line will be recorded.",
-      "estimate_other": "About {{time}} of audio. {{count}} lines will be recorded.",
-      "checkFirst": "Your edits are checked against your text first.",
-      "record": "Record audio",
-      "updateAudio_one": "Update audio ({{count}} line)",
-      "updateAudio_other": "Update audio ({{count}} lines)",
-      "recording": "Recording {{done}} / {{total}} lines",
-      "progressSaved": "{{done}} of {{total}} lines are recorded and saved.",
-      "linesFailed_one": "{{count}} line couldn't be recorded.",
-      "linesFailed_other": "{{count}} lines couldn't be recorded.",
-      "single": "Lesson",
-      "unknown": "Spelled out letter by letter (add them to the pronunciation list if needed): {{list}}",
-      "editScript": "Edit the script",
-      "hideEditor": "Hide the script editor"
-    },
-    "player": {
-      "play": "Play",
-      "pause": "Pause",
-      "seek": "Lesson position",
-      "back10": "Back 10 s",
-      "forward10": "Forward 10 s",
-      "speed": "Playback speed",
-      "downloadMp3": "Download MP3",
-      "downloadTranscript": "Download transcript",
-      "shortcuts": "Space: play or pause · Left and right arrows: 10 seconds back or forward",
-      "answerHidden": "Think first, then show the answer.",
-      "showAnswer": "Show answer"
-    }
-  },
   "coverage": {
     "line": "{{covered}}/{{total}} key facts covered",
     "panelTitle": "Key facts",
@@ -1128,8 +778,7 @@
   },
   "ownerPage": {
     "title": "Owner",
-    "subtitle": "AI spending of all accounts this month. Students never see this page.",
-    "monthSpendBudget": "This month: {{cost}} of {{budget}}"
+    "subtitle": "AI spending of all accounts this month. Students never see this page."
   },
   "auth": {
     "email": "Email",
@@ -1147,7 +796,7 @@
     "genericError": "Something went wrong. Please try again. If it keeps happening, write to info@motiqai.com.",
     "signIn": {
       "title": "Welcome back",
-      "subtitle": "Sign in to open your quizzes, cards and songs on any device.",
+      "subtitle": "Sign in to open your quizzes and cards on any device.",
       "submit": "Sign in",
       "submitting": "Signing in…",
       "forgot": "Forgot your password?",
@@ -1160,7 +809,7 @@
     },
     "signUp": {
       "title": "Create your account",
-      "subtitle": "Your quizzes, cards and songs stay with you on every device.",
+      "subtitle": "Your quizzes and cards stay with you on every device.",
       "submit": "Create account",
       "submitting": "Creating account…",
       "hasAccount": "Already have an account?",
@@ -1276,7 +925,7 @@
     },
     "delete": {
       "title": "Delete account",
-      "hint": "Deletes your account, every quiz, deck, song, lesson and file. This cannot be undone.",
+      "hint": "Deletes your account, every quiz, deck and file. This cannot be undone.",
       "button": "Delete my account",
       "dialogTitle": "Delete your account?",
       "dialogBody": "Everything is removed for good. Type your email address to confirm.",
@@ -1310,19 +959,17 @@
       "contentTitle": "Your content",
       "contentBody": "Your quizzes, cards and other data belong to you. You can download or delete them at any time from your account page.",
       "aiTitle": "AI-made material",
-      "aiBody": "Quizzes, solutions and lessons are made with AI and can contain mistakes. Check important facts before relying on them."
+      "aiBody": "Quizzes and solutions are made with AI and can contain mistakes. Check important facts before relying on them."
     },
     "privacy": {
       "title": "Privacy Notice",
       "intro": "This notice explains what Quelio keeps and why.",
       "dataTitle": "What we keep",
-      "dataBody": "Your email address, name, and the quizzes, cards, songs, lessons and settings you create, so they are the same on every device.",
+      "dataBody": "Your email address, name, and the quizzes, cards and settings you create, so they are the same on every device.",
       "aiTitle": "AI providers",
-      "aiBody": "To make quizzes, solutions and lessons, the text or photo you submit is sent to AI providers. It is used only to answer your request.",
+      "aiBody": "To make quizzes and solutions, the text or photo you submit is sent to AI providers. It is used only to answer your request.",
       "controlTitle": "Your control",
-      "controlBody": "You can download everything or delete your account, with all its data and files, from the account page.",
-      "liveTitle": "Live games",
-      "liveBody": "Students who join a live game give only a nickname; there are no student accounts, emails or tracking. Nicknames, answers and scores are kept only for the game and are deleted 30 days after it ends. The teacher keeps averages and question statistics."
+      "controlBody": "You can download everything or delete your account, with all its data and files, from the account page."
     }
   },
   "importDialog": {
@@ -1333,12 +980,8 @@
       "decks_other": "{{count}} decks",
       "quizzes_one": "{{count}} quiz",
       "quizzes_other": "{{count}} quizzes",
-      "songs_one": "{{count}} song",
-      "songs_other": "{{count}} songs",
       "solutions_one": "{{count}} solution",
       "solutions_other": "{{count}} solutions",
-      "lessons_one": "{{count}} audio lesson",
-      "lessons_other": "{{count}} audio lessons",
       "cards_one": "{{count}} card",
       "cards_other": "{{count}} cards"
     },
@@ -1350,9 +993,7 @@
     "progress": {
       "decks": "Importing decks…",
       "quizzes": "Importing quizzes…",
-      "songs": "Importing songs…",
       "solutions": "Importing solutions…",
-      "lessons": "Importing lessons…",
       "verify": "Checking everything arrived…"
     },
     "doneTitle": "Imported",
@@ -1389,7 +1030,7 @@
   "landing": {
     "meta": {
       "title": "Quelio – Turn everything you read into a quiz",
-      "description": "Paste text, a PDF or a link and Quelio finds the key facts and turns them into quizzes, flashcards, songs and audio lessons. It also solves a photo of a math problem step by step. Free during the beta."
+      "description": "Paste text, a PDF or a link and Quelio finds the key facts and turns them into quizzes and flashcards. It also solves a photo of a math problem step by step. Free during the beta."
     },
     "skip": "Skip to main content",
     "nav": {
@@ -1477,12 +1118,10 @@
         "body": "It pulls the facts out of your text first, then writes a question for each one. It won't invent facts that aren't in your text; if there isn't enough, it asks fewer questions."
       },
       "s3": {
-        "title": "Learn with quizzes, cards, songs and audio",
-        "body": "One source gives you a quiz, flashcards, a song and an audio lesson. Pick whatever suits you.",
+        "title": "Learn with quizzes and cards",
+        "body": "One source gives you a quiz and flashcards. Pick whatever suits you.",
         "quiz": "Quiz",
-        "cards": "Cards",
-        "song": "Song",
-        "lesson": "Audio lesson"
+        "cards": "Cards"
       }
     },
     "features": {
@@ -1492,9 +1131,7 @@
       "tabs": {
         "create": "Create",
         "solve": "Solve",
-        "cards": "Cards",
-        "songs": "Songs",
-        "lesson": "Audio Lesson"
+        "cards": "Cards"
       },
       "create": {
         "title": "Every question type, one click",
@@ -1544,30 +1181,6 @@
         "a2": "Light, water and carbon dioxide",
         "q3": "What comes out of photosynthesis?",
         "a3": "Glucose and oxygen"
-      },
-      "songs": {
-        "title": "Memorize a topic as a song",
-        "body": "The facts from your quiz questions go into the lyrics, and the lyrics are checked against your source before a song is made.",
-        "songTitle": "Photosynthesis",
-        "play": "Play song",
-        "pause": "Pause song",
-        "hint": "Animated example, no sound.",
-        "l1": "Sunlight reaches every leaf",
-        "l2": "Water and CO2 meet in the chloroplast",
-        "l3": "Glucose is the food, oxygen drifts away",
-        "l4": "That's photosynthesis, now you won't forget"
-      },
-      "lesson": {
-        "title": "Put your headphones on and listen",
-        "body": "Two hosts talk the topic through and ask you questions along the way. On a walk, on the bus, before bed.",
-        "hostA": "Host A",
-        "hostB": "Host B",
-        "play": "Play lesson",
-        "pause": "Pause lesson",
-        "hint": "A short example. No sound in this language.",
-        "l1": "Do plants use light energy to make food?",
-        "l2": "Think about it...",
-        "l3": "Yes. In photosynthesis, a plant uses light energy to make food. Let's look at where it happens, what goes in, what comes out and how fast."
       }
     },
     "audiences": {
@@ -1631,8 +1244,7 @@
         "name": "Pro",
         "desc": "For people who want to do more.",
         "f1": "Everything in Free",
-        "f2": "Higher usage limits",
-        "f3": "Songs and audio lessons"
+        "f2": "Higher usage limits"
       },
       "start": "Start for free"
     },
@@ -1640,7 +1252,7 @@
       "title": "Frequently asked questions",
       "what": {
         "q": "What is Quelio?",
-        "a": "A study tool that uses AI to turn what you write, upload or link into quizzes, flashcards, songs and audio lessons, and solves a photo of a math problem step by step."
+        "a": "A study tool that uses AI to turn what you write, upload or link into quizzes and flashcards, and solves a photo of a math problem step by step."
       },
       "languages": {
         "q": "Which languages does it work in?",
@@ -1652,7 +1264,7 @@
       },
       "data": {
         "q": "What happens to my data?",
-        "a": "We keep your email address, your name, and the quizzes, cards, songs and lessons you make, so they're the same on every device. The text or photo you submit is sent to AI providers to produce the content. From your account page you can download everything or delete your account along with all its data."
+        "a": "We keep your email address, your name, and the quizzes and cards you make, so they're the same on every device. The text or photo you submit is sent to AI providers to produce the content. From your account page you can download everything or delete your account along with all its data."
       },
       "files": {
         "q": "Which files can I use?",
@@ -1793,560 +1405,6 @@
       "today": "today",
       "yesterday": "yesterday",
       "daysAgo": "{{count}} days ago"
-    }
-  },
-  "live": {
-    "hub": {
-      "title": "Live Game",
-      "intro": "Host a quiz on the board. Students join from their phones with a 6-digit code and a nickname. No accounts needed.",
-      "start": "Start a game",
-      "pickTitle": "Pick a quiz",
-      "pickHint": "Newest first",
-      "search": "Search your quizzes",
-      "noMatches": "No quiz matches your search.",
-      "noQuizzes": "You have no quizzes yet. Create one first.",
-      "createQuiz": "Create a quiz",
-      "playable_one": "{{count}} playable question",
-      "playable_other": "{{count}} playable questions",
-      "noPlayable": "No playable questions",
-      "resumeTitle": "Game in progress",
-      "resumeItem": "{{when}} · code {{code}}",
-      "resume": "Continue",
-      "historyTitle": "Past games",
-      "historyEmpty": "Finished games will appear here.",
-      "historyMeta_one": "{{count}} player · average {{average}}",
-      "historyMeta_other": "{{count}} players · average {{average}}",
-      "stateLobby": "In the lobby",
-      "stateRunning": "Running",
-      "stateEnded": "Ended",
-      "stateCancelled": "Cancelled",
-      "cancel": "Cancel game",
-      "finish": "End game",
-      "cancelTitle": "Cancel this game?",
-      "finishTitle": "End the game now?",
-      "cancelYes": "Cancel game",
-      "finishYes": "End game",
-      "stay": "Never mind",
-      "actionFailed": "This game can no longer be changed. The list was refreshed.",
-      "results": "Results"
-    },
-    "setup": {
-      "title": "Game settings",
-      "back": "Back to Live Game",
-      "quiz": "Quiz",
-      "suitable_one": "{{count}} question of this quiz fits a live game",
-      "suitable_other": "{{count}} questions of this quiz fit a live game",
-      "skipped_one": "{{count}} will be skipped",
-      "skipped_other": "{{count}} will be skipped",
-      "skippedNone": "none will be skipped",
-      "showSkipped": "Show skipped questions",
-      "hideSkipped": "Hide skipped questions",
-      "skippedListLabel": "Skipped questions",
-      "reasonOptions": "multiple choice with more than 5 options",
-      "noneTitle": "No question in this quiz can be played live",
-      "noneBody": "Live games use multiple-choice (2 to 5 options), multi-answer and true/false questions. This quiz has none of them.",
-      "noneCta": "Generate a multiple-choice quiz",
-      "settingsTitle": "Settings",
-      "time": "Time per question",
-      "seconds": "{{count}} s",
-      "leaderboard": "Show the leaderboard after each question",
-      "shuffle": "Shuffle question order",
-      "sound": "Sound effects",
-      "maxPlayers": "Maximum players",
-      "maxPlayersHint": "1 to 100",
-      "lateJoin": "Allow joining after the game started",
-      "open": "Open the lobby",
-      "opening": "Opening…",
-      "errorTooMany": "You already host 3 games. Finish one first.",
-      "errorNoQuestions": "This quiz has no question that can be played live.",
-      "errorMissing": "That quiz was not found.",
-      "errorGeneric": "Could not open the lobby. Try again."
-    },
-    "board": {
-      "loading": "Loading the game…",
-      "notFound": "Game not found",
-      "reconnecting": "Reconnecting…",
-      "mute": "Mute sound",
-      "unmute": "Turn sound on",
-      "fullscreen": "Full screen",
-      "exitFullscreen": "Leave full screen",
-      "leave": "Back to Live Game",
-      "lobby": {
-        "codeLabel": "Game code",
-        "joinAt": "Join at",
-        "scan": "Scan to join",
-        "qrLabel": "QR code to join the game",
-        "count_one": "{{count}} student joined",
-        "count_other": "{{count}} students joined",
-        "empty": "Waiting for students…",
-        "start": "Start",
-        "needPlayer": "At least one student must join first.",
-        "lock": "Lock lobby",
-        "unlock": "Unlock lobby",
-        "lockedBadge": "Lobby locked",
-        "remove": "Remove",
-        "removeTitle": "Remove {{name}}?",
-        "removeBody": "They cannot join this game again.",
-        "removeYes": "Remove",
-        "cancel": "Cancel",
-        "closeGame": "Cancel game",
-        "closeTitle": "Cancel this game?",
-        "closeBody": "Students who joined will see that the game was cancelled.",
-        "closeYes": "Cancel game",
-        "scanFailed": "The QR code could not be drawn. Use the code above."
-      },
-      "question": {
-        "progress": "Question {{current}} of {{total}}",
-        "answered": "{{answered}} / {{players}} answered",
-        "multiNote": "Choose every right answer. Full points only if exactly right.",
-        "pause": "Pause",
-        "resume": "Resume",
-        "paused": "Paused",
-        "skip": "Skip",
-        "endNow": "Show answer",
-        "finish": "End game",
-        "finishTitle": "End the game now?",
-        "finishBody": "Points up to now are saved.",
-        "keys": "Space or → next · P pause",
-        "timeLeft": "{{count}} seconds left",
-        "skipNote": "This question is skipped and does not count."
-      },
-      "reveal": {
-        "correct": "Correct answer",
-        "top5": "Top 5",
-        "gained": "+{{points}}",
-        "gainedSplit": "+{{points}} · streak +{{bonus}}",
-        "unanswered": "No answer: {{count}}",
-        "explanation": "Explanation",
-        "next": "Next question",
-        "final": "Final results",
-        "chartLabel": "How many students chose each option"
-      },
-      "final": {
-        "title": "Final results",
-        "place1": "1st",
-        "place2": "2nd",
-        "place3": "3rd",
-        "points_one": "{{count}} point",
-        "points_other": "{{count}} points",
-        "fullRanking": "Full ranking",
-        "resultsPage": "Results page",
-        "playAgain": "Play again with this quiz",
-        "noPlayers": "Nobody played this game.",
-        "ended": "This game has ended.",
-        "endedIdle": "A game that nobody uses for 30 minutes ends by itself."
-      }
-    },
-    "results": {
-      "title": "Game results",
-      "back": "Back to Live Game",
-      "date": "Date",
-      "quiz": "Quiz",
-      "players": "Players",
-      "average": "Average score",
-      "questionsTitle": "Success rate per question",
-      "success": "{{percent}}% correct",
-      "successShort": "Correct %",
-      "hardest": "Hardest question",
-      "rankingTitle": "Ranking",
-      "rank": "Rank",
-      "nickname": "Nickname",
-      "score": "Score",
-      "exportExcel": "Download Excel (.xlsx)",
-      "exportCsv": "Download CSV",
-      "playAgain": "Play again with this quiz",
-      "retention": "Nicknames and the ranking are deleted 30 days after the game. Averages and question statistics stay.",
-      "purged": "The nicknames and the ranking of this game were deleted 30 days after it ended. Averages and question statistics are kept.",
-      "noPlayers": "Nobody played this game.",
-      "question": "Question",
-      "correctCount": "Correct",
-      "answeredCount": "Answered",
-      "notFinished": "This game is still running.",
-      "openBoard": "Open the board"
-    },
-    "join": {
-      "title": "Join a game",
-      "subtitle": "Enter the code shown on the board.",
-      "codeLabel": "Game code",
-      "codePlaceholder": "123 456",
-      "next": "Continue",
-      "checking": "Checking…",
-      "nicknameLabel": "Your nickname",
-      "nicknamePlaceholder": "e.g. Fast Fox",
-      "nicknameHint": "2 to 16 characters",
-      "join": "Join",
-      "joining": "Joining…",
-      "other": "Use another code",
-      "privacy": "You don't need to write your first or last name; a nickname is enough. Game data is deleted after 30 days.",
-      "language": "Language",
-      "errors": {
-        "bad_code": "That code doesn't match a game. Check the board.",
-        "rate_limited": "Too many tries. Wait a minute and try again.",
-        "game_started": "This game already started and isn't taking new players.",
-        "locked": "The teacher locked the lobby.",
-        "full": "This game is full.",
-        "nickname_taken": "Someone already uses that nickname.",
-        "nickname_too_short": "Use at least 2 characters.",
-        "nickname_too_long": "Use at most 16 characters.",
-        "nickname_invalid_chars": "Use letters, numbers and spaces only.",
-        "nickname_blocked": "Please choose a different nickname.",
-        "nickname_reserved": "That nickname isn't allowed. Please choose another.",
-        "finished": "This game has finished.",
-        "removed": "The teacher removed you from this game.",
-        "unavailable": "Live games are unavailable right now. Try again soon.",
-        "generic": "Something went wrong. Try again."
-      }
-    },
-    "play": {
-      "waitTitle": "Waiting for the teacher to start",
-      "waitBody": "You are in as {{nickname}}",
-      "waitCount_one": "{{count}} player is here",
-      "waitCount_other": "{{count}} players are here",
-      "progress": "Question {{current}} of {{total}}",
-      "boardQuestion": "Question",
-      "multiNote": "Pick every right answer, then send.",
-      "confirm": "Send answer",
-      "sent": "Answer sent",
-      "waitOthers": "Waiting for the others…",
-      "waitResult": "The result is coming…",
-      "timeUp": "Time is up",
-      "paused": "Paused",
-      "resultCorrect": "Correct! +{{points}}",
-      "resultWrong": "Wrong",
-      "resultNone": "No answer",
-      "rankLine": "Rank {{rank}} · {{score}} points",
-      "streak": "{{count}} correct in a row · streak bonus +{{bonus}}",
-      "finalTitle": "Game over",
-      "finalRank": "You finished {{rank}} of {{players}}",
-      "finalPoints": "{{score}} points",
-      "finalMessage": "Well played! Thanks for playing.",
-      "podium": "You are on the podium!",
-      "reconnecting": "Connection lost. Trying again…",
-      "removed": "The teacher removed you from this game.",
-      "ended": "The game has ended.",
-      "cancelled": "The teacher cancelled the game",
-      "joinAnother": "Join a new game",
-      "yourAnswer": "Your answer"
-    },
-    "shape": {
-      "triangle": "triangle",
-      "diamond": "diamond",
-      "circle": "circle",
-      "square": "square",
-      "pentagon": "pentagon",
-      "option": "Option {{n}}, {{shape}}"
-    },
-    "true": "True",
-    "false": "False"
-  },
-  "exam": {
-    "list": {
-      "title": "Written Exam",
-      "intro": "Build a printable school exam from your own material: questions, a 100-point distribution, an answer key with grading criteria, ready to print as PDF or edit in Word.",
-      "new": "New written exam",
-      "mine": "My written exams",
-      "empty": "You have no written exams yet. Create your first one from a text, a file or a link.",
-      "open": "Open",
-      "rename": "Rename",
-      "renameLabel": "Exam name",
-      "duplicate": "Duplicate",
-      "delete": "Delete",
-      "deleteTitle": "Delete “{{title}}”?",
-      "deleteBody": "The exam and its draft on this device are deleted for good. This cannot be undone.",
-      "deleteYes": "Delete",
-      "deleteNo": "Cancel",
-      "copySuffix": " (copy)",
-      "actionFailed": "That did not work. We refreshed the list; please try again.",
-      "grade": "Grade {{grade}}",
-      "questions_one": "{{count}} question",
-      "questions_other": "{{count}} questions"
-    },
-    "setup": {
-      "title": "New written exam",
-      "intro": "Add your source and pick the settings; we write the exam. Then you can edit every question, change the points and print it.",
-      "topics": "Topics / learning outcomes (optional)",
-      "topicsHint": "Write one topic or outcome per line; the questions will cover them.",
-      "headerTitle": "Exam paper details",
-      "duration": "Duration (minutes)",
-      "levelGrade": "Grade {{grade}}",
-      "level": {
-        "university": "University",
-        "other": "Other"
-      },
-      "questionsTitle": "Questions",
-      "total": "{{count}} questions in total",
-      "countsHint": "Up to {{max}} of each type, up to {{total}} in total. A 0 leaves that type out.",
-      "types": {
-        "openEnded": "Open-ended",
-        "shortAnswer": "Short answer",
-        "fillBlanks": "Fill in the blank",
-        "trueFalse": "True / false",
-        "mcq": "Multiple choice",
-        "matching": "Matching"
-      },
-      "optionsCount": "Options per multiple-choice question",
-      "optionsValue": "{{count}} options",
-      "mixTitle": "Difficulty mix (percent)",
-      "mix": {
-        "easy": "Easy",
-        "medium": "Medium",
-        "hard": "Hard"
-      },
-      "mixOk": "Adds up to 100",
-      "mixBad": "Adds up to {{sum}}; it must be 100",
-      "optionsTitle": "Options",
-      "contextBased": "Context-based questions (a short real-life scenario before the question)",
-      "answerKey": "Answer key and grading criteria",
-      "groups": "Groups A and B",
-      "topicTable": "Topic and Bloom tables",
-      "footer": "Print “Prepared with Quelio” in the footer",
-      "generate": "Create the exam",
-      "generating": "Creating the exam…",
-      "progress": "{{done}} / {{total}} sections ready",
-      "titleGrade": "Grade {{grade}}",
-      "titleExam": "Term {{term}} exam {{no}}",
-      "phase": {
-        "plan": "Finding the different facts in the text…",
-        "check": "Checking the whole exam and rewriting questions where needed…"
-      },
-      "estimate": "{{count}} questions take about {{minutes}} minutes.",
-      "previousExams": "You have already made {{count}} exam(s) from this text; some topics may repeat.",
-      "bloomTitle": "Cognitive level and exam format",
-      "bloomLabel": "Cognitive level (Bloom)",
-      "bloomInfoLabel": "About Bloom's taxonomy",
-      "bloomInfo": "Revised Bloom's taxonomy. Under their old names: Knowledge, Comprehension, Application, Analysis, Synthesis, Evaluation.",
-      "bloom": {
-        "balanced": "All levels (balanced)",
-        "1": "1 · Remember",
-        "2": "2 · Understand",
-        "3": "3 · Apply",
-        "4": "4 · Analyze",
-        "5": "5 · Evaluate",
-        "6": "6 · Create",
-        "higher": "Higher-order thinking (Analyze, Evaluate, Create)"
-      },
-      "bloomPreview": "Mix: {{parts}}",
-      "bloomCapOpen": "{{type}} questions can be at most at the {{cap}} level. Evaluate and Create are measured with open-ended questions.",
-      "bloomCapMcq": "{{type}} questions can be at most at the {{cap}} level. Add multiple-choice or open-ended questions for {{wanted}}.",
-      "formatLabel": "Exam format",
-      "format": {
-        "free": "Free",
-        "meb": "MEB common written exam"
-      },
-      "formatMebHint": "Only open-ended and short-answer questions are asked; the answer key and the graded scoring key are always prepared.",
-      "distributionToggle": "I will set the topic and question distribution myself",
-      "distributionHint": "Write the learning outcome and the number of questions from your department's scenario. The total must equal the number of questions above.",
-      "distributionPlaceholder": "Learning outcome",
-      "distributionRowText": "Row {{number}}, outcome",
-      "distributionRowCount": "Row {{number}}, number of questions",
-      "distributionRemove": "Remove row {{number}}",
-      "distributionAdd": "+ Add row",
-      "distributionSum": "Total {{sum}} / {{total}}",
-      "durationHint": "A whole number from {{min}} to {{max}}; leave it empty to print no time on the paper.",
-      "wordLimit": "Use 30 to 5,000 words per exam.",
-      "bloomAdjust": "Adjust question types to this"
-    },
-    "header": {
-      "school": "School name",
-      "schoolPlaceholder": "e.g. Ataturk Anatolian High School",
-      "academicYear": "Academic year",
-      "term": "Term",
-      "termValue": "Term {{count}}",
-      "examNo": "Exam number",
-      "examNoValue": "Exam {{count}}",
-      "course": "Course",
-      "coursePlaceholder": "e.g. History",
-      "grade": "Grade",
-      "gradePlaceholder": "e.g. 9",
-      "section": "Section",
-      "sectionPlaceholder": "e.g. A",
-      "teacher": "Teacher name (optional)",
-      "teacherPlaceholder": "Full name",
-      "gradeChoose": "Choose",
-      "gradeOther": "Grade (other)",
-      "gradeOtherDefault": "Prep"
-    },
-    "edit": {
-      "backToList": "My written exams",
-      "title": "Exam name",
-      "notFound": "This written exam was not found. It may have been deleted.",
-      "save": {
-        "saved": "Saved",
-        "dirty": "Unsaved changes",
-        "saving": "Saving…",
-        "error": "Could not save",
-        "conflict": "Conflict",
-        "gone": "Exam deleted"
-      },
-      "saveFailed": "The changes could not be saved. Check your connection and try again.",
-      "conflict": "This exam was changed in another tab. Load the new version; unsaved changes in this tab are discarded.",
-      "reload": "Reload",
-      "gone": "This exam was deleted elsewhere.",
-      "draftChoice": "There is a newer unsaved draft on this device. Which one should we continue with?",
-      "useDraft": "Use the draft",
-      "useServer": "Use the saved version",
-      "total": "Total points: {{total}} / {{max}}",
-      "totalWarning": "The points add up to {{total}}; they must add up to 100.",
-      "redistribute": "Spread points to 100",
-      "undo": "Undo",
-      "addQuestion": "Add a question",
-      "add": "Add",
-      "output": "Output",
-      "printExam": "Print / Save as PDF",
-      "printKey": "Answer key (Print / Save as PDF)",
-      "printGroupB": "Group B (Print / Save as PDF)",
-      "wordExam": "Word (.docx)",
-      "wordKey": "Answer key (.docx)",
-      "wordGroupB": "Group B (.docx)",
-      "wordAll": "Download all (.zip)",
-      "exportFailed": "The file could not be made. Try again.",
-      "details": "Exam details and options",
-      "view": "View",
-      "view_edit": "Questions",
-      "view_preview": "Preview",
-      "preview": "Paper preview",
-      "previewKind": {
-        "exam": "Exam",
-        "key": "Answer key",
-        "groupB": "Group B"
-      },
-      "noQuestions": "No questions yet. Add one above.",
-      "questionCount": "{{count}} questions",
-      "questionNumber": "Question {{number}}",
-      "dragHandle": "Drag question {{number}}",
-      "dragHint": "Drag, or move with Alt + arrow keys",
-      "points": "Points",
-      "moveUp": "Move up",
-      "moveDown": "Move down",
-      "regenerate": "Regenerate this question",
-      "regenerateNoSource": "Cannot regenerate: there is no source text",
-      "delete": "Delete question",
-      "deleteTitle": "Delete this question?",
-      "deleteBody": "The question leaves the exam. You can bring it back with “Undo”.",
-      "deleteYes": "Delete",
-      "deleteNo": "Cancel",
-      "context": "Context / scenario",
-      "addContext": "+ Add a context (scenario)",
-      "stem": "Question text",
-      "stemBlank": "Question text (write ___ for the blank)",
-      "options": "Options",
-      "correctOption": "Option {{letter}} is correct",
-      "optionLabel": "Option {{letter}}",
-      "removeOption": "Remove option {{letter}}",
-      "addOption": "+ Add option",
-      "truth": "Correct answer",
-      "true": "True",
-      "false": "False",
-      "pairs": "Matching pairs",
-      "pairLeft": "Pair {{number}}, left",
-      "pairRight": "Pair {{number}}, right",
-      "removePair": "Remove pair {{number}}",
-      "addPair": "+ Add pair",
-      "expectedAnswer": "Expected answer",
-      "acceptable": "Other accepted answers (separate with semicolons)",
-      "topic": "Topic / learning outcome",
-      "difficulty": "Difficulty",
-      "lines": "Answer lines",
-      "rubric": "Grading criteria",
-      "rubricSum": "{{sum}} / {{points}} points",
-      "rubricGenerate": "Generate grading criteria",
-      "rubricText": "Criterion {{number}}",
-      "rubricPoints": "Points of criterion {{number}}",
-      "removeRubric": "Remove criterion {{number}}",
-      "addRubric": "+ Add criterion",
-      "rubricFit": "Match criteria to the question's points",
-      "bloom": "Cognitive level",
-      "moveOptionUp": "Move option {{letter}} up",
-      "moveOptionDown": "Move option {{letter}} down",
-      "insertBlank": "Insert blank (___)",
-      "extras": "Extra right-column items (matching nothing)",
-      "extraLabel": "Extra item {{number}}",
-      "removeExtra": "Remove extra item {{number}}",
-      "addExtra": "+ Add extra item",
-      "headerHint": "Enter the course and the class",
-      "headerHintOpen": "Open the details"
-    },
-    "errors": {
-      "retry": "Try again",
-      "empty": "Add a text, a file or a link first.",
-      "too_short": "The source is too short. Add a few more sentences.",
-      "too_long": "The source is too long. Pick a shorter part.",
-      "model": "The AI model is unavailable right now. Try again in a moment.",
-      "not_configured": "AI is not configured right now.",
-      "rate_limited": "Too many requests. Wait a minute and try again.",
-      "unauthorized": "You have been signed out. Sign in again.",
-      "network": "Could not connect. Check your internet and try again.",
-      "parse": "The reply could not be read. Try again.",
-      "not_supported": "This request is not supported.",
-      "save": "The exam was made but could not be saved. Try again.",
-      "upstream": "The exam could not be made. Nothing was saved; try again.",
-      "quality": "Some questions did not pass the quality check (repeated or unclear questions). Nothing was saved; try again."
-    },
-    "print": {
-      "loading": "Loading the exam…",
-      "notFound": "This exam was not found.",
-      "print": "Print / Save as PDF",
-      "close": "Close",
-      "pageNumbersNote": "For page numbers, print from Chrome or Edge.",
-      "pdfHint": "In the window that opens, choose Destination: “Save as PDF”."
-    },
-    "fromQuiz": {
-      "action": "Turn into written exam",
-      "failed": "Could not turn it into an exam. Try again."
-    },
-    "shortSource": {
-      "message": "This text holds at most {{max}} different questions. Add more material for more.",
-      "continue": "Continue with {{max}} questions",
-      "dismiss": "Cancel",
-      "addText": "Add text"
-    },
-    "partial": {
-      "message": "{{ready}} questions are ready. For the remaining {{missing}}, the text does not hold enough different content.",
-      "recommend": "Many questions are missing: we recommend adding more material first.",
-      "continue": "Continue with {{ready}} questions",
-      "retry": "Retry the missing questions",
-      "addText": "Add text"
-    },
-    "bloom": {
-      "names": {
-        "1": "Remember",
-        "2": "Understand",
-        "3": "Apply",
-        "4": "Analyze",
-        "5": "Evaluate",
-        "6": "Create"
-      },
-      "notSet": "Not set"
-    },
-    "distributionShort": {
-      "row": "The text does not hold enough content for “{{row}}” ({{found}} / {{wanted}} questions).",
-      "continue": "Continue anyway",
-      "change": "Change the distribution"
-    },
-    "export": {
-      "title": "Before you export",
-      "ready": "Everything is ready.",
-      "points": "The points add up to {{total}}.",
-      "header": "The course or the class is empty: it will be missing from the heading of the paper.",
-      "incomplete": "Unfinished questions:",
-      "problemLine": "Question {{number}}: {{reasons}}",
-      "redistribute": "Scale to 100",
-      "anyway": "Export anyway",
-      "go": "Continue",
-      "cancel": "Cancel",
-      "goTo": "Go to question"
-    },
-    "problems": {
-      "stem": "the question text is empty",
-      "options": "at least two options are needed",
-      "optionEmpty": "an option is empty",
-      "correctOption": "no correct option is selected",
-      "truth": "true / false is not selected",
-      "blank": "no blank is marked",
-      "answer": "no answer is written",
-      "pairs": "at least two pairs are needed",
-      "pairEmpty": "a matching item is empty",
-      "rubricEmpty": "a grading criterion is empty"
     }
   }
 }

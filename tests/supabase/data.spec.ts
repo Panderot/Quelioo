@@ -24,7 +24,7 @@ async function newContext(browser: import('@playwright/test').Browser, user: Tes
 }
 
 async function ownedCounts(userId: string) {
-  const count = async (table: 'decks' | 'cards' | 'card_progress' | 'quizzes' | 'songs' | 'solves' | 'lessons' | 'lesson_plans' | 'lesson_segments') => {
+  const count = async (table: 'decks' | 'cards' | 'card_progress' | 'quizzes' | 'solves') => {
     const { count: total } = await admin.from(table).select('*', { count: 'exact', head: true }).eq('user_id', userId)
     return total ?? 0
   }
@@ -33,11 +33,7 @@ async function ownedCounts(userId: string) {
     cards: await count('cards'),
     progress: await count('card_progress'),
     quizzes: await count('quizzes'),
-    songs: await count('songs'),
     solves: await count('solves'),
-    lessons: await count('lessons'),
-    plans: await count('lesson_plans'),
-    segments: await count('lesson_segments'),
   }
 }
 
@@ -217,46 +213,7 @@ test.describe('study results in the account', () => {
   })
 })
 
-test.describe('storage layers in the browser (songs, solutions, lessons)', () => {
-  test('songs: upload, list, play through a signed URL, delete removes the file', async ({ browser }) => {
-    const user = await createTestUser('songs')
-    const context = await newContext(browser, user)
-    const page = await context.newPage()
-    await page.goto('/account?lng=en')
-    await page.evaluate(async () => {
-      const { saveSong } = (await import(/* @vite-ignore */ '/src/lib/songStorage.ts' as string)) as typeof import('../../src/lib/songStorage')
-      const bytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8])
-      await saveSong({ quizId: 'quiz-1', quizTitle: 'Quiz one', title: 'Song one', lyrics: 'la la', style: 'pop', tone: 'normal', provider: 'demo', demo: true, mimeType: 'audio/mpeg', durationSeconds: 3, factCheckPassed: true, audio: new Blob([bytes], { type: 'audio/mpeg' }) })
-    })
-    // A fresh page load (a second device): the list has no audio bytes yet.
-    await page.reload()
-    const result = await page.evaluate(async () => {
-      const { getAllSongs, getSongsForQuiz, getQuizIdsWithSongs, getSongPlaybackUrl, getSongDownloadUrl, deleteSong, updateSongDuration } = (await import(/* @vite-ignore */ '/src/lib/songStorage.ts' as string)) as typeof import('../../src/lib/songStorage')
-      const listed = await getAllSongs()
-      const forQuiz = await getSongsForQuiz('quiz-1')
-      const ids = [...(await getQuizIdsWithSongs())]
-      const url = await getSongPlaybackUrl(listed[0])
-      const fetched = url ? new Uint8Array(await (await fetch(url)).arrayBuffer()) : null
-      const download = await getSongDownloadUrl(listed[0], 'my-song.mp3')
-      await updateSongDuration(listed[0].id, 4.5)
-      const after = await getAllSongs()
-      await deleteSong(listed[0].id)
-      return { listed: listed.length, audioLoaded: listed[0].audio !== null, path: listed[0].audioPath, forQuiz: forQuiz.length, ids, bytes: fetched ? Array.from(fetched) : null, download, signed: url?.includes('/object/sign/') ?? false, duration: after[0].durationSeconds, remaining: (await getAllSongs()).length }
-    })
-    expect(result.listed).toBe(1)
-    expect(result.audioLoaded).toBe(false) // the list does not download audio
-    expect(result.path).toMatch(new RegExp(`^${user.id}/songs/`))
-    expect(result.forQuiz).toBe(1)
-    expect(result.ids).toEqual(['quiz-1'])
-    expect(result.bytes).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
-    expect(result.signed).toBe(true) // played through a short-lived signed URL
-    expect(result.download).toContain('download=')
-    expect(result.duration).toBe(4.5)
-    expect(result.remaining).toBe(0)
-    expect(await listObjects('audio', user.id)).toEqual([])
-    await context.close()
-  })
-
+test.describe('storage layers in the browser (solutions)', () => {
   test('solutions: thumbnail upload, signed URL, extras merge, undo and delete', async ({ browser }) => {
     const user = await createTestUser('solutions')
     const context = await newContext(browser, user)
@@ -293,68 +250,6 @@ test.describe('storage layers in the browser (songs, solutions, lessons)', () =>
     expect(result.backCreatedAt).toBe(true)
     await context.close()
   })
-
-  test('lessons: save, read back at once, cached plan, recorded lines and pruning', async ({ browser }) => {
-    const user = await createTestUser('lessons')
-    const context = await newContext(browser, user)
-    const page = await context.newPage()
-    await page.goto('/account?lng=en')
-    const result = await page.evaluate(async () => {
-      const store = (await import(/* @vite-ignore */ '/src/lib/lessonStorage.ts' as string)) as typeof import('../../src/lib/lessonStorage')
-      const { flushWrites } = (await import(/* @vite-ignore */ '/src/lib/data/writeQueue.ts' as string)) as typeof import('../../src/lib/data/writeQueue')
-      const id = store.createLessonId()
-      const lesson = {
-        id,
-        schemaVersion: 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        title: 'Cells',
-        sourceKind: 'text' as const,
-        sourceLabel: '',
-        sourceText: 'Cells are the basic unit of life.',
-        sourceHash: 'hash1',
-        options: { style: 'two_hosts' as const, level: 'general' as const, tone: 'normal' as const, language: 'en' },
-        keyPoints: [{ id: 'K1', text: 'Cells are basic', source: 'Cells are the basic unit of life.', topic: 'Cells', facts: 1 }],
-        episodes: [{ part: 1, keyPointIds: ['K1'], script: null, costUsd: null, cachedShare: null }],
-        planCostUsd: 0.02,
-      }
-      await store.putLesson(lesson)
-      const immediately = await store.getLesson(id) // still queued: the overlay answers
-      await flushWrites()
-      await store.putLesson({ ...lesson, title: 'Cells v2' })
-      await flushWrites()
-      const all = await store.getAllLessons()
-      await store.putCachedPlan({ key: 'plan-key', title: 'Plan', keyPoints: [{ id: 'K1', text: 'Cells are basic', source: 'Cells are the basic unit of life.', topic: 'Cells', facts: 1 }], episodes: [{ part: 1, keyPointIds: ['K1'] }] })
-      await flushWrites()
-      const plan = await store.getCachedPlan('plan-key')
-      const bytes = new Uint8Array([9, 8, 7, 6])
-      await store.putSegment({ key: 'seg1', audio: new Blob([bytes], { type: 'audio/mpeg' }), durationSeconds: 1.5, createdAt: new Date().toISOString() })
-      await store.putSegment({ key: 'seg2', audio: new Blob([bytes], { type: 'audio/mpeg' }), durationSeconds: 2, createdAt: new Date().toISOString() })
-      await flushWrites()
-      store.resetLessonCache() // a new device: nothing in memory
-      const segments = await store.getSegments(['seg1', 'seg2', 'missing'])
-      const seg1 = segments.get('seg1')
-      const seg1Bytes = seg1 ? Array.from(new Uint8Array(await seg1.audio.arrayBuffer())) : null
-      await store.pruneSegments(new Set(['seg1']))
-      await flushWrites()
-      store.resetLessonCache()
-      const afterPrune = await store.getSegments(['seg1', 'seg2'])
-      await store.deleteLesson(id)
-      await flushWrites()
-      store.resetLessonCache()
-      return { immediately: immediately?.title, all: all.map((entry: { title: string }) => entry.title), planTitle: plan?.title, segmentKeys: [...segments.keys()].sort(), seg1Bytes, seg1Duration: seg1?.durationSeconds, afterPrune: [...afterPrune.keys()], deleted: (await store.getAllLessons()).length }
-    })
-    expect(result.immediately).toBe('Cells')
-    expect(result.all).toEqual(['Cells v2'])
-    expect(result.planTitle).toBe('Plan')
-    expect(result.segmentKeys).toEqual(['seg1', 'seg2'])
-    expect(result.seg1Bytes).toEqual([9, 8, 7, 6])
-    expect(result.seg1Duration).toBe(1.5)
-    expect(result.afterPrune).toEqual(['seg1'])
-    expect(result.deleted).toBe(0)
-    expect(await listObjects('audio', user.id)).toEqual([`${user.id}/segments/seg1.mp3`])
-    await context.close()
-  })
 })
 
 test.describe('import of old local data', () => {
@@ -373,28 +268,24 @@ test.describe('import of old local data', () => {
     await expect(dialog).toBeVisible()
     await expect(dialog).toContainText('2 decks')
     await expect(dialog).toContainText('2 quizzes')
-    await expect(dialog).toContainText('1 song')
     await expect(dialog).toContainText('1 solution')
-    await expect(dialog).toContainText('1 audio lesson')
     await dialog.getByRole('button', { name: en.importDialog.import }).click()
     await expect(dialog.getByText(en.importDialog.doneTitle)).toBeVisible({ timeout: 60_000 })
     await expect(dialog.getByText(en.importDialog.unverified)).toHaveCount(0)
 
     const first = await ownedCounts(user.id)
-    expect(first).toEqual({ decks: 2, cards: 5, progress: 5, quizzes: 2, songs: 1, solves: 1, lessons: 1, plans: 1, segments: 1 })
+    expect(first).toEqual({ decks: 2, cards: 5, progress: 5, quizzes: 2, solves: 1 })
     // Progress is kept exactly.
     const progress = await admin.from('card_progress').select('box, reviews, lapses').eq('user_id', user.id).order('box')
     expect(progress.data?.map((row) => row.box)).toEqual([1, 2, 3, 4, 5])
     expect(progress.data?.find((row) => row.box === 5)).toEqual({ box: 5, reviews: 10, lapses: 1 })
     // Files arrived.
-    expect((await listObjects('audio', user.id)).length).toBe(2)
     expect((await listObjects('uploads', user.id)).length).toBe(1)
     const solve = await admin.from('solves').select('extras, thumbnail_path').eq('user_id', user.id).single()
     expect(solve.data?.extras).toEqual({ note: 'kept' })
-    // The song still points at its quiz (the quiz got a new id).
-    const song = await admin.from('songs').select('quiz_id').eq('user_id', user.id).single()
+    // The deck made from a quiz still points at it (the quiz got a new id).
     const quizIds = (await admin.from('quizzes').select('id, title').eq('user_id', user.id)).data ?? []
-    expect(quizIds.find((quiz) => quiz.id === song.data?.quiz_id)?.title).toBe('Legacy photosynthesis')
+    expect(quizIds.map((quiz) => quiz.title)).toContain('Legacy photosynthesis')
 
     // Nothing local was deleted yet.
     expect(await readLegacyCounts(page)).toEqual(LEGACY_COUNTS)
@@ -417,7 +308,7 @@ test.describe('import of old local data', () => {
 
     // Remove the old copy: the stores are emptied and the dialog never returns.
     await dialog.getByRole('button', { name: en.importDialog.clear }).click()
-    await expect.poll(() => readLegacyCounts(page)).toEqual({ quizzes: 0, decks: 0, cards: 0, songs: 0, solutions: 0, lessons: 0 })
+    await expect.poll(() => readLegacyCounts(page)).toEqual({ quizzes: 0, decks: 0, cards: 0, solutions: 0 })
     await page.reload()
     await expect(page.locator('[data-purpose="import-dialog"]')).toHaveCount(0)
     expect(await ownedCounts(user.id)).toEqual(first)
@@ -453,7 +344,7 @@ test.describe('account page: download and delete', () => {
     const deckId = crypto.randomUUID()
     await user.client.from('decks').insert({ id: deckId, name: 'Exported deck' })
     await user.client.from('cards').insert({ deck_id: deckId, front: 'f', back: 'b' })
-    await user.client.storage.from('audio').upload(`${user.id}/songs/x.mp3`, new Blob(['abc'], { type: 'audio/mpeg' }), { contentType: 'audio/mpeg' })
+    await user.client.storage.from('uploads').upload(`${user.id}/solves/x.jpg`, new Blob(['abc'], { type: 'image/jpeg' }), { contentType: 'image/jpeg' })
     await admin.from('usage_events').insert({ user_id: user.id, feature: 'generate', cost_usd: 0.002 })
     const context = await newContext(browser, user)
     const page = await context.newPage()
@@ -487,8 +378,6 @@ test.describe('account page: download and delete', () => {
     await user.client.from('cards').insert({ deck_id: deckId, front: 'f', back: 'b' })
     await user.client.from('card_progress').insert({ card_id: (await user.client.from('cards').select('id').single()).data!.id, box: 2 })
     await user.client.from('quizzes').insert({ title: 'Doomed quiz', quiz: { questions: [{ question: 'q' }] } })
-    await user.client.from('lesson_segments').insert({ key: 'doomed', audio_path: `${user.id}/segments/doomed.mp3` })
-    await user.client.storage.from('audio').upload(`${user.id}/segments/doomed.mp3`, new Blob(['abc'], { type: 'audio/mpeg' }), { contentType: 'audio/mpeg' })
     await user.client.storage.from('uploads').upload(`${user.id}/solves/t.jpg`, new Blob(['abc'], { type: 'image/jpeg' }), { contentType: 'image/jpeg' })
     await admin.from('usage_events').insert({ user_id: user.id, feature: 'generate', cost_usd: 0.002 })
     const context = await newContext(browser, user)
@@ -504,11 +393,10 @@ test.describe('account page: download and delete', () => {
     await expect(page).toHaveURL(/\/sign-in/)
 
     expect((await admin.auth.admin.getUserById(user.id)).data.user).toBeNull()
-    expect(await ownedCounts(user.id)).toEqual({ decks: 0, cards: 0, progress: 0, quizzes: 0, songs: 0, solves: 0, lessons: 0, plans: 0, segments: 0 })
+    expect(await ownedCounts(user.id)).toEqual({ decks: 0, cards: 0, progress: 0, quizzes: 0, solves: 0 })
     expect((await admin.from('usage_events').select('id').eq('user_id', user.id)).data).toEqual([])
     expect((await admin.from('profiles').select('id').eq('id', user.id)).data).toEqual([])
     expect((await admin.from('subscriptions').select('user_id').eq('user_id', user.id)).data).toEqual([])
-    expect(await listObjects('audio', user.id)).toEqual([])
     expect(await listObjects('uploads', user.id)).toEqual([])
     // The deleted account can no longer sign in.
     await page.goto('/sign-in?lng=en')

@@ -65,7 +65,7 @@ export function trackUser(id: string) {
 }
 
 /** Lists every object under "<prefix>/" of a bucket (folders are walked). */
-export async function listObjects(bucket: 'audio' | 'uploads', prefix: string): Promise<string[]> {
+export async function listObjects(bucket: 'uploads', prefix: string): Promise<string[]> {
   const paths: string[] = []
   const walk = async (folder: string): Promise<void> => {
     const { data } = await admin.storage.from(bucket).list(folder, { limit: 1000 })
@@ -81,7 +81,7 @@ export async function listObjects(bucket: 'audio' | 'uploads', prefix: string): 
 
 /** Deletes a test user with their files (rows go with the user: every table cascades). */
 export async function deleteTestUser(id: string): Promise<void> {
-  for (const bucket of ['audio', 'uploads'] as const) {
+  for (const bucket of ['uploads'] as const) {
     const paths = await listObjects(bucket, id)
     if (paths.length > 0) await admin.storage.from(bucket).remove(paths)
   }

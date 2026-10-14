@@ -234,7 +234,7 @@ select,
   }
 }
 
-/* Print / PDF: a clean black-on-white exam-paper layout, questions first, then an
+/* Print / PDF: a clean black-on-white test-paper layout, questions first, then an
    optional answer key on its own page. Everything outside the result view (sidebar,
    top bar, buttons, toggles, the print-options dialog) is hidden; [data-print-only]
    holds a plain semantic duplicate of the quiz built for print instead of the

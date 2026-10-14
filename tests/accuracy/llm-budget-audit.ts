@@ -14,7 +14,7 @@ import { pathToFileURL } from 'node:url'
 import { chromium } from '@playwright/test'
 
 import { TEXT_B, TEXT_MD } from './quiz-texts'
-import { usageCostUsd } from '../../src/lib/lesson'
+import { usageCostUsd } from '../../src/lib/modelPricing'
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((arg) => {
@@ -236,31 +236,6 @@ const endpoints: Endpoint[] = [
       )
     },
   })),
-  {
-    name: 'song-lyrics',
-    runs: RUNS,
-    run: async () =>
-      callHttp(await load<Http>('api/_lib/song-lyrics.ts', 'songLyricsRequestHandler'), {
-        mode: 'write',
-        quizTitle: 'Fotosentez',
-        keyFacts: ['Klorofil ışığı soğurur', 'Karbondioksit glikoza çevrilir', 'Oksijen açığa çıkar'],
-        sourceExcerpt: TEXT_MD.slice(0, 600),
-        style: 'pop',
-        tone: 'normal',
-        language: 'tr',
-      }),
-  },
-  {
-    name: 'lesson',
-    runs: 1,
-    run: async () => {
-      const handle = await load<(payload: unknown, context: { ip: string }) => Promise<{ status: number; body: Record<string, unknown> }>>('api/_lib/lesson.ts', 'handleLessonRequest')
-      const ip = `10.7.0.${++ipCounter % 250}`
-      const plan = await handle({ action: 'plan', text: TEXT_B, level: 'general', language: 'tr' }, { ip })
-      if (plan.status !== 200) return plan
-      return handle({ action: 'script', text: TEXT_B, keyPoints: plan.body.keyPoints, episodes: plan.body.episodes, part: 1, style: 'two_hosts', level: 'general', tone: 'normal', language: 'tr' }, { ip })
-    },
-  },
 ]
 
 // ---------- run ----------

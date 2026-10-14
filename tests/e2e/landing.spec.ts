@@ -153,19 +153,6 @@ test('no horizontal scroll at 360px, no AI requests, feature tabs and try-it wor
   expect(api).toEqual([])
 })
 
-test('the lesson excerpt plays only on tap (Turkish)', async ({ page }) => {
-  await signedOut(page, 'tr')
-  const audioRequests: string[] = []
-  page.on('request', (request) => {
-    if (request.url().endsWith('.mp3')) audioRequests.push(request.url())
-  })
-  await page.goto('/')
-  await page.getByRole('tab', { name: tr.landing.features.tabs.lesson }).click()
-  expect(audioRequests).toEqual([])
-  await page.getByRole('button', { name: tr.landing.features.lesson.play }).click()
-  await expect.poll(() => audioRequests.length).toBeGreaterThan(0)
-})
-
 for (const lang of ['tr', 'en', 'hyw'] as const) {
   test(`sign-up shows the "already have an account" sign-in link in ${lang}`, async ({ page }) => {
     await signedOut(page, lang)

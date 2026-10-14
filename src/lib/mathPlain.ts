@@ -1,7 +1,7 @@
 /**
  * LaTeX -> readable plain text ("(2⁵ · 4³) / 8³"). Shared by the browser and the server: used
  * wherever math leaves the KaTeX-rendered Solve page (quiz text box, quiz questions, speech,
- * song facts, screen-reader announcements) and as the fallback for broken LaTeX.
+ * screen-reader announcements) and as the fallback for broken LaTeX.
  */
 
 const SUPERSCRIPT: Record<string, string> = {

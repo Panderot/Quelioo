@@ -17,11 +17,12 @@ import SignUpPage from './pages/auth/SignUpPage'
 
 // The signed-in app is a separate chunk: a landing-page visitor never downloads it.
 const AppShell = lazy(() => import('./AppShell'))
-// The student's join page is public and separate too: a phone that only plays a live game never downloads the app shell.
-const JoinPage = lazy(() => import('./pages/JoinPage'))
 
 /** Where the landing page lives: "/" follows the visitor's language, the other two are fixed-language copies (also prerendered for search engines). */
 const LANDING_PATHS: Record<string, LandingLanguage | undefined> = { '/': undefined, '/en': 'en', '/hyw': 'hyw' }
+
+/** Addresses of features that no longer exist; they lead to the home page (Create for a signed-in user, the landing page otherwise). */
+const REMOVED_PATHS = ['/songs', '/lessons/*', '/live/*', '/katil/*', '/exams/*']
 
 /** Public pages (sign in, sign up, passwords, legal) sit outside the app shell; everything else needs a session. */
 export default function App() {
@@ -38,22 +39,9 @@ export default function App() {
         <Route path="/kullanim-sartlari" element={<LegalPage kind="terms" />} />
         <Route path="/gizlilik" element={<LegalPage kind="privacy" />} />
       </Route>
-      <Route
-        path="/katil"
-        element={
-          <Suspense fallback={null}>
-            <JoinPage />
-          </Suspense>
-        }
-      />
-      <Route
-        path="/katil/:code"
-        element={
-          <Suspense fallback={null}>
-            <JoinPage />
-          </Suspense>
-        }
-      />
+      {REMOVED_PATHS.map((path) => (
+        <Route key={path} path={path} element={<Navigate to="/" replace />} />
+      ))}
       <Route path="*" element={<AppOrLanding />} />
     </Routes>
   )

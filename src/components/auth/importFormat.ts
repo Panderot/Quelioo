@@ -4,9 +4,9 @@ import type { LegacySummary } from '../../lib/import/importLocalData'
 
 export const DATA_IMPORTED_EVENT = 'quelio:data-imported'
 
-const KINDS = ['decks', 'quizzes', 'songs', 'solutions', 'lessons'] as const
+const KINDS = ['decks', 'quizzes', 'solutions'] as const
 
-/** "8 decks, 23 quizzes and 4 songs": only the kinds that are present, joined in the UI language. */
+/** "8 decks, 23 quizzes and 4 solutions": only the kinds that are present, joined in the UI language. */
 export function describeSummary(t: TFunction, summary: Pick<LegacySummary, (typeof KINDS)[number]>): string {
   const parts = KINDS.filter((kind) => summary[kind] > 0).map((kind) => t(`importDialog.counts.${kind}`, { count: summary[kind] }))
   if (parts.length <= 1) return parts.join('')

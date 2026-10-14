@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { extractJson, isRecord, readRequestBody } from './anthropic.js'
 import { generateJson } from './llm.js'
 import type { LlmImageInput, LlmProvider, LlmUsage } from './llm.js'
-import { requestIp } from './song-rate-limit.js'
+import { requestIp } from './request-ip.js'
 
 export type LlmJsonErrorCode = 'upstream' | 'parse' | 'model' | 'not_configured'
 

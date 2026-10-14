@@ -1,26 +1,22 @@
 import type { Page } from '@playwright/test'
 
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
-import { tinyMp3 } from '../fixtures/tinyMp3'
 
 /** Writes data in the OLD browser-local formats (what Quelio stored before accounts): the Archive in
- * localStorage, decks/songs/solutions/lessons in IndexedDB. Run on a page of the app origin. */
+ * localStorage, decks and solutions in IndexedDB. Run on a page of the app origin. */
 
 export interface LegacyCounts {
   quizzes: number
   decks: number
   cards: number
-  songs: number
   solutions: number
-  lessons: number
 }
 
-export const LEGACY_COUNTS: LegacyCounts = { quizzes: 2, decks: 2, cards: 5, songs: 1, solutions: 1, lessons: 1 }
+export const LEGACY_COUNTS: LegacyCounts = { quizzes: 2, decks: 2, cards: 5, solutions: 1 }
 
 export async function seedLegacyData(page: Page): Promise<void> {
-  const mp3 = Array.from(tinyMp3(2))
   await page.evaluate(
-    async ({ quiz, audioBytes }) => {
+    async ({ quiz }) => {
       const now = Date.now()
       // Archive (localStorage, "quelio.archive.v1").
       const entry = (id: string, title: string, createdAt: string) => ({
@@ -77,34 +73,6 @@ export async function seedLegacyData(page: Page): Promise<void> {
       await done(tx)
       cards.close()
 
-      // Songs (audio stored as a Blob).
-      const songs = await open('quelio-songs', 1, (db) => {
-        if (!db.objectStoreNames.contains('songs')) {
-          const store = db.createObjectStore('songs', { keyPath: 'id' })
-          store.createIndex('quizId', 'quizId', { unique: false })
-          store.createIndex('createdAt', 'createdAt', { unique: false })
-        }
-      })
-      const songTx = songs.transaction('songs', 'readwrite')
-      songTx.objectStore('songs').put({
-        id: 'legacy-song-1',
-        quizId: 'legacy-quiz-1',
-        quizTitle: 'Legacy photosynthesis',
-        title: 'Legacy song',
-        lyrics: 'Plants take in carbon dioxide\nAnd give out oxygen',
-        style: 'pop',
-        tone: 'normal',
-        provider: 'demo',
-        demo: true,
-        mimeType: 'audio/mpeg',
-        durationSeconds: 2,
-        factCheckPassed: true,
-        createdAt: '2026-01-03T10:00:00.000Z',
-        audio: new Blob([new Uint8Array(audioBytes)], { type: 'audio/mpeg' }),
-      })
-      await done(songTx)
-      songs.close()
-
       // Solutions (thumbnail as raw bytes).
       const solutions = await open('quelio-solutions', 1, (db) => {
         if (!db.objectStoreNames.contains('solutions')) db.createObjectStore('solutions', { keyPath: 'id' }).createIndex('createdAt', 'createdAt', { unique: false })
@@ -121,35 +89,8 @@ export async function seedLegacyData(page: Page): Promise<void> {
       })
       await done(solutionTx)
       solutions.close()
-
-      // Audio lessons (with a plan and one recorded line).
-      const lessons = await open('quelio-lessons', 2, (db) => {
-        if (!db.objectStoreNames.contains('lessons')) db.createObjectStore('lessons', { keyPath: 'id' })
-        if (!db.objectStoreNames.contains('plans')) db.createObjectStore('plans', { keyPath: 'key' })
-        if (!db.objectStoreNames.contains('segments')) db.createObjectStore('segments', { keyPath: 'key' })
-      })
-      const lessonTx = lessons.transaction(['lessons', 'plans', 'segments'], 'readwrite')
-      lessonTx.objectStore('lessons').put({
-        id: 'legacy-lesson-1',
-        schemaVersion: 1,
-        createdAt: '2026-01-05T10:00:00.000Z',
-        updatedAt: '2026-01-05T10:00:00.000Z',
-        title: 'Legacy lesson',
-        sourceKind: 'text',
-        sourceLabel: '',
-        sourceText: 'Photosynthesis turns light into sugar.',
-        sourceHash: 'legacyhash',
-        options: { style: 'two_hosts', level: 'general', tone: 'normal', language: 'en' },
-        keyPoints: [{ id: 'k1', text: 'Plants make sugar' }],
-        episodes: [{ part: 1, keyPointIds: ['k1'], script: null, costUsd: null, cachedShare: null }],
-        planCostUsd: 0.01,
-      })
-      lessonTx.objectStore('plans').put({ key: 'legacy-plan', title: 'Plan', keyPoints: [{ id: 'k1', text: 'Plants make sugar' }], episodes: [{ part: 1, keyPointIds: ['k1'] }] })
-      lessonTx.objectStore('segments').put({ key: 'legacyseg1', bytes: new Uint8Array(audioBytes).buffer, durationSeconds: 2, createdAt: '2026-01-05T10:00:00.000Z' })
-      await done(lessonTx)
-      lessons.close()
     },
-    { quiz: SAMPLE_QUIZ, audioBytes: mp3 },
+    { quiz: SAMPLE_QUIZ },
   )
 }
 
@@ -176,9 +117,7 @@ export async function readLegacyCounts(page: Page): Promise<LegacyCounts> {
       quizzes: archive.length,
       decks: await countStore('quelio-flashcards', 1, 'decks'),
       cards: await countStore('quelio-flashcards', 1, 'cards'),
-      songs: await countStore('quelio-songs', 1, 'songs'),
       solutions: await countStore('quelio-solutions', 1, 'solutions'),
-      lessons: await countStore('quelio-lessons', 2, 'lessons'),
     }
   })
 }

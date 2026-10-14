@@ -147,7 +147,7 @@ export default function AddCardsDialog({ title, defaultDeckName, source, sourceR
           <button
             type="button"
             onClick={close}
-            aria-label={t('song.close')}
+            aria-label={t('create.result.close')}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-warm-border/50 hover:text-ink"
           >
             <CloseIcon className="h-4 w-4" />

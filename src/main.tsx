@@ -8,12 +8,10 @@ import { initAuth } from './lib/auth/authStore'
 import './lib/data/session'
 import { initFocusModality } from './lib/focusModality'
 import { redirectToCanonicalSite } from './lib/publicSite'
-import { initSingleAudio } from './lib/singleAudio'
 
 if (!redirectToCanonicalSite()) {
   initAuth()
   initFocusModality()
-  initSingleAudio()
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

@@ -1,20 +1,18 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { CalculatorIcon, CardsIcon, CheckIcon, HeadphonesIcon, MusicNoteIcon, PauseIcon, PlayIcon, QuestionIcon } from '../components/icons'
+import { CalculatorIcon, CardsIcon, CheckIcon, QuestionIcon } from '../components/icons'
 import { useInView, usePrefersReducedMotion } from './hooks'
 import { Option } from './SampleDemo'
 import Tabs from './Tabs'
 
-type FeatureId = 'create' | 'solve' | 'cards' | 'songs' | 'lesson'
-const FEATURE_ORDER: FeatureId[] = ['create', 'solve', 'cards', 'songs', 'lesson']
+type FeatureId = 'create' | 'solve' | 'cards'
+const FEATURE_ORDER: FeatureId[] = ['create', 'solve', 'cards']
 const FEATURE_ICONS: Record<FeatureId, ReactNode> = {
   create: <QuestionIcon className="h-4 w-4" />,
   solve: <CalculatorIcon className="h-4 w-4" />,
   cards: <CardsIcon className="h-4 w-4" />,
-  songs: <MusicNoteIcon className="h-4 w-4" />,
-  lesson: <HeadphonesIcon className="h-4 w-4" />,
 }
 
 const cardClass = 'rounded-2xl border border-warm-border bg-card p-4 shadow-[0_18px_40px_-24px_rgba(20,23,43,0.25)]'
@@ -56,8 +54,6 @@ export default function Features() {
             {active === 'create' && <CreateMock />}
             {active === 'solve' && <SolveMock />}
             {active === 'cards' && <CardsMock inView={inView} />}
-            {active === 'songs' && <SongsMock inView={inView} />}
-            {active === 'lesson' && <LessonMock inView={inView} />}
           </div>
         </div>
       </div>
@@ -280,163 +276,6 @@ function CardsMock({ inView }: { inView: boolean }) {
           ))}
         </dl>
       </div>
-    </div>
-  )
-}
-
-function SongsMock({ inView }: { inView: boolean }) {
-  const { t } = useTranslation()
-  const f = 'landing.features.songs'
-  const reduced = usePrefersReducedMotion()
-  const [playing, setPlaying] = useState(false)
-  const [line, setLine] = useState(0)
-  const started = useRef(false)
-
-  useEffect(() => {
-    if (inView && !started.current && !reduced) {
-      started.current = true
-      setPlaying(true)
-    }
-  }, [inView, reduced])
-
-  useEffect(() => {
-    if (!playing) return
-    const id = window.setInterval(() => setLine((l) => (l + 1) % 4), 2200)
-    return () => window.clearInterval(id)
-  }, [playing])
-
-  return (
-    <div className={`mx-auto max-w-md ${cardClass} sm:p-5`}>
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setPlaying((p) => !p)}
-          aria-label={playing ? t(`${f}.pause`) : t(`${f}.play`)}
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber text-navy transition-colors hover:bg-amber-hover"
-        >
-          {playing ? <PauseIcon className="h-5 w-5" /> : <PlayIcon className="h-5 w-5" />}
-        </button>
-        <div className="min-w-0">
-          <p className="truncate font-serif text-lg font-semibold text-navy">{t(`${f}.songTitle`)}</p>
-          <p className="text-xs text-muted">{t(`${f}.hint`)}</p>
-        </div>
-      </div>
-      <div data-playing={playing} aria-hidden className="mb-4 flex h-14 items-center gap-[3px]">
-        {Array.from({ length: 36 }, (_, i) => {
-          const h = 0.35 + 0.65 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.45))
-          return <span key={i} className="lp-bar h-full flex-1 rounded-full bg-navy/80" style={{ '--i': i, '--h': h.toFixed(2) } as CSSProperties} />
-        })}
-      </div>
-      <ol className="space-y-1.5">
-        {(['l1', 'l2', 'l3', 'l4'] as const).map((key, i) => (
-          <li key={key} className="relative rounded-lg px-3 py-2 font-serif text-base text-navy transition-opacity duration-500" style={{ opacity: i === line ? 1 : 0.45 }}>
-            <span aria-hidden className="absolute inset-0 rounded-lg bg-amber/25 transition-opacity duration-500" style={{ opacity: i === line ? 1 : 0 }} />
-            <span className="relative">{t(`${f}.${key}`)}</span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  )
-}
-
-/** Lines of the pre-made excerpt and when each starts in /landing/lesson-sample.mp3 (seconds). */
-const LESSON_STARTS = [0.3, 6.3, 10.8]
-const LESSON_HOST = ['hostA', 'hostA', 'hostB'] as const
-
-function LessonMock({ inView }: { inView: boolean }) {
-  const { t, i18n } = useTranslation()
-  const f = 'landing.features.lesson'
-  const reduced = usePrefersReducedMotion()
-  const hasAudio = (i18n.resolvedLanguage ?? i18n.language) === 'tr'
-  const [playing, setPlaying] = useState(false)
-  const [line, setLine] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const started = useRef(false)
-
-  const stopAudio = () => {
-    audioRef.current?.pause()
-    audioRef.current = null
-  }
-  useEffect(() => stopAudio, [])
-
-  // Without sound (other languages, or before the visitor taps) the lines still take turns on a timer.
-  useEffect(() => {
-    if (inView && !started.current && !reduced && !hasAudio) {
-      started.current = true
-      setPlaying(true)
-    }
-  }, [inView, reduced, hasAudio])
-  useEffect(() => {
-    if (!playing || hasAudio) return
-    const id = window.setInterval(() => setLine((l) => (l + 1) % 3), 2600)
-    return () => window.clearInterval(id)
-  }, [playing, hasAudio])
-
-  const toggle = () => {
-    if (!hasAudio) {
-      setPlaying((p) => !p)
-      return
-    }
-    if (playing) {
-      audioRef.current?.pause()
-      setPlaying(false)
-      return
-    }
-    if (!audioRef.current) {
-      // The clip is fetched only now, on tap.
-      const audio = new Audio('/landing/lesson-sample.mp3')
-      audio.preload = 'auto'
-      audio.addEventListener('timeupdate', () => {
-        const time = audio.currentTime
-        setLine(LESSON_STARTS.reduce((acc, start, i) => (time >= start ? i : acc), 0))
-        setProgress(audio.duration ? time / audio.duration : 0)
-      })
-      audio.addEventListener('ended', () => {
-        setPlaying(false)
-        setLine(0)
-        setProgress(0)
-        audioRef.current = null
-      })
-      audioRef.current = audio
-    }
-    void audioRef.current.play().then(
-      () => setPlaying(true),
-      () => setPlaying(false),
-    )
-  }
-
-  return (
-    <div className={`mx-auto max-w-md ${cardClass} sm:p-5`}>
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={playing ? t(`${f}.pause`) : t(`${f}.play`)}
-          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber text-navy transition-colors hover:bg-amber-hover"
-        >
-          {playing ? <PauseIcon className="h-5 w-5" /> : <PlayIcon className="h-5 w-5" />}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-muted">{t(`${f}.hint`)}</p>
-          <div aria-hidden className="mt-2 h-1.5 overflow-hidden rounded-full bg-warm-border">
-            <div className="h-full origin-left rounded-full bg-navy" style={{ transform: `scaleX(${progress})`, transition: 'transform 250ms linear' }} />
-          </div>
-        </div>
-      </div>
-      <ol className="space-y-2">
-        {(['l1', 'l2', 'l3'] as const).map((key, i) => {
-          const host = LESSON_HOST[i]
-          const speaking = i === line
-          return (
-            <li key={key} className="relative flex gap-3 rounded-xl px-3 py-2.5 transition-opacity duration-500" style={{ opacity: speaking ? 1 : 0.5 }}>
-              <span aria-hidden className="absolute inset-0 rounded-xl bg-amber/25 transition-opacity duration-500" style={{ opacity: speaking ? 1 : 0 }} />
-              <span className={`relative mt-0.5 h-6 shrink-0 rounded-full px-2 text-xs leading-6 font-bold ${host === 'hostA' ? 'bg-navy text-paper' : 'bg-amber text-navy'}`}>{t(`${f}.${host}`)}</span>
-              <span className="relative text-sm leading-6 text-navy">{t(`${f}.${key}`)}</span>
-            </li>
-          )
-        })}
-      </ol>
     </div>
   )
 }

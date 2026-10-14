@@ -7,7 +7,6 @@ import { getArchiveEntry, updateArchiveEntry, useArchive } from '../lib/archive'
 import type { ArchiveEntry } from '../lib/archive'
 import type { GeneratedQuiz } from '../lib/quiz'
 import QuizWorkspace from '../components/QuizWorkspace'
-import SongListenSection from '../components/SongListenSection'
 import StudyHistory from '../components/study/StudyHistory'
 import StudyView from '../components/study/StudyView'
 import { ArchiveIcon } from '../components/icons'
@@ -30,12 +29,8 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
   // re-reads after a save in the browser-local (test) build, which has no change notifications.
   const [, setVersion] = useState(0)
   const entry: ArchiveEntry | undefined = id ? getArchiveEntry(id) : undefined
-  const [songRefreshKey, setSongRefreshKey] = useState(0)
-  // Kept mounted while the user is elsewhere: the quiz may have been deleted, or got a new song.
-  useOnPageReturn(() => {
-    setVersion((value) => value + 1)
-    setSongRefreshKey((key) => key + 1)
-  })
+  // Kept mounted while the user is elsewhere: the quiz may have been changed or deleted.
+  useOnPageReturn(() => setVersion((value) => value + 1))
   // Study mode lives in the URL: this page stays mounted, so a later visit to ?mode=study must not depend on
   // initial state. Every visit is a new history entry (new location key), which starts the study screen afresh.
   const studyMode = searchParams.get('mode') === 'study'
@@ -99,11 +94,9 @@ function ArchiveQuizEntry({ id }: { id: string | undefined }) {
         includeExplanations={entry.includeExplanations ?? true}
         shuffleOptions={entry.shuffleOptions ?? false}
         includeHints={entry.includeHints ?? true}
-        onSongSaved={() => setSongRefreshKey((key) => key + 1)}
       />
       <div data-print-hide className="space-y-7">
         <StudyHistory entry={entry} />
-        <SongListenSection key={songRefreshKey} quizId={entry.id} quizTitle={entry.quiz.title} />
       </div>
     </>
   )

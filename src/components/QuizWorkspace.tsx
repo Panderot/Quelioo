@@ -28,7 +28,6 @@ interface QuizWorkspaceProps {
   shuffleOptions?: boolean
   includeHints?: boolean
   focusSnippets?: string[]
-  onSongSaved?: () => void
 }
 
 export default function QuizWorkspace({
@@ -48,7 +47,6 @@ export default function QuizWorkspace({
   shuffleOptions,
   includeHints,
   focusSnippets,
-  onSongSaved,
 }: QuizWorkspaceProps) {
   const { t } = useTranslation()
   const editor = useQuizEditor({
@@ -72,7 +70,6 @@ export default function QuizWorkspace({
     <>
       <QuizResultView
         quizId={quizId}
-        sourceText={sourceText}
         quiz={editor.quiz}
         meta={meta}
         onTitleChange={editor.updateTitle}
@@ -87,7 +84,6 @@ export default function QuizWorkspace({
         supportedCount={supportedCount}
         isToppingUp={editor.isToppingUp}
         onTopUp={() => void editor.topUp()}
-        onSongSaved={onSongSaved}
         onAddMissing={() => void editor.addMissing()}
         isAddingMissing={editor.isAddingMissing}
       />

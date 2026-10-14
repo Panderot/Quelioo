@@ -26,7 +26,7 @@ export interface LlmCallParams {
   image?: LlmImageInput
   /** Try this provider first (e.g. an independent second opinion from the other provider). */
   preferProvider?: LlmProvider
-  /** Use only this provider, never fall back to the other one (e.g. Audio Lesson is OpenAI-only). */
+  /** Use only this provider, never fall back to the other one (e.g. a second opinion that must come from OpenAI). */
   onlyProvider?: LlmProvider
   /** OpenAI model id for this call instead of OPENAI_MODEL / the default. */
   openAiModel?: string

@@ -19,9 +19,6 @@ const AI_ENDPOINTS = [
   '/api/check-work',
   '/api/explain-step',
   '/api/cards',
-  '/api/song-lyrics',
-  '/api/song',
-  '/api/lesson',
 ]
 
 test.afterAll(async () => {
@@ -44,11 +41,6 @@ test.describe('401 without an account', () => {
   test('the publishable key is not an account token', async ({ request }) => {
     const response = await request.post('/api/generate', { data: {}, headers: { authorization: `Bearer ${testEnv.publishableKey}` } })
     expect(response.status()).toBe(401)
-  })
-
-  test('status checks stay open (GET)', async ({ request }) => {
-    const response = await request.get('/api/song')
-    expect(response.status()).not.toBe(401)
   })
 })
 
@@ -92,7 +84,7 @@ test.describe('usage log', () => {
     const server = createServer(
       withAuth(async (_req, res) => {
         recordLlmUsage('openai', { model: 'gpt-5.6-luna', inputTokens: 1000, cachedTokens: 0, cacheWriteTokens: 0, outputTokens: 500 })
-        recordUsage({ feature: 'lesson-speak', provider: 'openai', model: 'tts', inputTokens: 40, outputTokens: 900, costUsd: 0.011 })
+        recordUsage({ feature: 'cards', provider: 'openai', model: 'gpt-6-luna', inputTokens: 40, outputTokens: 900, costUsd: 0.011 })
         res.statusCode = 200
         res.end('{}')
       }),
@@ -110,7 +102,7 @@ test.describe('usage log', () => {
       expect(data?.[0]).toMatchObject({ feature: 'generate', provider: 'openai', model: 'gpt-5.6-luna', input_tokens: 1000, output_tokens: 500 })
       // 1000 input at $0.2/M + 500 output at $1.2/M = $0.0008
       expect(Number(data?.[0].cost_usd)).toBeCloseTo(0.0008, 6)
-      expect(data?.[1]).toMatchObject({ feature: 'lesson-speak', model: 'tts', input_tokens: 40, output_tokens: 900 })
+      expect(data?.[1]).toMatchObject({ feature: 'cards', model: 'gpt-6-luna', input_tokens: 40, output_tokens: 900 })
       expect(Number(data?.[1].cost_usd)).toBeCloseTo(0.011, 6)
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()))
