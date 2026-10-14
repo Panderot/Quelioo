@@ -50,3 +50,21 @@ AI quiz / solve / flashcards web app with an Archive and accounts. Vite + React 
 - `src/{pages,components,hooks,lib,api,i18n}` UI; `lib/remote` account data, `lib/legacy` old local stores, `lib/import` feature logic.
 - `api/*.ts` thin Vercel functions; logic in `api/_lib/*`; every LLM call goes through `api/_lib/llm.ts`; AI endpoints wrapped in `withAuth`.
 - `supabase/` migrations and email templates; `tests/{e2e,supabase,accuracy,fixtures,guards,prod}`; `scripts/` build/test helpers.
+
+## Context ve token kullanımı
+
+- Önce görevi ve ilgili dosyaları belirle. Tüm projeyi baştan sona okuma.
+- Dosya ararken hedefli aramalar yap; yalnızca gerekli dosyaları ve bölümleri aç.
+- CLAUDE.md, DESIGN.md ve diğer uzun dokümanları her görevde yeniden okuma.
+- Değişmemiş ve daha önce incelenmiş dosyaları tekrar okuma.
+- Büyük logları, build çıktılarını ve test sonuçlarını bütünüyle paylaşma. İlgili hata satırlarını ve kısa bir özeti ver.
+- Küçük görevlerde uzun planlar ve gereksiz açıklamalar üretmeden doğrudan uygula.
+- İş bitince kısaca neyin değiştiğini, nasıl doğrulandığını ve varsa kalan sorunu belirt.
+- Hata ayıklamak veya değişikliği güvenle yapmak için ek bilgi gerekiyorsa ilgili dosyayı ya da log bölümünü oku.
+
+## Bilgilerin güncelliği
+
+- Bu dosyada geçmiş görev özetleri, tamamlanmış işler, eski kararlar veya doğrulanmamış bilgiler tutulmasın.
+- Yalnızca hâlâ geçerli olan proje kuralları, mimari kararlar ve çalışma talimatları burada yer alsın.
+- Güncel durumu anlamak için mevcut kodu ve yapılandırmayı kontrol et. Bu dosyadaki bilgi onlarla çelişiyorsa eski bilgiyi düzelt.
+- Her görev sonunda CLAUDE.md'ye otomatik olarak günlük veya ilerleme özeti ekleme.
