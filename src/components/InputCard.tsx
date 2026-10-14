@@ -177,7 +177,7 @@ export default function InputCard({
       </div>
 
       {/* Tabs */}
-      <div role="tablist" aria-label="Input source" className="-mt-1 flex items-center gap-2 border-b border-warm-border">
+      <div role="tablist" aria-label={t('inputCard.tabsLabel')} className="-mt-1 flex items-center gap-2 border-b border-warm-border">
         {TAB_ORDER.map((tab) => {
           const Icon = TAB_ICONS[tab]
           const isActive = tab === activeTab
@@ -227,6 +227,7 @@ export default function InputCard({
               ref={fileInputRef}
               type="file"
               accept=".pdf,.docx,.txt,.md"
+              aria-label={t('inputCard.dropzone.browse')}
               onChange={handleFileInputChange}
               className="sr-only"
             />
@@ -348,6 +349,7 @@ export default function InputCard({
               <input
                 type="url"
                 value={urlValue}
+                aria-label={t('inputCard.placeholder.url')}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => onUrlChange(event.target.value)}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter') {

@@ -46,6 +46,7 @@
       "chipsLabel": "Odak bölümleri",
       "removeChip": "Odak bölümünü kaldır"
     },
+    "tabsLabel": "Girdi kaynağı",
     "tabs": {
       "text": "Metin",
       "file": "Dosya",
@@ -894,7 +895,8 @@
       "new": "Yeni e-posta",
       "submit": "E-postayı değiştir",
       "sent": "{{email}} adresine bir onay bağlantısı gönderdik. Adres, bağlantıyı açtıktan sonra değişir.",
-      "same": "Bu zaten senin adresin."
+      "same": "Bu zaten senin adresin.",
+      "taken": "Bu adres başka bir hesaba ait."
     },
     "password": {
       "title": "Şifre",

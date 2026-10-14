@@ -409,6 +409,7 @@ export default function SolvePage() {
           type="file"
           accept={ACCEPT_ATTR}
           capture="environment"
+          aria-label={t('solve.upload.browse')}
           onChange={handleInputChange}
           className="sr-only"
         />

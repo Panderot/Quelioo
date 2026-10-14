@@ -46,6 +46,7 @@
       "chipsLabel": "Focus parts",
       "removeChip": "Remove focus part"
     },
+    "tabsLabel": "Input source",
     "tabs": {
       "text": "Text",
       "file": "File",
@@ -894,7 +895,8 @@
       "new": "New email",
       "submit": "Change email",
       "sent": "We sent a confirmation link to {{email}}. The address changes after you open it.",
-      "same": "That is already your address."
+      "same": "That is already your address.",
+      "taken": "That address belongs to another account."
     },
     "password": {
       "title": "Password",

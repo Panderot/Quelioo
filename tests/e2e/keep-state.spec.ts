@@ -84,6 +84,33 @@ async function waitForSolveDraft(page: Page, check: 'photo' | 'result' | 'none')
     .toBe(check)
 }
 
+/** Resolves once the saved Solve draft holds the crop box the page shows now (the draft is debounced, so a photo-only draft is older than the last crop edit). */
+async function waitForSavedCrop(page: Page, expected: { x: number; y: number; w: number; h: number }) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<{ x: number; y: number; w: number; h: number } | null>((resolve) => {
+            const request = indexedDB.open('quelio-page-drafts')
+            request.onerror = () => resolve(null)
+            request.onsuccess = () => {
+              const db = request.result
+              if (!db.objectStoreNames.contains('drafts')) return resolve(null)
+              const get = db.transaction('drafts').objectStore('drafts').get('solve')
+              get.onsuccess = () => resolve(get.result?.data?.crop ?? null)
+              get.onerror = () => resolve(null)
+            }
+          }),
+      ),
+    )
+    .toMatchObject({
+      x: expect.closeTo(expected.x / 100, 1),
+      y: expect.closeTo(expected.y / 100, 1),
+      w: expect.closeTo(expected.w / 100, 1),
+      h: expect.closeTo(expected.h / 100, 1),
+    })
+}
+
 /** Moves and shrinks the crop box with the keyboard, then rotates the photo. */
 async function editCrop(page: Page) {
   await page.getByRole('button', { name: en.crop.rotateRight }).click()
@@ -116,6 +143,7 @@ test.describe('Solve keeps its work', () => {
     expect(await cropBoxPercent(page)).toEqual(before)
 
     await waitForSolveDraft(page, 'photo')
+    await waitForSavedCrop(page, before)
     await page.reload()
     await expect(page.locator('[data-purpose="crop-box"]')).toBeVisible({ timeout: 15_000 })
     const after = await cropBoxPercent(page)

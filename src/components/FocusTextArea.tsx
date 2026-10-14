@@ -133,6 +133,7 @@ export default function FocusTextArea({ id, value, onChange, placeholder, hasErr
           onScroll={() => setButtonPosition(null)}
           onBlur={() => setButtonPosition(null)}
           placeholder={placeholder}
+          aria-label={placeholder}
           aria-invalid={hasError}
           className={`${SHARED_LAYOUT_CLASSES} col-start-1 row-start-1 resize-y border-dashed bg-transparent text-transparent caret-ink transition-all placeholder:text-muted focus:border-solid ${
             hasError ? 'border-error' : 'border-warm-border'

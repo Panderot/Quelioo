@@ -125,7 +125,7 @@ export default function AccountPage() {
     const { error } = await supabase.auth.updateUser({ email: address }, { emailRedirectTo: callbackUrl() })
     setEmailBusy(false)
     if (error) {
-      setEmailProblem(isNetworkError(error) ? t('auth.networkError') : t('auth.genericError'))
+      setEmailProblem(isNetworkError(error) ? t('auth.networkError') : error.code === 'email_exists' ? t('account.email.taken') : t('auth.genericError'))
       return
     }
     setEmailSentTo(address)
