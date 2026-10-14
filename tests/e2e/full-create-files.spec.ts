@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test'
+import type { FileChooser, Page } from '@playwright/test'
 
 import { SAMPLE_QUIZ } from '../fixtures/quiz'
 import { ARTICLE_SENTENCES, ARTICLE_TEXT, buildDocx, buildPdf } from '../fixtures/files'
@@ -126,10 +126,15 @@ test.describe('File tab: files that are read', () => {
   test('the drop zone can be reached and opened with the keyboard', async ({ page }) => {
     await openFileTab(page)
     const zone = page.getByRole('button', { name: /Drag and drop a file here/ })
-    await zone.focus()
-    const chooser = page.waitForEvent('filechooser')
-    await page.keyboard.press('Enter')
-    const files = await chooser
+    // The zone can re-render while the saved draft loads and drop focus: retry focus + Enter until the chooser opens.
+    let files!: FileChooser
+    await expect(async () => {
+      await zone.focus()
+      await expect(zone).toBeFocused()
+      const chooser = page.waitForEvent('filechooser', { timeout: 2_000 })
+      await page.keyboard.press('Enter')
+      files = await chooser
+    }).toPass({ timeout: 20_000 })
     await files.setFiles({ name: 'keyboard.txt', mimeType: 'text/plain', buffer: Buffer.from(ARTICLE_TEXT) })
     await expect(page.getByText('keyboard.txt', { exact: true })).toBeVisible()
   })
