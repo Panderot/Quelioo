@@ -35,8 +35,6 @@ test-results/
 playwright-report/
 blob-report/
 coverage/
-test-songs/
-test-lessons/
 
 # Task prompts live in ../QUELIO-PROMPTS
 *-prompt.txt

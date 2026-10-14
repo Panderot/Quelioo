@@ -1,6 +1,6 @@
 # Quelio
 
-AI quiz / solve / cards / song / audio-lesson / live-game / written-exam web app. Vite + React + TS + Tailwind v4 + react-i18next, Supabase, Vercel functions. `design.md` is the single source of design truth.
+AI quiz / solve / flashcards web app with an Archive and accounts. Vite + React + TS + Tailwind v4 + react-i18next, Supabase, Vercel functions. `design.md` is the single source of design truth.
 
 ## Secrets
 - Never print or paste keys, tokens, passwords or `.env*` contents anywhere (chat, logs, commands, commits). The owner writes `.env.local` himself.
@@ -18,27 +18,26 @@ AI quiz / solve / cards / song / audio-lesson / live-game / written-exam web app
 ## Test data
 - Destructive tests only on `quelio-test`.
 - Production test users only as `baretgungormezer+qtest-…`; never create other users on production.
-- Student data: nickname only, deleted after 30 days.
 
 ## Tests (32 GB machine, CI on GitHub Actions)
-- Commands: `npm run test:each [files]` (`PW_WORKERS`, `PW_EXTRA`), `npm run test:game`, `npm run test:supabase`, `playwright.prod.config.ts` for prod.
+- Commands: `npm run test:each [files]` (`PW_WORKERS`, `PW_EXTRA`), `npm run test:supabase`, `playwright.prod.config.ts` for prod.
 - New or changed specs run with `--repeat-each=3`. Never use fixed sleeps.
-- Locally only the specs of the task. Full suite, `test:game` and `test:supabase` do not run locally: push, then wait for GitHub Actions (`gh run watch`; without `gh`, the Actions tab).
-- Workers: free RAM >= 10 GB `PW_WORKERS=4`, else 2; `test:game` always 1. Under 4 GB: stop and ask.
+- Locally only the specs of the task. Full suite and `test:supabase` do not run locally: push, then wait for GitHub Actions (`gh run watch`; without `gh`, the Actions tab).
+- Workers: free RAM >= 10 GB `PW_WORKERS=4`, else 2. Under 4 GB: stop and ask.
 - Speed: read only the files of the task; tsc/lint/build once at the end; independent AI calls in parallel; poll `version.json` every 20 s, at most 5 min; no interim summaries; leave no background jobs.
-- CI (`.github/workflows/ci.yml`): no AI keys are defined there; `tests/accuracy` and `tests/live` never run in CI. The game and supabase jobs need the `SUPABASE_TEST_*` secrets and skip without them.
+- CI (`.github/workflows/ci.yml`): no AI keys are defined there; `tests/accuracy` never runs in CI. The supabase job needs the `SUPABASE_TEST_*` secrets.
 - Playwright headless, not Claude in Chrome. Only kill processes you started.
 - After every push: `gh run watch`. Red: `gh run view --log-failed`, fix and push again.
 - The report always quotes the CI summary (the TOTAL table of the `report` job): passed / failed / skipped / flaky and the duration.
-- A missing `SUPABASE_TEST_*` secret fails the job (never a green skip); game runs in 3 shards, reports are in the `playwright-report` artifact (14 days).
+- A missing `SUPABASE_TEST_*` secret fails the job (never a green skip); reports are in the `playwright-report` artifact (14 days).
 
 ## Deploy
 - A push to master auto-deploys; verify `https://quelio.vercel.app/version.json`.
 - The public address is always `https://quelio.vercel.app` (`getPublicSiteUrl`).
-- Vercel Hobby limit is 12 functions and 11 are used: add new endpoints to existing functions.
+- Vercel Hobby limit is 12 functions and 7 are used: add new endpoints to existing functions.
 
 ## AI cost
-- Track real dollars; stop and ask when over the task's budget. Students never see cost/token info (`no-cost-ui.spec.ts`).
+- Track real dollars; stop and ask when over the task's budget. Users never see cost/token info (`no-cost-ui.spec.ts`).
 
 ## i18n
 - TR, EN and HYW with identical key sets; no hard-coded strings. HYW needs native-speaker review before wide release.
@@ -48,6 +47,6 @@ AI quiz / solve / cards / song / audio-lesson / live-game / written-exam web app
 - Search first, open only what the task needs. Final reports in Turkish.
 
 ## Map
-- `src/{pages,components,hooks,lib,api,i18n}` UI; `lib/remote` account data, `lib/legacy` old local stores, `lib/exam|live|import` feature logic.
+- `src/{pages,components,hooks,lib,api,i18n}` UI; `lib/remote` account data, `lib/legacy` old local stores, `lib/import` feature logic.
 - `api/*.ts` thin Vercel functions; logic in `api/_lib/*`; every LLM call goes through `api/_lib/llm.ts`; AI endpoints wrapped in `withAuth`.
-- `supabase/` migrations and email templates; `tests/{e2e,game,supabase,accuracy,fixtures}`; `scripts/` build/test helpers.
+- `supabase/` migrations and email templates; `tests/{e2e,supabase,accuracy,fixtures,guards,prod}`; `scripts/` build/test helpers.
