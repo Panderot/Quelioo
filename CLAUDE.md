@@ -28,6 +28,9 @@ AI quiz / solve / cards / song / audio-lesson / live-game / written-exam web app
 - Speed: read only the files of the task; tsc/lint/build once at the end; independent AI calls in parallel; poll `version.json` every 20 s, at most 5 min; no interim summaries; leave no background jobs.
 - CI (`.github/workflows/ci.yml`): no AI keys are defined there; `tests/accuracy` and `tests/live` never run in CI. The game and supabase jobs need the `SUPABASE_TEST_*` secrets and skip without them.
 - Playwright headless, not Claude in Chrome. Only kill processes you started.
+- After every push: `gh run watch`. Red: `gh run view --log-failed`, fix and push again.
+- The report always quotes the CI summary (the TOTAL table of the `report` job): passed / failed / skipped / flaky and the duration.
+- A missing `SUPABASE_TEST_*` secret fails the job (never a green skip); game runs in 3 shards, reports are in the `playwright-report` artifact (14 days).
 
 ## Deploy
 - A push to master auto-deploys; verify `https://quelio.vercel.app/version.json`.

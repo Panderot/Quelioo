@@ -284,7 +284,8 @@ test.describe('Paper labels follow the exam output language', () => {
     expect(en).not.toContain('CEVAP ANAHTARI')
     const hyw = (await printToPdf(page, '?part=key&group=both', inLanguage('hyw'))).join(' ')
     expect(hyw).toContain('ՊԱՏԱՍԽԱՆԱԳԻՐ')
-    expect(hyw).toContain('Նիշ')
+    // The PDF text layer may split a word into letters on another platform's fonts ("ն ի շ"), so compare without whitespace.
+    expect(hyw.replace(/\s+/g, '')).toContain('Նիշ')
   })
 })
 

@@ -40,6 +40,8 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2, 3, 4]
+    env:
+      PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -58,91 +60,140 @@ jobs:
       - if: steps.pw-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
       # The same projects as `npm run test:e2e` (desktop + mobile, Chromium only); the dev server runs without HMR on the fake backend (see playwright.config.ts).
-      - run: npx playwright test --project=desktop --project=mobile --shard=${{ matrix.shard }}/4 --workers=2 --reporter=dot,html
+      - run: npx playwright test --project=desktop --project=mobile --shard=${{ matrix.shard }}/4 --workers=2 --reporter=dot,blob,json
+      - if: always()
+        run: node scripts/ci-summary.mjs results.json "e2e shard ${{ matrix.shard }}/4"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-e2e-${{ matrix.shard }}
+          path: blob-report
+          retention-days: 14
+          if-no-files-found: warn
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-e2e-${{ matrix.shard }}
-          path: |
-            playwright-report
-            test-results
-          retention-days: 7
+          name: failures-e2e-${{ matrix.shard }}
+          path: test-results
+          retention-days: 14
+          if-no-files-found: ignore
 
+  # The game suite is split in 3 shards (one worker each, its own dev server): a single runner took about 11 minutes.
   game:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     env:
+      PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
       SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
       SUPABASE_TEST_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_TEST_PUBLISHABLE_KEY }}
       SUPABASE_TEST_SECRET_KEY: ${{ secrets.SUPABASE_TEST_SECRET_KEY }}
       SUPABASE_TEST_PROJECT_REF: ${{ secrets.SUPABASE_TEST_PROJECT_REF }}
     steps:
-      - id: secrets
+      - name: Require the SUPABASE_TEST_* secrets
         run: |
-          if [ -n "$SUPABASE_TEST_URL" ] && [ -n "$SUPABASE_TEST_PUBLISHABLE_KEY" ] && [ -n "$SUPABASE_TEST_SECRET_KEY" ] && [ -n "$SUPABASE_TEST_PROJECT_REF" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::The SUPABASE_TEST_* secrets are not set: the game job is skipped."
+          if [ -z "$SUPABASE_TEST_URL" ] || [ -z "$SUPABASE_TEST_PUBLISHABLE_KEY" ] || [ -z "$SUPABASE_TEST_SECRET_KEY" ] || [ -z "$SUPABASE_TEST_PROJECT_REF" ]; then
+            echo "::error::A SUPABASE_TEST_* secret is missing: the game suite cannot run (it is not skipped)."
+            exit 1
           fi
-      - if: steps.secrets.outputs.ready == 'true'
-        uses: actions/checkout@v4
-      - if: steps.secrets.outputs.ready == 'true'
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - if: steps.secrets.outputs.ready == 'true'
-        run: npm ci
-      - if: steps.secrets.outputs.ready == 'true'
-        name: Playwright browsers
+      - run: npm ci
+      - name: Playwright browsers
         run: npx playwright install --with-deps chromium webkit
-      # `npm run test:game` (scripts/test-each.mjs) counts processes with PowerShell; in CI the same config runs directly, one worker.
-      - if: steps.secrets.outputs.ready == 'true'
-        run: npx playwright test --config=playwright.game.config.ts --project=desktop --project=mobile --workers=1 --reporter=dot,html
+      # `npm run test:game` (scripts/test-each.mjs) counts processes with PowerShell; in CI the same config runs directly, one worker per shard.
+      - run: npx playwright test --config=playwright.game.config.ts --project=desktop --project=mobile --shard=${{ matrix.shard }}/3 --workers=1 --reporter=dot,blob,json
+      - if: always()
+        run: node scripts/ci-summary.mjs results.json "game shard ${{ matrix.shard }}/3"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-game-${{ matrix.shard }}
+          path: blob-report
+          retention-days: 14
+          if-no-files-found: warn
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-game
-          path: |
-            playwright-report
-            test-results
-          retention-days: 7
+          name: failures-game-${{ matrix.shard }}
+          path: test-results
+          retention-days: 14
+          if-no-files-found: ignore
 
   supabase:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
       SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
       SUPABASE_TEST_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_TEST_PUBLISHABLE_KEY }}
       SUPABASE_TEST_SECRET_KEY: ${{ secrets.SUPABASE_TEST_SECRET_KEY }}
       SUPABASE_TEST_PROJECT_REF: ${{ secrets.SUPABASE_TEST_PROJECT_REF }}
     steps:
-      - id: secrets
+      - name: Require the SUPABASE_TEST_* secrets
         run: |
-          if [ -n "$SUPABASE_TEST_URL" ] && [ -n "$SUPABASE_TEST_PUBLISHABLE_KEY" ] && [ -n "$SUPABASE_TEST_SECRET_KEY" ] && [ -n "$SUPABASE_TEST_PROJECT_REF" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::The SUPABASE_TEST_* secrets are not set: the supabase job is skipped."
+          if [ -z "$SUPABASE_TEST_URL" ] || [ -z "$SUPABASE_TEST_PUBLISHABLE_KEY" ] || [ -z "$SUPABASE_TEST_SECRET_KEY" ] || [ -z "$SUPABASE_TEST_PROJECT_REF" ]; then
+            echo "::error::A SUPABASE_TEST_* secret is missing: the supabase suite cannot run (it is not skipped)."
+            exit 1
           fi
-      - if: steps.secrets.outputs.ready == 'true'
-        uses: actions/checkout@v4
-      - if: steps.secrets.outputs.ready == 'true'
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - if: steps.secrets.outputs.ready == 'true'
-        run: npm ci
-      - if: steps.secrets.outputs.ready == 'true'
-        name: Playwright browsers
+      - run: npm ci
+      - name: Playwright browsers
         run: npx playwright install --with-deps chromium
-      - if: steps.secrets.outputs.ready == 'true'
-        run: npx playwright test --config=playwright.supabase.config.ts --project=desktop --project=mobile --workers=2 --reporter=dot,html
+      - run: npx playwright test --config=playwright.supabase.config.ts --project=desktop --project=mobile --workers=2 --reporter=dot,blob,json
+      - if: always()
+        run: node scripts/ci-summary.mjs results.json "supabase"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-supabase
+          path: blob-report
+          retention-days: 14
+          if-no-files-found: warn
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-supabase
-          path: |
-            playwright-report
-            test-results
-          retention-days: 7
+          name: failures-supabase
+          path: test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # One HTML report and one total for every shard of every suite.
+  report:
+    needs: [e2e, game, supabase]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PLAYWRIGHT_JSON_OUTPUT_NAME: merged.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-*
+          path: all-blobs
+          merge-multiple: true
+      - run: npx playwright merge-reports --reporter=html,json ./all-blobs
+      - if: always()
+        run: node scripts/ci-summary.mjs merged.json "TOTAL (all suites and shards)"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 14

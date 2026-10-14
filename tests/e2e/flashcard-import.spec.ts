@@ -96,8 +96,10 @@ test.describe('CSV import formats', () => {
   })
 
   test('quoted fields keep line breaks, separators and escaped quotes', () => {
-    expect(analyzeCsv(read('multiline-quoted.csv')).cards).toEqual([
-      { front: 'Satır 1\r\nSatır 2', back: 'Cevap, virgüllü "tırnaklı"' },
+    // The fixture's line endings follow the checkout (CRLF with Windows autocrlf, LF on Linux), so compare with LF only.
+    const cards = analyzeCsv(read('multiline-quoted.csv')).cards.map((card) => ({ front: card.front.replace(/\r\n/g, '\n'), back: card.back.replace(/\r\n/g, '\n') }))
+    expect(cards).toEqual([
+      { front: 'Satır 1\nSatır 2', back: 'Cevap, virgüllü "tırnaklı"' },
       { front: 'Tek satır', back: 'İki\nsatır' },
     ])
   })

@@ -130,10 +130,11 @@ test('pause stops the clock and refuses answers; resume gives back the remaining
   expect(paused.body.game.pausedRemainingMs).toBeLessThanOrEqual(9100)
   expect(paused.body.game.deadlineAt).toBeNull()
   expect((await answer(players[0].token, 0, [1])).body.error).toBe('paused')
-  await sleep(1500)
+  await sleep(3000)
   const resumed = await command(teacher, id, 'resume')
   const left = resumed.body.game.deadlineAt! - Date.now()
-  expect(left).toBeGreaterThan(7500)
+  // The 3 s spent paused must not be counted; only the network round trips to the remote test project may be lost (CI is slower than a local run).
+  expect(left).toBeGreaterThan(paused.body.game.pausedRemainingMs! - 1500)
   expect(left).toBeLessThanOrEqual(9100)
   expect((await answer(players[0].token, 0, [1])).status).toBe(200)
 })
