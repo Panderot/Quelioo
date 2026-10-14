@@ -63,3 +63,15 @@ export function endRiseSemitones(samples: Float32Array, sampleRate: number): num
   if (end.length < 6 || before.length < 6) return null
   return 12 * Math.log2(median(end) / median(before))
 }
+
+/** Median pitch (Hz) over the voiced frames of a whole line, sampled about every 5th frame so a long line
+ * stays cheap; null when too little of the line is voiced to tell. Used to check that a speaker's voice
+ * stays in its own register (male or female) in every line of a lesson. */
+export function medianPitchHz(samples: Float32Array, sampleRate: number): number | null {
+  const found: number[] = []
+  for (let start = 0; start + FRAME < samples.length; start += HOP * 5) {
+    const hz = frequencyAt(samples, start, sampleRate)
+    if (hz !== null) found.push(hz)
+  }
+  return found.length >= 8 ? median(found) : null
+}

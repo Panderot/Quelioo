@@ -163,7 +163,7 @@ test.describe('Audio Lesson — create, list and edit', () => {
 
     await page.getByRole('button', { name: 'Plan the lesson' }).click()
     const plan = page.locator('[data-purpose="lesson-plan"]')
-    await expect(plan).toContainText(/This text will be one episode of about \d+ minutes/)
+    await expect(plan).toContainText(/This text will be one episode of about \d+([.]\d)? minutes/)
     await expect(plan).toContainText('4 key points')
     await expect(plan).not.toContainText('$')
     await expect(plan).not.toContainText(/cost/i)

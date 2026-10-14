@@ -5,8 +5,8 @@ import { cleanString, isRecord } from './llm-json.js'
 import { encodeMp3 } from './mp3-encode.js'
 import { LESSON_SPEAKERS, effectiveDelivery, isDeliveryHint, isLessonStyle } from '../../src/lib/lesson.js'
 import type { DeliveryHint, LessonErrorCode } from '../../src/lib/lesson.js'
-import { floatToPcm16, normalizeLoudness, pcm16ToFloat, truePeakDb } from '../../src/lib/loudness.js'
-import { MIN_QUESTION_RISE_SEMITONES, endRiseSemitones } from '../../src/lib/pitch.js'
+import { floatToPcm16, normalizeLoudness, pcm16ToFloat, trimSilence, truePeakDb } from '../../src/lib/loudness.js'
+import { MIN_QUESTION_RISE_SEMITONES, endRiseSemitones, medianPitchHz } from '../../src/lib/pitch.js'
 import {
   DAILY_AUDIO_SECONDS_CAP,
   DAILY_LESSON_CAP,
@@ -16,8 +16,11 @@ import {
   estimateSpeechCostUsd,
   estimateSpeechSeconds,
   lineInstruction,
+  pitchBandDistance,
+  pitchInBand,
+  resolveVoices,
   spokenText,
-  voiceFor,
+  voiceGender,
 } from '../../src/lib/lessonAudio.js'
 import { mp3DurationSeconds } from '../../src/lib/mp3.js'
 
@@ -29,6 +32,8 @@ interface SpokenSegment {
   /** base64 MP3 */
   audio: string
   durationSeconds: number
+  /** Median pitch of the line (Hz), null when it could not be measured. */
+  pitchHz: number | null
 }
 
 export interface SpeakResponse {
@@ -125,6 +130,13 @@ interface TtsResult {
 const PCM_SAMPLE_RATE = 24_000
 /** A flat-sounding question is spoken again at most this many times; the take with the highest end rise is kept. */
 const MAX_QUESTION_RETAKES = 2
+/** A line whose pitch is outside its speaker's register (a man sounding like a woman, or the reverse) is spoken again at most this many times. */
+const MAX_VOICE_RETAKES = 2
+/** Added to the instruction when a line came back in the wrong register. */
+const WRONG_REGISTER_NOTE: Record<'f' | 'm', string> = {
+  m: ' The previous attempt sounded too high: speak in a clearly deeper, lower, unmistakably male voice.',
+  f: ' The previous attempt sounded too low: speak in a clearly higher, unmistakably female voice.',
+}
 /** Added to the instruction when a question came back flat and is spoken once more. */
 const FLAT_QUESTION_NOTE = ' The previous attempt sounded flat: exaggerate the rising pitch on the last word of this question.'
 
@@ -197,8 +209,7 @@ export function parseSpeakRequest(payload: Record<string, unknown>):
     if (!text) return 'bad_type'
     parsed.push({ id: entry.id.slice(0, 40), speaker: entry.speaker, text, ...(isDeliveryHint(entry.delivery) ? { delivery: entry.delivery } : {}) })
   }
-  const voiceMap: Record<string, string> = {}
-  for (const speaker of speakers) voiceMap[speaker] = voiceFor(speaker, isRecord(voices) ? (voices as Record<string, string>) : undefined)
+  const voiceMap = resolveVoices(speakers, isRecord(voices) ? (voices as Record<string, string>) : undefined)
   return { lines: parsed, voices: voiceMap, language: typeof language === 'string' ? language.slice(0, 20) : 'auto', lessonKey: lessonKey.trim(), style }
 }
 
@@ -227,7 +238,8 @@ export async function speakBatch(
     while (next < prepared.length) {
       const line = prepared[next++]
       const voice = request.voices[line.speaker]
-      const instructions = lineInstruction(line, request.language)
+      const instructions = lineInstruction(line, request.language, voice)
+      const gender = voiceGender(voice)
       const result = (await callTts({ text: line.spoken, voice, instructions })) ?? (await callTts({ text: line.spoken, voice, instructions }))
       if (!result) {
         failed.push(line.id)
@@ -237,11 +249,29 @@ export async function speakBatch(
       let lineCost = result.costUsd
       ttsInputTokens += result.inputTokens
       ttsOutputTokens += result.outputTokens
+      // The voice stays in its speaker's register in every line: a line that sounds like the other gender is spoken again.
+      let pitch = medianPitchHz(samples, PCM_SAMPLE_RATE)
+      let registerNote = ''
+      for (let take = 1; take <= MAX_VOICE_RETAKES && gender && pitch !== null && !pitchInBand(pitch, gender); take += 1) {
+        registerNote = WRONG_REGISTER_NOTE[gender]
+        const again = await callTts({ text: line.spoken, voice, instructions: `${instructions}${registerNote}` })
+        if (!again) break
+        lineCost += again.costUsd
+        ttsInputTokens += again.inputTokens
+        ttsOutputTokens += again.outputTokens
+        const retakeSamples = pcm16ToFloat(again.pcm)
+        const retakePitch = medianPitchHz(retakeSamples, PCM_SAMPLE_RATE)
+        console.log(`lesson: speak register take=${take + 1} gender=${gender} before=${Math.round(pitch)} retake=${retakePitch === null ? 'n/a' : Math.round(retakePitch)}`)
+        if (retakePitch !== null && pitchBandDistance(retakePitch, gender) < pitchBandDistance(pitch, gender)) {
+          samples = retakeSamples
+          pitch = retakePitch
+        }
+      }
       // A question must sound like one: when the pitch does not rise at the end, it is spoken once more and the better take is kept.
       if (effectiveDelivery(line) === 'question') {
         let rise = endRiseSemitones(samples, PCM_SAMPLE_RATE)
         for (let take = 1; take <= MAX_QUESTION_RETAKES && rise !== null && rise < MIN_QUESTION_RISE_SEMITONES; take += 1) {
-          const again = await callTts({ text: line.spoken, voice, instructions: `${instructions}${FLAT_QUESTION_NOTE}` })
+          const again = await callTts({ text: line.spoken, voice, instructions: `${instructions}${registerNote}${FLAT_QUESTION_NOTE}` })
           if (!again) break
           lineCost += again.costUsd
           ttsInputTokens += again.inputTokens
@@ -255,13 +285,14 @@ export async function speakBatch(
           }
         }
       }
-      const normalized = normalizeLoudness(samples, PCM_SAMPLE_RATE)
+      pitch = medianPitchHz(samples, PCM_SAMPLE_RATE) ?? pitch
+      const normalized = normalizeLoudness(trimSilence(samples, PCM_SAMPLE_RATE), PCM_SAMPLE_RATE)
       const audio = encodeMp3(floatToPcm16(normalized.samples), PCM_SAMPLE_RATE)
       const durationSeconds = mp3DurationSeconds(audio)
       costUsd += lineCost
       seconds += durationSeconds
       console.log(`lesson: speak line lufsBefore=${normalized.beforeLufs.toFixed(1)} gainDb=${normalized.gainDb.toFixed(1)} peakDb=${truePeakDb(normalized.samples).toFixed(1)}`)
-      segments.push({ id: line.id, audio: Buffer.from(audio).toString('base64'), durationSeconds: Math.round(durationSeconds * 1000) / 1000 })
+      segments.push({ id: line.id, audio: Buffer.from(audio).toString('base64'), durationSeconds: Math.round(durationSeconds * 1000) / 1000, pitchHz: pitch === null ? null : Math.round(pitch) })
     }
   }
   await Promise.all(Array.from({ length: Math.min(TTS_PARALLEL, prepared.length) }, worker))

@@ -38,6 +38,15 @@ export interface KeyPoint {
   topic: string
   /** Facts of the shared plan merged into this key point (a list counts as one); 1 when unknown. */
   facts?: number
+  /** The facts of this key point one by one, each a single statement in the lesson language (what the plan shows). */
+  points?: string[]
+}
+
+/** The key point as separate plain statements for the screen: one fact each, no internal labels. Older saved
+ * lessons only have the joined text ("... Items: a; b."): the label is turned into a plain list. */
+export function keyPointDisplay(point: Pick<KeyPoint, 'text' | 'points'>): string[] {
+  if (point.points && point.points.length > 0) return point.points
+  return [point.text.replace(/[.:;]?\s*Items:\s*([^.]*)\./g, (_all, list: string) => `: ${list.split(';').map((item) => item.trim()).join(', ')}.`).trim()]
 }
 
 export interface EpisodePlan {
@@ -162,7 +171,7 @@ const DEFAULT_TIMING = { secondsPerWord: 0.4, lineGap: 1 }
 /** A typical line is this many words long (used to turn a time target into a word budget). */
 const TYPICAL_WORDS_PER_LINE = 9
 
-function timingFor(language: string) {
+export function timingFor(language: string) {
   return SPEECH_TIMING[language] ?? DEFAULT_TIMING
 }
 
@@ -363,4 +372,15 @@ export function parseLineIssue(issue: string): { kind: 'symbols' | 'long' | 'cal
   if (head === 'calc') return { kind: 'calc', detail }
   if (head === 'repeat') return { kind: 'repeat', detail: '' }
   return { kind: 'fact', detail }
+}
+
+/** Fixed "think about it" phrases the lesson must never contain (the writer is told so; this removes what slips through). */
+export const FIXED_THINK_PHRASE = /(?<!\p{L})(?:bir\s+(?:an\s+)?düşün\p{L}*|(?:think\s+about\s+it|take\s+a\s+(?:second|moment|minute)\s+to\s+think|pause\s+and\s+think|give\s+it\s+a\s+(?:second|moment)\s+of\s+thought))(?!\p{L})/iu
+/** A sentence that invites the listener to think or guess (counted by the lesson audit). */
+export const THINK_INVITATION = /(?<!\p{L})(?:düşün\p{L}*|tahmin\p{L}*|aklından\p{L}*|think\p{L}*|guess\p{L}*|wonder\p{L}*)(?!\p{L})/iu
+
+/** Minutes shown on the plan, in half-minute steps ("3,5" / "3.5"), so a 3:20 lesson is not announced as "3" or "4". */
+export function planMinutes(seconds: number, locale: string): string {
+  const halves = Math.max(4, Math.round(seconds / 30))
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(halves / 2)
 }

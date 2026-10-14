@@ -10,14 +10,14 @@ import {
   SPEAK_BATCH_LINES,
   SPEAK_PARALLEL_REQUESTS,
   TTS_MODEL,
-  TTS_VOICES,
+  LESSON_VOICES,
   estimateSpeechCostUsd,
   estimateSpeechSeconds,
   joinedAudioSeconds,
   lessonLines,
   segmentKey,
   spokenText,
-  voiceFor,
+  resolveVoices,
 } from '../../lib/lessonAudio'
 import { addLessonSpend, getSegments, monthLessonSpendUsd, putSegment } from '../../lib/lessonStorage'
 import type { StoredEpisode, StoredLesson, StoredSegment } from '../../lib/lessonStorage'
@@ -53,7 +53,7 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
   const uid = useId()
   const script = episode.script!
   const speakers = LESSON_SPEAKERS[lesson.options.style]
-  const voices = useMemo(() => Object.fromEntries(speakers.map((speaker) => [speaker, voiceFor(speaker, episode.voices)])), [speakers, episode.voices])
+  const voices = useMemo(() => resolveVoices(speakers, episode.voices), [speakers, episode.voices])
   const lines = useMemo(() => lessonLines(script.sections), [script.sections])
   const keys = useMemo(() => new Map(lines.map((line) => [line.id, segmentKey(line, voices[line.speaker], lesson.options.language)])), [lines, voices, lesson.options.language])
 
@@ -126,7 +126,7 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
     [onSave, episode.part],
   )
 
-  const setVoice = (speaker: string, voice: string) => void saveEpisode(lesson, (entry) => ({ ...entry, voices: { ...voices, [speaker]: voice } }))
+  const setVoice = (speaker: string, voice: string) => void saveEpisode(lesson, (entry) => ({ ...entry, voices: resolveVoices(speakers, { ...voices, [speaker]: voice }, speaker) }))
 
   const preview = (voice: string) => {
     const audio = previewRef.current
@@ -252,7 +252,7 @@ export default function LessonAudio({ lesson, episode, totalParts, isOwnerView, 
                         id={`${uid}-${speaker}-select`}
                         labelledBy={`${uid}-${speaker}`}
                         value={voices[speaker]}
-                        options={TTS_VOICES.map((voice) => ({ value: voice, label: t(`lessons.voices.${voice}`) }))}
+                        options={[...LESSON_VOICES.f, ...LESSON_VOICES.m].map((voice) => ({ value: voice, label: t(`lessons.voices.${voice}`) }))}
                         onChange={(voice) => setVoice(speaker, voice)}
                         disabled={recording !== null}
                       />

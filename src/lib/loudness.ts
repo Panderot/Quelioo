@@ -168,3 +168,24 @@ export function floatToPcm16(samples: Float32Array): Int16Array {
   for (let index = 0; index < samples.length; index += 1) out[index] = Math.max(-32768, Math.min(32767, Math.round(samples[index] * 32767)))
   return out
 }
+
+/** Cuts the voice's lead-in and tail silence of one line (quiet = under -45 dBFS in 10 ms windows), keeping a short
+ * natural margin, so the joined lesson has no hidden multi-second gaps besides the deliberate pauses. */
+export function trimSilence(samples: Float32Array, sampleRate: number, keepHeadSeconds = 0.08, keepTailSeconds = 0.18): Float32Array {
+  const window = Math.round(sampleRate * 0.01)
+  const threshold = 10 ** (-45 / 20)
+  const loud = (start: number) => {
+    let sum = 0
+    const end = Math.min(samples.length, start + window)
+    for (let index = start; index < end; index += 1) sum += samples[index] * samples[index]
+    return Math.sqrt(sum / Math.max(1, end - start)) > threshold
+  }
+  let first = 0
+  while (first < samples.length && !loud(first)) first += window
+  if (first >= samples.length) return samples
+  let last = samples.length - window
+  while (last > first && !loud(last)) last -= window
+  const from = Math.max(0, first - Math.round(keepHeadSeconds * sampleRate))
+  const to = Math.min(samples.length, last + window + Math.round(keepTailSeconds * sampleRate))
+  return samples.subarray(from, to)
+}

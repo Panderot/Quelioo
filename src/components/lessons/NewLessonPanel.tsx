@@ -9,7 +9,7 @@ import type { LessonClientErrorCode } from '../../api/lesson'
 import { useArchive } from '../../lib/archive'
 import { extractTextFromFile, FileExtractionError } from '../../lib/fileExtraction'
 import type { FileErrorCode } from '../../lib/fileExtraction'
-import { LESSON_LEVELS, LESSON_STYLES, LESSON_TONES, episodeTargetSeconds } from '../../lib/lesson'
+import { LESSON_LEVELS, LESSON_STYLES, LESSON_TONES, episodeTargetSeconds, keyPointDisplay, planMinutes } from '../../lib/lesson'
 import type { EpisodePlan, KeyPoint, LessonLevel, LessonOptions, LessonStyle, LessonTone } from '../../lib/lesson'
 import { addLessonSpend, createLessonId, getCachedPlan, lessonSourceHash, planCacheKey, putCachedPlan, putLesson } from '../../lib/lessonStorage'
 import type { LessonSourceKind, StoredLesson } from '../../lib/lessonStorage'
@@ -56,7 +56,7 @@ const chipClass = (selected: boolean) =>
 const fieldLabel = 'mb-1 block text-[11px] font-bold tracking-wide text-muted uppercase'
 
 export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, onBusyChange }: NewLessonPanelProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const uid = useId()
 
@@ -535,7 +535,7 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
           <p className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('lessons.plan.heading')}</p>
           <div className="space-y-1">
             <p className="font-serif text-lg font-semibold text-navy">
-              {plan.episodes.length > 1 ? t('lessons.plan.series', { count: plan.episodes.length }) : t('lessons.plan.single', { minutes: Math.max(2, Math.round(episodeTargetSeconds({ sourceWords: countWords(resolvedForPlan?.text ?? ''), episodes: 1 }) / 60)) })}
+              {plan.episodes.length > 1 ? t('lessons.plan.series', { count: plan.episodes.length }) : t('lessons.plan.single', { minutes: planMinutes(episodeTargetSeconds({ sourceWords: countWords(resolvedForPlan?.text ?? ''), episodes: 1 }), i18n.language) })}
             </p>
             <button
               type="button"
@@ -553,9 +553,10 @@ export default function NewLessonPanel({ onClose, requiresAccessCode, lessons, o
                 <li key={episode.part} className="space-y-1">
                   {plan.episodes.length > 1 && <p className="text-xs font-bold text-muted">{t('lessons.detail.partTab', { n: episode.part })}</p>}
                   <ul className="list-disc space-y-1 pl-5">
-                    {episode.keyPointIds.map((id) => (
-                      <li key={id}>{plan.keyPoints.find((point) => point.id === id)?.text}</li>
-                    ))}
+                    {episode.keyPointIds.flatMap((id) => {
+                      const point = plan.keyPoints.find((entry) => entry.id === id)
+                      return point ? keyPointDisplay(point).map((shown, index) => <li key={`${id}-${index}`}>{shown}</li>) : []
+                    })}
                   </ul>
                 </li>
               ))}

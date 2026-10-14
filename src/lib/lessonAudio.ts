@@ -13,8 +13,33 @@ const TTS_USD_PER_MINUTE = 0.0183
 
 export const TTS_VOICES: readonly string[] = ['alloy', 'ash', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'ballad', 'verse', 'marin', 'cedar']
 
-/** Two clearly different default voices for two-speaker styles. */
-const DEFAULT_VOICES: Record<string, string> = { hostA: 'marin', hostB: 'cedar', teacher: 'cedar', student: 'marin', narrator: 'marin' }
+export type VoiceGender = 'f' | 'm'
+
+/** Voices a lesson may use, with the register measured on real recordings (median pitch of Turkish lines:
+ * ash 115 Hz, echo 120, fable 132, onyx 92 | sage 195, marin 193, coral 209). cedar, verse, alloy, shimmer, nova
+ * and ballad sit between 135 and 190 Hz and sounded male in one line and female in the next: not offered. */
+export const LESSON_VOICES: Record<VoiceGender, readonly string[]> = { f: ['marin', 'coral', 'sage'], m: ['ash', 'echo', 'fable', 'onyx'] }
+/** Allowed median pitch of one line by gender: a line outside it is spoken again; the gap keeps the two registers apart. */
+export const VOICE_PITCH_BANDS: Record<VoiceGender, { min: number; max: number }> = { m: { min: 70, max: 150 }, f: { min: 165, max: 300 } }
+/** Two speakers of one lesson differ by at least this much (median pitch, Hz). */
+export const MIN_SPEAKER_PITCH_GAP_HZ = 40
+
+export function voiceGender(voice: string): VoiceGender | null {
+  return LESSON_VOICES.f.includes(voice) ? 'f' : LESSON_VOICES.m.includes(voice) ? 'm' : null
+}
+
+export function pitchInBand(hz: number, gender: VoiceGender): boolean {
+  return hz >= VOICE_PITCH_BANDS[gender].min && hz <= VOICE_PITCH_BANDS[gender].max
+}
+
+/** Distance of a pitch from its gender's band (0 inside), used to keep the closest take. */
+export function pitchBandDistance(hz: number, gender: VoiceGender): number {
+  const band = VOICE_PITCH_BANDS[gender]
+  return hz < band.min ? band.min - hz : hz > band.max ? hz - band.max : 0
+}
+
+/** Default voice per speaker: one woman and one man in the two-speaker styles, clearly apart. */
+const DEFAULT_VOICES: Record<string, string> = { hostA: 'marin', hostB: 'ash', teacher: 'ash', student: 'marin', narrator: 'marin' }
 
 export { PAUSE_SECONDS } from './lesson.js'
 /** Lines per "speak" request and requests in flight: each request stays far under the 300s limit. */
@@ -37,9 +62,16 @@ const DELIVERY_INSTRUCTIONS: Record<DeliveryHint, string> = {
 }
 
 /** Bumped when the audio processing changes (loudness normalization), so older recordings are redone. */
-const AUDIO_VERSION = 2
+const AUDIO_VERSION = 3
 
-export function speakerInstruction(speaker: string, language: string, delivery?: DeliveryHint): string {
+/** Who is speaking, fixed for the whole lesson: the voice never changes between lines, only pace and energy do. */
+function voiceIdentity(gender: VoiceGender | null): string {
+  if (gender === 'm') return ' You are a man with a deep, low-pitched voice. Keep exactly the same deep male voice, pitch register and timbre in every line, whatever the emotion: emotion changes only pace and energy, never the voice. Never sound like a woman.'
+  if (gender === 'f') return ' You are a woman with a clear, higher-pitched voice. Keep exactly the same female voice, pitch register and timbre in every line, whatever the emotion: emotion changes only pace and energy, never the voice. Never sound like a man.'
+  return ' Keep exactly the same voice, pitch register and timbre in every line, whatever the emotion.'
+}
+
+export function speakerInstruction(speaker: string, language: string, delivery?: DeliveryHint, gender: VoiceGender | null = null): string {
   const voice: Record<string, string> = {
     teacher: 'a warm, clear, patient teacher who explains step by step',
     student: 'a curious, friendly student who asks real questions',
@@ -52,12 +84,12 @@ export function speakerInstruction(speaker: string, language: string, delivery?:
     ? `Speak natural ${name} with a native ${name} accent and correct ${name} stress and intonation.`
     : 'Speak the language of the text naturally, with a native accent and correct stress and intonation.'
   const line = delivery ? ` ${DELIVERY_INSTRUCTIONS[delivery]}` : ''
-  return `Voice: ${voice[speaker] ?? voice.narrator}. ${accent} Moderate, steady pace; short natural pauses at commas and full stops.${line}`
+  return `Voice: ${voice[speaker] ?? voice.narrator}.${voiceIdentity(gender)} ${accent} Moderate, steady pace; short natural pauses at commas and full stops.${line}`
 }
 
 /** The delivery a line is spoken with: the writer's hint, and always "question" for a question. */
-export function lineInstruction(line: Pick<ScriptLine, 'text' | 'speaker' | 'delivery'>, language: string): string {
-  return speakerInstruction(line.speaker, language, effectiveDelivery(line))
+export function lineInstruction(line: Pick<ScriptLine, 'text' | 'speaker' | 'delivery'>, language: string, voice?: string): string {
+  return speakerInstruction(line.speaker, language, effectiveDelivery(line), voice ? voiceGender(voice) : null)
 }
 
 /** Exactly what the server will send to TTS for this line (deterministic). */
@@ -67,12 +99,31 @@ export function spokenText(line: Pick<ScriptLine, 'text'>, language: string): { 
 
 /** Segment cache key: (normalized text, voice, model, instructions). Identical lines share audio. */
 export function segmentKey(line: Pick<ScriptLine, 'text' | 'speaker' | 'delivery'>, voice: string, language: string): string {
-  return hashText(JSON.stringify([spokenText(line, language).text, voice, TTS_MODEL, lineInstruction(line, language), AUDIO_VERSION]))
+  return hashText(JSON.stringify([spokenText(line, language).text, voice, TTS_MODEL, lineInstruction(line, language, voice), AUDIO_VERSION]))
 }
 
 export function voiceFor(speaker: string, voices: Record<string, string> | undefined): string {
   const chosen = voices?.[speaker]
-  return chosen && TTS_VOICES.includes(chosen) ? chosen : (DEFAULT_VOICES[speaker] ?? TTS_VOICES[0])
+  return chosen && voiceGender(chosen) ? chosen : (DEFAULT_VOICES[speaker] ?? DEFAULT_VOICES.narrator)
+}
+
+/** One fixed voice per speaker for the whole lesson. A two-speaker lesson always has one woman and one man:
+ * when the second speaker was given the first one's gender, it gets the default voice of the other gender. */
+export function resolveVoices(speakers: readonly string[], voices: Record<string, string> | undefined, keep?: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const speaker of speakers) out[speaker] = voiceFor(speaker, voices)
+  if (speakers.length === 2) {
+    const [first, second] = speakers
+    if (voiceGender(out[first]) === voiceGender(out[second])) {
+      // The speaker the student just chose keeps the voice; the other one changes.
+      const change = keep === second ? first : second
+      const kept = change === first ? second : first
+      const other: VoiceGender = voiceGender(out[kept]) === 'f' ? 'm' : 'f'
+      const wanted = DEFAULT_VOICES[change]
+      out[change] = wanted && voiceGender(wanted) === other ? wanted : LESSON_VOICES[other][0]
+    }
+  }
+  return out
 }
 
 /** About 14 characters of Turkish/English speech per second at a normal pace. */

@@ -151,8 +151,8 @@ test.describe('/api/lesson: fixed 6-minute episodes and series split', () => {
     expect(forWords(2000)).toBe(360)
     expect(forWords(45, 3)).toBe(360) // every part of a series is a full episode
     // A short lesson has no "explain it simply" section and fewer self-check questions.
-    expect(episodeProfile(forWords(45))).toEqual({ feynman: false, selfcheckQuestions: 2 })
-    expect(episodeProfile(360)).toEqual({ feynman: true, selfcheckQuestions: 3 })
+    expect(episodeProfile(forWords(45))).toEqual({ feynman: false, selfcheckQuestions: 1 })
+    expect(episodeProfile(360)).toEqual({ feynman: true, selfcheckQuestions: 1 })
     // The word budget follows the target and the language, not a fixed 6 minutes.
     expect(wordBudget('tr', forWords(45)).target).toBeLessThan(wordBudget('tr', 360).target / 2)
     expect(wordBudget('en', 360).target).toBeGreaterThan(wordBudget('tr', 360).target)
@@ -266,7 +266,9 @@ test.describe('/api/lesson: plan (key points)', () => {
       text,
     )
     expect(points).toHaveLength(4) // a short source keeps (nearly) every fact as its own key point
-    expect(points[2].text).toContain('carbon dioxide; water; light')
+    expect(points[2].text).toContain('carbon dioxide, water, light')
+    expect(points.map((point) => point.text).join(' ')).not.toContain('Items:') // no internal label on the plan screen
+    expect(points[2].points).toEqual([points[2].text])
     expect(points.map((point) => point.id)).toEqual(['K1', 'K2', 'K3', 'K4'])
     expect(points.map((point) => point.text).join(' ')).toContain('Oxygen is released.')
   })
@@ -332,7 +334,7 @@ test.describe('/api/lesson: script', () => {
     await handleLessonRequest({ ...scriptPayload(), text: shortText, language: 'auto' }, { ip: nextIp() })
     const rules = calls[0].developer[1]
     expect(rules).toContain('Do NOT include a "feynman" section')
-    expect(rules).toContain('has 2 mixed questions')
+    expect(rules).toContain('exactly ONE "try it yourself" question')
     expect(rules).toContain('a SHORT lesson')
     expect(rules).not.toContain('about 6.0 minutes')
     const words = Number(rules.match(/LENGTH: about (\d+) spoken words/)?.[1])
@@ -347,7 +349,7 @@ test.describe('/api/lesson: script', () => {
     const calls = stubOpenAi([writerReply(), cleanCheck()])
     await handleLessonRequest(scriptPayload(), { ip: nextIp() })
     expect(calls[0].developer[1]).toContain('Include the "feynman" section')
-    expect(calls[0].developer[1]).toContain('has 3 mixed questions')
+    expect(calls[0].developer[1]).toContain('exactly ONE "try it yourself" question')
     expect(calls[0].developer[1]).toContain('about 6.0 minutes')
   })
 
@@ -448,7 +450,7 @@ test.describe('/api/lesson: script', () => {
     await handleLessonRequest(scriptPayload(2, episodes), { ip: nextIp() })
     expect(middle[0].developer[1]).toContain('part 2 of a 3-part series')
     expect(middle[0].developer[1]).toContain('Start with a "recall" section')
-    expect(middle[0].developer[1]).toContain('3 mixed questions about this episode')
+    expect(middle[0].developer[1]).toContain('exactly ONE "try it yourself" question')
     expect(middle[0].user).toContain('<previous_key_points>')
     expect(middle[0].user).toContain('<key_point id="K1">')
 
@@ -512,6 +514,9 @@ test.describe('/api/lesson: pieces', () => {
 test.describe('/api/lesson: speak (text-to-speech)', () => {
   test.afterEach(resetEnv)
 
+  /** A steady tone in the register of the requested voice (a woman about 190 Hz, a man about 115 Hz). */
+  const voiceHz = (voice: string) => (['marin', 'coral', 'sage'].includes(voice) ? 190 : 115)
+
   /** Stubs OpenAI's speech endpoint; `plan` decides per call: seconds of audio, or an HTTP error status. */
   function stubSpeech(plan: (call: number, body: Record<string, unknown>) => number | { status: number } | { pcm: Uint8Array }) {
     const calls: Record<string, unknown>[] = []
@@ -523,7 +528,7 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
       calls.push(body)
       const result = plan(calls.length, body)
       if (typeof result !== 'number' && 'status' in result) return new Response('{"error":{}}', { status: result.status })
-      const pcm = typeof result === 'number' ? tinyPcm(result) : result.pcm
+      const pcm = typeof result === 'number' ? glidePcm(result, voiceHz(String(body.voice)), voiceHz(String(body.voice))) : result.pcm
       const audioSeconds = pcm.length / 2 / 24000
       if (body.stream_format !== 'sse') return new Response(pcm as BodyInit, { status: 200, headers: { 'content-type': 'audio/pcm' } })
       // Token-billed models stream base64 audio deltas, then usage.
@@ -544,7 +549,7 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
     lessonKey,
     style: 'two_hosts',
     language: 'tr',
-    voices: { hostA: 'shimmer', hostB: 'not-a-voice' },
+    voices: { hostA: 'coral', hostB: 'not-a-voice' },
     lines,
   })
 
@@ -561,8 +566,8 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
     const result = body as { segments: { id: string; audio: string; durationSeconds: number }[]; unknownAbbreviations: string[]; usage: { costUsd: number; seconds: number } }
     expect(calls.map((call) => call.model)).toEqual(['gpt-4o-mini-tts', 'gpt-4o-mini-tts'])
     expect(calls.map((call) => call.input).sort()).toEqual(["a-te-pe üç kez.", "de-en-a'nın yüzde yetmiş'i ve iks-kü-ze."].sort())
-    expect(calls.find((call) => String(call.input).startsWith('de-en-a'))?.voice).toBe('shimmer')
-    expect(calls.find((call) => String(call.input).startsWith('a-te-pe'))?.voice).toBe('cedar') // unknown voice -> default
+    expect(calls.find((call) => String(call.input).startsWith('de-en-a'))?.voice).toBe('coral')
+    expect(calls.find((call) => String(call.input).startsWith('a-te-pe'))?.voice).toBe('ash') // unknown voice -> the default man's voice
     expect(calls.every((call) => call.response_format === 'pcm' && call.stream_format === 'sse')).toBe(true)
     expect(String(calls[0].instructions)).toContain('Speak natural Turkish with a native Turkish accent')
     expect(calls.find((call) => String(call.input).startsWith('a-te-pe'))?.instructions).toContain('co-host')
@@ -616,7 +621,7 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
   })
 
   test('a question that comes back flat is spoken once more and the rising take is kept; statements are never re-spoken', async () => {
-    const calls = stubSpeech((call, body) => (String(body.input).includes('?') ? (String(body.instructions).includes('previous attempt sounded flat') ? { pcm: glidePcm(3, 150, 215) } : { pcm: glidePcm(3, 150, 150) }) : { pcm: glidePcm(3, 150, 105) }))
+    const calls = stubSpeech((call, body) => (String(body.input).includes('?') ? (String(body.instructions).includes('previous attempt sounded flat') ? { pcm: glidePcm(3, 190, 270) } : { pcm: glidePcm(3, 190, 190) }) : { pcm: glidePcm(3, 115, 100) }))
     const { body } = await handleLessonRequest(
       speakPayload([
         { id: 'q', speaker: 'hostA', text: 'Su gerekli mi?' },
@@ -634,7 +639,7 @@ test.describe('/api/lesson: speak (text-to-speech)', () => {
   })
 
   test('a question that already rises is spoken once', async () => {
-    const calls = stubSpeech(() => ({ pcm: glidePcm(3, 150, 215) }))
+    const calls = stubSpeech(() => ({ pcm: glidePcm(3, 190, 270) }))
     await handleLessonRequest(speakPayload([{ id: 'q', speaker: 'hostA', text: 'Su gerekli mi?' }]), { ip: nextIp() })
     expect(calls).toHaveLength(1)
   })

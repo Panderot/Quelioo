@@ -9,7 +9,7 @@ import LessonAudio from '../components/lessons/LessonAudio'
 import ScriptEditor from '../components/lessons/ScriptEditor'
 import { CheckIcon, ChevronDownIcon, SpinnerIcon, WarningIcon } from '../components/icons'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { episodeSeconds, formatClock, scriptWordCount } from '../lib/lesson'
+import { episodeSeconds, formatClock, keyPointDisplay, scriptWordCount } from '../lib/lesson'
 import type { ScriptSection } from '../lib/lesson'
 import { addLessonSpend, getLesson, putLesson } from '../lib/lessonStorage'
 import type { StoredEpisode, StoredLesson } from '../lib/lessonStorage'
@@ -329,7 +329,11 @@ export default function LessonPage() {
               <ol data-purpose="key-point-list" className="space-y-2">
                 {current.keyPoints.map((point) => (
                   <li key={point.id} className={`rounded-xl border p-3 text-sm ${episode.keyPointIds.includes(point.id) ? 'border-warm-border bg-paper' : 'border-warm-border/60 bg-card text-muted'}`}>
-                    <p className="text-ink">{point.text}</p>
+                    <div className="space-y-0.5 text-ink">
+                      {keyPointDisplay(point).map((shown, index) => (
+                        <p key={index}>{shown}</p>
+                      ))}
+                    </div>
                     <p className="mt-1 text-xs text-muted">{t('lessons.detail.taughtIn', { where: whereTaught(point.id) })}</p>
                   </li>
                 ))}
@@ -348,7 +352,7 @@ export default function LessonPage() {
                   {!script.check.ran ? t('lessons.detail.checkNotRun') : episode.pendingCheck ? t('lessons.detail.editedNote', { count: Math.max(1, editedCount) }) : t('lessons.detail.checkFailed', { count: flaggedCount })}
                 </p>
                 {missing.length > 0 && (
-                  <p>{t('lessons.detail.missingPoints', { list: missing.map((pointId) => current.keyPoints.find((point) => point.id === pointId)?.text ?? pointId).join(' · ') })}</p>
+                  <p>{t('lessons.detail.missingPoints', { list: missing.map((pointId) => (() => { const found = current.keyPoints.find((point) => point.id === pointId); return found ? keyPointDisplay(found).join(' ') : pointId })()).join(' · ') })}</p>
                 )}
               </div>
             )}

@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next'
 import { getLessonStatus } from '../api/lesson'
 import UndoToast from '../components/flashcards/UndoToast'
 import NewLessonPanel from '../components/lessons/NewLessonPanel'
-import { formatClock } from '../lib/lesson'
+import { LESSON_SPEAKERS, formatClock } from '../lib/lesson'
 import { HeadphonesIcon, SearchIcon, TrashIcon } from '../components/icons'
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
-import { lessonLines, segmentKey, voiceFor } from '../lib/lessonAudio'
+import { lessonLines, resolveVoices, segmentKey } from '../lib/lessonAudio'
 import { deleteLesson, getAllLessons, isLessonStoragePersistent, lessonDuration, lessonStatus, pruneSegments, putLesson, subscribeLessons } from '../lib/lessonStorage'
 import type { StoredLesson } from '../lib/lessonStorage'
 import { useSearchParamState } from '../hooks/useSearchParamState'
@@ -48,9 +48,11 @@ export default function LessonsPage() {
     void getAllLessons().then((all) => {
       const keep = new Set(
         all.flatMap((lesson) =>
-          lesson.episodes.flatMap((episode) =>
-            episode.script ? lessonLines(episode.script.sections).map((line) => segmentKey(line, voiceFor(line.speaker, episode.voices), lesson.options.language)) : [],
-          ),
+          lesson.episodes.flatMap((episode) => {
+            if (!episode.script) return []
+            const voices = resolveVoices(LESSON_SPEAKERS[lesson.options.style], episode.voices)
+            return lessonLines(episode.script.sections).map((line) => segmentKey(line, voices[line.speaker], lesson.options.language))
+          }),
         ),
       )
       void pruneSegments(keep)

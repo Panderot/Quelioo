@@ -37,7 +37,7 @@ function makeSections(): { id: string; role: string; title: string; keyPointIds:
 
 const SECTIONS = makeSections()
 const LINES = SECTIONS.flatMap((section) => section.lines)
-const VOICES = { hostA: 'marin', hostB: 'cedar' }
+const VOICES = { hostA: 'marin', hostB: 'ash' }
 
 function lessonRecord(options: { approved?: boolean; title?: string } = {}) {
   return {
@@ -175,16 +175,16 @@ test.describe('Audio Lesson — voices and recording', () => {
 
     const voices = page.locator('[data-purpose="lesson-voices"]')
     await expect(voices.getByRole('button', { name: 'Host A' })).toContainText('Marin')
-    await expect(voices.getByRole('button', { name: 'Host B' })).toContainText('Cedar')
+    await expect(voices.getByRole('button', { name: 'Host B' })).toContainText('Ash')
     await expect(page.locator('[data-purpose="audio-estimate"]')).toContainText(`${LINES.length} lines will be recorded.`)
 
-    await voices.getByRole('button', { name: 'Listen to Cedar' }).click()
+    await voices.getByRole('button', { name: 'Listen to Ash' }).click()
     const previewSrc = await voices.locator('audio').evaluate((audio: HTMLAudioElement) => audio.src)
-    expect(previewSrc).toMatch(/\/voices\/gpt-4o-mini-tts\/cedar-en\.mp3$/)
+    expect(previewSrc).toMatch(/\/voices\/gpt-4o-mini-tts\/ash-en\.mp3$/)
     expect((await page.request.get(previewSrc)).status()).toBe(200)
     await voices.getByRole('button', { name: 'Host B' }).click()
-    await page.getByRole('option', { name: 'Shimmer' }).click()
-    await expect(voices.getByRole('button', { name: 'Host B' })).toContainText('Shimmer')
+    await page.getByRole('option', { name: 'Echo' }).click()
+    await expect(voices.getByRole('button', { name: 'Host B' })).toContainText('Echo')
     expect(mock.requests()).toHaveLength(0)
 
     await voices.getByRole('button', { name: 'Record audio' }).click()
@@ -193,7 +193,7 @@ test.describe('Audio Lesson — voices and recording', () => {
     expect(requests.length).toBe(Math.ceil(LINES.length / 6))
     expect(requests.every((request) => request.lines.length <= 6)).toBe(true)
     expect(requests.flatMap((request) => request.lines.map((line) => line.id)).sort()).toEqual(LINES.map((line) => line.id).sort())
-    expect(requests[0].voices).toEqual({ hostA: 'marin', hostB: 'shimmer' })
+    expect(requests[0].voices).toEqual({ hostA: 'marin', hostB: 'echo' })
     await expect(page.locator('[data-purpose="player-time"]')).toHaveText(`0:00 / 0:${String(Math.round(TOTAL_SECONDS)).padStart(2, '0')}`)
     // Once the audio exists every duration shown is the file's real length (the same as the player's), never an estimate.
     const real = `0:${String(Math.round(TOTAL_SECONDS)).padStart(2, '0')}`
