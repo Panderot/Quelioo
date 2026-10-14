@@ -31,6 +31,8 @@ async function openLobby(teacher: TestUser, context: BrowserContext, quizId: str
   if (settings) await settings(page)
   await board(page, 'live-open-lobby').click()
   await expect(board(page, 'live-game-code')).toBeVisible()
+  // Students join right after this: the board must be subscribed to realtime first, or a join broadcast can be missed (the slow poll is the only other way it learns).
+  await expect(page.getByText('realtime-off')).toHaveCount(0)
   const code = ((await board(page, 'live-game-code').textContent()) ?? '').replace(/\s/g, '')
   expect(code).toMatch(/^\d{6}$/)
   return { page, code, gameId: page.url().split('/live/')[1] }
