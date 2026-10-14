@@ -2,10 +2,11 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, 'is/**']
   pull_request:
   workflow_dispatch:
 
+# A newer push to the same branch cancels that branch's older run.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -81,6 +82,10 @@ jobs:
   supabase:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # The shared TEST database allows one run at a time, across all branches; a waiting run is never cancelled.
+    concurrency:
+      group: supabase-test-db
+      cancel-in-progress: false
     env:
       PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
       SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
@@ -141,8 +146,11 @@ jobs:
           path: all-blobs
           merge-multiple: true
       - run: npx playwright merge-reports --config=playwright.merge.config.ts ./all-blobs
+      # Printed to the log first (readable with `gh run view --log`), then written to the step summary page.
       - if: always()
-        run: node scripts/ci-summary.mjs merged.json "TOTAL (all suites and shards)"
+        run: |
+          env -u GITHUB_STEP_SUMMARY node scripts/ci-summary.mjs merged.json "TOTAL (all suites and shards)"
+          node scripts/ci-summary.mjs merged.json "TOTAL (all suites and shards)"
       - if: always()
         uses: actions/upload-artifact@v4
         with:

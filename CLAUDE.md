@@ -5,20 +5,24 @@ AI quiz / solve / flashcards web app with Archive and accounts. Vite + React + T
 ## Rules
 - Secrets: never print, paste or commit keys, tokens, passwords or `.env*`; the owner writes `.env.local`. Never commit `.claude/`.
 - Never run `supabase config push`, `supabase login` or `vercel login`. The linked project is TEST (`quelio-test`).
-- Order: TEST migration → tests → backup → production migration → push. Production migrations only with `--db-url` and the password from `.env.local`: dry run → apply → read-only SELECT. Push only at zero failures. Backups never go to GitHub (public repo).
+- Production migrations only with `--db-url` and the password from `.env.local`: dry run → apply → read-only SELECT. Backups never go to GitHub (public repo).
 - Ask the user before touching auth.
 - Destructive tests only on `quelio-test`; production test users only `baretgungormezer+qtest-…`.
 - No new features, only additions to existing ones. Vercel Hobby limit 12 functions, 7 used: add endpoints to existing ones.
 - AI: tests never call real AI (`no-real-ai`). Track real dollars, stop and ask when over the budget. Users never see cost info (`no-cost-ui.spec.ts`).
 - i18n: TR, EN, HYW with identical key sets, no hard-coded strings; HYW needs native review.
-- Deploy: only by push to master; verify `https://quelio.vercel.app/version.json` (poll 20 s, max 5 min). Public URL is `getPublicSiteUrl`.
 
-## Tests
-- `npm run test:each [files]` (`PW_WORKERS`, `PW_EXTRA`), `npm run test:supabase`, `playwright.prod.config.ts`. New or changed specs `--repeat-each=3`; no fixed sleeps.
-- Locally only the task's specs; tsc/lint/build once at the end. Full suite and `test:supabase` run in CI: push, then `gh run watch`; red → `gh run view --log-failed`, fix, push.
-- Workers: free RAM >= 10 GB `PW_WORKERS=4`, else 2; under 4 GB stop and ask.
-- Playwright headless, not Claude in Chrome. Kill only own processes; leave no background jobs.
-- CI has no AI keys; `tests/accuracy` never runs there; a missing `SUPABASE_TEST_*` secret fails the job. Reports quote the `report` job TOTAL: passed / failed / skipped / flaky and duration.
+## Akış (test ve deploy)
+- Every task: new branch `is/<short-name>`; never commit to master directly.
+- Locally only tsc, lint, build. Playwright and supabase tests run only in CI; locally only to reproduce one red CI test (that spec alone, `PW_WORKERS=4`). Write or update tests for changed behavior; no fixed sleeps.
+- Push the branch, then `gh run watch`. Vercel does not deploy `is/` branches.
+- Red: `gh run view --log-failed`, fix, push the same branch. Max 3 rounds, then stop and tell the user. Red code never reaches master.
+- Green: fast-forward merge to master and push; do not wait for master CI. Poll `https://quelio.vercel.app/version.json` (20 s, max 5 min) for the new commit, then delete the branch locally and on GitHub.
+- Push blocked by permissions: give the user a one-line `! git ...` command and stop.
+- "Deploy" or "push to production" never skips this: untested or red code never goes to master.
+- Migrations: TEST database → branch CI green → production backup → production migration → master.
+- Reports: branch name, CI round count, passed / failed / skipped, duration (`report` job TOTAL), master commit hash.
+- CI has no AI keys; `tests/accuracy` never runs there; a missing `SUPABASE_TEST_*` secret fails the job. Kill only own processes; leave no background jobs.
 
 ## Work style
 - Prompts in `../QUELIO-PROMPTS`, test artifacts in `../QUELIO-TEST-*`. No notes in the repo. Final reports in Turkish.

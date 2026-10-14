@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "is/*": false
+    }
+  },
   "rewrites": [
     { "source": "/api/similar", "destination": "/api/solve-tools?action=similar" },
     { "source": "/api/another-way", "destination": "/api/solve-tools?action=another-way" },
