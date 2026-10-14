@@ -1217,7 +1217,7 @@
       "teacher": {
         "tab": "Öğretmenler",
         "title": "Sınıf için hazır quiz",
-        "body": "Konu anlatımını yapıştır, soru türlerini seç. Quizi yazdır ya da kopyala; cevap anahtarı yanında gelir. Yapay zekâ yanılabilir, dağıtmadan önce göz atmanı öneririz.",
+        "body": "Konu anlatımını yapıştır, soru türlerini seç. Quizi yazdır ya da kopyala; cevap anahtarı yanında gelir. Sistem yanılabilir, dağıtmadan önce göz atmanı öneririz.",
         "sheet": "Hücre Bölünmesi, 10 soru",
         "print": "Yazdır / PDF",
         "copy": "Kopyala",
@@ -1226,7 +1226,7 @@
     },
     "try": {
       "title": "Kendin dene",
-      "sub": "Bir örnek metin seç; quizin nasıl oluştuğunu izle. Bu bir önceden hazırlanmış gösterimdir, yapay zekâ çağırmaz.",
+      "sub": "Bir örnek metin seç; quizin nasıl oluştuğunu izle. Bu bir önceden hazırlanmış gösterimdir, sistemi çağırmaz.",
       "pickLabel": "Örnek metin",
       "building": "Quiz oluşturuluyor",
       "cta": "Kendi metninle dene"
@@ -1256,7 +1256,7 @@
       "title": "Sık sorulanlar",
       "what": {
         "q": "Quelio nedir?",
-        "a": "Yazdığın, yüklediğin ya da bağlantısını verdiğin içerikten yapay zekâ ile quiz ve bilgi kartı hazırlayan; fotoğraftaki matematik sorusunu adım adım çözen bir çalışma aracı."
+        "a": "Yazdığın, yüklediğin ya da bağlantısını verdiğin içerikten sistemiyle quiz ve bilgi kartı hazırlayan; fotoğraftaki matematik sorusunu adım adım çözen bir çalışma aracı."
       },
       "languages": {
         "q": "Hangi dillerde çalışıyor?",
@@ -1268,7 +1268,7 @@
       },
       "data": {
         "q": "Verilerime ne oluyor?",
-        "a": "E-posta adresini, adını ve oluşturduğun quiz ve kartları saklarız; böylece her cihazda aynı kalır. Gönderdiğin metin ya da fotoğraf içerik üretmek için yapay zekâ sağlayıcılarına iletilir. Hesap sayfasından her şeyi indirebilir ya da hesabını tüm verileriyle silebilirsin."
+        "a": "E-posta adresini, adını ve oluşturduğun quiz ve kartları saklarız; böylece her cihazda aynı kalır. Gönderdiğin metin ya da fotoğraf içerik üretmek için sistemin hizmet sağlayıcılarına iletilir. Hesap sayfasından her şeyi indirebilir ya da hesabını tüm verileriyle silebilirsin."
       },
       "files": {
         "q": "Hangi dosyaları kabul ediyor?",
@@ -1280,7 +1280,7 @@
       },
       "trust": {
         "q": "Sorulara güvenebilir miyim?",
-        "a": "Sorular senin verdiğin kaynağa dayanır; Quelio kaynakta olmayan bilgiyi doldurmaz. Yine de yapay zekâ hata yapabilir, önemli sınavlar ve dağıtılacak materyaller için soruları gözden geçir."
+        "a": "Sorular senin verdiğin kaynağa dayanır; Quelio kaynakta olmayan bilgiyi doldurmaz. Yine de sistem hata yapabilir, önemli sınavlar ve dağıtılacak materyaller için soruları gözden geçir."
       },
       "phone": {
         "q": "Telefonda çalışıyor mu?",

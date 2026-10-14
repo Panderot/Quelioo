@@ -165,3 +165,15 @@ for (const lang of ['tr', 'en', 'hyw'] as const) {
     await expect(page).toHaveURL(/\/sign-in$/)
   })
 }
+
+for (const lng of ['en', 'tr', 'hyw'] as const) {
+  test(`the landing page says "system", never "AI" or "artificial intelligence", in ${lng}`, async ({ page }) => {
+    await signedOut(page, lng)
+    await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    // Open every FAQ answer so their text counts too.
+    for (const item of await page.locator('main details').all()) await item.evaluate((el) => ((el as HTMLDetailsElement).open = true))
+    const text = `${await page.title()}\n${await page.locator('main').textContent()}`
+    expect(text).not.toMatch(/\bAI\b|yapay zek|artificial intelligence|Արհեստական բանականութ|արհեստական բանականութ/i)
+  })
+}

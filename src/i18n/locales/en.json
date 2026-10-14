@@ -1217,7 +1217,7 @@
       "teacher": {
         "tab": "Teachers",
         "title": "A quiz ready for your class",
-        "body": "Paste your lesson text and choose the question types. Print the quiz or copy it, with the answer key alongside. AI can make mistakes, so give it a quick read before you hand it out.",
+        "body": "Paste your lesson text and choose the question types. Print the quiz or copy it, with the answer key alongside. The system can make mistakes, so give it a quick read before you hand it out.",
         "sheet": "Cell Division, 10 questions",
         "print": "Print / PDF",
         "copy": "Copy",
@@ -1226,7 +1226,7 @@
     },
     "try": {
       "title": "Try it yourself",
-      "sub": "Pick a sample text and watch its quiz come together. This is a pre-made demo and makes no AI request.",
+      "sub": "Pick a sample text and watch its quiz come together. This is a pre-made demo and does not call the system.",
       "pickLabel": "Sample text",
       "building": "Building the quiz",
       "cta": "Try it with your own text"
@@ -1256,7 +1256,7 @@
       "title": "Frequently asked questions",
       "what": {
         "q": "What is Quelio?",
-        "a": "A study tool that uses AI to turn what you write, upload or link into quizzes and flashcards, and solves a photo of a math problem step by step."
+        "a": "A study tool whose system turns what you write, upload or link into quizzes and flashcards, and solves a photo of a math problem step by step."
       },
       "languages": {
         "q": "Which languages does it work in?",
@@ -1268,7 +1268,7 @@
       },
       "data": {
         "q": "What happens to my data?",
-        "a": "We keep your email address, your name, and the quizzes and cards you make, so they're the same on every device. The text or photo you submit is sent to AI providers to produce the content. From your account page you can download everything or delete your account along with all its data."
+        "a": "We keep your email address, your name, and the quizzes and cards you make, so they're the same on every device. The text or photo you submit is sent to the system's service providers to produce the content. From your account page you can download everything or delete your account along with all its data."
       },
       "files": {
         "q": "Which files can I use?",
@@ -1280,7 +1280,7 @@
       },
       "trust": {
         "q": "Can I trust the questions?",
-        "a": "Questions are based on the source you give; Quelio doesn't fill gaps with facts that aren't there. AI can still make mistakes, so review the questions before an important exam or before you hand them out."
+        "a": "Questions are based on the source you give; Quelio doesn't fill gaps with facts that aren't there. The system can still make mistakes, so review the questions before an important exam or before you hand them out."
       },
       "phone": {
         "q": "Does it work on my phone?",

@@ -11,7 +11,7 @@ import './landing.css'
 
 export type LandingLanguage = 'en' | 'hyw'
 
-const APP_TITLE = 'Quelio - AI Quiz Generator'
+const APP_TITLE = 'Quelio - Quiz Generator'
 
 /** The public home page: what Quelio does, shown with pre-made content. It never calls an API. */
 export default function Landing({ language, prerendered = false }: { language?: LandingLanguage; prerendered?: boolean }) {
