@@ -68,11 +68,14 @@ test.describe('Top bar (desktop)', () => {
     await expect.poll(async () => (await bar(page).boundingBox())!.y).toBe(0)
   })
 
-  test('the slogan shows at 1280px and not at 1024px', async ({ page }) => {
+  test('the top bar has the logo and the name, no slogan, at any width', async ({ page }) => {
     await page.goto('/?lng=en')
-    await expect(bar(page).getByText('Questions that shine.')).toBeVisible()
+    await expect(bar(page).getByText('Quelio', { exact: true })).toBeVisible()
+    await expect(bar(page).getByText('Questions that shine.')).toHaveCount(0)
     await page.setViewportSize({ width: 1024, height: 768 })
-    await expect(bar(page).getByText('Questions that shine.')).toBeHidden()
+    await expect(bar(page).getByText('Questions that shine.')).toHaveCount(0)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(bar(page).getByText('Questions that shine.')).toHaveCount(0)
   })
 
   test('Tab reaches every menu item', async ({ page }) => {

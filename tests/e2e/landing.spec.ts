@@ -20,6 +20,8 @@ test('signed-out "/" shows the landing page', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(tr.landing.hero.title)
   await expect(page.locator('main a[href="/sign-up"]').first()).toBeVisible()
   await expect(page.getByRole('button', { name: 'Quiz Oluştur' })).toHaveCount(0)
+  // The slogan lives in the hero (it is no longer in the app's top bar).
+  await expect(page.locator('main').getByText(tr.app.tagline)).toHaveCount(1)
 })
 
 test('signed-in "/" goes straight to the app and the landing page never renders', async ({ page }) => {

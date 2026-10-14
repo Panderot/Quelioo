@@ -79,7 +79,6 @@ export default function AppNav() {
             <LogoMark className="h-7 w-7 shrink-0 sm:h-8 sm:w-8" tone="onDark" />
             <span className="font-serif text-xl font-semibold tracking-tight text-paper sm:text-2xl">{t('app.name')}</span>
           </NavLink>
-          <p className="hidden shrink-0 text-xs font-semibold tracking-wide whitespace-nowrap text-amber xl:block">{t('app.tagline')}</p>
 
           <nav data-purpose="main-nav" aria-label={t('nav.main')} className="ml-1 hidden min-w-0 items-center sm:flex">
             {MAIN_ITEMS.map((item) => (
