@@ -3,7 +3,7 @@ export const TURKISH_MATH_TERMS_RULE =
 
 // "asal fonksiyon" is not a Turkish math term; the school term is "ilkel fonksiyon".
 // Only the exact two-word phrase is replaced ("asal sayı", "asal çarpan", ... stay as they are).
-const WRONG_TERM = /(?<![\p{L}\p{N}_])asal(\s+)fonksiyon/giu
+const WRONG_TERM = /(?<![\p{L}\p{N}_])asal(\s+)fonks[iİI]yon/giu
 
 export function fixTurkishMathTerms(text: string): string {
   return text.replace(WRONG_TERM, (match: string, space: string) => {
