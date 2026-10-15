@@ -753,13 +753,19 @@ test.describe('Study extras', () => {
         page.evaluate(
           ([iso, locale]) => {
             const d = new Date(iso)
+            const two = (value: number) => String(value).padStart(2, '0')
+            // Western Armenian shows numbers only: 09.03, 01:35, 09.03.2026 01:35.
+            if (locale === 'hyw') {
+              const time = `${two(d.getHours())}:${two(d.getMinutes())}`
+              return { date: `${two(d.getDate())}.${two(d.getMonth() + 1)}`, time, full: `${two(d.getDate())}.${two(d.getMonth() + 1)}.${d.getFullYear()} ${time}` }
+            }
             return {
               date: new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(d),
               time: new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(d),
               full: new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeStyle: 'short' }).format(d),
             }
           },
-          [at.toISOString(), lang === 'hyw' ? 'hy' : lang],
+          [at.toISOString(), lang],
         )
       const kindName = (kind: 'normal' | 'exam' | 'quick') => ({ en, tr, hyw })[lang as 'en' | 'tr' | 'hyw'].study.kinds[kind].name
 

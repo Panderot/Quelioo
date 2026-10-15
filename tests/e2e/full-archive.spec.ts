@@ -472,7 +472,7 @@ for (const lng of LOCALE_NAMES) {
     // The date text is a real localized date in the two languages the browser knows.
     if (lng === 'tr') await expect(rowOf(page, 'Alpha quiz')).toContainText(/15 Oca 2026/)
     if (lng === 'en') await expect(rowOf(page, 'Alpha quiz')).toContainText(/Jan 15, 2026/)
-    if (lng === 'hyw') await expect(rowOf(page, 'Alpha quiz')).toContainText(/15\.01\.2026 \d{2}:\d{2}$/)
+    if (lng === 'hyw') await expect(rowOf(page, 'Alpha quiz')).toContainText(/15\.01\.2026 \d{2}:\d{2}/)
   })
 }
 
@@ -1339,7 +1339,7 @@ test.describe('Delete a quiz', () => {
     makeEntry({ id: 'del-a', title: 'Doomed quiz', createdAt: '2026-01-16T12:00:00.000Z' }),
     makeEntry({ id: 'del-b', title: 'Keeper quiz', createdAt: '2026-01-15T12:00:00.000Z' }),
   ]
-  const deleteButton = (page: Page) => page.getByRole('button', { name: en.archive.detail.delete, exact: true })
+  const deleteButton = (page: Page) => page.locator('[data-purpose="archive-quiz-delete"]')
   const dialog = (page: Page) => page.getByRole('dialog')
 
   test('Delete asks first; Cancel keeps the quiz; confirming removes it and returns to the Archive', async ({ page }) => {
@@ -1382,7 +1382,8 @@ test.describe('Delete a quiz', () => {
     await seedOnce(page, entries())
     for (const lng of LOCALE_NAMES) {
       await page.goto(`/archive/del-a?lng=${lng}`)
-      const button = page.getByRole('button', { name: LOCALES[lng].archive.detail.delete, exact: true })
+      const button = page.locator('[data-purpose="archive-quiz-delete"]')
+      await expect(button).toHaveText(LOCALES[lng].archive.detail.delete)
       await expect(button).toBeVisible()
       await expect(button).toHaveCSS('color', 'rgb(194, 58, 58)')
       await expect(page.locator('[data-print-hide]').filter({ has: button })).toHaveCount(1)

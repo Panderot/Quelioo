@@ -384,7 +384,7 @@ for (const [lng, strings] of [['en', en], ['tr', tr], ['hyw', hyw]] as const) {
     await page.goto(`/solve?lng=${lng}`)
     await page.locator('input[type="file"]').setInputFiles({ name: 'plain.jpg', mimeType: 'image/jpeg', buffer: fixtureBuffer('plain.jpg') })
     await expect(page.locator('[data-purpose="crop-image"]')).toBeVisible({ timeout: 10_000 })
-    await useWholePhoto(page)
+    await useWholePhoto(page, strings.crop.useWhole)
     await page.getByRole('button', { name: strings.solve.cta.solve }).click()
     await expect(page.locator('[data-purpose="solve-result"]')).toBeVisible()
     await expect(page.locator('[data-purpose="auto-note"]')).toHaveText(strings.solve.autoNote)

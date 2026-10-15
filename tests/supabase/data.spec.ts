@@ -180,7 +180,7 @@ test.describe('archive in the account', () => {
     const context = await newContext(browser, user)
     const page = await context.newPage()
     await page.goto(`/archive/${doomed}?lng=en`)
-    await page.getByRole('button', { name: en.archive.detail.delete, exact: true }).click()
+    await page.locator('[data-purpose="archive-quiz-delete"]').click()
     await page.getByRole('dialog').getByRole('button', { name: en.archive.detail.delete, exact: true }).click()
     await expect(page).toHaveURL(/\/archive$/)
     await expect.poll(async () => (await admin.from('quizzes').select('id').eq('id', doomed)).data?.length, { timeout: 30_000 }).toBe(0)

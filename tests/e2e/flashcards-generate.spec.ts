@@ -156,7 +156,7 @@ test.describe('Flashcards — generate with AI', () => {
 
   for (const { lng, title, tabTopic, add } of [
     { lng: 'tr', title: 'Otomatik kart üret', tabTopic: 'Konu', add: '3 kartı ekle' },
-    { lng: 'hyw', title: 'Արհեստական բանականութեամբ քարտեր ստեղծել', tabTopic: 'Նիւթ', add: 'Աւելցնել 3 քարտերը' },
+    { lng: 'hyw', title: 'Քարտեր ինքնաբերաբար ստեղծել', tabTopic: 'Նիւթ', add: 'Աւելցնել 3 քարտերը' },
   ]) {
     test(`the generator is localized in ${lng}`, async ({ page }) => {
       await mockCards(page, [ok()])
