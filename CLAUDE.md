@@ -14,7 +14,7 @@ AI quiz / solve / flashcards web app with Archive and accounts. Vite + React + T
 
 ## Akış (test ve deploy)
 - Every task: new branch `is/<short-name>`; never commit to master directly.
-- Locally only tsc, lint, build. Playwright and supabase tests run only in CI; locally only to reproduce one red CI test (that spec alone, `PW_WORKERS=4`). Write or update tests for changed behavior; no fixed sleeps.
+- Locally only tsc, lint, build. Playwright (e2e in 6 shards) and supabase tests run only in CI; locally only to reproduce one red CI test (that spec alone, `PW_WORKERS=4`). Write or update tests for changed behavior; no fixed sleeps.
 - Push the branch, then `gh run watch`. Vercel does not deploy `is/` branches.
 - Red: `gh run view --log-failed`, fix, push the same branch. Max 3 rounds, then stop and tell the user. Red code never reaches master.
 - Green: fast-forward merge to master and push; do not wait for master CI. Poll `https://quelio.vercel.app/version.json` (20 s, max 5 min) for the new commit, then delete the branch locally and on GitHub.

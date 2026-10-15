@@ -14,7 +14,7 @@ const cardClass = 'rounded-2xl border border-warm-border bg-card p-4 shadow-[0_1
 const idx = (i: number) => ({ '--i': i }) as CSSProperties
 
 /** Fades and lifts its children in the first time they scroll into view (transform and opacity only). */
-export function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
+function Reveal({ children, delay = 0, className = '' }: { children: ReactNode; delay?: number; className?: string }) {
   const [ref, inView] = useInView<HTMLDivElement>()
   return (
     <div ref={ref} data-in={inView || undefined} className={`lp-reveal ${className}`} style={{ '--d': `${delay}ms` } as CSSProperties}>

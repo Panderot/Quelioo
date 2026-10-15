@@ -14,8 +14,8 @@
 
 ## 2. Brand
 
-- **Logo mark:** bold "Q" ring; tail is a golden ray ending in a small sun disc with short rays. Bowl is cream on the navy sidebar, navy on paper. No container, no sparkle.
-- **Wordmark:** "Quelio", Fraunces 600, 24px (`text-2xl`). **Tagline:** 12px semibold amber, under the wordmark on the sidebar.
+- **Logo mark:** bold "Q" ring; tail is a golden ray ending in a small sun disc with short rays. Bowl is cream on the navy top bar, navy on paper. No container, no sparkle.
+- **Wordmark:** "Quelio", Fraunces 600, 24px (`text-2xl`). On the landing page the tagline sits under it.
 - **Meaning:** Question + Helio (sun); the rising-sun ray is the brand motif.
 
 ## 3. Tokens
@@ -24,13 +24,13 @@ The Tailwind v4 `@theme` block in `src/index.css` is the authoritative source fo
 
 | Token | Hex | Usage |
 |---|---|---|
-| `navy` | `#0E1330` | Sidebar, headings on paper, text on amber, toasts |
+| `navy` | `#0E1330` | Top bar and tab bar, headings on paper, text on amber, toasts |
 | `ink` | `#14172B` | Body text |
 | `muted` | `#6B6F85` | Subtitles, helper text, placeholders |
 | `amber` | `#F5A524` | Primary CTA, active nav bar, keyboard focus ring, fills, icons. Never small text (~2:1) |
 | `amber-hover` | `#E0931A` | Hover/pressed for amber fills, borders, icons. Never small text |
 | `amber-text` | `#9C4A09` | The only amber for small text: links, badges, labels, counters (>=4.5:1, also on `bg-amber/10-15`) |
-| `paper` | `#FBF7EF` | Page background, sidebar text |
+| `paper` | `#FBF7EF` | Page background, text on the top bar |
 | `card` | `#FFFEFB` | Cards, input surfaces |
 | `warm-border` | `#ECE5D6` | Card, input, divider borders |
 | `focus-neutral` | `#D8CDB4` | Mouse/touch focus and hover border on controls (never amber) |
@@ -59,23 +59,20 @@ The Tailwind v4 `@theme` block in `src/index.css` is the authoritative source fo
 
 ```
 App root (flex, bg-paper)
-├── Sidebar (navy; 256px / 72px icon rail at md / drawer below md)
-└── Main column (flex 1, scrolls, amber radial glow top-right)
-    ├── Top bar (h-20, flat)
-    └── Content (max-w-5xl, padding 24 / 32 at lg / 40 at xl, space-y-7, 220ms fade-in)
+├── Top bar (navy, sticky; h-16 from 640px, h-12 below)
+├── Main column (flex 1, scrolls, amber radial glow top-right)
+│   └── Content (max-w-5xl, padding 24 / 32 at lg / 40 at xl, space-y-7, 220ms fade-in)
 ```
 
 | Breakpoint | Behavior |
 |---|---|
-| >= 1024px | Full 256px sidebar with labels |
-| 768-1023px | Sidebar becomes a 72px icon rail (labels, wordmark, tagline hidden) |
-| < 768px | Sidebar is a slide-over drawer (`bg-ink/40` scrim) behind a hamburger |
+| >= 640px | Top bar holds logo, Create / Solve / Flashcards, then Archive, language switcher and user menu on the right |
+| < 640px | Top bar keeps logo, language switcher and user menu; a fixed bottom tab bar (navy) holds Create, Solve, Flashcards, Archive |
 | < 640px | Parameter grid and action rows stack to one column / full width |
 
 ## 5. Shared components
 
-- **Sidebar:** header logo + wordmark + tagline. Main nav: Create, Solve, Flashcards. Footer (pinned bottom, `border-paper/10`): Archive. Flashcards shows a small muted count of cards due today right of the label (hidden at 0 and in the icon rail; sr-only "N cards due today"). Nav item: no filled pill; inactive `paper/60` (icon `paper/40`), hover paper; active = 3px amber left bar + paper text + amber icon.
-- **Top bar:** h-20, right-aligned; holds only the language switcher (plus the hamburger on the left below md).
+- **Top bar (`AppNav`):** logo mark + wordmark, then the main nav (Create, Solve, Flashcards) and Archive on the right. Flashcards shows a small muted count of cards due today right of the label (hidden at 0; sr-only "N cards due today"). Nav item: no filled pill; inactive `paper/60` (icon `paper/40`), hover paper; active = 3px amber underline + paper text + amber icon. Below 640px the main nav moves to the bottom tab bar (active = amber label and icon).
 - **Language switcher (`LanguageSwitcher`):** ghost button, globe + short code (EN/TR/ՀԱՅ) + chevron; listbox menu (card, warm border, radius 12, 240px) with native language names. Enter/Space/ArrowDown open, arrows move, Escape closes.
 - **Tabs:** icon (16px) + label, bottom border; active 2px amber underline + bold ink (icon `amber-hover`); inactive muted, hover ink. WAI-ARIA tablist, Arrow/Home/End keys. Used on Create input and Archive.
 - **Toggle:** one switch style (`h-6 w-11`): off warm-border track, on amber track, knob right. `role="switch"`, `aria-checked`, descriptive label. Study Mode is a button, not a toggle.
@@ -97,12 +94,12 @@ App root (flex, bg-paper)
 - **Undo toast:** fixed bottom-center navy pill (radius 12), paper text, amber "Undo"; auto-dismisses after 6s. Used for question, solution, card and deck deletes.
 - **Inline delete confirm:** "Delete this ...?" + red-tinted Delete + outline Cancel before deleting.
 - **Confirm dialog (`ConfirmDialog`):** modal (radius 16, scrim), focus starts on Cancel, Escape cancels, red-tinted confirm. Used for delete deck and reset progress.
-- **Auth layout (`AuthLayout`):** public pages only (sign in/up, passwords, callback, legal). Paper background with the top-right glow; header h-20 with logo mark + wordmark (navy, left) and the language switcher (right); one centered card (`AuthCard`: radius 16, warm border, 24/32px padding, max 448px; legal text 672px). No sidebar.
+- **Auth layout (`AuthLayout`):** public pages only (sign in/up, passwords, callback, legal). Paper background with the top-right glow; header h-20 with logo mark + wordmark (navy, left) and the language switcher (right); one centered card (`AuthCard`: radius 16, warm border, 24/32px padding, max 448px; legal text 672px). No app navigation.
 - **Auth forms:** field = 11px bold uppercase muted label above an h-11 radius-10 input (card, warm border; error = red border + 12px red message with `role="alert"`, linked by `aria-describedby`). One solid amber CTA per card (h-12, radius 14, navy bold 16px, spinner while busy); secondary actions are outline buttons or amber-text links. Form-level messages: tinted rounded-xl line (`error` / `success` / neutral). Google is a full-width outline button (h-12) above an "or" divider and exists only when the project has the provider on.
 - **Password strength hint:** three 4px bars under a new-password field (red weak, amber fair, green strong) plus a 12px muted line (`aria-live="polite"`). Only the 8-character minimum blocks; the rest is advice.
 - **Check email:** card with title, the address, a spam note and an outline "Send again" button that counts down 60 s ("Send again in 42 s"); the same screen serves sign-up confirmation and password reset (it never says whether an account exists).
-- **User menu (`UserMenu`):** last item of the sidebar footer: 32px amber initials avatar + name (name hidden in the icon rail). Opens an upward menu (MoreMenu tokens: card, warm border, radius 12, 40px rows) with Account and Sign out; WAI-ARIA menu keys. Works in the mobile drawer.
-- **Sync status (`SyncStatus`):** muted pill left of the language switcher; hidden when every change is saved, "Saving…" with a spinner while writes wait, red-tinted "Couldn't save a change" when the server refused one.
+- **User menu (`UserMenu`):** last item of the top bar: 32px amber initials avatar + name. Opens a menu below it (MoreMenu tokens: card, warm border, radius 12, 40px rows) with Account and Sign out; WAI-ARIA menu keys.
+- **Sync status (`SyncStatus`):** muted pill left of the Archive link; hidden when every change is saved, "Saving…" with a spinner while writes wait, red-tinted "Couldn't save a change" when the server refused one.
 - **Skeleton and load error (`DataStates`):** `SkeletonList` = rows of card/warm-border blocks with a 220ms pulse (off under reduced motion, `aria-busy`); `LoadError` = centered card with the message and an outline "Try again". Lists show the skeleton first and never an empty state before the load ends.
 - **Support note (`SupportNote`):** one muted 12px line "Need help? info@motiqai.com" (amber-text mailto link) in the auth footer, at the end of the account page and inside load-error cards; error strings that suggest writing to the same address.
 - **Rate-limit toast (`RateLimitNotice`):** the Undo toast shape (navy pill, bottom-center, 6s) saying "Too many requests, try again shortly"; any API call answered 429 raises it.
@@ -180,7 +177,7 @@ Shown below Generate after success (auto-scrolled), reused at `/archive/:id`.
   - **Question:** header row (Exit, pill, timer `role="timer"`, streak badge, read-aloud, Focus mode, Settings), title + "2 / 6" + 8px progress bar. One card: type pill, "Look again later" flag (`aria-pressed`), 20px semibold question, answers as 48px tap targets (mcq `role="radio"` with letter chip; true/false two columns; fill-in/short/open text fields; matching = one select per left row + the lettered choices), hint button (before answering), then a full-width (mobile) amber "Check" that becomes "Next" / "Finish". Keys: 1-9 / A-Z pick, Enter checks then moves on, Arrow right next.
   - **Feedback (Normal):** first miss: error-tinted box "Not yet. Try again." + hint suggestion; second miss: neutral box with "The right answer" + explanation; right: success-tinted box "Correct!" (+ "on the second try") + explanation + optional "I was sure" / "I guessed" toggles. Exam: no feedback until the end.
   - **End:** score "5 / 6 correct" (4xl), percent, time / second-try count / slowest question, list of mistakes with right answers (exam: all questions with answers and explanations), guessed and flagged lists, score chart, buttons: "Study my mistakes again (n)" (solid amber), "Look at my flagged ones (n)", "Study from the start", "Flashcards from my mistakes (n)", "Back to Archive". Confetti only at 80% or more.
-  - **Motion:** the streak pulses at 3, 6, 9 in a row and the confetti burst run only when "Celebration animations" (Settings) is on and prefers-reduced-motion is off. **Focus mode** hides sidebar and header (and uses the Fullscreen API where it exists); Esc or the toggle leaves it. **Read aloud** uses the browser's speech synthesis and is hidden when no voice exists for the quiz language (tr-TR, en-US, hy).
+  - **Motion:** the streak pulses at 3, 6, 9 in a row and the confetti burst run only when "Celebration animations" (Settings) is on and prefers-reduced-motion is off. **Focus mode** hides the top bar and tab bar (and uses the Fullscreen API where it exists); Esc or the toggle leaves it. **Read aloud** uses the browser's speech synthesis and is hidden when no voice exists for the quiz language (tr-TR, en-US, hy).
 
 ### Flashcards (`/flashcards`, `/flashcards/:deckId`, `/flashcards/:deckId/study`)
 - **Deck list:** title + subtitle, solid amber "New deck" (the screen's primary). Search box, then one divided card list sorted by due count. Row: 48px progress ring (amber arc on warm-border track, mastered = box >= 4), name link, muted "N cards · M learned · K due today", "Study · K" (2px navy outline when K > 0, warm outline otherwise) and outline "Edit"; buttons go full width below 640px. Empty: cards icon, "New deck" (navy outline) and "Add sample decks" (warm outline, only while no sample deck exists).
@@ -233,7 +230,7 @@ ConfirmDialog shell (radius 16, scrim, max 448px). Prompt: serif title, "Found 8
 
 - Do use amber for the primary CTA, active nav, focus and soft tints; use `amber-text` for any amber small text.
 - Do separate with borders and whitespace; keep shadows soft. Fraunces for headings only.
-- Do keep sidebar labels short (max 2 words in EN).
+- Do keep nav labels short (max 2 words in EN).
 - Don't add promos, founder lines or cross-app banners.
 - Don't reintroduce indigo/violet, a blue background, the sparkle icon, or any gradient besides the top-right glow.
 - Don't set fixed pixel widths on text containers.

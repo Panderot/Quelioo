@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 
-export interface TabItem {
+interface TabItem {
   id: string
   label: string
   icon?: ReactNode

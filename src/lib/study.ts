@@ -94,11 +94,11 @@ export interface StudyResults {
   resume?: StudyResume
 }
 
-export const MAX_STORED_SESSIONS = 30
+const MAX_STORED_SESSIONS = 30
 export const DEFAULT_EXAM_SECONDS_PER_QUESTION = 60
 export const DEFAULT_QUESTION_SECONDS = 60
 
-export const EMPTY_RESULTS: StudyResults = { v: 1, sessions: [], pool: [] }
+const EMPTY_RESULTS: StudyResults = { v: 1, sessions: [], pool: [] }
 
 export function defaultTimer(kind: StudyKind, questionCount: number): TimerSetting {
   return {
@@ -215,10 +215,6 @@ export interface EvalOutcome {
   detail?: { right: number; of: number }
 }
 
-export function matchingText(value: string[]): string {
-  return value.map((letter, index) => (letter ? `${index + 1}${letter}` : '')).join(' ')
-}
-
 export function emptyAnswer(question: QuizQuestion): AnswerValue {
   switch (question.type) {
     case 'mcq':
@@ -254,7 +250,7 @@ export function hasAnswer(question: QuizQuestion, value: AnswerValue): boolean {
 
 /** The checks that need no AI; null means the answer needs the AI grader (short/open answers that the
  * lenient local comparison did not accept). */
-export function evaluateLocal(question: QuizQuestion, value: AnswerValue, context: EvalContext): EvalOutcome | null {
+function evaluateLocal(question: QuizQuestion, value: AnswerValue, context: EvalContext): EvalOutcome | null {
   if (question.type === 'matching' && Array.isArray(value)) {
     const score = matchingScore(question, value)
     return { status: score.right === score.of ? 'correct' : score.right > 0 ? 'partial' : 'incorrect', detail: score }

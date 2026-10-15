@@ -114,7 +114,7 @@ export async function expectNoPageOverflow(page: Page) {
 }
 
 /** Controls inside <main> with no accessible name (aria-label, aria-labelledby, <label>, text or title). */
-export async function unlabelledControls(page: Page): Promise<string[]> {
+async function unlabelledControls(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const nameOf = (element: Element): string => {
       const label = element.getAttribute('aria-label')

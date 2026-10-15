@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-export const SUPPORT_EMAIL = 'info@motiqai.com'
+const SUPPORT_EMAIL = 'info@motiqai.com'
 
 /** "Need help? info@motiqai.com": the one support address, shown in the auth footer, the account page, the legal pages and load errors. */
 export default function SupportNote({ className = '' }: { className?: string }) {

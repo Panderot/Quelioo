@@ -9,7 +9,7 @@ const IGNORED_CONSOLE: RegExp[] = [
   /^Failed to send error to Vite server/,
 ]
 
-export interface Allowance {
+interface Allowance {
   /** Matches the request URL. */
   url: RegExp
   /** Allowed statuses; omitted = any 4xx/5xx for that URL. */

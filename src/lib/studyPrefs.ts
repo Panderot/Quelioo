@@ -19,7 +19,7 @@ export interface StudyPrefs {
 
 const STORAGE_KEY = 'quelio.studyPrefs.v1'
 
-export const DEFAULT_PREFS: StudyPrefs = { kind: 'normal', timers: {}, celebrate: true }
+const DEFAULT_PREFS: StudyPrefs = { kind: 'normal', timers: {}, celebrate: true }
 
 /** Normal and Quick review start with the timer off; the exam rehearsal suggests a total time. */
 export const defaultKindTimer = (kind: StudyKind): KindTimer => ({ mode: kind === 'exam' ? 'total' : 'off', questionSeconds: DEFAULT_QUESTION_SECONDS })
@@ -67,7 +67,7 @@ export function saveStudyPrefs(prefs: StudyPrefs): void {
 }
 
 // ---------------------------------------------------------------------------
-// Focus layout: the study screen asks the app shell to hide the sidebar and header.
+// Focus layout: the study screen asks the app shell to hide the top bar and tab bar.
 // ---------------------------------------------------------------------------
 
 interface StudyChrome {

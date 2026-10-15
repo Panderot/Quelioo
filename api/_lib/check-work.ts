@@ -9,11 +9,11 @@ import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
 export type CheckWorkErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited'
 
-export type CheckWorkVerdict = 'correct' | 'has_error' | 'unsure' | 'incomplete' | 'different_problem' | 'unreadable' | 'uncertain'
-export type CheckWorkErrorType = 'arithmetic' | 'sign' | 'concept' | 'copying' | 'missing_step'
+type CheckWorkVerdict = 'correct' | 'has_error' | 'unsure' | 'incomplete' | 'different_problem' | 'unreadable' | 'uncertain'
+type CheckWorkErrorType = 'arithmetic' | 'sign' | 'concept' | 'copying' | 'missing_step'
 /** ok · mistake (verified) · unsure ("check this step again") · unchecked (after a mistake). */
-export type CheckWorkStepState = 'ok' | 'mistake' | 'unsure' | 'unchecked'
-export type ProblemMatch = 'same' | 'different' | 'unsure'
+type CheckWorkStepState = 'ok' | 'mistake' | 'unsure' | 'unchecked'
+type ProblemMatch = 'same' | 'different' | 'unsure'
 
 export interface CheckWorkResult {
   verdict: CheckWorkVerdict
@@ -36,7 +36,7 @@ export interface CheckWorkResult {
   engineChecks: EngineVerdict[]
 }
 
-export interface CheckWorkReadLine {
+interface CheckWorkReadLine {
   text: string
   lowConfidence: boolean
 }

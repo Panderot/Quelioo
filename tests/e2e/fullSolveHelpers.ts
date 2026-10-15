@@ -80,9 +80,3 @@ export async function pickPhoto(page: Page, name = 'plain.jpg', mimeType = 'imag
   await expect(page.locator('[data-purpose="solve-cropped-preview"]')).toBeVisible()
 }
 
-/** Opens a photo, solves it and waits for the result. */
-export async function solveOnce(page: Page) {
-  await pickPhoto(page)
-  await solveButton(page).click()
-  await expect(solveResult(page)).toBeVisible()
-}

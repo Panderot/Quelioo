@@ -7,7 +7,7 @@ import { LogoMark } from '../Logo'
 import RateLimitNotice from '../RateLimitNotice'
 import SupportNote from '../SupportNote'
 
-/** Public pages (sign in, sign up, passwords, legal): centered card on paper, no sidebar. */
+/** Public pages (sign in, sign up, passwords, legal): centered card on paper, no app navigation. */
 export default function AuthLayout() {
   const { t } = useTranslation()
   return (

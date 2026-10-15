@@ -83,8 +83,7 @@ test.describe('sessions', () => {
     await other.context.close()
   })
 
-  // Auth code (off limits): the second device keeps working until its access token (a stateless JWT) runs out;
-  // dropping it on the very next reload would need a server check of the session in src/lib/auth.
+  // The second device keeps working until its access token (a stateless JWT) runs out.
 })
 
 // ---------------------------------------------------------------------------------------------------------------

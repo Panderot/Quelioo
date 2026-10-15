@@ -60,7 +60,7 @@ export async function signIn(email: string, password: string, knownId?: string):
   }
 }
 
-export function trackUser(id: string) {
+function trackUser(id: string) {
   if (!created.includes(id)) created.push(id)
 }
 
@@ -80,7 +80,7 @@ export async function listObjects(bucket: 'uploads', prefix: string): Promise<st
 }
 
 /** Deletes a test user with their files (rows go with the user: every table cascades). */
-export async function deleteTestUser(id: string): Promise<void> {
+async function deleteTestUser(id: string): Promise<void> {
   for (const bucket of ['uploads'] as const) {
     const paths = await listObjects(bucket, id)
     if (paths.length > 0) await admin.storage.from(bucket).remove(paths)
@@ -101,7 +101,7 @@ export async function cleanupTestUsers(): Promise<void> {
 }
 
 /** The key supabase-js stores the session under in the browser. */
-export const sessionStorageKey = `sb-${testEnv.projectRef}-auth-token`
+const sessionStorageKey = `sb-${testEnv.projectRef}-auth-token`
 
 /** Makes every page of the context start signed in as `user` (same effect as having signed in earlier). */
 export async function signInBrowser(context: BrowserContext, user: TestUser): Promise<void> {

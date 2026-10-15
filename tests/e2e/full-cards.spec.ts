@@ -5,7 +5,6 @@ import { seed } from './flashcardHelpers'
 import type { SeedDeck } from './flashcardHelpers'
 import {
   LANGUAGES,
-  NOW,
   cardRows,
   deckRows,
   expectCleanScreen,

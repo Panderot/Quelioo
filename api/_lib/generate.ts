@@ -50,13 +50,13 @@ import {
 import type { CoverageFact, FactEntry, PlannedFact, QuestionSlot, QuizCoverage, SlotPlan } from '../../src/lib/factCoverage.js'
 import { usageCostUsd } from '../../src/lib/modelPricing.js'
 
-export type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model' | 'not_configured'
+type GenerateErrorCode = 'too_short' | 'too_long' | 'not_supported' | 'upstream' | 'parse' | 'model' | 'not_configured'
 
-export interface GenerateApiErrorBody {
+interface GenerateApiErrorBody {
   error: GenerateErrorCode
 }
 
-export interface GenerateQuizResponseBody extends GeneratedQuiz {
+interface GenerateQuizResponseBody extends GeneratedQuiz {
   provider: LlmProvider
   fallbackUsed: boolean
   requestedCount: number
@@ -65,7 +65,7 @@ export interface GenerateQuizResponseBody extends GeneratedQuiz {
   supportedCount?: number
 }
 
-export interface RegenerateOneResponseBody {
+interface RegenerateOneResponseBody {
   question: QuizQuestion
   provider: LlmProvider
   fallbackUsed: boolean
@@ -73,7 +73,7 @@ export interface RegenerateOneResponseBody {
 
 /** top_up and cover_missing: new questions to append (cover_missing ones carry verified factIds; its
  * `replaced` are existing questions reworded so the new ones fit, under their own ids). */
-export interface TopUpResponseBody {
+interface TopUpResponseBody {
   questions: QuizQuestion[]
   replaced?: QuizQuestion[]
   provider: LlmProvider
@@ -746,7 +746,7 @@ interface GenerateOutcomeSuccess {
 
 type GenerateOutcome = GenerateOutcomeSuccess | { error: GenerateErrorCode }
 
-export interface OtherQuestionContext {
+interface OtherQuestionContext {
   question: string
   answer: string
   type?: QuizQuestionType

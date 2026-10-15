@@ -5,7 +5,7 @@ const isNumericLocale = (language: string) => language === 'hyw'
 
 const intlLocale = (language: string) => (language === 'hyw' ? 'hy' : language)
 
-export function formatDay(date: Date): string {
+function formatDay(date: Date): string {
   return `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`
 }
 
