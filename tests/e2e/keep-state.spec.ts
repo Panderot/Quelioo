@@ -288,6 +288,8 @@ test.describe('Other pages keep their work', () => {
     await nav(page, en.nav.solve)
     await nav(page, en.nav.flashcards)
     await expect(page.getByRole('searchbox')).toHaveValue('zzz-no-match')
+    // The restored search is written back to the URL in an effect; wait for it, as a real user would, before reloading.
+    await expect(page).toHaveURL(/q=zzz-no-match/)
     await page.reload()
     await expect(page.getByRole('searchbox')).toHaveValue('zzz-no-match')
   })
