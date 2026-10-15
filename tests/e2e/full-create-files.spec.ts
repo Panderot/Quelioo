@@ -152,7 +152,7 @@ test.describe('File tab: files that are refused', () => {
     { name: 'unsupported type (image)', file: 'photo.png', mimeType: 'image/png', build: () => Buffer.from('not really a png'), message: "This file type isn't supported. Use a PDF, DOCX, TXT or MD file." },
     { name: 'unsupported type (old Word)', file: 'old.doc', mimeType: 'application/msword', build: () => Buffer.from('legacy'), message: "This file type isn't supported." },
     { name: 'file without extension', file: 'README', mimeType: 'text/plain', build: () => Buffer.from(ARTICLE_TEXT), message: "This file type isn't supported." },
-    { name: 'file over 10 MB', file: 'huge.txt', mimeType: 'text/plain', build: () => Buffer.alloc(10 * 1024 * 1024 + 1, 'a'), message: 'This file is too large. Please use a file under 10MB.' },
+    { name: 'file over 10 MB', file: 'huge.txt', mimeType: 'text/plain', build: () => Buffer.alloc(10 * 1024 * 1024 + 1, 'a'), message: 'This file is too large. Please use a file under 10 MB.' },
   ]
 
   for (const refused of REFUSED) {

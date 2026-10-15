@@ -3,6 +3,7 @@ import { createHourlyIpLimit } from './hourly-ip-limit.js'
 import { callLlmJson, cleanString, isRecord, isStringArray, jsonPostHandler } from './llm-json.js'
 import type { LlmProvider } from './llm.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
+import { TURKISH_MATH_TERMS_RULE } from './turkish-math-terms.js'
 import { isLocallyCheckable } from '../../src/lib/mathAnswer.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
@@ -45,6 +46,7 @@ function generatorSystem(language: string): string {
     'Then solve it step by step (short teacher-style steps) and give the final answer.',
     '"checkValue" is the final answer as a plain value without LaTeX or words, e.g. "8", "-3/4", "2.5", "10", "x=8"; use "" if the answer is not a single value.',
     languageInstruction(language),
+    TURKISH_MATH_TERMS_RULE,
     'Write math in LaTeX: $...$ inline.',
     'Respond with ONLY a single JSON object and nothing else, exactly: {"question": string, "steps": string[], "answer": string, "checkValue": string}.',
   ].join(' ')

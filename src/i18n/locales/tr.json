@@ -13,7 +13,7 @@
   "topbar": {
     "language": {
       "buttonLabel": "Dili değiştir",
-      "menuLabel": "Bir dil seçin"
+      "menuLabel": "Bir dil seç"
     }
   },
   "hero": {
@@ -53,17 +53,17 @@
       "url": "URL"
     },
     "placeholder": {
-      "text": "Bir paragraf, ders notu ya da makale yapıştırın...",
-      "url": "Bir makale veya web sayfası bağlantısı yapıştırın..."
+      "text": "Bir paragraf, ders notu ya da makale yapıştır...",
+      "url": "Bir makale veya web sayfası bağlantısı yapıştır..."
     },
     "dropzone": {
-      "title": "Dosyayı buraya sürükleyip bırakın",
-      "subtitle": "PDF, DOCX, TXT veya MD, 10MB'a kadar",
+      "title": "Dosyayı buraya sürükleyip bırak",
+      "subtitle": "PDF, DOCX, TXT veya MD, 10 MB'a kadar",
       "browse": "Dosya seç"
     },
     "truncatedNote": "Yalnızca ilk 5.000 kelime kullanılıyor.",
     "clearInput": "İçeriği Temizle",
-    "errorEmpty": "Quiz oluşturmadan önce lütfen içerik ekleyin.",
+    "errorEmpty": "Quiz oluşturmadan önce lütfen içerik ekle.",
     "file": {
       "privacyHelper": "Dosyan tarayıcında okunur, yüklenmez.",
       "extracting": "Dosyan okunuyor...",
@@ -75,7 +75,7 @@
       "chooseAnother": "Başka bir dosya seç",
       "errors": {
         "unsupported_type": "Bu dosya türü desteklenmiyor. PDF, DOCX, TXT veya MD dosyası kullan.",
-        "too_large": "Bu dosya çok büyük. Lütfen 10MB'ın altında bir dosya kullan.",
+        "too_large": "Bu dosya çok büyük. Lütfen 10 MB'ın altında bir dosya kullan.",
         "password_protected": "Bu PDF parola korumalı. Parolayı kaldırıp tekrar dene.",
         "no_text": "Bu, metni seçilemeyen taranmış bir PDF gibi görünüyor — OCR henüz desteklenmiyor.",
         "corrupt": "Bu dosya okunamadı. Bozuk olabilir.",
@@ -150,7 +150,7 @@
   },
   "cta": {
     "generate": "Quiz Oluştur",
-    "generating": "Quiziniz oluşturuluyor...",
+    "generating": "Quizin oluşturuluyor...",
     "viewInArchive": "Arşivde Görüntüle"
   },
   "archive": {
@@ -233,7 +233,7 @@
       "copied": "Kopyalandı!",
       "copyFailed": "Kopyalanamadı — metni elle seçebilirsin.",
       "print": "Yazdır / PDF",
-      "printChooseTitle": "Ne yazdırmak istersiniz?",
+      "printChooseTitle": "Ne yazdırmak istersin?",
       "printQuestionSheet": "Soru kağıdı",
       "printWithAnswers": "Cevap anahtarıyla",
       "printConfirm": "Yazdır",
@@ -313,10 +313,10 @@
     "title": "Matematik sorunu çöz",
     "subtitle": "Sorunun fotoğrafını çek, Quelio adım adım anlatsın.",
     "upload": {
-      "dragTitle": "Fotoğrafı buraya sürükleyip bırakın",
-      "dragSubtitle": "ya da dosya seçmek, yapıştırmak veya fotoğraf çekmek için tıklayın",
+      "dragTitle": "Fotoğrafı buraya sürükleyip bırak",
+      "dragSubtitle": "ya da dosya seçmek, yapıştırmak veya fotoğraf çekmek için tıkla",
       "browse": "Fotoğraf seç",
-      "hint": "Her fotoğraf formatı, 25MB'a kadar",
+      "hint": "Her fotoğraf formatı, 25 MB'a kadar",
       "converting": "Fotoğrafın hazırlanıyor...",
       "changeCrop": "Kırpmayı değiştir",
       "replacePhoto": "Fotoğrafı değiştir",
@@ -325,7 +325,7 @@
     },
     "note": {
       "label": "Not ekle (isteğe bağlı)",
-      "placeholder": "Örneğin: \"2. adımı anlamadım\""
+      "placeholder": "Örneğin: \"Her adımı daha ayrıntılı anlat\""
     },
     "cta": {
       "solve": "Çöz",
@@ -342,7 +342,7 @@
     "errors": {
       "unreadable": "Bu fotoğrafı net okuyamadık. Sorunun daha net ve iyi aydınlatılmış bir fotoğrafını dene.",
       "not_math": "Bu fotoğrafta bir matematik sorusu bulamadık. Sorunun daha net bir fotoğrafını dene.",
-      "too_large": "Bu fotoğraf çok büyük. Lütfen 25MB'ın altında bir fotoğraf kullan.",
+      "too_large": "Bu fotoğraf çok büyük. Lütfen 25 MB'ın altında bir fotoğraf kullan.",
       "too_small": "Bu fotoğraf net okunamayacak kadar küçük. Lütfen daha büyük bir fotoğraf kullan.",
       "unsupported": "Bu dosya formatı desteklenmiyor. JPEG, PNG, WEBP, HEIC, TIFF, BMP, GIF, AVIF, ICO, SVG veya DNG dene.",
       "decode_failed": "Bu fotoğrafı açamadık. Dosya bozuk olabilir — başka bir dosya dene.",
@@ -363,7 +363,7 @@
     },
     "choices": {
       "title": "Hangi soruyu çözeyim?",
-      "subtitle": "Bu fotoğrafta birden fazla soru var. Birini seçin ya da fotoğrafı tek bir soruya kırpın.",
+      "subtitle": "Bu fotoğrafta birden fazla soru var. Birini seç ya da fotoğrafı tek bir soruya kırp.",
       "cropAction": "Fotoğrafı kırp"
     },
     "saveUnavailable": "Bu çözüm bu cihazda Arşivine kaydedilemedi, ama burada okumaya devam edebilirsin.",
@@ -509,7 +509,7 @@
   "crop": {
     "imageAlt": "Kırpılacak fotoğraf",
     "boxLabel": "Kırpma alanı",
-    "instructions": "Kutuyu taşımak için sürükleyin; boyutlandırmak için köşelerini veya kenarlarını sürükleyin. Telefonda iki parmakla büyütüp küçültün. Klavye: ok tuşları taşır, Shift + ok tuşları boyutlandırır.",
+    "instructions": "Kutuyu taşımak için sürükle; boyutlandırmak için köşelerini veya kenarlarını sürükle. Telefonda iki parmakla büyütüp küçült. Klavye: ok tuşları taşır, Shift + ok tuşları boyutlandırır.",
     "rotateLeft": "Sola döndür",
     "rotateRight": "Sağa döndür",
     "reset": "Sıfırla",

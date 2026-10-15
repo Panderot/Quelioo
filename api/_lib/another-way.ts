@@ -3,6 +3,7 @@ import { createHourlyIpLimit } from './hourly-ip-limit.js'
 import { callLlmJson, cleanString, isRecord, isStringArray, jsonPostHandler } from './llm-json.js'
 import type { LlmProvider } from './llm.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
+import { TURKISH_MATH_TERMS_RULE } from './turkish-math-terms.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
 type AnotherWayErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited' | 'mismatch'
@@ -35,6 +36,7 @@ function systemPrompt(language: string, retry: boolean): string {
     'Otherwise respond with {"method": string, "steps": string[], "answer": string, "checkValue": string}: "method" is a short name of the method, "steps" are short teacher-style steps, "answer" is the final answer, "checkValue" is the final answer as a plain value without LaTeX or words ("" if not a single value). Text and math only — no drawings.',
     retry ? 'Your previous attempt reached a different final answer than the original. Work very carefully: the final answer must equal <original_answer>.' : '',
     name ? `Respond only in ${name}.` : 'Respond in the same language as the problem.',
+    TURKISH_MATH_TERMS_RULE,
     'Write math in LaTeX: $...$ inline.',
     'Respond with ONLY a single JSON object and nothing else — no markdown code fences, no commentary.',
   ]

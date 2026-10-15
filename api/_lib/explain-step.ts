@@ -6,6 +6,7 @@ import { generateJson } from './llm.js'
 import type { LlmProvider } from './llm.js'
 import { requestIp } from './request-ip.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
+import { TURKISH_MATH_TERMS_RULE } from './turkish-math-terms.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
 type ExplainErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited'
@@ -50,6 +51,7 @@ function buildSystemPrompt(language: string, level: ExplainLevel): string {
     'Explain only that step — do not re-solve the whole problem and do not reveal later steps or the final answer unless the step itself contains it.',
     'If a tiny example would help, give a mini example with different, simpler numbers in "example" (one or two lines); otherwise use "".',
     languageInstruction(language),
+    TURKISH_MATH_TERMS_RULE,
     'Write all math in LaTeX: $...$ inline.',
     'Respond with ONLY a single JSON object and nothing else — no markdown code fences, no commentary — matching exactly this shape: {"explanation": string, "example": string}.',
   ].join(' ')

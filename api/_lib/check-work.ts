@@ -5,6 +5,7 @@ import type { LlmProvider } from './llm.js'
 import { checkStudentSteps } from './step-engine.js'
 import type { EngineVerdict } from './step-engine.js'
 import { getOutputLanguageEnglishName, OUTPUT_LANGUAGE_CODES } from '../../src/data/outputLanguages.js'
+import { TURKISH_MATH_TERMS_RULE } from './turkish-math-terms.js'
 import { neutralizeTag } from '../../src/lib/sanitizeText.js'
 
 export type CheckWorkErrorCode = 'bad_type' | 'too_large' | 'upstream' | 'parse' | 'model' | 'not_configured' | 'rate_limited'
@@ -118,6 +119,7 @@ function gradeSystem(language: string): string {
     '"problemMatch": "same" when the work is for <problem> (a number copied wrong still counts as "same"), "different" when it clearly solves another problem, "unsure" when you cannot tell.',
     '"finished": true when the work reaches a final answer. "studentFinalAnswer": the student\'s final result exactly as written, as a plain value where possible (for example "x = 8"), or "" if there is none.',
     languageRule(language, 'explanation, correctedStep and hint'),
+    TURKISH_MATH_TERMS_RULE,
     'Write all math in LaTeX: $...$ inline.',
     'Respond with ONLY a single JSON object and nothing else — no markdown code fences — exactly: {"problemMatch": string, "finished": boolean, "studentFinalAnswer": string, "mistakes": [{"step": number, "errorType": string, "explanation": string, "correctedStep": string, "hint": string}]}.',
   ].join(' ')
@@ -208,6 +210,7 @@ function explainSystem(language: string): string {
     `The problem is inside <problem>, the student's steps inside <student_steps> and the wrong step number inside <wrong_step>. ${DATA_RULE}`,
     'Return "errorType" — one of "arithmetic", "sign", "concept", "copying", "missing_step"; "explanation" — one or two short sentences about exactly what the student wrote in that step; "correctedStep" — that step written correctly.',
     languageRule(language, 'explanation and correctedStep'),
+    TURKISH_MATH_TERMS_RULE,
     'Write all math in LaTeX: $...$ inline.',
     'Respond with ONLY a single JSON object and nothing else, exactly: {"errorType": string, "explanation": string, "correctedStep": string}.',
   ].join(' ')

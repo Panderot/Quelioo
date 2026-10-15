@@ -58,7 +58,7 @@
     },
     "dropzone": {
       "title": "Drag and drop a file here",
-      "subtitle": "PDF, DOCX, TXT or MD, up to 10MB",
+      "subtitle": "PDF, DOCX, TXT or MD, up to 10 MB",
       "browse": "Browse files"
     },
     "truncatedNote": "Only the first 5,000 words are used.",
@@ -75,7 +75,7 @@
       "chooseAnother": "Choose another file",
       "errors": {
         "unsupported_type": "This file type isn't supported. Use a PDF, DOCX, TXT or MD file.",
-        "too_large": "This file is too large. Please use a file under 10MB.",
+        "too_large": "This file is too large. Please use a file under 10 MB.",
         "password_protected": "This PDF is password-protected. Remove the password and try again.",
         "no_text": "This looks like a scanned PDF with no selectable text — OCR isn't supported yet.",
         "corrupt": "This file couldn't be read. It may be corrupted.",
@@ -316,7 +316,7 @@
       "dragTitle": "Drag and drop a photo here",
       "dragSubtitle": "or click to choose a file, paste, or take a photo",
       "browse": "Choose a photo",
-      "hint": "Any photo format, up to 25MB",
+      "hint": "Any photo format, up to 25 MB",
       "converting": "Preparing your photo...",
       "changeCrop": "Change crop",
       "replacePhoto": "Replace photo",
@@ -325,7 +325,7 @@
     },
     "note": {
       "label": "Add a note (optional)",
-      "placeholder": "For example: \"I don't understand step 2\""
+      "placeholder": "For example: \"Explain each step in more detail\""
     },
     "cta": {
       "solve": "Solve",
@@ -342,7 +342,7 @@
     "errors": {
       "unreadable": "We couldn't read this photo clearly. Try a clearer, well-lit photo of just the question.",
       "not_math": "We couldn't find a math question in this photo. Try a clearer photo of just the question.",
-      "too_large": "This photo is too large. Please use a photo under 25MB.",
+      "too_large": "This photo is too large. Please use a photo under 25 MB.",
       "too_small": "This photo is too small to read clearly. Please use a larger photo.",
       "unsupported": "This file format isn't supported. Try JPEG, PNG, WEBP, HEIC, TIFF, BMP, GIF, AVIF, ICO, SVG or DNG.",
       "decode_failed": "We couldn't open this photo. It may be corrupted — try a different file.",

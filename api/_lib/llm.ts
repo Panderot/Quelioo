@@ -2,6 +2,7 @@ import { callAnthropicMessagesDetailed, resolveModel } from './anthropic.js'
 import type { AnthropicContentBlock } from './anthropic.js'
 import { callOpenAiResponses } from './openai.js'
 import { recordLlmUsage } from './usage.js'
+import { fixTurkishMathTerms } from './turkish-math-terms.js'
 import type { OpenAiUsage } from './openai.js'
 
 export type LlmProvider = 'anthropic' | 'openai'
@@ -252,7 +253,7 @@ export async function generateJson(params: LlmCallParams): Promise<LlmResult> {
     )
     // The real token counts and cost go to the account's usage log (only inside an authenticated request).
     if (usage) recordLlmUsage(provider, usage)
-    return { status: 'ok', text: outcome.text, provider, fallbackUsed, ...(outcome.usage ? { usage: outcome.usage } : {}) }
+    return { status: 'ok', text: fixTurkishMathTerms(outcome.text), provider, fallbackUsed, ...(outcome.usage ? { usage: outcome.usage } : {}) }
   }
 
   const duration = Date.now() - start
