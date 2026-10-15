@@ -265,11 +265,10 @@ export default function CreatePage() {
           : null,
       result,
     }
-    const timer = window.setTimeout(() => {
-      if (draft.file || draft.url || draft.result) void writePageDraft('create', draft)
-      else void deletePageDraft('create')
-    }, 300)
-    return () => window.clearTimeout(timer)
+    // Saved right away (no debounce): a reload straight after an edit must not lose it.
+    if (draft.file || draft.url || draft.result) void writePageDraft('create', draft)
+    else void deletePageDraft('create')
+    return undefined
   }, [draftReady, fileState, urlState, urlValue, result])
 
   useEffect(() => {

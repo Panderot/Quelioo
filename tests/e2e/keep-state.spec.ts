@@ -84,33 +84,6 @@ async function waitForSolveDraft(page: Page, check: 'photo' | 'result' | 'none')
     .toBe(check)
 }
 
-/** Resolves once the saved Solve draft holds the crop box the page shows now (the draft is debounced, so a photo-only draft is older than the last crop edit). */
-async function waitForSavedCrop(page: Page, expected: { x: number; y: number; w: number; h: number }) {
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          new Promise<{ x: number; y: number; w: number; h: number } | null>((resolve) => {
-            const request = indexedDB.open('quelio-page-drafts')
-            request.onerror = () => resolve(null)
-            request.onsuccess = () => {
-              const db = request.result
-              if (!db.objectStoreNames.contains('drafts')) return resolve(null)
-              const get = db.transaction('drafts').objectStore('drafts').get('solve')
-              get.onsuccess = () => resolve(get.result?.data?.crop ?? null)
-              get.onerror = () => resolve(null)
-            }
-          }),
-      ),
-    )
-    .toMatchObject({
-      x: expect.closeTo(expected.x / 100, 1),
-      y: expect.closeTo(expected.y / 100, 1),
-      w: expect.closeTo(expected.w / 100, 1),
-      h: expect.closeTo(expected.h / 100, 1),
-    })
-}
-
 /** Moves and shrinks the crop box with the keyboard, then rotates the photo. */
 async function editCrop(page: Page) {
   await page.getByRole('button', { name: en.crop.rotateRight }).click()
@@ -142,8 +115,6 @@ test.describe('Solve keeps its work', () => {
     await expect(page.locator('[data-purpose="crop-box"]')).toBeVisible()
     expect(await cropBoxPercent(page)).toEqual(before)
 
-    await waitForSolveDraft(page, 'photo')
-    await waitForSavedCrop(page, before)
     await page.reload()
     await expect(page.locator('[data-purpose="crop-box"]')).toBeVisible({ timeout: 15_000 })
     const after = await cropBoxPercent(page)
@@ -168,7 +139,6 @@ test.describe('Solve keeps its work', () => {
     await page.goBack()
     await expect(page.locator('[data-purpose="solve-answer"]')).toBeVisible()
 
-    await waitForSolveDraft(page, 'result')
     await page.reload()
     await expect(page.locator('[data-purpose="solve-answer"]')).toBeVisible({ timeout: 15_000 })
     await expect(page.locator('[data-purpose="solve-cropped-preview"]')).toBeVisible()
@@ -195,7 +165,6 @@ test.describe('Solve keeps its work', () => {
     await mockSolve(MOCK_RESULT)
     await uploadPhoto(page)
     await solveWholePhoto(page)
-    await waitForSolveDraft(page, 'result')
 
     await page.getByRole('button', { name: en.solve.upload.newQuestion }).click()
     await expect(page.locator('[data-purpose="solve-result"]')).toHaveCount(0)
@@ -245,20 +214,6 @@ test.describe('Create keeps its work', () => {
     await nav(page, en.nav.create)
     await expect(page.getByText('Sample Article')).toBeVisible()
 
-    // Debounced saves (draft 500 ms, page draft 300 ms) — wait for both before reloading.
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('quelio.draft.v1')?.includes('example.com') ?? false)).toBe(true)
-    await page.waitForFunction(
-      () =>
-        new Promise<boolean>((resolve) => {
-          const request = indexedDB.open('quelio-page-drafts')
-          request.onsuccess = () => {
-            const get = request.result.transaction('drafts').objectStore('drafts').get('create')
-            get.onsuccess = () => resolve(Boolean(get.result?.data?.url))
-            get.onerror = () => resolve(false)
-          }
-          request.onerror = () => resolve(false)
-        }),
-    )
     await page.reload()
     await expect(page.getByText('Sample Article')).toBeVisible()
     expect(extract.requests()).toHaveLength(1)
@@ -327,6 +282,7 @@ test.describe('Other pages keep their work', () => {
     await page.getByRole('button', { name: 'Add sample decks' }).click()
     const search = page.getByRole('searchbox')
     await search.fill('zzz-no-match')
+    await expect(search).toHaveValue('zzz-no-match')
     // The search is committed to the URL before the page is left, as it is for a real user.
     await expect(page).toHaveURL(/q=zzz-no-match/)
     await nav(page, en.nav.solve)

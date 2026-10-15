@@ -83,16 +83,29 @@ export function useSaveDraft(draft: QuizDraft, enabled: boolean): void {
   useEffect(() => {
     if (!enabled) return undefined
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(() => {
+    const save = () => {
       try {
         const capped: QuizDraft = { ...draft, textValue: draft.textValue.slice(0, MAX_SOURCE_TEXT_CHARS) }
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(capped))
       } catch {
         // storage unavailable or full — the page still works, it just won't persist a draft.
       }
-    }, SAVE_DEBOUNCE_MS)
+    }
+    timeoutRef.current = setTimeout(save, SAVE_DEBOUNCE_MS)
+    // A reload or closing the tab inside the debounce window must not lose what was just typed.
+    const flush = () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      save()
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVisibility)
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `draft` is a fresh object every render; JSON below is the real dependency
   }, [JSON.stringify(draft), enabled])

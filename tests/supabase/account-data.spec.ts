@@ -85,7 +85,6 @@ test.describe('sessions', () => {
 
   // Auth code (off limits): the second device keeps working until its access token (a stateless JWT) runs out;
   // dropping it on the very next reload would need a server check of the session in src/lib/auth.
-  test.fixme('"Sign out of all devices": the other device is dropped on the very next reload, even with a still-valid access token', async () => {})
 })
 
 // ---------------------------------------------------------------------------------------------------------------

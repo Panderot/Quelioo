@@ -31,7 +31,6 @@ let saveNoteShown = false
 // The reload draft keeps a compressed copy of the photo, never the original file.
 const DRAFT_PHOTO_MAX_SIDE = 2000
 const DRAFT_PHOTO_QUALITY = 0.85
-const DRAFT_SAVE_DEBOUNCE_MS = 300
 
 interface DraftPhoto {
   type: string
@@ -196,7 +195,7 @@ export default function SolvePage() {
     }
   }, [])
 
-  // Save unfinished work (debounced); no photo means nothing to keep.
+  // Save unfinished work on every change, so a reload right after an edit loses nothing; no photo means nothing to keep.
   useEffect(() => {
     if (!draftReadyRef.current || isRestoring) return undefined
     if (!decoded) {
@@ -204,25 +203,24 @@ export default function SolvePage() {
       return undefined
     }
     const image = decoded
-    const timer = window.setTimeout(() => {
-      if (draftPhotoRef.current?.image !== image) draftPhotoRef.current = { image, photo: encodeDraftPhoto(image) }
-      void draftPhotoRef.current.photo.then((photo) => {
-        if (!photo || decodedRef.current !== image) return
-        const confirmed = !isCropping && normalized !== null
-        const draft: SolveDraft = {
-          photo,
-          crop: (isCropping ? (liveCrop ?? cropSpec) : cropSpec) ?? null,
-          normalizedDataUrl: confirmed ? normalized.dataUrl : null,
-          note,
-          result: confirmed ? result : null,
-          choices: confirmed ? choices : null,
-          solutionId: confirmed && result && savedSolution?.version === resultVersion ? savedSolution.id : null,
-          revealed,
-        }
-        void writePageDraft('solve', draft)
-      })
-    }, DRAFT_SAVE_DEBOUNCE_MS)
-    return () => window.clearTimeout(timer)
+    if (draftPhotoRef.current?.image !== image) draftPhotoRef.current = { image, photo: encodeDraftPhoto(image) }
+    const photoPromise = draftPhotoRef.current.photo
+    void photoPromise.then((photo) => {
+      if (!photo || decodedRef.current !== image) return
+      const confirmed = !isCropping && normalized !== null
+      const draft: SolveDraft = {
+        photo,
+        crop: (isCropping ? (liveCrop ?? cropSpec) : cropSpec) ?? null,
+        normalizedDataUrl: confirmed ? normalized.dataUrl : null,
+        note,
+        result: confirmed ? result : null,
+        choices: confirmed ? choices : null,
+        solutionId: confirmed && result && savedSolution?.version === resultVersion ? savedSolution.id : null,
+        revealed,
+      }
+      void writePageDraft('solve', draft)
+    })
+    return undefined
   }, [decoded, isCropping, liveCrop, cropSpec, normalized, note, result, choices, savedSolution, resultVersion, revealed, isRestoring])
 
   const clearOutcome = () => {

@@ -79,10 +79,21 @@ function enqueue(work: () => Promise<unknown>): Promise<void> {
   return writeQueue
 }
 
+// Saves happen on every change, so a burst (a crop box being dragged) keeps only the newest data per key.
+const pendingWrites = new Map<PageDraftKey, unknown>()
+
 export function writePageDraft(key: PageDraftKey, data: unknown): Promise<void> {
-  return enqueue(() => run('readwrite', (store) => store.put({ key, savedAt: Date.now(), data } satisfies StoredPageDraft)))
+  const queued = pendingWrites.has(key)
+  pendingWrites.set(key, data)
+  if (queued) return writeQueue
+  return enqueue(() => {
+    const latest = pendingWrites.get(key)
+    pendingWrites.delete(key)
+    return run('readwrite', (store) => store.put({ key, savedAt: Date.now(), data: latest } satisfies StoredPageDraft))
+  })
 }
 
 export function deletePageDraft(key: PageDraftKey): Promise<void> {
+  pendingWrites.delete(key)
   return enqueue(() => run('readwrite', (store) => store.delete(key)))
 }
