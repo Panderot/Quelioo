@@ -266,8 +266,8 @@ for (const viewport of [
     await solve(page)
     const row = page.locator('[data-purpose="solution-actions"]')
     const buttons = row.locator(':scope > button, :scope > div > button')
-    await expect(buttons).toHaveCount(3)
-    const boxes = await Promise.all([0, 1, 2].map(async (index) => (await buttons.nth(index).boundingBox())!))
+    await expect(buttons).toHaveCount(4)
+    const boxes = await Promise.all([0, 1, 2, 3].map(async (index) => (await buttons.nth(index).boundingBox())!))
     const rowBox = (await row.boundingBox())!
     if (viewport.width > 640) {
       expect(new Set(boxes.map((box) => Math.round(box.y))).size).toBe(1)

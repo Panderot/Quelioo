@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 
 import type { SolveResult } from '../api/solve'
@@ -8,6 +8,7 @@ import type { CheckWorkResult } from '../api/checkWork'
 import { ANOTHER_WAY_KEY, CHECK_WORK_KEY, readAnotherWay, readCheckWork, readSimilarItems, SIMILAR_PROBLEMS_KEY } from '../lib/solutionExtras'
 import type { SimilarItem, StoredAnotherWay } from '../lib/solutionExtras'
 import { updateSolutionExtras } from '../lib/solutionStorage'
+import { addNotebookCard, findNotebookCard, useFlashcards } from '../lib/flashcardStorage'
 import { mathToPlainText } from '../lib/mathPlain'
 import { solutionSourceText } from '../lib/sourceText'
 import { readStepExplanations, STEP_EXPLANATIONS_KEY, withExplanation } from '../lib/stepExplanations'
@@ -21,7 +22,7 @@ import MathText from './MathText'
 import MoreMenu from './MoreMenu'
 import SimilarProblems from './SimilarProblems'
 import type { PanelHandle } from './SimilarProblems'
-import { CheckIcon, RefreshIcon, WarningIcon } from './icons'
+import { BookIcon, CheckIcon, RefreshIcon, WarningIcon } from './icons'
 
 const TRY_FIRST_STORAGE_KEY = 'quelio.solveTryFirst.v1'
 
@@ -175,6 +176,25 @@ export default function SolutionView({
   const outlineAction =
     'inline-flex w-full items-center justify-center gap-2 rounded-xl border border-warm-border bg-card px-4 py-2.5 text-sm font-bold text-navy transition-colors hover:border-amber sm:w-auto'
 
+  // ---- Question notebook ----
+  // A problem the student could not solve goes into the notebook deck and comes back in Flashcards
+  // tomorrow, with its photo. The button keeps its "already there" state on every later visit.
+  const flashcards = useFlashcards()
+  const notebook = solutionId ? findNotebookCard(flashcards, solutionId) : null
+  const [notebookJustAdded, setNotebookJustAdded] = useState(false)
+
+  const addToNotebook = () => {
+    if (!solutionId) return
+    addNotebookCard({
+      solutionId,
+      question: result.question,
+      answer: t('flashcards.notebook.answer', { answer: result.answer }),
+      deckName: t('flashcards.notebook.deckName'),
+      language: i18n.language,
+    })
+    setNotebookJustAdded(true)
+  }
+
   // "Make flashcards": the whole solution is the source text for /api/cards (solution mode).
   const [flashcardsOpen, setFlashcardsOpen] = useState(false)
   const generateSolutionCards = useCallback(
@@ -298,7 +318,7 @@ export default function SolutionView({
 
       {children}
 
-      {/* At most three actions in a row; the rest live in the More menu. Stacks below 640px. */}
+      {/* The main actions in one row; the rest live in the More menu. Stacks below 640px. */}
       <div data-purpose="solution-actions" className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
         <button type="button" onClick={() => checkWorkRef.current?.open()} className={outlineAction}>
           <CheckIcon className="h-4 w-4" />
@@ -308,6 +328,27 @@ export default function SolutionView({
           <RefreshIcon className="h-4 w-4" />
           {t('solve.actions.similar')}
         </button>
+        {notebook ? (
+          <div data-purpose="notebook-state" className={`${outlineAction} cursor-default border-amber/60 flex-wrap gap-x-3`}>
+            <span className="inline-flex items-center gap-2">
+              <CheckIcon className="h-4 w-4 text-amber-text" />
+              {t('solve.notebook.added')}
+            </span>
+            <Link to={`/flashcards/${notebook.deck.id}`} className="text-xs font-semibold text-amber-text hover:underline">
+              {t('solve.notebook.open')}
+            </Link>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={addToNotebook}
+            disabled={!solutionId}
+            className={`${outlineAction} disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            <BookIcon className="h-4 w-4" />
+            {t('solve.notebook.add')}
+          </button>
+        )}
         <MoreMenu
           items={[
             {
@@ -328,6 +369,12 @@ export default function SolutionView({
           ]}
         />
       </div>
+
+      {notebookJustAdded && notebook && (
+        <p data-purpose="notebook-tomorrow" className="text-xs text-muted">
+          {t('solve.notebook.tomorrow')}
+        </p>
+      )}
 
       {flashcardsOpen && (
         <AddCardsDialog

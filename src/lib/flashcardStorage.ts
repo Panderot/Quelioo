@@ -3,7 +3,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { getAuthState, useAuth } from './auth/authStore'
 import { enqueueFlashcardWrites, fetchFlashcards } from './remote/flashcardsRemote'
 import { isFakeBackend } from './supabase'
-import { DEFAULT_NEW_PER_DAY, buildStudyQueue, resetProgress } from './srs'
+import { DEFAULT_NEW_PER_DAY, addLocalDays, buildStudyQueue, resetProgress, startOfLocalDay } from './srs'
 import type { LeitnerBox, SrsCard, SrsProgress } from './srs'
 import { MAX_BACK_CHARS, MAX_DECK_DESCRIPTION_CHARS, MAX_DECK_NAME_CHARS, MAX_FRONT_CHARS } from './flashcardText'
 
@@ -34,6 +34,8 @@ export interface Deck {
 
 export interface Card extends SrsCard {
   deckId: string
+  /** The solved problem this card came from (question notebook), or null for an ordinary card. */
+  solutionId: string | null
 }
 
 interface DeletedDeck {
@@ -134,6 +136,7 @@ function cardWithDefaults(raw: Partial<Card>): Card | null {
   return {
     id: raw.id,
     deckId: raw.deckId,
+    solutionId: typeof raw.solutionId === 'string' ? raw.solutionId : null,
     front: text(raw.front, MAX_FRONT_CHARS),
     back: text(raw.back, MAX_BACK_CHARS),
     box,
@@ -357,6 +360,7 @@ export function addCards(deckId: string, entries: { front: string; back: string 
   const cards: Card[] = entries.map((entry, index) => ({
     id: makeId(),
     deckId,
+    solutionId: null,
     front: entry.front.slice(0, MAX_FRONT_CHARS),
     back: entry.back.slice(0, MAX_BACK_CHARS),
     ...resetProgress(now),
@@ -367,6 +371,61 @@ export function addCards(deckId: string, entries: { front: string; back: string 
   setState({ cards: [...state.cards, ...cards], decks })
   persist({ putCards: cards, putDecks: decks.filter((deck) => deck.id === deckId) })
   return cards
+}
+
+// --- Question notebook -------------------------------------------------------------------------
+
+/** `sourceRef` of the one deck that holds problems the student could not solve. */
+export const NOTEBOOK_SOURCE_REF = 'notebook'
+
+/** The notebook deck, found by source (never by name — the student may rename it). */
+export function findNotebookDeck(decks: Deck[]): Deck | null {
+  return decks.find((deck) => deck.source === 'solution' && deck.sourceRef === NOTEBOOK_SOURCE_REF) ?? null
+}
+
+/** The notebook card of one solution with its deck, or null — drives the Solve button's state. */
+export function findNotebookCard(source: Pick<FlashcardState, 'decks' | 'cards'>, solutionId: string): { deck: Deck; card: Card } | null {
+  const deck = findNotebookDeck(source.decks)
+  if (!deck) return null
+  const card = source.cards.find((entry) => entry.deckId === deck.id && entry.solutionId === solutionId)
+  return card ? { deck, card } : null
+}
+
+/** Cuts at the last space before `max` and ends with "…" (the photo shows the full question). */
+function cutToLength(value: string, max: number): string {
+  if (value.length <= max) return value
+  const head = value.slice(0, max - 1)
+  const space = head.lastIndexOf(' ')
+  return `${(space > 0 ? head.slice(0, space) : head).trimEnd()}…`
+}
+
+/** Adds a problem the student could not solve to the notebook deck (created on first use). The card
+ * is already in box 2 and due tomorrow, so the Leitner intervals then run 3, 7 and 16 days.
+ * `answer` is the localized back text. Returns the existing card instead of a second one. */
+export function addNotebookCard(input: { solutionId: string; question: string; answer: string; deckName: string; language: string }): { deck: Deck; card: Card } {
+  const existing = findNotebookCard(state, input.solutionId)
+  if (existing) return existing
+  const deck = findNotebookDeck(state.decks) ?? createDeck({ name: input.deckName, source: 'solution', sourceRef: NOTEBOOK_SOURCE_REF, language: input.language })
+  const now = Date.now()
+  const card: Card = {
+    id: makeId(),
+    deckId: deck.id,
+    solutionId: input.solutionId,
+    front: cutToLength(input.question, MAX_FRONT_CHARS),
+    back: cutToLength(input.answer, MAX_BACK_CHARS),
+    box: 2,
+    due: addLocalDays(startOfLocalDay(now), 1),
+    lapses: 0,
+    reviews: 0,
+    lastReviewedAt: null,
+    // Counted as introduced right away, so the first review tomorrow does not use that day's new-card quota.
+    introducedAt: now,
+    createdAt: state.cards.reduce((latest, entry) => Math.max(latest, entry.createdAt + 1), now),
+  }
+  const decks = touchDeck(deck.id, now)
+  setState({ cards: [...state.cards, card], decks })
+  persist({ putCards: [card], putDecks: decks.filter((entry) => entry.id === deck.id) })
+  return { deck, card }
 }
 
 export function updateCard(cardId: string, patch: Partial<Pick<Card, 'front' | 'back'>> | SrsProgress) {

@@ -397,6 +397,12 @@
       "more": "Daha fazla",
       "anotherWay": "Başka yolla çöz"
     },
+    "notebook": {
+      "add": "Soru defterime ekle",
+      "added": "Soru defterinde",
+      "open": "Kartlar'da aç",
+      "tomorrow": "Yarın Kartlar'da karşına çıkacak."
+    },
     "similar": {
       "title": "Benzer sorular",
       "itemTitle": "Benzer soru {{number}}",
@@ -763,6 +769,15 @@
     },
     "solution": {
       "action": "Kart yap"
+    },
+    "notebook": {
+      "deckName": "Soru defterim",
+      "answer": "Cevap: {{answer}}",
+      "openSolution": "Çözümü aç",
+      "solved": "Doğru çözdüm",
+      "notSolved": "Çözemedim",
+      "shortcuts": "Boşluk çevir · → ya da 2 doğru çözdüm · ← ya da 1 çözemedim · Esc çık",
+      "flipHintTouch": "Çözümü görmek için karta dokun; doğru çözdüysen sağa, çözemediysen sola kaydır."
     },
     "reminder": {
       "text_one": "Bugün seni bekleyen {{count}} kart var",

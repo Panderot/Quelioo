@@ -53,6 +53,8 @@ export function flattenLocale(lng: Lng): Record<string, string> {
 export interface StoredCard {
   id: string
   deckId: string
+  /** Set only on question-notebook cards (the solved problem they came from). */
+  solutionId: string | null
   front: string
   back: string
   box: number

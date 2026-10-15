@@ -397,6 +397,12 @@
       "more": "More",
       "anotherWay": "Solve another way"
     },
+    "notebook": {
+      "add": "Add to my question notebook",
+      "added": "In your question notebook",
+      "open": "Open in Flashcards",
+      "tomorrow": "It will come up in Flashcards tomorrow."
+    },
     "similar": {
       "title": "Similar problems",
       "itemTitle": "Similar problem {{number}}",
@@ -763,6 +769,15 @@
     },
     "solution": {
       "action": "Make flashcards"
+    },
+    "notebook": {
+      "deckName": "My question notebook",
+      "answer": "Answer: {{answer}}",
+      "openSolution": "Open the solution",
+      "solved": "I solved it",
+      "notSolved": "I couldn't solve it",
+      "shortcuts": "Space flip · → or 2 solved · ← or 1 not solved · Esc exit",
+      "flipHintTouch": "Tap the card to see the answer, then swipe right if you solved it, left if you didn't."
     },
     "reminder": {
       "text_one": "{{count}} flashcard is waiting for you today",

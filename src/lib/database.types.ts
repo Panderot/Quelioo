@@ -65,6 +65,7 @@ export type Database = {
           deck_id: string
           front: string
           id: string
+          solution_id: string | null
           updated_at: string
           user_id: string
         }
@@ -74,6 +75,7 @@ export type Database = {
           deck_id: string
           front?: string
           id?: string
+          solution_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -83,6 +85,7 @@ export type Database = {
           deck_id?: string
           front?: string
           id?: string
+          solution_id?: string | null
           updated_at?: string
           user_id?: string
         }

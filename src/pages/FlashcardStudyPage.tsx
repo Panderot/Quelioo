@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +6,8 @@ import type { TFunction } from 'i18next'
 
 import { useDocumentTitle } from '../hooks/useDocumentTitle'
 import { useNow } from '../hooks/useNow'
-import { cardsForDeck, reloadFlashcards, updateCard, useFlashcards } from '../lib/flashcardStorage'
+import { NOTEBOOK_SOURCE_REF, cardsForDeck, reloadFlashcards, updateCard, useFlashcards } from '../lib/flashcardStorage'
+import { getSolution } from '../lib/solutionStorage'
 import { LoadError, SkeletonList } from '../components/DataStates'
 import type { Card, Deck } from '../lib/flashcardStorage'
 import {
@@ -49,6 +50,36 @@ const Kbd = ({ children }: { children: string }) => (
   <kbd aria-hidden className="rounded border border-warm-border bg-paper px-1.5 py-0.5 font-sans text-[10px] font-bold text-muted pointer-coarse:hidden">{children}</kbd>
 )
 
+/** The question notebook: its cards carry the solved problem's photo and read "I solved it" / "I couldn't". */
+const isNotebookDeck = (deck: Deck) => deck.source === 'solution' && deck.sourceRef === NOTEBOOK_SOURCE_REF
+
+/** The solved problem behind a notebook card: whether it is still there, and its photo once loaded.
+ * A deleted solution or a photo that cannot be read simply leaves the card as text. */
+function useSolutionPhoto(solutionId: string | null): { exists: boolean; src: string | null } {
+  const [loaded, setLoaded] = useState<{ id: string; exists: boolean; src: string | null } | null>(null)
+
+  useEffect(() => {
+    if (!solutionId) return
+    let cancelled = false
+    let objectUrl: string | null = null
+    void getSolution(solutionId)
+      .then((solution) => {
+        if (cancelled) return
+        if (solution?.thumbnail) objectUrl = URL.createObjectURL(solution.thumbnail)
+        setLoaded({ id: solutionId, exists: solution !== null, src: objectUrl ?? solution?.thumbnailUrl ?? null })
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded({ id: solutionId, exists: false, src: null })
+      })
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [solutionId])
+
+  return loaded && loaded.id === solutionId ? { exists: loaded.exists, src: loaded.src } : { exists: false, src: null }
+}
+
 interface SessionProps {
   deck: Deck
   cards: Card[]
@@ -74,6 +105,8 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
   const currentId = currentCardId(session)
   const current = currentId ? (cards.find((card) => card.id === currentId) ?? snapshot.get(currentId) ?? null) : null
   const done = isSessionDone(session)
+  const notebook = isNotebookDeck(deck)
+  const photo = useSolutionPhoto(current?.solutionId ?? null)
 
   const flip = () => {
     if (!current) return
@@ -278,6 +311,14 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
               className="flashcard-face flashcard-front flex flex-col overflow-y-auto rounded-2xl border border-warm-border bg-card p-6"
             >
               <span className="text-[11px] font-bold tracking-wide text-muted uppercase">{t('flashcards.study.front')}</span>
+              {photo.src && (
+                <img
+                  src={photo.src}
+                  alt={t('solve.upload.croppedAlt')}
+                  data-purpose="study-solution-photo"
+                  className="mx-auto mt-3 max-h-64 w-auto shrink-0 rounded-xl border border-warm-border object-contain"
+                />
+              )}
               <span dir="auto" className="my-auto block py-4 text-center font-serif text-xl break-words text-navy md:text-2xl">
                 <MathText text={current.front} />
               </span>
@@ -299,6 +340,21 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
         {announcement}
       </p>
 
+      {/* A new tab, so the study session is not lost. Hidden once the solution itself is gone. */}
+      {flipped && current.solutionId && photo.exists && (
+        <p className="text-center">
+          <Link
+            to={`/archive/solutions/${current.solutionId}`}
+            target="_blank"
+            rel="noopener"
+            data-purpose="open-solution"
+            className="text-xs font-semibold text-amber-text hover:underline"
+          >
+            {t('flashcards.notebook.openSolution')}
+          </Link>
+        </p>
+      )}
+
       {flipped ? (
         <div className="grid grid-cols-2 gap-3">
           <button
@@ -306,7 +362,7 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
             onClick={() => answer(false)}
             className="flex h-12 items-center justify-center gap-2 rounded-xl border border-warm-border bg-card text-sm font-bold text-error hover:border-error/50"
           >
-            {t('flashcards.study.dontKnow')}
+            {t(notebook ? 'flashcards.notebook.notSolved' : 'flashcards.study.dontKnow')}
             <Kbd>1</Kbd>
           </button>
           <button
@@ -314,17 +370,17 @@ function StudySession({ deck, cards, now, mode, onRestart }: SessionProps) {
             onClick={() => answer(true)}
             className="flex h-12 items-center justify-center gap-2 rounded-xl bg-amber text-sm font-bold text-navy hover:bg-amber-hover"
           >
-            {t('flashcards.study.know')}
+            {t(notebook ? 'flashcards.notebook.solved' : 'flashcards.study.know')}
             <Kbd>2</Kbd>
           </button>
         </div>
       ) : (
         <p className="text-center text-xs text-muted">
           <span className="pointer-coarse:hidden">{t('flashcards.study.flipHintKeyboard')}</span>
-          <span className="hidden pointer-coarse:inline">{t('flashcards.study.flipHintTouch')}</span>
+          <span className="hidden pointer-coarse:inline">{t(notebook ? 'flashcards.notebook.flipHintTouch' : 'flashcards.study.flipHintTouch')}</span>
         </p>
       )}
-      <p className="text-center text-[11px] text-muted pointer-coarse:hidden">{t('flashcards.study.shortcuts')}</p>
+      <p className="text-center text-[11px] text-muted pointer-coarse:hidden">{t(notebook ? 'flashcards.notebook.shortcuts' : 'flashcards.study.shortcuts')}</p>
     </section>
   )
 }

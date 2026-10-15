@@ -36,7 +36,7 @@ export function deckToRow(deck: Deck, userId: string): InsertRow<'decks'> {
 }
 
 export function cardToRow(card: Card, userId: string): InsertRow<'cards'> {
-  return { id: card.id, user_id: userId, deck_id: card.deckId, front: card.front, back: card.back, created_at: iso(card.createdAt) }
+  return { id: card.id, user_id: userId, deck_id: card.deckId, front: card.front, back: card.back, solution_id: card.solutionId, created_at: iso(card.createdAt) }
 }
 
 export function progressToRow(card: Card, userId: string): InsertRow<'card_progress'> {
@@ -103,6 +103,7 @@ export async function fetchFlashcards(): Promise<{ decks: Partial<Deck>[]; cards
     return {
       id: row.id as string,
       deckId: row.deck_id as string,
+      solutionId: (row.solution_id as string | null) ?? null,
       front: row.front as string,
       back: row.back as string,
       createdAt,

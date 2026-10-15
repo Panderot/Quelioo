@@ -124,6 +124,27 @@ test.describe('flashcards in the account', () => {
     expect((await admin.from('cards').select('front').eq('deck_id', mine)).data).toEqual([{ front: 'mine' }])
     await context.close()
   })
+
+  test('a question-notebook card keeps its solution link, and only its owner can read it', async () => {
+    const user = await createTestUser('notebook')
+    const other = await createTestUser('notebook-other')
+    const deckId = crypto.randomUUID()
+    const cardId = crypto.randomUUID()
+    const solutionId = crypto.randomUUID()
+    // The same row the app's remote mapping writes (cardToRow): the notebook card carries `solution_id`.
+    expect((await user.client.from('decks').insert({ id: deckId, name: 'My question notebook', source: 'solution', source_ref: 'notebook' })).error).toBeNull()
+    expect((await user.client.from('cards').insert({ id: cardId, deck_id: deckId, front: 'Solve 3x + 7 = 2x + 15', back: 'Answer: x = 8', solution_id: solutionId })).error).toBeNull()
+
+    // Read back the way fetchFlashcards does (select *), so the app maps solution_id -> solutionId unchanged.
+    const read = await user.client.from('cards').select('*').eq('id', cardId).single()
+    expect(read.error).toBeNull()
+    expect(read.data?.solution_id).toBe(solutionId)
+    // An ordinary card leaves the column null, which the app reads as "no solution".
+    const plain = await user.client.from('cards').insert({ deck_id: deckId, front: 'f', back: 'b' }).select('solution_id').single()
+    expect(plain.data?.solution_id).toBeNull()
+
+    expect((await other.client.from('cards').select('solution_id').eq('id', cardId)).data).toEqual([])
+  })
 })
 
 test.describe('archive in the account', () => {
